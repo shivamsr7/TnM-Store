@@ -1,0 +1,6 @@
+export const announcements = [
+  "✨ RAKHI SALE • UP TO 40% OFF",
+  "🚚 FREE SHIPPING ON ORDERS ABOVE ₹999",
+  "🎁 FREE GIFT ON ORDERS ABOVE ₹1499",
+  "💎 PREMIUM ANTI-TARNISH JEWELLERY",
+];
