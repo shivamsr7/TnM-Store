@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
-import { useHeroBanners } from "../hooks/useHeroBanner";
 import HeroSlide from "./HeroSlide";
-import HeroControls from "./HeroControls";
 import HeroDots from "./HeroDots";
+import HeroControls from "./HeroControls";
 
-const AUTO_SLIDE_INTERVAL = 5000;
+import { useHeroBanners } from "../hooks/useHeroBanner";
 
+import {
+    HERO_AUTOPLAY_DELAY,
+    HERO_FADE_DURATION,
+} from "../constants/constants";
 export default function HeroSlider() {
   const { data: banners = [], isLoading } = useHeroBanners();
 
@@ -27,9 +30,9 @@ export default function HeroSlider() {
 
     if (banners.length <= 1) return;
 
-    const timer = window.setInterval(() => {
-      setCurrent((prev) => (prev + 1) % banners.length);
-    }, AUTO_SLIDE_INTERVAL);
+const timer = window.setInterval(() => {
+  setCurrent((prev) => (prev + 1) % banners.length);
+}, HERO_AUTOPLAY_DELAY);
 
     return () => clearInterval(timer);
   }, [banners.length, paused]);
@@ -57,7 +60,7 @@ export default function HeroSlider() {
       </div>
     );
   }
-
+const currentBanner = banners[current];
   return (
     <div
       className="relative h-[405px] overflow-hidden shadow-[0_30px_80px_rgba(0,0,0,0.18)]"
@@ -65,20 +68,36 @@ export default function HeroSlider() {
       onMouseLeave={() => setPaused(false)}
     >
       <AnimatePresence mode="wait">
-        <motion.div
-          key={banners[current].id}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{
-            duration: 0.8,
-            ease: "easeInOut",
-          }}
-          className="absolute inset-0"
-        >
-          <HeroSlide banner={banners[current]} />
-        </motion.div>
-      </AnimatePresence>
+  <motion.div
+    key={currentBanner.id}
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    transition={{
+      duration: HERO_FADE_DURATION,
+      ease: "easeInOut",
+    }}
+    className="absolute inset-0"
+
+    drag="x"
+    dragConstraints={{ left: 0, right: 0 }}
+    dragElastic={0.15}
+
+    onDragEnd={(_, info) => {
+      const threshold = 80;
+
+      if (info.offset.x < -threshold) {
+        next();
+      }
+
+      if (info.offset.x > threshold) {
+        prev();
+      }
+    }}
+  >
+    <HeroSlide banner={currentBanner} />
+  </motion.div>
+</AnimatePresence>
 
       <HeroControls
         onPrev={prev}
