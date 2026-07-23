@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-
+import HeroProgress from "./HeroProgress";
 import HeroSlide from "./HeroSlide";
 import HeroDots from "./HeroDots";
 import HeroControls from "./HeroControls";
@@ -16,7 +16,7 @@ export default function HeroSlider() {
 
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
-
+const [progress, setProgress] = useState(0);
   // Reset index if banners change
   useEffect(() => {
     if (current >= banners.length) {
@@ -37,13 +37,39 @@ const timer = window.setInterval(() => {
     return () => clearInterval(timer);
   }, [banners.length, paused]);
 
-  const next = () => {
-    setCurrent((prev) => (prev + 1) % banners.length);
-  };
+  useEffect(() => {
+  if (paused) return;
 
-  const prev = () => {
-    setCurrent((prev) => (prev - 1 + banners.length) % banners.length);
-  };
+  if (banners.length <= 1) return;
+
+  setProgress(0);
+
+  const start = Date.now();
+
+  const interval = window.setInterval(() => {
+    const elapsed = Date.now() - start;
+
+    const percent = Math.min(
+      (elapsed / HERO_AUTOPLAY_DELAY) * 100,
+      100
+    );
+
+    setProgress(percent);
+  }, 50);
+
+  return () => clearInterval(interval);
+}, [current, paused, banners.length]);
+const next = () => {
+  setProgress(0);
+
+  setCurrent((prev) => (prev + 1) % banners.length);
+};
+
+const prev = () => {
+  setProgress(0);
+
+  setCurrent((prev) => (prev - 1 + banners.length) % banners.length);
+};
 
   if (isLoading) {
     return (
@@ -109,6 +135,7 @@ const currentBanner = banners[current];
         current={current}
         onSelect={setCurrent}
       />
+      <HeroProgress progress={progress} />
     </div>
   );
 }
