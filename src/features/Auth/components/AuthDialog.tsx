@@ -2,7 +2,7 @@ import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
-
+import logo from "@/assets/logo/mainLogo.png"
 import {
   useState,
 } from "react";
@@ -10,7 +10,6 @@ import {
 import {
   ArrowLeft,
   Crown,
-  Sparkles,
 } from "lucide-react";
 
 import {
@@ -20,15 +19,20 @@ import {
 
 
 interface Props {
-  open: boolean;
-  onOpenChange: (open:boolean)=>void;
+
+  open:boolean;
+
+  onOpenChange:(open:boolean)=>void;
+
 }
+
 
 
 type Step =
   | "phone"
   | "otp"
   | "profile";
+
 
 
 
@@ -41,12 +45,20 @@ export default function AuthDialog({
 }:Props){
 
 
-const [step,setStep] =
-useState<Step>("phone");
+
+const [
+  step,
+  setStep,
+]=useState<Step>("phone");
 
 
-const [phone,setPhone] =
-useState("");
+
+const [
+  phone,
+  setPhone,
+]=useState("");
+
+
 
 
 
@@ -78,51 +90,28 @@ onOpenChange={closeDialog}
 <DialogContent
 
 className="
-
-w-full
-
 max-w-md
-
-max-h-[90dvh]
-
 overflow-hidden
-
 rounded-3xl
-
 border-none
-
 p-0
-
 shadow-2xl
-
-
-data-[state=open]:animate-in
-
-data-[state=closed]:animate-out
-
-data-[state=open]:slide-in-from-bottom
-
-data-[state=closed]:slide-out-to-bottom
-
-
-sm:max-h-[85vh]
-
 "
 
 >
 
 
-
-{/* Header */}
-
+{/* Brand Header */}
 
 <div
 
 className="
-shrink-0
-bg-[#F8F6F1]
+bg-gradient-to-b
+from-[#F8F6F1]
+to-white
 px-6
-py-7
+pb-6
+pt-8
 "
 
 >
@@ -132,8 +121,9 @@ py-7
 
 className="
 flex
+flex-col
 items-center
-gap-3
+text-center
 "
 
 >
@@ -143,21 +133,30 @@ gap-3
 
 className="
 flex
-h-12
-w-12
+h-16
+w-16
 items-center
 justify-center
+overflow-hidden
 rounded-full
 bg-white
+shadow-sm
 "
 
 >
 
-<Sparkles
+<img
 
-size={24}
+src={logo}
 
-className="text-[#C8A44D]"
+alt="T&M Jewels"
+
+className="
+h-full
+w-full
+object-contain
+p-2
+"
 
 />
 
@@ -165,41 +164,40 @@ className="text-[#C8A44D]"
 
 
 
-<div>
 
 <h2
-
 className="
-text-xl
+mt-4
+text-2xl
 font-semibold
-text-neutral-900
+tracking-wide
+text-[#C8A44D]
 "
-
 >
-
 T&M Jewels
-
 </h2>
+
+
 
 
 <p
 
 className="
+mt-2
 text-sm
 text-neutral-500
 "
 
 >
 
-Welcome to our family
+Your luxury jewellery experience
 
 </p>
 
 
-</div>
-
 
 </div>
+
 
 
 
@@ -208,29 +206,79 @@ Welcome to our family
 <div
 
 className="
-mt-5
-flex
+mt-6
+grid
+grid-cols-3
 gap-2
-text-xs
-text-neutral-600
 "
 
 >
 
-<span className="rounded-full bg-white px-3 py-2">
-✨ Rewards
+
+<div className="
+rounded-xl
+bg-white
+px-2
+py-3
+text-center
+">
+
+<p>♡</p>
+
+<span className="
+text-xs
+text-neutral-600
+">
+
+Wishlist
+
 </span>
 
+</div>
 
-<span className="rounded-full bg-white px-3 py-2">
-♡ Wishlist
+
+
+<div className="
+rounded-xl
+bg-white
+px-2
+py-3
+text-center
+">
+
+<p>🎁</p>
+
+<span className="
+text-xs
+text-neutral-600
+">
+
+Rewards
+
 </span>
 
+</div>
 
-<span className="rounded-full bg-white px-3 py-2">
-♛ Offers
+
+
+<div className="
+rounded-xl
+bg-white
+px-2
+py-3
+text-center
+">
+
+<p>💎</p>
+
+<span className="
+text-xs
+text-neutral-600
+">
+
+Offers
+
 </span>
-
 
 </div>
 
@@ -239,29 +287,21 @@ text-neutral-600
 
 
 
+</div>
 
 
 
 
-{/* Scroll Content */}
 
+
+
+
+{/* Content */}
 
 <div
 
 className="
-
-max-h-[60vh]
-
-overflow-y-auto
-
-overscroll-contain
-
-px-6
-
-pb-8
-
-pt-6
-
+p-6
 "
 
 >
@@ -271,7 +311,10 @@ pt-6
 
 
 
+
+
 {step==="phone" && (
+
 
 <motion.div
 
@@ -287,6 +330,11 @@ opacity:1,
 x:0
 }}
 
+exit={{
+opacity:0,
+x:-20
+}}
+
 >
 
 
@@ -300,9 +348,10 @@ text-neutral-900
 
 >
 
-Login or Create Account
+Welcome to T&M Family ✨
 
 </h3>
+
 
 
 <p
@@ -315,9 +364,12 @@ text-neutral-500
 
 >
 
-Enter your mobile number to continue
+Login to access your wishlist, rewards & exclusive offers
 
 </p>
+
+
+
 
 
 
@@ -336,24 +388,39 @@ px-4
 
 >
 
+
 <span>
+
 +91
+
 </span>
+
+
 
 
 <input
 
+
 type="tel"
+
 
 inputMode="numeric"
 
+
 value={phone}
 
+
 onChange={(e)=>
-setPhone(e.target.value)
+
+setPhone(
+e.target.value
+)
+
 }
 
+
 placeholder="Mobile number"
+
 
 className="
 ml-3
@@ -370,21 +437,25 @@ outline-none
 
 
 
+
 <button
 
 onClick={()=>
 setStep("otp")
 }
 
+
 className="
 mt-5
 w-full
 rounded-xl
-bg-black
+bg-[#111111]
 py-3
 text-sm
 font-medium
 text-white
+transition-colors
+hover:bg-[#C8A44D]
 "
 
 >
@@ -394,7 +465,9 @@ Continue
 </button>
 
 
+
 </motion.div>
+
 
 )}
 
@@ -406,6 +479,7 @@ Continue
 
 
 {step==="otp" && (
+
 
 <motion.div
 
@@ -449,6 +523,7 @@ Back
 
 
 
+
 <h3
 
 className="
@@ -462,6 +537,7 @@ font-semibold
 Verify OTP
 
 </h3>
+
 
 
 <p
@@ -480,11 +556,13 @@ OTP sent to +91 {phone}
 
 
 
+
+
 <input
 
-inputMode="numeric"
-
 placeholder="Enter OTP"
+
+inputMode="numeric"
 
 className="
 mt-5
@@ -501,6 +579,7 @@ outline-none
 
 
 
+
 <button
 
 onClick={()=>
@@ -511,10 +590,8 @@ className="
 mt-5
 w-full
 rounded-xl
-bg-black
+bg-[#111111]
 py-3
-text-sm
-font-medium
 text-white
 "
 
@@ -527,6 +604,7 @@ Verify OTP
 
 </motion.div>
 
+
 )}
 
 
@@ -535,7 +613,9 @@ Verify OTP
 
 
 
+
 {step==="profile" && (
+
 
 <motion.div
 
@@ -554,6 +634,7 @@ x:0
 >
 
 
+
 <div
 
 className="
@@ -568,15 +649,21 @@ gap-2
 
 size={20}
 
-className="text-[#C8A44D]"
+className="
+text-[#C8A44D]
+"
 
 />
 
 
-<h3 className="
+<h3
+
+className="
 text-lg
 font-semibold
-">
+"
+
+>
 
 Join T&M Family
 
@@ -607,6 +694,7 @@ py-3
 
 
 
+
 <input
 
 placeholder="Email (optional)"
@@ -625,16 +713,15 @@ py-3
 
 
 
+
 <button
 
 className="
 mt-5
 w-full
 rounded-xl
-bg-black
+bg-[#111111]
 py-3
-text-sm
-font-medium
 text-white
 "
 
@@ -645,9 +732,13 @@ Create Account
 </button>
 
 
+
 </motion.div>
 
+
 )}
+
+
 
 
 
@@ -655,6 +746,7 @@ Create Account
 
 
 </div>
+
 
 
 </DialogContent>
