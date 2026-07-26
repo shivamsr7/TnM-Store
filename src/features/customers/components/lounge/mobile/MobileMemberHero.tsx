@@ -1,7 +1,7 @@
 import {
   ArrowRight,
 } from "lucide-react";
-
+import silverCard from "@/assets/card/silver-card.png"
 
 interface Props {
 
@@ -36,7 +36,7 @@ rounded-3xl
 
 <img
 
-src="/assets/card/silver-card.png"
+src={silverCard}
 
 alt="Silver Membership"
 
