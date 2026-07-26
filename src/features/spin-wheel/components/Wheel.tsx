@@ -1,5 +1,14 @@
 import { rewards } from "../data/rewards";
-
+import { useEffect, useState } from "react";
+import WinnerDialog from "./WinnerDialog";
+import ClaimRewardDialog from "./ClaimRewardDialog";
+import {
+  canSpin,
+  saveLastSpin,
+  getRemainingTime,
+} from "../utils/spinCooldown";
+import SpinCooldownDialog from "./SpinCooldownDialog";
+import { formatTime } from "../utils/formatTime";
 const SIZE = 250;
 const RADIUS = 110;
 const CENTER = SIZE / 2;
@@ -23,9 +32,92 @@ export default function Wheel({
 }: {
   onSpin?: () => void;
 }) {
-  const angle = 360 / rewards.length;
 
+  const angle = 360 / rewards.length;
+const [rotation, setRotation] = useState(0);
+const [spinning, setSpinning] = useState(false);
+const [winnerIndex, setWinnerIndex] = useState<number | null>(null);
+const [dialogOpen, setDialogOpen] = useState(false);
+const [claimDialogOpen, setClaimDialogOpen] = useState(false);
+const [remainingTime, setRemainingTime] = useState(getRemainingTime());
+const [cooldownDialogOpen, setCooldownDialogOpen] = useState(false);
+useEffect(() => {
+  const interval = setInterval(() => {
+    setRemainingTime(getRemainingTime());
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, []);
+const spin = () => {
+
+  if (spinning) return;
+
+if (!canSpin()) {
+  setCooldownDialogOpen(true);
+  return;
+}
+
+  setSpinning(true);
+
+  const totalProbability = rewards.reduce(
+  (sum, reward) => sum + reward.probability,
+  0
+);
+
+const random = Math.random() * totalProbability;
+
+let cumulative = 0;
+let winner = 0;
+
+for (let i = 0; i < rewards.length; i++) {
+  cumulative += rewards[i].probability;
+
+  if (random < cumulative) {
+    winner = i;
+    break;
+  }
+}
+
+setWinnerIndex(winner);
+  const segmentAngle = 360 / rewards.length;
+
+// Center of the winning segment
+const winnerAngle =
+  winner * segmentAngle + segmentAngle / 2;
+
+// Pointer is at 0° (top)
+const pointerAngle = 0;
+
+// Rotate the wheel so the winner reaches the pointer
+const targetRotation =
+  360 - winnerAngle + pointerAngle;
+
+// Add full spins for animation
+const extraSpins = 6 * 360;
+
+const finalRotation =
+  (rotation % 360) +
+  extraSpins +
+  targetRotation;
+
+  setRotation(finalRotation);
+
+  onSpin?.();
+
+  setTimeout(() => {
+
+setSpinning(false);
+
+setDialogOpen(true);
+
+console.log("Winner:", rewards[winner]);
+console.log("Winner Index:", winner);
+
+  }, 6000);
+
+};
   return (
+    <>
     <svg
       width={SIZE}
       height={SIZE}
@@ -113,7 +205,15 @@ export default function Wheel({
         r={RADIUS + 4}
         fill="#FCFBF7"
       />
-
+<g
+  style={{
+    transformOrigin: `${CENTER}px ${CENTER}px`,
+    transform: `rotate(${rotation}deg)`,
+    transition: spinning
+      ? "transform 6s cubic-bezier(0.17,0.67,0.18,0.99)"
+      : undefined,
+  }}
+>
       {rewards.map((reward, index) => {
         const start = index * angle;
         const end = start + angle;
@@ -196,12 +296,17 @@ export default function Wheel({
           </g>
         );
       })}
+      </g>
             {/* ================= Center Button ================= */}
 
       <g
-        onClick={onSpin}
-        className="cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95"
-      >
+  onClick={spin}
+  className={`transition-all duration-300 ${
+    spinning
+      ? "cursor-not-allowed opacity-70"
+      : "cursor-pointer hover:scale-105 active:scale-95"
+  }`}
+>
         {/* Shadow */}
         <circle
           cx={CENTER}
@@ -274,5 +379,36 @@ export default function Wheel({
       </g>
 
     </svg>
+    <WinnerDialog
+      open={dialogOpen}
+      reward={winnerIndex !== null ? rewards[winnerIndex].label : ""}
+      onClose={() => setDialogOpen(false)}
+      onClaim={() => {
+  setDialogOpen(false);
+  setClaimDialogOpen(true);
+}}
+
+    />
+    <ClaimRewardDialog
+  open={claimDialogOpen}
+  reward={winnerIndex !== null ? rewards[winnerIndex].label : ""}
+  onClose={() => setClaimDialogOpen(false)}
+  onSubmit={(data) => {
+  console.log("Reward:", rewards[winnerIndex!].label);
+  console.log("Name:", data.name);
+  console.log("Phone:", data.phone);
+
+  saveLastSpin();
+  setRemainingTime(getRemainingTime());
+
+  setClaimDialogOpen(false);
+}}
+/>
+<SpinCooldownDialog
+  open={cooldownDialogOpen}
+  remainingTime={formatTime(remainingTime)}
+  onClose={() => setCooldownDialogOpen(false)}
+/>
+  </>
   );
 }

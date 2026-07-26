@@ -6,7 +6,7 @@ import TopSection from "./TopSection";
 import Navigation from "./Navigation";
 import MobileHeader from "./MobileHeader";
 import MobileDrawer from "./MobileDrawer";
-
+import MobileNavigation from "./MobileNavigation";
 export default function Header() {
   const [search, setSearch] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -52,9 +52,9 @@ export default function Header() {
           onClose={() => setMobileOpen(false)}
         >
           {/* We'll add MobileNavigation here in the next step */}
-          <div className="p-6 text-sm text-neutral-500">
-            Mobile navigation coming soon...
-          </div>
+         <MobileNavigation
+  onClose={() => setMobileOpen(false)}
+/>
         </MobileDrawer>
       </div>
     </header>
