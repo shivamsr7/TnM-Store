@@ -21,11 +21,14 @@ import {
 
 interface Props {
 
-  open:boolean;
+  open: boolean;
 
-  onOpenChange:(open:boolean)=>void;
+  onOpenChange: (
+    open: boolean
+  ) => void;
 
 }
+
 
 
 type Step =
@@ -38,623 +41,719 @@ type Step =
 
 export default function AuthDialog({
 
-open,
+  open,
 
-onOpenChange,
+  onOpenChange,
 
-}:Props){
+}: Props) {
 
 
 
-const [step,setStep]=
-useState<Step>("phone");
+  const [
+    step,
+    setStep,
+  ] = useState<Step>("phone");
 
 
-const [phone,setPhone]=
-useState("");
 
+  const [
+    phone,
+    setPhone,
+  ] = useState("");
 
 
 
 
-function close(){
 
-setStep("phone");
+  function closeDialog() {
 
-setPhone("");
+    setStep("phone");
 
-onOpenChange(false);
+    setPhone("");
 
-}
+    onOpenChange(false);
 
+  }
 
 
 
 
-return (
 
-<Dialog
+  return (
 
-open={open}
+    <Dialog
 
-onOpenChange={close}
+      open={open}
 
->
+      onOpenChange={closeDialog}
 
+    >
 
-<DialogContent
 
-className="
-max-w-md
-overflow-hidden
-rounded-3xl
-border-none
-p-0
-shadow-2xl
-"
+      <DialogContent
 
->
+        className="
+          fixed
+          bottom-0
+          left-0
+          top-auto
+          translate-x-0
+          translate-y-0
 
+          w-full
+          max-w-md
 
+          rounded-t-3xl
+          border-none
+          p-0
+          shadow-2xl
 
-<div
+          overflow-hidden
 
-className="
-bg-[#F8F6F1]
-px-6
-py-7
-"
 
->
+          data-[state=open]:animate-in
+          data-[state=closed]:animate-out
 
+          data-[state=open]:slide-in-from-bottom
+          data-[state=closed]:slide-out-to-bottom
 
-<div className="
-flex
-items-center
-gap-3
-">
 
+          sm:left-[50%]
+          sm:top-[50%]
+          sm:bottom-auto
 
-<div
+          sm:translate-x-[-50%]
+          sm:translate-y-[-50%]
 
-className="
-flex
-h-12
-w-12
-items-center
-justify-center
-rounded-full
-bg-white
-"
+          sm:rounded-3xl
 
->
+          sm:data-[state=open]:slide-in-from-bottom-0
 
-<Sparkles
+        "
 
-size={24}
+      >
 
-className="
-text-[#C8A44D]
-"
 
-/>
 
-</div>
 
 
+        {/* Header */}
 
-<div>
 
+        <div
 
-<h2
+          className="
+            bg-[#F8F6F1]
+            px-6
+            py-7
+          "
 
-className="
-text-xl
-font-semibold
-text-neutral-900
-"
+        >
 
->
 
-T&M Jewels
 
-</h2>
+          <div
 
+            className="
+              flex
+              items-center
+              gap-3
+            "
 
-<p
+          >
 
-className="
-text-sm
-text-neutral-500
-"
 
->
 
-Welcome to our family
+            <div
 
-</p>
+              className="
+                flex
+                h-12
+                w-12
+                items-center
+                justify-center
+                rounded-full
+                bg-white
+              "
 
+            >
 
-</div>
+              <Sparkles
 
+                size={24}
 
-</div>
+                className="
+                  text-[#C8A44D]
+                "
 
+              />
 
+            </div>
 
 
 
-<div
 
-className="
-mt-5
-flex
-gap-3
-text-xs
-text-neutral-600
-"
 
->
+            <div>
 
 
-<span className="
-rounded-full
-bg-white
-px-3
-py-2
-">
+              <h2
 
-✨ Rewards
+                className="
+                  text-xl
+                  font-semibold
+                  text-neutral-900
+                "
 
-</span>
+              >
 
+                T&M Jewels
 
-<span className="
-rounded-full
-bg-white
-px-3
-py-2
-">
+              </h2>
 
-♡ Wishlist
 
-</span>
 
+              <p
 
-<span className="
-rounded-full
-bg-white
-px-3
-py-2
-">
+                className="
+                  text-sm
+                  text-neutral-500
+                "
 
-♛ Offers
+              >
 
-</span>
+                Welcome to our family
 
+              </p>
 
-</div>
 
+            </div>
 
 
-</div>
+          </div>
 
 
 
 
 
 
-<div className="p-6">
+          <div
 
+            className="
+              mt-5
+              flex
+              gap-2
+              text-xs
+              text-neutral-600
+            "
 
-<AnimatePresence mode="wait">
+          >
 
+            <span
 
-{step==="phone" && (
+              className="
+                rounded-full
+                bg-white
+                px-3
+                py-2
+              "
 
+            >
 
-<motion.div
+              ✨ Rewards
 
-key="phone"
+            </span>
 
-initial={{
-opacity:0,
-x:20
-}}
 
-animate={{
-opacity:1,
-x:0
-}}
 
-exit={{
-opacity:0,
-x:-20
-}}
+            <span
 
->
+              className="
+                rounded-full
+                bg-white
+                px-3
+                py-2
+              "
 
+            >
 
-<h3
+              ♡ Wishlist
 
-className="
-text-lg
-font-semibold
-text-neutral-900
-"
+            </span>
 
->
 
-Login or Create Account
 
-</h3>
+            <span
 
+              className="
+                rounded-full
+                bg-white
+                px-3
+                py-2
+              "
 
+            >
 
-<p
+              ♛ Offers
 
-className="
-mt-2
-text-sm
-text-neutral-500
-"
+            </span>
 
->
 
-Enter your mobile number to continue
+          </div>
 
-</p>
 
+        </div>
 
 
 
 
-<div
 
-className="
-mt-5
-flex
-items-center
-rounded-xl
-border
-border-neutral-200
-bg-white
-px-4
-"
 
->
 
-<span>
 
-+91
+        {/* Body */}
 
-</span>
 
 
+        <div
 
-<input
+          className="
+            p-6
+            pb-8
+          "
 
-value={phone}
+        >
 
-onChange={(e)=>
-setPhone(e.target.value)
-}
 
-placeholder="Mobile number"
 
-className="
-ml-3
-w-full
-py-3
-outline-none
-"
+          <AnimatePresence mode="wait">
 
-/>
 
 
-</div>
 
 
+            {step === "phone" && (
 
 
+              <motion.div
 
-<button
+                key="phone"
 
-onClick={()=>
-setStep("otp")
-}
+                initial={{
+                  opacity:0,
+                  x:20,
+                }}
 
-className="
-mt-5
-w-full
-rounded-xl
-bg-black
-py-3
-text-sm
-font-medium
-text-white
-transition
-hover:bg-neutral-800
-"
+                animate={{
+                  opacity:1,
+                  x:0,
+                }}
 
->
+                exit={{
+                  opacity:0,
+                  x:-20,
+                }}
 
-Continue
+              >
 
-</button>
 
 
-</motion.div>
+                <h3
 
-)}
+                  className="
+                    text-lg
+                    font-semibold
+                    text-neutral-900
+                  "
 
+                >
 
+                  Login or Create Account
 
+                </h3>
 
 
 
 
+                <p
 
-{step==="otp" && (
+                  className="
+                    mt-2
+                    text-sm
+                    text-neutral-500
+                  "
 
+                >
 
-<motion.div
+                  Enter your mobile number to continue
 
-key="otp"
+                </p>
 
-initial={{
-opacity:0,
-x:20
-}}
 
-animate={{
-opacity:1,
-x:0
-}}
 
->
 
 
-<button
+                <div
 
-onClick={()=>
-setStep("phone")
-}
+                  className="
+                    mt-5
+                    flex
+                    items-center
+                    rounded-xl
+                    border
+                    border-neutral-200
+                    bg-white
+                    px-4
+                  "
 
-className="
-flex
-items-center
-gap-2
-text-sm
-text-neutral-600
-"
+                >
 
->
+                  <span>
+                    +91
+                  </span>
 
-<ArrowLeft size={16}/>
 
-Back
 
-</button>
+                  <input
 
+                    value={phone}
 
+                    onChange={(e)=>
+                      setPhone(
+                        e.target.value
+                      )
+                    }
 
+                    placeholder="Mobile number"
 
-<h3
+                    className="
+                      ml-3
+                      w-full
+                      py-3
+                      outline-none
+                    "
 
-className="
-mt-5
-text-lg
-font-semibold
-"
+                  />
 
->
 
-Verify OTP
+                </div>
 
-</h3>
 
 
-<p
 
-className="
-mt-2
-text-sm
-text-neutral-500
-"
 
->
+                <button
 
-OTP sent to +91 {phone}
+                  onClick={()=>
+                    setStep("otp")
+                  }
 
-</p>
+                  className="
+                    mt-5
+                    w-full
+                    rounded-xl
+                    bg-black
+                    py-3
+                    text-sm
+                    font-medium
+                    text-white
+                  "
 
+                >
 
+                  Continue
 
+                </button>
 
-<input
 
-placeholder="Enter OTP"
 
-className="
-mt-5
-w-full
-rounded-xl
-border
-px-4
-py-3
-outline-none
-"
+              </motion.div>
 
-/>
+            )}
 
 
 
-<button
 
-onClick={()=>
-setStep("profile")
-}
 
-className="
-mt-5
-w-full
-rounded-xl
-bg-black
-py-3
-text-sm
-font-medium
-text-white
-"
 
->
 
-Verify OTP
+            {step === "otp" && (
 
-</button>
 
+              <motion.div
 
+                key="otp"
 
-</motion.div>
+                initial={{
+                  opacity:0,
+                  x:20,
+                }}
 
-)}
+                animate={{
+                  opacity:1,
+                  x:0,
+                }}
 
+              >
 
 
 
+                <button
 
+                  onClick={()=>
+                    setStep("phone")
+                  }
 
+                  className="
+                    flex
+                    items-center
+                    gap-2
+                    text-sm
+                    text-neutral-600
+                  "
 
-{step==="profile" && (
+                >
 
+                  <ArrowLeft size={16}/>
 
-<motion.div
+                  Back
 
-key="profile"
+                </button>
 
-initial={{
-opacity:0,
-x:20
-}}
 
-animate={{
-opacity:1,
-x:0
-}}
 
->
 
 
-<div className="
-flex
-items-center
-gap-2
-"
+                <h3
 
->
+                  className="
+                    mt-5
+                    text-lg
+                    font-semibold
+                  "
 
-<Crown
+                >
 
-size={20}
+                  Verify OTP
 
-className="
-text-[#C8A44D]
-"
+                </h3>
 
-/>
 
 
-<h3 className="
-text-lg
-font-semibold
-">
+                <p
 
-Join T&M Family
+                  className="
+                    mt-2
+                    text-sm
+                    text-neutral-500
+                  "
 
-</h3>
+                >
 
+                  OTP sent to +91 {phone}
 
-</div>
+                </p>
 
 
 
 
-<input
+                <input
 
-placeholder="Full Name"
+                  placeholder="Enter OTP"
 
-className="
-mt-5
-w-full
-rounded-xl
-border
-px-4
-py-3
-"
+                  className="
+                    mt-5
+                    w-full
+                    rounded-xl
+                    border
+                    px-4
+                    py-3
+                    outline-none
+                  "
 
-/>
+                />
 
 
 
 
-<input
 
-placeholder="Email (optional)"
+                <button
 
-className="
-mt-3
-w-full
-rounded-xl
-border
-px-4
-py-3
-"
+                  onClick={()=>
+                    setStep("profile")
+                  }
 
-/>
+                  className="
+                    mt-5
+                    w-full
+                    rounded-xl
+                    bg-black
+                    py-3
+                    text-sm
+                    font-medium
+                    text-white
+                  "
 
+                >
 
+                  Verify OTP
 
-<button
+                </button>
 
-className="
-mt-5
-w-full
-rounded-xl
-bg-black
-py-3
-text-sm
-font-medium
-text-white
-"
 
->
 
-Create Account
+              </motion.div>
 
-</button>
 
+            )}
 
 
-</motion.div>
 
 
-)}
 
 
 
-</AnimatePresence>
+            {step === "profile" && (
 
 
-</div>
+              <motion.div
 
+                key="profile"
 
+                initial={{
+                  opacity:0,
+                  x:20,
+                }}
 
-</DialogContent>
+                animate={{
+                  opacity:1,
+                  x:0,
+                }}
 
+              >
 
-</Dialog>
 
 
-);
+                <div
+
+                  className="
+                    flex
+                    items-center
+                    gap-2
+                  "
+
+                >
+
+                  <Crown
+
+                    size={20}
+
+                    className="
+                      text-[#C8A44D]
+                    "
+
+                  />
+
+
+                  <h3
+
+                    className="
+                      text-lg
+                      font-semibold
+                    "
+
+                  >
+
+                    Join T&M Family
+
+                  </h3>
+
+
+                </div>
+
+
+
+
+
+                <input
+
+                  placeholder="Full Name"
+
+                  className="
+                    mt-5
+                    w-full
+                    rounded-xl
+                    border
+                    px-4
+                    py-3
+                  "
+
+                />
+
+
+
+
+
+                <input
+
+                  placeholder="Email (optional)"
+
+                  className="
+                    mt-3
+                    w-full
+                    rounded-xl
+                    border
+                    px-4
+                    py-3
+                  "
+
+                />
+
+
+
+
+
+                <button
+
+                  className="
+                    mt-5
+                    w-full
+                    rounded-xl
+                    bg-black
+                    py-3
+                    text-sm
+                    font-medium
+                    text-white
+                  "
+
+                >
+
+                  Create Account
+
+                </button>
+
+
+
+              </motion.div>
+
+
+            )}
+
+
+
+
+
+          </AnimatePresence>
+
+
+        </div>
+
+
+      </DialogContent>
+
+
+    </Dialog>
+
+  );
 
 }
