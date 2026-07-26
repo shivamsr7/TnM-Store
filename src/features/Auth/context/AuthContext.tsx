@@ -91,7 +91,7 @@ subscription
 }=supabase.auth.onAuthStateChange(
 
 async(
-event,
+_session,
 session
 )=>{
 
