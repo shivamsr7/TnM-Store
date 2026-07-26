@@ -39,6 +39,7 @@ type Step =
 
 
 
+
 export default function AuthDialog({
 
   open,
@@ -48,12 +49,10 @@ export default function AuthDialog({
 }: Props) {
 
 
-
   const [
     step,
     setStep,
   ] = useState<Step>("phone");
-
 
 
   const [
@@ -79,6 +78,29 @@ export default function AuthDialog({
 
 
 
+  function handleInputFocus(
+    e: React.FocusEvent<HTMLInputElement>
+  ) {
+
+    setTimeout(() => {
+
+      e.target.scrollIntoView({
+
+        behavior: "smooth",
+
+        block: "center",
+
+      });
+
+
+    }, 300);
+
+  }
+
+
+
+
+
   return (
 
     <Dialog
@@ -90,46 +112,71 @@ export default function AuthDialog({
     >
 
 
+
       <DialogContent
 
+
         className="
+
           fixed
+
           bottom-0
+
           left-0
+
           top-auto
-          translate-x-0
-          translate-y-0
+
 
           w-full
+
           max-w-md
 
-          rounded-t-3xl
-          border-none
-          p-0
-          shadow-2xl
+
+          max-h-[90dvh]
+
 
           overflow-hidden
 
 
+          rounded-t-3xl
+
+          border-none
+
+          p-0
+
+          shadow-2xl
+
+
+
           data-[state=open]:animate-in
+
           data-[state=closed]:animate-out
 
           data-[state=open]:slide-in-from-bottom
+
           data-[state=closed]:slide-out-to-bottom
 
 
+
           sm:left-[50%]
+
           sm:top-[50%]
+
           sm:bottom-auto
 
-          sm:translate-x-[-50%]
-          sm:translate-y-[-50%]
+
+          sm:max-h-[85vh]
+
+
+          sm:-translate-x-1/2
+
+          sm:-translate-y-1/2
+
 
           sm:rounded-3xl
 
-          sm:data-[state=open]:slide-in-from-bottom-0
-
         "
+
 
       >
 
@@ -143,37 +190,53 @@ export default function AuthDialog({
         <div
 
           className="
+
+            shrink-0
+
             bg-[#F8F6F1]
+
             px-6
+
             py-7
+
           "
 
         >
 
 
-
           <div
 
             className="
+
               flex
+
               items-center
+
               gap-3
+
             "
 
           >
 
 
-
             <div
 
               className="
+
                 flex
+
                 h-12
+
                 w-12
+
                 items-center
+
                 justify-center
+
                 rounded-full
+
                 bg-white
+
               "
 
             >
@@ -182,9 +245,7 @@ export default function AuthDialog({
 
                 size={24}
 
-                className="
-                  text-[#C8A44D]
-                "
+                className="text-[#C8A44D]"
 
               />
 
@@ -192,17 +253,18 @@ export default function AuthDialog({
 
 
 
-
-
             <div>
-
 
               <h2
 
                 className="
+
                   text-xl
+
                   font-semibold
+
                   text-neutral-900
+
                 "
 
               >
@@ -212,12 +274,14 @@ export default function AuthDialog({
               </h2>
 
 
-
               <p
 
                 className="
+
                   text-sm
+
                   text-neutral-500
+
                 "
 
               >
@@ -236,63 +300,39 @@ export default function AuthDialog({
 
 
 
-
           <div
 
             className="
+
               mt-5
+
               flex
+
               gap-2
+
               text-xs
+
               text-neutral-600
+
             "
 
           >
 
-            <span
-
-              className="
-                rounded-full
-                bg-white
-                px-3
-                py-2
-              "
-
-            >
+            <span className="rounded-full bg-white px-3 py-2">
 
               ✨ Rewards
 
             </span>
 
 
-
-            <span
-
-              className="
-                rounded-full
-                bg-white
-                px-3
-                py-2
-              "
-
-            >
+            <span className="rounded-full bg-white px-3 py-2">
 
               ♡ Wishlist
 
             </span>
 
 
-
-            <span
-
-              className="
-                rounded-full
-                bg-white
-                px-3
-                py-2
-              "
-
-            >
+            <span className="rounded-full bg-white px-3 py-2">
 
               ♛ Offers
 
@@ -310,20 +350,28 @@ export default function AuthDialog({
 
 
 
-
-        {/* Body */}
-
+        {/* Scrollable Content */}
 
 
         <div
 
           className="
-            p-6
+
+            min-h-0
+
+            overflow-y-auto
+
+            overscroll-contain
+
+            px-6
+
             pb-8
+
+            pt-6
+
           "
 
         >
-
 
 
           <AnimatePresence mode="wait">
@@ -349,11 +397,6 @@ export default function AuthDialog({
                   x:0,
                 }}
 
-                exit={{
-                  opacity:0,
-                  x:-20,
-                }}
-
               >
 
 
@@ -361,9 +404,13 @@ export default function AuthDialog({
                 <h3
 
                   className="
+
                     text-lg
+
                     font-semibold
+
                     text-neutral-900
+
                   "
 
                 >
@@ -378,9 +425,13 @@ export default function AuthDialog({
                 <p
 
                   className="
+
                     mt-2
+
                     text-sm
+
                     text-neutral-500
+
                   "
 
                 >
@@ -393,45 +444,83 @@ export default function AuthDialog({
 
 
 
+
                 <div
 
                   className="
+
                     mt-5
+
                     flex
+
                     items-center
+
                     rounded-xl
+
                     border
+
                     border-neutral-200
+
                     bg-white
+
                     px-4
+
                   "
 
                 >
 
+
                   <span>
+
                     +91
+
                   </span>
+
 
 
 
                   <input
 
+
+                    type="tel"
+
+
+                    inputMode="numeric"
+
+
+                    autoComplete="tel"
+
+
                     value={phone}
 
+
                     onChange={(e)=>
+
                       setPhone(
                         e.target.value
                       )
+
                     }
+
+
+                    onFocus={handleInputFocus}
+
 
                     placeholder="Mobile number"
 
+
                     className="
+
                       ml-3
+
                       w-full
+
                       py-3
+
                       outline-none
+
                     "
+
 
                   />
 
@@ -448,15 +537,25 @@ export default function AuthDialog({
                     setStep("otp")
                   }
 
+
                   className="
+
                     mt-5
+
                     w-full
+
                     rounded-xl
+
                     bg-black
+
                     py-3
+
                     text-sm
+
                     font-medium
+
                     text-white
+
                   "
 
                 >
@@ -466,8 +565,8 @@ export default function AuthDialog({
                 </button>
 
 
-
               </motion.div>
+
 
             )}
 
@@ -497,7 +596,6 @@ export default function AuthDialog({
               >
 
 
-
                 <button
 
                   onClick={()=>
@@ -505,11 +603,17 @@ export default function AuthDialog({
                   }
 
                   className="
+
                     flex
+
                     items-center
+
                     gap-2
+
                     text-sm
+
                     text-neutral-600
+
                   "
 
                 >
@@ -523,13 +627,16 @@ export default function AuthDialog({
 
 
 
-
                 <h3
 
                   className="
+
                     mt-5
+
                     text-lg
+
                     font-semibold
+
                   "
 
                 >
@@ -540,35 +647,30 @@ export default function AuthDialog({
 
 
 
-                <p
-
-                  className="
-                    mt-2
-                    text-sm
-                    text-neutral-500
-                  "
-
-                >
-
-                  OTP sent to +91 {phone}
-
-                </p>
-
-
-
-
                 <input
+
+                  inputMode="numeric"
 
                   placeholder="Enter OTP"
 
+                  onFocus={handleInputFocus}
+
                   className="
+
                     mt-5
+
                     w-full
+
                     rounded-xl
+
                     border
+
                     px-4
+
                     py-3
+
                     outline-none
+
                   "
 
                 />
@@ -584,14 +686,23 @@ export default function AuthDialog({
                   }
 
                   className="
+
                     mt-5
+
                     w-full
+
                     rounded-xl
+
                     bg-black
+
                     py-3
+
                     text-sm
+
                     font-medium
+
                     text-white
+
                   "
 
                 >
@@ -601,11 +712,11 @@ export default function AuthDialog({
                 </button>
 
 
-
               </motion.div>
 
 
             )}
+
 
 
 
@@ -633,36 +744,18 @@ export default function AuthDialog({
               >
 
 
-
-                <div
-
-                  className="
-                    flex
-                    items-center
-                    gap-2
-                  "
-
-                >
+                <div className="flex items-center gap-2">
 
                   <Crown
 
                     size={20}
 
-                    className="
-                      text-[#C8A44D]
-                    "
+                    className="text-[#C8A44D]"
 
                   />
 
 
-                  <h3
-
-                    className="
-                      text-lg
-                      font-semibold
-                    "
-
-                  >
+                  <h3 className="text-lg font-semibold">
 
                     Join T&M Family
 
@@ -674,18 +767,26 @@ export default function AuthDialog({
 
 
 
-
                 <input
 
                   placeholder="Full Name"
 
+                  onFocus={handleInputFocus}
+
                   className="
+
                     mt-5
+
                     w-full
+
                     rounded-xl
+
                     border
+
                     px-4
+
                     py-3
+
                   "
 
                 />
@@ -698,13 +799,22 @@ export default function AuthDialog({
 
                   placeholder="Email (optional)"
 
+                  onFocus={handleInputFocus}
+
                   className="
+
                     mt-3
+
                     w-full
+
                     rounded-xl
+
                     border
+
                     px-4
+
                     py-3
+
                   "
 
                 />
@@ -716,14 +826,23 @@ export default function AuthDialog({
                 <button
 
                   className="
+
                     mt-5
+
                     w-full
+
                     rounded-xl
+
                     bg-black
+
                     py-3
+
                     text-sm
+
                     font-medium
+
                     text-white
+
                   "
 
                 >
@@ -747,6 +866,8 @@ export default function AuthDialog({
 
 
         </div>
+
+
 
 
       </DialogContent>
