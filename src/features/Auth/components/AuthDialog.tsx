@@ -10,9 +10,9 @@ import {
 } from "react";
 
 import {
+  Phone,
   ArrowLeft,
   Crown,
-  Phone,
 } from "lucide-react";
 
 import {
@@ -20,23 +20,39 @@ import {
   motion,
 } from "framer-motion";
 
+import { toast } from "sonner";
+
 import logo from "@/assets/logo/mainLogo.png";
+
+import {
+  sendOtp,
+  verifyOtp,
+} from "@/features/Auth/services/auth.service";
+
+
+import {
+  getCustomerByPhone,
+  createCustomer,
+} from "@/features/customers/services/customer.service";
+
 
 
 interface Props {
 
-  open:boolean;
+open:boolean;
 
-  onOpenChange:(open:boolean)=>void;
+onOpenChange:(open:boolean)=>void;
 
 }
 
 
 
 type Step =
-  | "phone"
-  | "otp"
-  | "profile";
+"phone"
+|
+"otp"
+|
+"profile";
 
 
 
@@ -55,8 +71,10 @@ const [step,setStep]=
 useState<Step>("phone");
 
 
+
 const [phone,setPhone]=
 useState("");
+
 
 
 const [otp,setOtp]=
@@ -70,6 +88,7 @@ useState([
 ]);
 
 
+
 const [timer,setTimer]=
 useState(30);
 
@@ -79,7 +98,18 @@ const [fullName,setFullName]=
 useState("");
 
 
+
 const [email,setEmail]=
+useState("");
+
+
+
+const [authSuccess,setAuthSuccess]=
+useState(false);
+
+
+
+const [successMessage,setSuccessMessage]=
 useState("");
 
 
@@ -96,12 +126,18 @@ phone.length===10;
 
 
 
+const isOtpValid =
+otp.join("").length===6;
+
+
+
 const isProfileValid =
 fullName.trim().length>=2 &&
 (
 email==="" ||
 /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 );
+
 
 
 
@@ -119,18 +155,15 @@ return;
 
 
 
-const interval =
-setInterval(()=>{
+const interval=setInterval(()=>{
 
-setTimer(
-prev=>prev-1
-);
+setTimer(prev=>prev-1);
 
 },1000);
 
 
 
-return ()=>clearInterval(interval);
+return()=>clearInterval(interval);
 
 
 },[step,timer]);
@@ -142,6 +175,7 @@ return ()=>clearInterval(interval);
 
 
 function closeDialog(){
+
 
 setStep("phone");
 
@@ -156,13 +190,21 @@ setOtp([
 "",
 ]);
 
+
 setFullName("");
 
 setEmail("");
 
 setTimer(30);
 
+
+setAuthSuccess(false);
+
+setSuccessMessage("");
+
+
 onOpenChange(false);
+
 
 }
 
@@ -203,17 +245,12 @@ w-[92vw]
 max-w-md
 overflow-hidden
 rounded-3xl
-
 border
 border-[#C8A44D]/30
-
 bg-black
-
 p-0
 text-white
-
 shadow-2xl
-
 md:w-full
 "
 
@@ -222,8 +259,6 @@ md:w-full
 
 
 
-
-{/* Header */}
 
 <div
 
@@ -240,6 +275,7 @@ pt-5
 md:px-6
 md:pb-5
 md:pt-8
+
 "
 
 >
@@ -257,29 +293,6 @@ text-center
 >
 
 
-<div
-
-className="
-flex
-h-16
-w-16
-
-md:h-20
-md:w-20
-
-items-center
-justify-center
-
-overflow-hidden
-
-
-
-shadow-lg
-
-"
-
->
-
 <img
 
 src={logo}
@@ -287,16 +300,15 @@ src={logo}
 alt="T&M Jewels"
 
 className="
-h-full
-w-full
+h-16
+w-auto
 object-contain
-p-2
+
+md:h-20
+
 "
 
 />
-
-</div>
-
 
 
 
@@ -305,17 +317,12 @@ p-2
 <h2
 
 className="
-mt-2
-
+mt-3
 text-xl
-
 font-semibold
-
 tracking-wide
-
 text-[#C8A44D]
 
-md:mt-4
 md:text-2xl
 
 "
@@ -328,18 +335,13 @@ T&M Jewels
 
 
 
-
-
 <p
 
 className="
 mt-1
-
 text-xs
-
 text-neutral-300
 
-md:mt-2
 md:text-sm
 
 "
@@ -351,82 +353,44 @@ Your luxury jewellery experience
 </p>
 
 
-
-
 </div>
 
 
 
 
-
-
-
-
-
-{/* Benefits */}
 
 <div
 
 className="
 mt-4
-
 grid
 grid-cols-3
 gap-2
-
-md:mt-6
-
 "
 
 >
-
 
 
 <div
 
 className="
 rounded-xl
-
 border
 border-[#C8A44D]/30
-
 bg-white/10
-
 px-2
-py-3
-
+py-2
 text-center
-
-text-white
-
 "
 
 >
-
-<p>
 
 ♡
-
+<p className="text-xs text-neutral-300">
+Wishlist
 </p>
 
-
-<span
-
-className="
-text-xs
-text-neutral-300
-"
-
->
-
-Wishlist
-
-</span>
-
-
 </div>
-
-
 
 
 
@@ -434,46 +398,22 @@ Wishlist
 
 className="
 rounded-xl
-
 border
 border-[#C8A44D]/30
-
 bg-white/10
-
 px-2
-py-3
-
+py-2
 text-center
-
-text-white
-
 "
 
 >
-
-<p>
 
 🎁
-
+<p className="text-xs text-neutral-300">
+Rewards
 </p>
 
-
-<span
-
-className="
-text-xs
-text-neutral-300
-"
-
->
-
-Rewards
-
-</span>
-
-
 </div>
-
 
 
 
@@ -482,44 +422,21 @@ Rewards
 
 className="
 rounded-xl
-
 border
 border-[#C8A44D]/30
-
 bg-white/10
-
 px-2
-py-3
-
+py-2
 text-center
-
-text-white
-
 "
 
 >
-
-<p>
 
 💎
-
+<p className="text-xs text-neutral-300">
+Offers
 </p>
 
-
-<span
-
-className="
-text-xs
-text-neutral-300
-"
-
->
-
-Offers
-
-</span>
-
-
 </div>
 
 
@@ -527,11 +444,7 @@ Offers
 </div>
 
 
-
-
 </div>
-
-
 
 
 
@@ -543,10 +456,8 @@ className="
 px-4
 pb-5
 pt-3
-
 md:px-6
 md:pb-6
-
 "
 
 >
@@ -555,65 +466,35 @@ md:pb-6
 <AnimatePresence mode="wait">
 
 
-
-
-
-{/* PHONE STEP */}
-
-
-{step==="phone" && (
+{!authSuccess && step==="phone" && (
 
 <motion.div
 
 key="phone"
 
-initial={{
-opacity:0,
-x:20
-}}
+initial={{opacity:0,x:20}}
 
-animate={{
-opacity:1,
-x:0
-}}
+animate={{opacity:1,x:0}}
 
 >
 
 
-
-<h3
-
-className="
-mt-2
-
-text-base
+<h3 className="
+text-lg
 font-semibold
-text-white
+">
 
-md:text-lg
-
-"
-
->
 Welcome to T&M Family ✨
+
 </h3>
 
 
 
-
-
-<p
-
-className="
+<p className="
 mt-2
-
 text-sm
-
 text-neutral-300
-
-"
-
->
+">
 
 Login to access your wishlist, rewards & exclusive offers
 
@@ -623,62 +504,33 @@ Login to access your wishlist, rewards & exclusive offers
 
 
 
-<div
-
-className="
+<div className="
 mt-5
-
 flex
-
 items-center
-
 rounded-xl
-
 border
-
 border-white/20
-
 bg-white
-
 px-4
-
-focus-within:border-[#C8A44D]
-
-"
-
->
-
+">
 
 
 <Phone
-
 size={18}
-
-className="
-text-[#C8A44D]
-"
-
+className="text-[#C8A44D]"
 />
 
 
 
-
-
-<span
-
-className="
+<span className="
 ml-3
-
 text-black
-
-"
-
->
+">
 
 +91
 
 </span>
-
 
 
 
@@ -694,43 +546,27 @@ maxLength={10}
 value={phone}
 
 onChange={(e)=>
-
 setPhone(
 e.target.value.replace(/\D/g,"")
 )
-
 }
 
 placeholder="Mobile number"
 
 className="
 ml-3
-
 w-full
-
 bg-transparent
-
 py-3.5
-
 text-sm
-
 text-black
-
 outline-none
-
-placeholder:text-neutral-500
-
 "
 
 />
 
 
-
-
 </div>
-
-
-
 
 
 
@@ -738,29 +574,40 @@ placeholder:text-neutral-500
 
 disabled={!isPhoneValid}
 
-onClick={()=>{
+onClick={async()=>{
+
+try{
+
+await sendOtp(phone);
 
 setTimer(30);
 
 setStep("otp");
+
+
+}
+
+catch(error){
+
+toast.error(
+"Unable to send OTP"
+);
+
+console.log(error);
+
+}
+
 
 }}
 
 className={`
 
 mt-5
-
 w-full
-
 rounded-xl
-
 py-3.5
-
 text-sm
-
 font-medium
-
-transition-all
 
 
 ${
@@ -768,11 +615,11 @@ isPhoneValid
 
 ?
 
-"bg-white text-black hover:bg-[#C8A44D] hover:text-white"
+"bg-white text-black hover:bg-[#C8A44D]"
 
 :
 
-"cursor-not-allowed bg-neutral-500 text-neutral-300"
+"bg-neutral-500 text-neutral-300"
 
 }
 
@@ -785,7 +632,6 @@ Continue
 </button>
 
 
-
 </motion.div>
 
 )}
@@ -794,13 +640,10 @@ Continue
 
 
 
-
-
 {/* OTP STEP */}
 
 
-
-{step==="otp" && (
+{!authSuccess && step==="otp" && (
 
 <motion.div
 
@@ -819,7 +662,6 @@ x:0
 >
 
 
-
 <button
 
 onClick={changePhone}
@@ -828,15 +670,9 @@ className="
 flex
 items-center
 gap-2
-
 text-sm
-
 text-neutral-300
-
 hover:text-[#C8A44D]
-
-transition
-
 "
 
 >
@@ -851,18 +687,12 @@ Change Number
 
 
 
-
 <h3
 
 className="
 mt-5
-
 text-lg
-
 font-semibold
-
-text-white
-
 "
 
 >
@@ -873,17 +703,12 @@ Verify your number ✨
 
 
 
-
-
 <p
 
 className="
 mt-2
-
 text-sm
-
 text-neutral-300
-
 "
 
 >
@@ -898,13 +723,8 @@ Enter the 6-digit OTP sent to
 
 className="
 mt-1
-
 text-sm
-
 font-medium
-
-text-white
-
 "
 
 >
@@ -918,22 +738,16 @@ text-white
 
 
 
-
 <div
 
 className="
 mt-6
-
 flex
-
 justify-between
-
 gap-2
-
 "
 
 >
-
 
 {
 
@@ -958,11 +772,13 @@ inputMode="numeric"
 
 onChange={(e)=>{
 
+
 const value =
 e.target.value.replace(/\D/g,"");
 
 
 const updated=[...otp];
+
 
 updated[index]=value;
 
@@ -977,11 +793,13 @@ otpRefs.current[index+1]?.focus();
 
 }
 
+
 }}
 
 
 
 onKeyDown={(e)=>{
+
 
 if(
 e.key==="Backspace"
@@ -995,40 +813,25 @@ otpRefs.current[index-1]?.focus();
 
 }
 
+
 }}
 
 
 
 className="
 h-12
-
 w-10
-
 rounded-xl
-
 border
-
 border-white/40
-
 bg-white
-
 text-center
-
 text-lg
-
 font-semibold
-
 text-black
-
 outline-none
 
-transition
-
 focus:border-[#C8A44D]
-
-focus:ring-1
-
-focus:ring-[#C8A44D]
 
 "
 
@@ -1039,9 +842,7 @@ focus:ring-[#C8A44D]
 
 }
 
-
 </div>
-
 
 
 
@@ -1052,17 +853,12 @@ focus:ring-[#C8A44D]
 
 className="
 mt-5
-
 text-center
-
 text-sm
-
 text-neutral-300
-
 "
 
 >
-
 
 {
 
@@ -1072,19 +868,45 @@ timer>0
 
 `Resend OTP in 00:${timer}`
 
-
 :
 
 <button
 
+onClick={async()=>{
+
+
+try{
+
+
+await sendOtp(phone);
+
+
+setTimer(30);
+
+
+toast.success(
+"OTP sent again"
+);
+
+
+}
+
+catch(error){
+
+toast.error(
+"Unable to resend OTP"
+);
+
+console.log(error);
+
+}
+
+
+}}
+
 className="
-font-medium
-
 text-[#C8A44D]
-
 "
-
-onClick={()=>setTimer(30)}
 
 >
 
@@ -1095,9 +917,7 @@ Resend OTP
 
 }
 
-
 </div>
-
 
 
 
@@ -1106,18 +926,105 @@ Resend OTP
 
 <button
 
-onClick={()=>
-setStep("profile")
+disabled={!isOtpValid}
+
+onClick={async()=>{
+
+
+try{
+
+
+const otpCode =
+otp.join("");
+
+
+
+await verifyOtp(
+phone,
+otpCode
+);
+
+
+
+
+
+const customer =
+await getCustomerByPhone(
+phone
+);
+
+
+
+
+
+if(customer){
+
+
+
+setSuccessMessage(
+"Welcome back to T&M Family ✨"
+);
+
+
+
+setAuthSuccess(true);
+
+
+
 }
 
-className="
+else{
+
+
+
+toast.success(
+"OTP verified successfully ✨"
+);
+
+
+
+setTimeout(()=>{
+
+
+setStep("profile");
+
+
+},500);
+
+
+
+}
+
+
+
+}
+
+
+
+catch(error){
+
+
+toast.error(
+"Invalid OTP. Please check and try again."
+);
+
+
+console.log(error);
+
+
+}
+
+
+
+}}
+
+className={`
+
 mt-5
 
 w-full
 
 rounded-xl
-
-bg-white
 
 py-3.5
 
@@ -1125,15 +1032,25 @@ text-sm
 
 font-medium
 
-text-black
-
 transition-all
 
-hover:bg-[#C8A44D]
 
-hover:text-white
+${
+isOtpValid
 
-"
+?
+
+"bg-[#C8A44D] text-black hover:bg-white"
+
+:
+
+"cursor-not-allowed bg-neutral-500 text-neutral-300"
+
+}
+
+`
+
+}
 
 >
 
@@ -1146,7 +1063,7 @@ Verify & Continue
 </motion.div>
 
 )}
-
+)
 
 
 
@@ -1158,8 +1075,7 @@ Verify & Continue
 {/* PROFILE STEP */}
 
 
-
-{step==="profile" && (
+{!authSuccess && step==="profile" && (
 
 <motion.div
 
@@ -1183,13 +1099,9 @@ x:0
 
 className="
 flex
-
 flex-col
-
 items-center
-
 text-center
-
 "
 
 >
@@ -1199,16 +1111,9 @@ text-center
 
 className="
 flex
-
 h-10
-
 w-10
-
-md:h-12
-md:w-12
-
 items-center
-
 justify-center
 
 rounded-full
@@ -1229,7 +1134,6 @@ size={22}
 
 className="
 text-[#C8A44D]
-
 "
 
 />
@@ -1239,22 +1143,12 @@ text-[#C8A44D]
 
 
 
-
 <h3
 
 className="
 mt-3
-
 text-lg
-
 font-semibold
-
-text-white
-
-md:mt-4
-
-md:text-xl
-
 "
 
 >
@@ -1266,24 +1160,19 @@ Welcome to T&M Family ✨
 
 
 
-
 <p
 
 className="
-mt-2
-
-text-sm
-
+mt-1
+text-xs
 text-neutral-300
-
 "
 
 >
 
-Complete your profile and unlock rewards, wishlist & exclusive offers
+Complete your profile to continue
 
 </p>
-
 
 
 </div>
@@ -1294,13 +1183,12 @@ Complete your profile and unlock rewards, wishlist & exclusive offers
 
 
 
+
 <div
 
 className="
-mt-3
-
-space-y-4
-
+mt-4
+space-y-3
 "
 
 >
@@ -1318,18 +1206,15 @@ placeholder="Full Name"
 
 className="
 w-full
-
 rounded-xl
-
 border
-
 border-white/20
 
 bg-white
 
 px-4
 
-py-3.5
+py-3
 
 text-sm
 
@@ -1342,8 +1227,6 @@ focus:border-[#C8A44D]
 "
 
 />
-
-
 
 
 
@@ -1363,18 +1246,15 @@ type="email"
 
 className="
 w-full
-
 rounded-xl
-
 border
-
 border-white/20
 
 bg-white
 
 px-4
 
-py-3.5
+py-3
 
 text-sm
 
@@ -1389,19 +1269,7 @@ focus:border-[#C8A44D]
 />
 
 
-
 </div>
-
-
-
-
-
-
-
-
-{/* Benefits */}
-
-
 
 
 
@@ -1414,11 +1282,86 @@ focus:border-[#C8A44D]
 
 disabled={!isProfileValid}
 
+onClick={async()=>{
+
+
+try{
+
+
+const nameParts =
+fullName.trim().split(" ");
+
+
+
+const firstName =
+nameParts[0];
+
+
+
+const lastName =
+nameParts
+.slice(1)
+.join(" ");
+
+
+
+
+
+await createCustomer({
+
+first_name:firstName,
+
+last_name:lastName,
+
+email:email || undefined,
+
+phone:phone
+
+});
+
+
+
+
+
+setSuccessMessage(
+
+"Welcome to T&M Family ✨"
+
+);
+
+
+
+setAuthSuccess(true);
+
+
+
+}
+
+
+
+catch(error){
+
+
+console.log(error);
+
+
+
+toast.error(
+
+"Unable to create account. Please try again."
+
+);
+
+
+
+}
+
+
+}}
+
 className={`
 
 mt-5
-
-md:mt-6
 
 w-full
 
@@ -1433,13 +1376,12 @@ font-medium
 transition-all
 
 
-
 ${
 isProfileValid
 
 ?
 
-"bg-white text-black hover:bg-[#C8A44D] hover:text-white"
+"bg-[#C8A44D] text-black hover:bg-white"
 
 :
 
@@ -1447,7 +1389,9 @@ isProfileValid
 
 }
 
-`}
+`
+
+}
 
 >
 
@@ -1456,6 +1400,169 @@ Create Account
 </button>
 
 
+
+</motion.div>
+
+)}
+
+
+
+
+
+
+
+
+
+{/* SUCCESS SCREEN */}
+
+
+
+{authSuccess && (
+
+<motion.div
+
+key="success"
+
+initial={{
+
+opacity:0,
+
+scale:0.95
+
+}}
+
+animate={{
+
+opacity:1,
+
+scale:1
+
+}}
+
+className="
+flex
+flex-col
+items-center
+text-center
+py-8
+"
+
+>
+
+
+
+<div
+
+className="
+flex
+h-16
+w-16
+
+items-center
+justify-center
+
+rounded-full
+
+border
+
+border-[#C8A44D]/40
+
+bg-[#C8A44D]/10
+
+"
+
+>
+
+<span
+
+className="
+text-3xl
+text-[#C8A44D]
+"
+
+>
+
+✓
+
+</span>
+
+
+</div>
+
+
+
+
+
+
+<h3
+
+className="
+mt-5
+text-xl
+font-semibold
+"
+
+>
+
+{successMessage}
+
+</h3>
+
+
+
+
+
+<p
+
+className="
+mt-2
+text-sm
+text-neutral-300
+"
+
+>
+
+Your T&M account is ready.
+
+</p>
+
+
+
+
+
+
+<button
+
+onClick={closeDialog}
+
+className="
+mt-6
+
+w-full
+
+rounded-xl
+
+bg-[#C8A44D]
+
+py-3.5
+
+text-sm
+
+font-medium
+
+text-black
+
+transition
+
+hover:bg-white
+
+"
+
+>
+
+Continue Shopping
+
+</button>
 
 
 
