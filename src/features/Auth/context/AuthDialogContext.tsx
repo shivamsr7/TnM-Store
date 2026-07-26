@@ -3,13 +3,22 @@ import {
   useContext,
   useState,
 } from "react";
-import GlobalAuthDialog from "@/features/Auth/components/GlobalAuthDialog";
+
 import type { ReactNode } from "react";
+import MobileAuthDrawer
+from "../components/MobileAuthDrawer";
+
+
+import DesktopAuthDialog
+from "../components/DesktopAuthDialog";
+
+
+
 interface AuthDialogContextType {
 
-  openAuth: () => void;
+  openAuth:()=>void;
 
-  closeAuth: () => void;
+  closeAuth:()=>void;
 
 }
 
@@ -24,57 +33,125 @@ createContext<AuthDialogContextType | null>(null);
 
 export function AuthDialogProvider({
 
-  children,
+children,
 
 }:{
 
-  children: ReactNode;
+children:ReactNode;
 
 }){
 
 
-  const [
-    open,
-    setOpen,
-  ] = useState(false);
+const [
+open,
+setOpen
+]=useState(false);
 
 
 
 
-  return (
 
-    <AuthDialogContext.Provider
+return (
 
-      value={{
-
-        openAuth: () =>
-          setOpen(true),
+<AuthDialogContext.Provider
 
 
-        closeAuth: () =>
-          setOpen(false),
+value={{
 
-      }}
+openAuth:()=>setOpen(true),
 
-    >
+closeAuth:()=>setOpen(false),
 
-      {children}
-
-
-      <GlobalAuthDialog
-
-        open={open}
-
-        setOpen={setOpen}
-
-      />
+}}
 
 
-    </AuthDialogContext.Provider>
+>
 
-  );
+
+{children}
+
+
+
+
+<AuthRenderer
+
+open={open}
+
+setOpen={setOpen}
+
+/>
+
+
+</AuthDialogContext.Provider>
+
+
+);
+
 
 }
+
+
+
+
+
+function AuthRenderer({
+
+open,
+
+setOpen,
+
+}:{
+
+open:boolean;
+
+setOpen:(value:boolean)=>void;
+
+}){
+
+
+const isMobile =
+window.matchMedia(
+"(max-width: 768px)"
+).matches;
+
+
+
+if(isMobile){
+
+
+return (
+
+<MobileAuthDrawer
+
+open={open}
+
+onOpenChange={setOpen}
+
+/>
+
+);
+
+
+}
+
+
+
+return (
+
+<DesktopAuthDialog
+
+open={open}
+
+onOpenChange={setOpen}
+
+/>
+
+);
+
+
+}
+
+
 
 
 
@@ -83,22 +160,22 @@ export function AuthDialogProvider({
 export function useAuthDialog(){
 
 
-  const context =
-    useContext(AuthDialogContext);
+const context =
+useContext(AuthDialogContext);
 
 
 
-  if(!context){
+if(!context){
 
-    throw new Error(
-      "useAuthDialog must be used inside AuthDialogProvider"
-    );
+throw new Error(
+"AuthDialog must be used inside AuthDialogProvider"
+);
 
-  }
+}
 
 
 
-  return context;
+return context;
 
 
 }
