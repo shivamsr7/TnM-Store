@@ -1,3 +1,7 @@
+import {
+  useEffect,
+} from "react";
+
 import AuthContent from "./AuthContent";
 
 
@@ -20,6 +24,36 @@ export default function MobileAuthSheet({
 }:Props){
 
 
+
+useEffect(()=>{
+
+
+if(open){
+
+  document.body.style.overflow = "hidden";
+
+}
+else{
+
+  document.body.style.overflow = "";
+
+}
+
+
+
+return ()=>{
+
+  document.body.style.overflow = "";
+
+};
+
+
+},[open]);
+
+
+
+
+
 if(!open) return null;
 
 
@@ -27,6 +61,7 @@ if(!open) return null;
 return (
 
 <>
+
 
 {/* Overlay */}
 
@@ -39,9 +74,11 @@ z-40
 bg-black/40
 "
 
-onClick={()=>
-onOpenChange(false)
-}
+onClick={()=>{
+
+onOpenChange(false);
+
+}}
 
 />
 
@@ -49,7 +86,7 @@ onOpenChange(false)
 
 
 
-{/* Bottom Sheet */}
+{/* Sheet */}
 
 <div
 
@@ -82,6 +119,7 @@ duration-300
 >
 
 
+
 {/* Handle */}
 
 <div
@@ -100,18 +138,21 @@ bg-neutral-300
 
 
 
-
 <div
 
 className="
 max-h-[80dvh]
+
 overflow-y-auto
+
 overscroll-contain
+
 "
 
 >
 
 <AuthContent />
+
 
 </div>
 
