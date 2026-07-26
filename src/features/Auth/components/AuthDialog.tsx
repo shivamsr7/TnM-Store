@@ -212,7 +212,7 @@ bg-gradient-to-b
 from-[#F8F6F1]
 to-white
 px-6
-pb-6
+pb-1
 pt-8
 "
 
@@ -311,7 +311,7 @@ Your luxury jewellery experience
 
 
 
-<div className="p-6">
+<div className="px-6 pb-6 pt-3">
 
 
 <AnimatePresence mode="wait">
@@ -808,7 +808,7 @@ Complete your profile and unlock rewards, wishlist & exclusive offers
 <div
 
 className="
-mt-6
+mt-3
 space-y-4
 "
 
