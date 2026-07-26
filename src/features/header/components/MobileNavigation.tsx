@@ -190,105 +190,166 @@ export default function MobileNavigation({
             {/* Categories */}
 
 
-            <div>
+<div>
 
 
-              <p
-                className="
-                  mb-3
-                  text-xs
-                  font-semibold
-                  uppercase
-                  tracking-[0.25em]
-                  text-[#C8A44D]
-                "
-              >
-
-                Shop By Category
-
-              </p>
-
+  <p
+    className="
+      mb-4
+      text-xs
+      font-semibold
+      uppercase
+      tracking-[0.25em]
+      text-[#C8A44D]
+    "
+  >
+    Shop By Category
+  </p>
 
 
 
-
-              <div className="space-y-3">
-
-
-                {categories.map(
-
-                  (category) => (
+  <div className="space-y-3">
 
 
-                    <button
+    {categories.map(
+
+      (category) => (
+
+        <button
+
+          key={category.id}
+
+          onClick={() =>
+            setSelectedCategory(category)
+          }
 
 
-                      key={category.id}
+          className="
+            flex
+            w-full
+            items-center
+            justify-between
+            rounded-xl
+            border
+            border-neutral-200
+            bg-white
+            p-3
+            text-left
+            transition-all
+            duration-300
+            hover:border-[#C8A44D]
+            hover:bg-[#F8F6F1]
+          "
+
+        >
 
 
-                      onClick={() =>
-                        setSelectedCategory(
-                          category
-                        )
-                      }
+          {/* Left Content */}
+
+          <div className="flex items-center gap-4">
 
 
-                      className="
-                        flex
-                        w-full
-                        items-center
-                        justify-between
-                        rounded-xl
-                        border
-                        border-neutral-200
-                        bg-white
-                        px-4
-                        py-4
-                        text-left
-                        text-sm
-                        font-medium
-                        text-neutral-900
-                        transition-all
-                        duration-300
-                        hover:border-[#C8A44D]
-                        hover:bg-[#F8F6F1]
-                      "
+            {/* Category Image */}
 
+            <div
+              className="
+                h-14
+                w-14
+                shrink-0
+                overflow-hidden
+                rounded-full
+                bg-[#F8F6F1]
+              "
+            >
 
-                    >
+              {category.image_url ? (
 
+                <img
 
-                      <span>
+                  src={category.image_url}
 
-                        {category.name}
+                  alt={category.name}
 
-                      </span>
+                  className="
+                    h-full
+                    w-full
+                    object-cover
+                    transition-transform
+                    duration-300
+                    hover:scale-110
+                  "
 
+                />
 
+              ) : (
 
-                      <ChevronRight
+                <div
+                  className="
+                    flex
+                    h-full
+                    w-full
+                    items-center
+                    justify-center
+                    text-[10px]
+                    text-neutral-400
+                  "
+                >
+                  No Image
+                </div>
 
-                        size={18}
-
-                        className="
-                          text-[#C8A44D]
-                        "
-
-                      />
-
-
-                    </button>
-
-
-                  )
-
-                )}
-
-
-              </div>
-
+              )}
 
             </div>
+
+
+
+
+
+            {/* Category Name */}
+
+            <span
+              className="
+                text-sm
+                font-medium
+                text-neutral-900
+              "
+            >
+
+              {category.name}
+
+            </span>
+
+
+          </div>
+
+
+
+
+
+          {/* Arrow */}
+
+          <ChevronRight
+
+            size={18}
+
+            className="
+              text-[#C8A44D]
+            "
+
+          />
+
+
+        </button>
+
+      )
+
+    )}
+
+
+  </div>
+
+
+</div>
 
 
 
