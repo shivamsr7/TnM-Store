@@ -5,8 +5,8 @@ import {
 } from "react";
 
 import type { ReactNode } from "react";
-import MobileAuthDrawer
-from "../components/MobileAuthDrawer";
+import MobileAuthSheet
+from "../components/MobileAuthSheet";
 
 
 import DesktopAuthDialog
@@ -121,7 +121,7 @@ if(isMobile){
 
 return (
 
-<MobileAuthDrawer
+<MobileAuthSheet
 
 open={open}
 
