@@ -1,11 +1,11 @@
-import AccountDashboard from "../components/account/AccountDashboard";
+import LoungeDashboard from "../components/lounge/LoungeDashboard";
 
 
 export default function AccountPage(){
 
 return (
 
-<AccountDashboard />
+<LoungeDashboard />
 
 );
 
