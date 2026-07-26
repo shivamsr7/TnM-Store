@@ -20,15 +20,9 @@ import {
 
 
 interface Props {
-
   open: boolean;
-
-  onOpenChange: (
-    open: boolean
-  ) => void;
-
+  onOpenChange: (open:boolean)=>void;
 }
-
 
 
 type Step =
@@ -38,843 +32,636 @@ type Step =
 
 
 
-
-
 export default function AuthDialog({
 
   open,
 
   onOpenChange,
 
-}: Props) {
+}:Props){
 
 
-  const [
-    step,
-    setStep,
-  ] = useState<Step>("phone");
+const [step,setStep] =
+useState<Step>("phone");
 
 
-  const [
-    phone,
-    setPhone,
-  ] = useState("");
+const [phone,setPhone] =
+useState("");
 
 
 
+function closeDialog(){
 
+  setStep("phone");
 
-  function closeDialog() {
+  setPhone("");
 
-    setStep("phone");
+  onOpenChange(false);
 
-    setPhone("");
+}
 
-    onOpenChange(false);
 
-  }
 
 
 
+return (
 
+<Dialog
 
-  function handleInputFocus(
-    e: React.FocusEvent<HTMLInputElement>
-  ) {
+open={open}
 
-    setTimeout(() => {
+onOpenChange={closeDialog}
 
-      e.target.scrollIntoView({
+>
 
-        behavior: "smooth",
 
-        block: "center",
+<DialogContent
 
-      });
+className="
 
+w-full
 
-    }, 300);
+max-w-md
 
-  }
+max-h-[90dvh]
 
+overflow-hidden
 
+rounded-3xl
 
+border-none
 
+p-0
 
-  return (
+shadow-2xl
 
-    <Dialog
 
-      open={open}
+data-[state=open]:animate-in
 
-      onOpenChange={closeDialog}
+data-[state=closed]:animate-out
 
-    >
+data-[state=open]:slide-in-from-bottom
 
+data-[state=closed]:slide-out-to-bottom
 
 
-      <DialogContent
+sm:max-h-[85vh]
 
+"
 
-        className="
+>
 
-          fixed
 
-          bottom-0
 
-          left-0
+{/* Header */}
 
-          top-auto
 
+<div
 
-          w-full
+className="
+shrink-0
+bg-[#F8F6F1]
+px-6
+py-7
+"
 
-          max-w-md
+>
 
 
-          max-h-[90dvh]
+<div
 
+className="
+flex
+items-center
+gap-3
+"
 
-          overflow-hidden
+>
 
 
-          rounded-t-3xl
+<div
 
-          border-none
+className="
+flex
+h-12
+w-12
+items-center
+justify-center
+rounded-full
+bg-white
+"
 
-          p-0
+>
 
-          shadow-2xl
+<Sparkles
 
+size={24}
 
+className="text-[#C8A44D]"
 
-          data-[state=open]:animate-in
+/>
 
-          data-[state=closed]:animate-out
+</div>
 
-          data-[state=open]:slide-in-from-bottom
 
-          data-[state=closed]:slide-out-to-bottom
 
+<div>
 
+<h2
 
-          sm:left-[50%]
+className="
+text-xl
+font-semibold
+text-neutral-900
+"
 
-          sm:top-[50%]
+>
 
-          sm:bottom-auto
+T&M Jewels
 
+</h2>
 
-          sm:max-h-[85vh]
 
+<p
 
-          sm:-translate-x-1/2
+className="
+text-sm
+text-neutral-500
+"
 
-          sm:-translate-y-1/2
+>
 
+Welcome to our family
 
-          sm:rounded-3xl
+</p>
 
-        "
 
+</div>
 
-      >
 
+</div>
 
 
 
 
-        {/* Header */}
 
+<div
 
-        <div
+className="
+mt-5
+flex
+gap-2
+text-xs
+text-neutral-600
+"
 
-          className="
+>
 
-            shrink-0
+<span className="rounded-full bg-white px-3 py-2">
+✨ Rewards
+</span>
 
-            bg-[#F8F6F1]
 
-            px-6
+<span className="rounded-full bg-white px-3 py-2">
+♡ Wishlist
+</span>
 
-            py-7
 
-          "
+<span className="rounded-full bg-white px-3 py-2">
+♛ Offers
+</span>
 
-        >
 
+</div>
 
-          <div
 
-            className="
+</div>
 
-              flex
 
-              items-center
 
-              gap-3
 
-            "
 
-          >
 
 
-            <div
+{/* Scroll Content */}
 
-              className="
 
-                flex
+<div
 
-                h-12
+className="
 
-                w-12
+max-h-[60vh]
 
-                items-center
+overflow-y-auto
 
-                justify-center
+overscroll-contain
 
-                rounded-full
+px-6
 
-                bg-white
+pb-8
 
-              "
+pt-6
 
-            >
+"
 
-              <Sparkles
+>
 
-                size={24}
 
-                className="text-[#C8A44D]"
+<AnimatePresence mode="wait">
 
-              />
 
-            </div>
 
+{step==="phone" && (
 
+<motion.div
 
-            <div>
+key="phone"
 
-              <h2
+initial={{
+opacity:0,
+x:20
+}}
 
-                className="
+animate={{
+opacity:1,
+x:0
+}}
 
-                  text-xl
+>
 
-                  font-semibold
 
-                  text-neutral-900
+<h3
 
-                "
+className="
+text-lg
+font-semibold
+text-neutral-900
+"
 
-              >
+>
 
-                T&M Jewels
+Login or Create Account
 
-              </h2>
+</h3>
 
 
-              <p
+<p
 
-                className="
+className="
+mt-2
+text-sm
+text-neutral-500
+"
 
-                  text-sm
+>
 
-                  text-neutral-500
+Enter your mobile number to continue
 
-                "
+</p>
 
-              >
 
-                Welcome to our family
 
-              </p>
+<div
 
+className="
+mt-5
+flex
+items-center
+rounded-xl
+border
+border-neutral-200
+bg-white
+px-4
+"
 
-            </div>
+>
 
+<span>
++91
+</span>
 
-          </div>
 
+<input
 
+type="tel"
 
+inputMode="numeric"
 
+value={phone}
 
-          <div
+onChange={(e)=>
+setPhone(e.target.value)
+}
 
-            className="
+placeholder="Mobile number"
 
-              mt-5
+className="
+ml-3
+w-full
+py-3
+outline-none
+"
 
-              flex
+/>
 
-              gap-2
 
-              text-xs
+</div>
 
-              text-neutral-600
 
-            "
 
-          >
 
-            <span className="rounded-full bg-white px-3 py-2">
+<button
 
-              ✨ Rewards
+onClick={()=>
+setStep("otp")
+}
 
-            </span>
+className="
+mt-5
+w-full
+rounded-xl
+bg-black
+py-3
+text-sm
+font-medium
+text-white
+"
 
+>
 
-            <span className="rounded-full bg-white px-3 py-2">
+Continue
 
-              ♡ Wishlist
+</button>
 
-            </span>
 
+</motion.div>
 
-            <span className="rounded-full bg-white px-3 py-2">
+)}
 
-              ♛ Offers
 
-            </span>
 
 
-          </div>
 
 
-        </div>
 
 
+{step==="otp" && (
 
+<motion.div
 
+key="otp"
 
+initial={{
+opacity:0,
+x:20
+}}
 
+animate={{
+opacity:1,
+x:0
+}}
 
-        {/* Scrollable Content */}
+>
 
 
-        <div
+<button
 
-          className="
+onClick={()=>
+setStep("phone")
+}
 
-            min-h-0
+className="
+flex
+items-center
+gap-2
+text-sm
+text-neutral-600
+"
 
-            overflow-y-auto
+>
 
-            overscroll-contain
+<ArrowLeft size={16}/>
 
-            px-6
+Back
 
-            pb-8
+</button>
 
-            pt-6
 
-          "
 
-        >
 
+<h3
 
-          <AnimatePresence mode="wait">
+className="
+mt-5
+text-lg
+font-semibold
+"
 
+>
 
+Verify OTP
 
+</h3>
 
 
-            {step === "phone" && (
+<p
 
+className="
+mt-2
+text-sm
+text-neutral-500
+"
 
-              <motion.div
+>
 
-                key="phone"
+OTP sent to +91 {phone}
 
-                initial={{
-                  opacity:0,
-                  x:20,
-                }}
+</p>
 
-                animate={{
-                  opacity:1,
-                  x:0,
-                }}
 
-              >
 
+<input
 
+inputMode="numeric"
 
-                <h3
+placeholder="Enter OTP"
 
-                  className="
+className="
+mt-5
+w-full
+rounded-xl
+border
+px-4
+py-3
+outline-none
+"
 
-                    text-lg
+/>
 
-                    font-semibold
 
-                    text-neutral-900
 
-                  "
 
-                >
+<button
 
-                  Login or Create Account
+onClick={()=>
+setStep("profile")
+}
 
-                </h3>
+className="
+mt-5
+w-full
+rounded-xl
+bg-black
+py-3
+text-sm
+font-medium
+text-white
+"
 
+>
 
+Verify OTP
 
+</button>
 
-                <p
 
-                  className="
+</motion.div>
 
-                    mt-2
+)}
 
-                    text-sm
 
-                    text-neutral-500
 
-                  "
 
-                >
 
-                  Enter your mobile number to continue
 
-                </p>
 
+{step==="profile" && (
 
+<motion.div
 
+key="profile"
 
+initial={{
+opacity:0,
+x:20
+}}
 
+animate={{
+opacity:1,
+x:0
+}}
 
-                <div
+>
 
-                  className="
 
-                    mt-5
+<div
 
-                    flex
+className="
+flex
+items-center
+gap-2
+"
 
-                    items-center
+>
 
-                    rounded-xl
+<Crown
 
-                    border
+size={20}
 
-                    border-neutral-200
+className="text-[#C8A44D]"
 
-                    bg-white
+/>
 
-                    px-4
 
-                  "
+<h3 className="
+text-lg
+font-semibold
+">
 
-                >
+Join T&M Family
 
+</h3>
 
-                  <span>
 
-                    +91
+</div>
 
-                  </span>
 
 
 
 
-                  <input
+<input
 
+placeholder="Full Name"
 
-                    type="tel"
+className="
+mt-5
+w-full
+rounded-xl
+border
+px-4
+py-3
+"
 
+/>
 
-                    inputMode="numeric"
 
 
-                    autoComplete="tel"
 
+<input
 
-                    value={phone}
+placeholder="Email (optional)"
 
+className="
+mt-3
+w-full
+rounded-xl
+border
+px-4
+py-3
+"
 
-                    onChange={(e)=>
+/>
 
-                      setPhone(
-                        e.target.value
-                      )
 
-                    }
 
 
-                    onFocus={handleInputFocus}
+<button
 
+className="
+mt-5
+w-full
+rounded-xl
+bg-black
+py-3
+text-sm
+font-medium
+text-white
+"
 
-                    placeholder="Mobile number"
+>
 
+Create Account
 
-                    className="
+</button>
 
-                      ml-3
 
-                      w-full
+</motion.div>
 
-                      py-3
+)}
 
-                      outline-none
 
-                    "
 
+</AnimatePresence>
 
-                  />
 
+</div>
 
-                </div>
 
+</DialogContent>
 
 
+</Dialog>
 
-
-                <button
-
-                  onClick={()=>
-                    setStep("otp")
-                  }
-
-
-                  className="
-
-                    mt-5
-
-                    w-full
-
-                    rounded-xl
-
-                    bg-black
-
-                    py-3
-
-                    text-sm
-
-                    font-medium
-
-                    text-white
-
-                  "
-
-                >
-
-                  Continue
-
-                </button>
-
-
-              </motion.div>
-
-
-            )}
-
-
-
-
-
-
-
-            {step === "otp" && (
-
-
-              <motion.div
-
-                key="otp"
-
-                initial={{
-                  opacity:0,
-                  x:20,
-                }}
-
-                animate={{
-                  opacity:1,
-                  x:0,
-                }}
-
-              >
-
-
-                <button
-
-                  onClick={()=>
-                    setStep("phone")
-                  }
-
-                  className="
-
-                    flex
-
-                    items-center
-
-                    gap-2
-
-                    text-sm
-
-                    text-neutral-600
-
-                  "
-
-                >
-
-                  <ArrowLeft size={16}/>
-
-                  Back
-
-                </button>
-
-
-
-
-                <h3
-
-                  className="
-
-                    mt-5
-
-                    text-lg
-
-                    font-semibold
-
-                  "
-
-                >
-
-                  Verify OTP
-
-                </h3>
-
-
-
-                <input
-
-                  inputMode="numeric"
-
-                  placeholder="Enter OTP"
-
-                  onFocus={handleInputFocus}
-
-                  className="
-
-                    mt-5
-
-                    w-full
-
-                    rounded-xl
-
-                    border
-
-                    px-4
-
-                    py-3
-
-                    outline-none
-
-                  "
-
-                />
-
-
-
-
-
-                <button
-
-                  onClick={()=>
-                    setStep("profile")
-                  }
-
-                  className="
-
-                    mt-5
-
-                    w-full
-
-                    rounded-xl
-
-                    bg-black
-
-                    py-3
-
-                    text-sm
-
-                    font-medium
-
-                    text-white
-
-                  "
-
-                >
-
-                  Verify OTP
-
-                </button>
-
-
-              </motion.div>
-
-
-            )}
-
-
-
-
-
-
-
-
-            {step === "profile" && (
-
-
-              <motion.div
-
-                key="profile"
-
-                initial={{
-                  opacity:0,
-                  x:20,
-                }}
-
-                animate={{
-                  opacity:1,
-                  x:0,
-                }}
-
-              >
-
-
-                <div className="flex items-center gap-2">
-
-                  <Crown
-
-                    size={20}
-
-                    className="text-[#C8A44D]"
-
-                  />
-
-
-                  <h3 className="text-lg font-semibold">
-
-                    Join T&M Family
-
-                  </h3>
-
-
-                </div>
-
-
-
-
-                <input
-
-                  placeholder="Full Name"
-
-                  onFocus={handleInputFocus}
-
-                  className="
-
-                    mt-5
-
-                    w-full
-
-                    rounded-xl
-
-                    border
-
-                    px-4
-
-                    py-3
-
-                  "
-
-                />
-
-
-
-
-
-                <input
-
-                  placeholder="Email (optional)"
-
-                  onFocus={handleInputFocus}
-
-                  className="
-
-                    mt-3
-
-                    w-full
-
-                    rounded-xl
-
-                    border
-
-                    px-4
-
-                    py-3
-
-                  "
-
-                />
-
-
-
-
-
-                <button
-
-                  className="
-
-                    mt-5
-
-                    w-full
-
-                    rounded-xl
-
-                    bg-black
-
-                    py-3
-
-                    text-sm
-
-                    font-medium
-
-                    text-white
-
-                  "
-
-                >
-
-                  Create Account
-
-                </button>
-
-
-
-              </motion.div>
-
-
-            )}
-
-
-
-
-
-          </AnimatePresence>
-
-
-        </div>
-
-
-
-
-      </DialogContent>
-
-
-    </Dialog>
-
-  );
+);
 
 }
