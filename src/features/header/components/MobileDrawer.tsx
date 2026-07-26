@@ -43,7 +43,16 @@ export default function MobileDrawer({
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto">
+            <div
+  className="
+    flex-1
+    overflow-y-auto
+    overscroll-contain
+  "
+  style={{
+    WebkitOverflowScrolling:"touch",
+  }}
+>
               {children}
             </div>
           </motion.div>

@@ -4,12 +4,18 @@ import {
 } from "react-router-dom";
 
 import {
-  ChevronDown,
+  ChevronRight,
+  ArrowLeft,
 } from "lucide-react";
 
 import {
   useState,
 } from "react";
+
+import {
+  AnimatePresence,
+  motion,
+} from "framer-motion";
 
 
 import {
@@ -52,205 +58,344 @@ export default function MobileNavigation({
 
 
   const [
-    openCategory,
-    setOpenCategory,
-  ] = useState<string | null>(null);
+    selectedCategory,
+    setSelectedCategory,
+  ] = useState<any>(null);
+
+
+
+
+  const categorySubs =
+    selectedCategory
+      ? subcategories.filter(
+          (sub) =>
+            sub.category_id ===
+            selectedCategory.id
+        )
+      : [];
 
 
 
 
   return (
 
-    <nav className="space-y-6 p-6 pb-10">
+    <div className="relative overflow-hidden">
 
 
-      {/* Main Links */}
+      <AnimatePresence mode="wait">
 
-      <div className="space-y-1">
 
-        {navigationItems.map(
-          (item) => (
+        {!selectedCategory ? (
 
-            <NavLink
+          <motion.div
 
-              key={item.href}
+            key="main"
 
-              to={item.href}
+            initial={{
+              x:-30,
+              opacity:0,
+            }}
 
-              onClick={onClose}
+            animate={{
+              x:0,
+              opacity:1,
+            }}
 
-              className={({isActive}) =>
-                `block border-b border-neutral-100 py-3 text-base font-medium ${
-                  isActive
-                    ? "text-[#C8A44D]"
-                    : "text-neutral-900"
-                }`
-              }
+            exit={{
+              x:-30,
+              opacity:0,
+            }}
 
-            >
+            transition={{
+              duration:0.25,
+            }}
 
-              {item.label}
+            className="space-y-6 p-6"
 
-            </NavLink>
-
-          )
-        )}
-
-      </div>
-
+          >
 
 
 
+            {/* Main Links */}
 
-      {/* Categories */}
-
-      <div>
-
-
-        <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#C8A44D]">
-
-          Shop By Category
-
-        </h3>
+            <div className="space-y-1">
 
 
+              {navigationItems.map(
+                (item)=>(
+                  
+                  <NavLink
 
-        <div className="space-y-2">
+                    key={item.href}
 
+                    to={item.href}
 
-          {
-            categories.map(
-              (category) => {
+                    onClick={onClose}
 
+                    className={({isActive})=>
+                      `
+                      block
+                      border-b
+                      border-neutral-100
+                      py-3
+                      text-base
+                      font-medium
+                      ${
+                        isActive
+                        ? "text-[#C8A44D]"
+                        : "text-neutral-900"
+                      }
+                      `
+                    }
 
-                const children =
-                  subcategories.filter(
-                    (sub) =>
-                      sub.category_id ===
-                      category.id
-                  );
-
-
-                const opened =
-                  openCategory ===
-                  category.id;
-
-
-
-                return (
-
-                  <div
-                    key={category.id}
                   >
+
+                    {item.label}
+
+                  </NavLink>
+
+                )
+              )}
+
+
+            </div>
+
+
+
+
+
+            {/* Categories */}
+
+            <div>
+
+
+              <p className="
+                mb-3
+                text-xs
+                font-semibold
+                uppercase
+                tracking-[0.25em]
+                text-[#C8A44D]
+              ">
+
+                Shop By Category
+
+              </p>
+
+
+
+
+              <div className="space-y-2">
+
+
+                {categories.map(
+                  (category)=>(
 
 
                     <button
 
-                      type="button"
+                      key={category.id}
 
                       onClick={() =>
-                        setOpenCategory(
-                          opened
-                            ? null
-                            : category.id
+                        setSelectedCategory(
+                          category
                         )
                       }
 
-                      className="flex w-full items-center justify-between rounded-lg px-3 py-3 text-left text-sm font-medium text-neutral-900 hover:bg-[#F8F6F1]"
+
+                      className="
+                      flex
+                      w-full
+                      items-center
+                      justify-between
+                      rounded-xl
+                      bg-[#F8F6F1]
+                      px-4
+                      py-4
+                      text-left
+                      text-sm
+                      font-medium
+                      text-neutral-900
+                      "
 
                     >
 
                       {category.name}
 
 
-                      <ChevronDown
-
+                      <ChevronRight
                         size={18}
-
-                        className={`transition-transform ${
-                          opened
-                            ? "rotate-180 text-[#C8A44D]"
-                            : ""
-                        }`}
-
+                        className="text-[#C8A44D]"
                       />
 
 
                     </button>
 
 
+                  )
+                )}
+
+
+              </div>
+
+
+            </div>
+
+
+          </motion.div>
 
 
 
-                    {
-                      opened && (
-
-                        <div className="ml-4 mt-1 space-y-1 border-l border-neutral-200 pl-3">
-
-
-                          <Link
-
-                            to={`/shop?category=${category.slug}`}
-
-                            onClick={onClose}
-
-                            className="block py-2 text-sm text-neutral-600"
-
-                          >
-
-                            View All {category.name}
-
-                          </Link>
+        ) : (
 
 
 
-                          {
-                            children.map(
-                              (sub) => (
+          <motion.div
 
-                                <Link
+            key="category"
 
-                                  key={sub.id}
+            initial={{
+              x:30,
+              opacity:0,
+            }}
 
-                                  to={`/shop?subcategory=${sub.slug}`}
+            animate={{
+              x:0,
+              opacity:1,
+            }}
 
-                                  onClick={onClose}
+            exit={{
+              x:30,
+              opacity:0,
+            }}
 
-                                  className="block py-2 text-sm text-neutral-600 hover:text-[#C8A44D]"
+            transition={{
+              duration:0.25,
+            }}
 
-                                >
+            className="p-6"
 
-                                  {sub.name}
-
-                                </Link>
-
-                              )
-                            )
-                          }
-
-
-                        </div>
-
-                      )
-                    }
+          >
 
 
-                  </div>
 
-                );
 
+            {/* Back */}
+
+            <button
+
+              onClick={() =>
+                setSelectedCategory(null)
               }
-            )
-          }
+
+              className="
+              mb-6
+              flex
+              items-center
+              gap-2
+              text-sm
+              font-medium
+              text-neutral-700
+              "
+
+            >
+
+              <ArrowLeft size={18}/>
+
+              {selectedCategory.name}
+
+            </button>
 
 
-        </div>
 
 
-      </div>
+
+            <Link
+
+              to={`/shop?category=${selectedCategory.slug}`}
+
+              onClick={onClose}
+
+              className="
+              mb-4
+              block
+              rounded-xl
+              bg-black
+              px-4
+              py-4
+              text-sm
+              font-medium
+              text-white
+              "
+
+            >
+
+              View All {selectedCategory.name}
 
 
-    </nav>
+            </Link>
+
+
+
+
+
+
+            <div className="space-y-2">
+
+
+              {categorySubs.map(
+                (sub)=>(
+
+
+                  <Link
+
+                    key={sub.id}
+
+                    to={`/shop?subcategory=${sub.slug}`}
+
+                    onClick={onClose}
+
+                    className="
+                    block
+                    rounded-xl
+                    border
+                    border-neutral-200
+                    px-4
+                    py-3
+                    text-sm
+                    font-medium
+                    text-neutral-800
+                    transition
+                    hover:border-[#C8A44D]
+                    hover:text-[#C8A44D]
+                    "
+
+                  >
+
+                    {sub.name}
+
+
+                  </Link>
+
+
+                )
+              )}
+
+
+            </div>
+
+
+
+          </motion.div>
+
+
+        )}
+
+
+      </AnimatePresence>
+
+
+    </div>
 
   );
 
