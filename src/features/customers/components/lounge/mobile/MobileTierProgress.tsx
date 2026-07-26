@@ -1,3 +1,7 @@
+import React from "react";
+
+
+
 export default function MobileTierProgress(){
 
 
@@ -6,15 +10,41 @@ const currentSpend = 1200;
 const goldTarget = 5000;
 
 
-const progress =
+const progress = Math.min(
+  (currentSpend / goldTarget) * 100,
+  100
+);
 
-(currentSpend / goldTarget) * 100;
+
+const remaining = goldTarget - currentSpend;
 
 
 
-const remaining =
+const tiers = [
 
-goldTarget - currentSpend;
+{
+name:"Silver",
+letter:"S",
+style:"from-white via-slate-300 to-slate-500",
+active:true,
+},
+
+{
+name:"Gold",
+letter:"G",
+style:"from-yellow-200 via-yellow-400 to-yellow-600",
+active:false,
+},
+
+{
+name:"Platinum",
+letter:"P",
+style:"from-purple-200 via-purple-500 to-purple-800",
+active:false,
+},
+
+];
+
 
 
 
@@ -33,7 +63,6 @@ p-5
 >
 
 
-
 <h2
 
 className="
@@ -50,25 +79,41 @@ Progress to Next Tier
 
 
 
+<p
 
+className="
+mt-1
+text-xs
+text-neutral-400
+"
+
+>
+
+Unlock higher T&M benefits
+
+</p>
+
+
+
+
+
+
+
+{/* Tier Progress */}
 
 
 
 <div
 
 className="
-mt-6
 relative
+mt-6
 "
 
 >
 
 
-
-
-
-{/* Progress Line */}
-
+{/* Background Line */}
 
 <div
 
@@ -82,13 +127,21 @@ rounded-full
 bg-neutral-700
 "
 
->
+/>
 
+
+
+
+
+{/* Completed Line */}
 
 <div
 
 className="
-h-full
+absolute
+left-5
+top-5
+h-1
 rounded-full
 bg-[#C8A44D]
 "
@@ -99,13 +152,7 @@ width:`${progress}%`
 
 }}
 
-
 />
-
-
-</div>
-
-
 
 
 
@@ -125,29 +172,9 @@ justify-between
 
 
 
-
-
-{[
-
 {
-name:"Silver",
-letter:"S",
-active:true
-},
 
-{
-name:"Gold",
-letter:"S",
-active:false
-},
-
-{
-name:"Platinum",
-letter:"S",
-active:false
-}
-
-].map((tier)=>(
+tiers.map((tier)=>(
 
 
 <div
@@ -163,10 +190,10 @@ items-center
 >
 
 
-
 <div
 
 className={`
+
 flex
 h-10
 w-10
@@ -174,19 +201,24 @@ items-center
 justify-center
 rounded-full
 border
+bg-gradient-to-br
 text-sm
-font-semibold
+font-bold
+text-white
+shadow-inner
+
+${tier.style}
 
 ${
 tier.active
 
 ?
 
-"border-[#C8A44D] bg-gradient-to-br from-white via-slate-300 to-slate-500 text-white"
+"border-white shadow-[0_0_18px_rgba(255,255,255,0.5)]"
 
 :
 
-"border-neutral-700 bg-neutral-900 text-neutral-500"
+"border-white/30"
 
 }
 
@@ -222,13 +254,14 @@ text-neutral-300
 </div>
 
 
-))}
+))
+
+
+}
 
 
 
 </div>
-
-
 
 
 
@@ -252,6 +285,7 @@ text-neutral-300
 
 >
 
+
 <span
 
 className="
@@ -265,9 +299,11 @@ text-[#C8A44D]
 
 </span>
 
+
 {" "}
 
-/ ₹5,000 more to reach Gold
+away from Gold Member
+
 
 </p>
 
@@ -284,17 +320,24 @@ mt-4
 flex
 justify-between
 text-xs
-text-neutral-500
 "
 
 >
 
 
-<span>
+<span
+
+className="
+text-neutral-500
+"
+
+>
 
 ₹{currentSpend.toLocaleString()} spent
 
 </span>
+
+
 
 
 <span
@@ -310,7 +353,9 @@ text-[#C8A44D]
 </span>
 
 
+
 </div>
+
 
 
 
