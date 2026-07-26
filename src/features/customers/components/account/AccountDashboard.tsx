@@ -1,7 +1,111 @@
-import AccountSidebar from "./AccountSidebar";
+import {
+  User,
+  Package,
+  Heart,
+  Gift,
+  Crown,
+} from "lucide-react";
+
+
+import {
+  useAuth,
+} from "@/features/Auth/context/AuthContext";
+
+
+
+
+function LoungeCard({
+icon,
+title,
+value,
+}:{
+icon:React.ReactNode;
+title:string;
+value:string;
+}){
+
+
+return (
+
+<div
+
+className="
+rounded-2xl
+border
+border-[#C8A44D]/30
+bg-[#111111]
+p-5
+transition
+hover:border-[#C8A44D]
+"
+
+>
+
+
+<div className="
+text-[#C8A44D]
+">
+
+{icon}
+
+</div>
+
+
+<p
+
+className="
+mt-4
+text-xs
+uppercase
+tracking-wider
+text-neutral-400
+"
+
+>
+
+{title}
+
+</p>
+
+
+
+<p
+
+className="
+mt-1
+text-lg
+font-semibold
+text-white
+"
+
+>
+
+{value}
+
+</p>
+
+
+
+</div>
+
+);
+
+}
+
+
+
+
 
 
 export default function AccountDashboard(){
+
+
+const {
+customer
+}=useAuth();
+
+
+
 
 return (
 
@@ -23,10 +127,11 @@ md:px-8
 
 className="
 mx-auto
-max-w-6xl
+max-w-5xl
 "
 
 >
+
 
 
 <h1
@@ -39,82 +144,101 @@ text-[#C8A44D]
 
 >
 
-My Account
+My T&M Lounge ✨
 
 </h1>
+
+
 
 
 <p
 
 className="
 mt-2
-text-sm
 text-neutral-400
 "
 
 >
 
-Manage your T&M Jewels account
+Welcome back, {customer?.first_name}
 
 </p>
 
 
+
+
+
+
+{/* Profile Card */}
 
 
 <div
 
 className="
 mt-8
-grid
-gap-6
-md:grid-cols-[240px_1fr]
-"
-
->
-
-
-<AccountSidebar />
-
-
-
-<div
-
-className="
-rounded-2xl
+rounded-3xl
 border
-border-neutral-800
-bg-neutral-950
+border-[#C8A44D]/40
+bg-gradient-to-br
+from-neutral-900
+to-black
 p-6
 "
 
 >
 
 
-<h2
+<div className="
+flex
+items-center
+gap-4
+">
+
+
+<div
 
 className="
-text-xl
-font-semibold
+flex
+h-14
+w-14
+items-center
+justify-center
+rounded-full
+bg-[#C8A44D]/10
+text-[#C8A44D]
 "
 
 >
 
-Welcome ✨
+<User />
+
+</div>
+
+
+
+
+<div>
+
+<h2 className="
+text-xl
+font-semibold
+">
+
+{customer?.first_name}
+
+{" "}
+
+{customer?.last_name}
 
 </h2>
 
 
-<p
-
-className="
-mt-2
+<p className="
 text-sm
 text-neutral-400
-"
+">
 
->
-
-Select an option from your account menu.
+T&M Family Member ✨
 
 </p>
 
@@ -122,8 +246,114 @@ Select an option from your account menu.
 </div>
 
 
+</div>
+
 
 </div>
+
+
+
+
+
+
+
+
+{/* Cards */}
+
+
+<div
+
+className="
+mt-6
+grid
+grid-cols-2
+gap-4
+"
+
+>
+
+
+<LoungeCard
+
+icon={<Package />}
+
+title="Orders"
+
+value="0 Orders"
+
+/>
+
+
+<LoungeCard
+
+icon={<Heart />}
+
+title="Wishlist"
+
+value="0 Items"
+
+/>
+
+
+<LoungeCard
+
+icon={<Gift />}
+
+title="Rewards"
+
+value="0 Points"
+
+/>
+
+
+<LoungeCard
+
+icon={<Crown />}
+
+title="Membership"
+
+value="Silver"
+
+/>
+
+
+</div>
+
+
+
+
+
+
+<div
+
+className="
+mt-6
+rounded-2xl
+border
+border-neutral-800
+bg-neutral-950
+p-5
+text-center
+"
+
+>
+
+
+<p className="
+text-sm
+text-neutral-400
+"
+
+>
+
+Your jewellery journey with T&M ✨
+
+</p>
+
+
+</div>
+
+
 
 
 
@@ -133,6 +363,5 @@ Select an option from your account menu.
 </div>
 
 );
-
 
 }
