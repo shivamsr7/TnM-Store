@@ -12,8 +12,10 @@ error
 }=await supabase
 .from("customers")
 .select("*")
-.eq("phone", phone)
-.is("deleted_at", null)
+.is("deleted_at",null)
+.or(
+`phone.eq.${phone},phone.eq.+91${phone}`
+)
 .maybeSingle();
 
 
@@ -23,7 +25,6 @@ if(error){
 throw error;
 
 }
-
 
 
 return data;

@@ -1,16 +1,18 @@
+
 import {
   Link,
   NavLink,
 } from "react-router-dom";
 
 import {
-  ChevronRight,
-  ArrowLeft,
-} from "lucide-react";
-
-import {
   useState,
 } from "react";
+
+import {
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+
 
 import {
   AnimatePresence,
@@ -39,647 +41,751 @@ import {
 
 
 
+
+
 interface Props {
-  onClose: () => void;
+
+  onClose:()=>void;
+
+  customer:any;
+
+  onLogout:()=>Promise<void>;
+
 }
 
 
 
+
+
 export default function MobileNavigation({
-  onClose,
-}: Props) {
 
+onClose,
 
-  const {
-    data: categories = [],
-  } = useCategories();
+customer,
 
+onLogout,
 
+}:Props){
 
-  const {
-    data: subcategories = [],
-  } = useSubcategories();
 
 
+const {
 
-  const [
-    selectedCategory,
-    setSelectedCategory,
-  ] = useState<any>(null);
+data:categories=[],
 
+}=useCategories();
 
 
-  const {
-    openAuth,
-  } = useAuthDialog();
 
 
 
+const {
 
-  const categorySubs =
-    selectedCategory
-      ? subcategories.filter(
-          (sub) =>
-            sub.category_id === selectedCategory.id
-        )
-      : [];
+data:subcategories=[],
 
+}=useSubcategories();
 
 
 
 
-  return (
 
-    <div className="relative overflow-hidden">
 
+// Only one category can stay open
 
-      <AnimatePresence mode="wait">
+const [
 
+expandedCategory,
 
-        {!selectedCategory ? (
+setExpandedCategory,
 
+]=useState<string | null>(null);
 
-          <motion.div
 
-            key="main"
 
-            initial={{
-              x:-25,
-              opacity:0,
-            }}
 
-            animate={{
-              x:0,
-              opacity:1,
-            }}
 
-            exit={{
-              x:-25,
-              opacity:0,
-            }}
 
-            transition={{
-              duration:0.25,
-              ease:"easeOut",
-            }}
 
-            className="
-              space-y-6
-              p-6
-            "
+const {
 
-          >
+openAuth,
 
+}=useAuthDialog();
 
 
-            {/* Account Card */}
 
-            <div
 
-              className="
-                rounded-2xl
-                border
-                border-[#C8A44D]
-                bg-[#F8F6F1]
-                p-4
-              "
 
-            >
 
 
-              <p
 
-                className="
-                  text-sm
-                  font-semibold
-                  text-neutral-900
-                "
 
-              >
 
-                Join T&M Family
 
-              </p>
 
 
 
-              <p
+return (
 
-                className="
-                  mt-1
-                  text-xs
-                  text-neutral-500
-                "
+<div
 
-              >
+className="
+space-y-6
+p-6
+"
 
-                Rewards • Wishlist • Orders
+>
 
-              </p>
 
 
 
 
-              <button
 
-                onClick={openAuth}
 
-                className="
-                  mt-4
-                  w-full
-                  rounded-xl
-                  bg-black
-                  py-3
-                  text-sm
-                  font-medium
-                  text-white
-                "
 
-              >
 
-                Login / Register
+{/* Account Card */}
 
-              </button>
 
 
+<div
 
-            </div>
+className="
+rounded-2xl
+border
+border-[#C8A44D]
+bg-[#F8F6F1]
+p-4
+"
 
+>
 
 
 
+{
 
+customer ? (
 
-            {/* Navigation Links */}
 
+<>
 
-            <div className="space-y-1">
 
+<p
 
-              {navigationItems.map(
+className="
+text-sm
+font-semibold
+text-neutral-900
+"
 
-                (item)=>(
+>
 
+Hi, {customer.first_name} ✨
 
-                  <NavLink
+</p>
 
-                    key={item.href}
 
-                    to={item.href}
 
-                    onClick={onClose}
 
+<p
 
-                    className={({isActive}) =>
+className="
+mt-1
+text-xs
+text-neutral-500
+"
 
-                    `
-                    block
-                    border-b
-                    border-neutral-100
-                    py-3
-                    text-base
-                    font-medium
+>
 
-                    ${
-                      isActive
-                      ? "text-[#C8A44D]"
-                      : "text-neutral-900"
-                    }
+Welcome back to T&M Family
 
-                    `
+</p>
 
-                    }
 
-                  >
 
-                    {item.label}
 
 
-                  </NavLink>
 
 
-                )
+<div className="mt-4 space-y-2">
 
-              )}
 
+<Link
 
-            </div>
+to="/account"
 
+onClick={onClose}
 
+className="
+block
+rounded-xl
+bg-black
+py-3
+text-center
+text-sm
+font-medium
+text-white
+"
 
+>
 
+My Account
 
+</Link>
 
 
 
-            {/* Categories */}
 
 
-            <div>
+<button
 
+onClick={onLogout}
 
-              <p
+className="
+w-full
+rounded-xl
+border
+border-black
+py-3
+text-sm
+font-medium
+text-black
+"
 
-                className="
-                  mb-4
-                  text-xs
-                  font-semibold
-                  uppercase
-                  tracking-[0.25em]
-                  text-[#C8A44D]
-                "
+>
 
-              >
+Logout
 
-                Shop By Category
+</button>
 
-              </p>
 
 
+</div>
 
 
-              <div className="space-y-3">
 
+</>
 
-                {categories.map(
 
-                  (category)=>(
+)
 
+:
 
-                    <button
+(
 
-                      key={category.id}
 
-                      onClick={()=>
-                        setSelectedCategory(category)
-                      }
+<>
 
 
-                      className="
-                        flex
-                        w-full
-                        items-center
-                        justify-between
-                        rounded-xl
-                        border
-                        border-neutral-200
-                        bg-white
-                        p-3
-                        text-left
-                        transition-all
-                        duration-300
-                        hover:border-[#C8A44D]
-                        hover:bg-[#F8F6F1]
-                      "
+<p
 
-                    >
+className="
+text-sm
+font-semibold
+text-neutral-900
+"
 
+>
 
+Join T&M Family
 
-                      <div
+</p>
 
-                        className="
-                          flex
-                          items-center
-                          gap-4
-                        "
 
-                      >
 
 
-                        <div
 
-                          className="
-                            h-14
-                            w-14
-                            shrink-0
-                            overflow-hidden
-                            rounded-full
-                            bg-[#F8F6F1]
-                          "
+<p
 
-                        >
+className="
+mt-1
+text-xs
+text-neutral-500
+"
 
+>
 
-                          {category.image_url ? (
+Rewards • Wishlist • Orders
 
+</p>
 
-                            <img
 
-                              src={category.image_url}
 
-                              alt={category.name}
 
-                              className="
-                                h-full
-                                w-full
-                                object-cover
-                              "
 
-                            />
 
+<button
 
-                          ) : (
+onClick={openAuth}
 
+className="
+mt-4
+w-full
+rounded-xl
+bg-black
+py-3
+text-sm
+font-medium
+text-white
+"
 
-                            <div
+>
 
-                              className="
-                                flex
-                                h-full
-                                items-center
-                                justify-center
-                                text-[10px]
-                                text-neutral-400
-                              "
+Login / Register
 
-                            >
+</button>
 
-                              No Image
 
-                            </div>
 
+</>
 
-                          )}
 
+)
 
-                        </div>
 
 
+}
 
 
-                        <span
 
-                          className="
-                            text-sm
-                            font-medium
-                            text-neutral-900
-                          "
+</div>
 
-                        >
 
-                          {category.name}
 
-                        </span>
 
 
-                      </div>
 
 
 
 
+{/* Navigation Links */}
 
-                      <ChevronRight
 
-                        size={18}
 
-                        className="
-                          text-[#C8A44D]
-                        "
+<div className="space-y-1">
 
-                      />
 
+{
 
-                    </button>
+navigationItems.map(
 
+(item)=>(
 
-                  )
 
-                )}
+<NavLink
 
 
-              </div>
+key={item.href}
 
 
-            </div>
+to={item.href}
 
 
+onClick={onClose}
 
 
-          </motion.div>
+className={({isActive}) =>
 
+`
 
+block
 
+border-b
 
+border-neutral-100
 
-        ) : (
+py-3
 
+text-base
 
+font-medium
 
-          <motion.div
 
-            key="category"
+${
+isActive
 
-            initial={{
-              x:25,
-              opacity:0,
-            }}
+?
 
-            animate={{
-              x:0,
-              opacity:1,
-            }}
+"text-[#C8A44D]"
 
-            exit={{
-              x:25,
-              opacity:0,
-            }}
+:
 
-            transition={{
-              duration:0.25,
-            }}
+"text-neutral-900"
 
-            className="p-6"
+}
 
-          >
+`
 
+}
 
 
-            <button
+>
 
-              onClick={()=>
-                setSelectedCategory(null)
-              }
 
-              className="
-                flex
-                items-center
-                gap-2
-                text-sm
-                font-medium
-                text-neutral-700
-              "
+{item.label}
 
-            >
 
-              <ArrowLeft size={18}/>
 
-              Back
+</NavLink>
 
-            </button>
 
+)
 
 
+)
 
+}
 
-            <h2
 
-              className="
-                mt-4
-                text-2xl
-                font-semibold
-                text-neutral-900
-              "
 
-            >
+</div>
 
-              {selectedCategory.name}
 
-            </h2>
 
 
 
 
 
 
-            <Link
+{/* Shop By Category */}
 
-              to={`/shop?category=${selectedCategory.slug}`}
 
-              onClick={onClose}
 
-              className="
-                mt-5
-                block
-                rounded-xl
-                border
-                border-[#C8A44D]
-                bg-[#F8F6F1]
-                px-4
-                py-4
-                text-sm
-                font-medium
-              "
+<div>
 
-            >
 
-              ✨ Shop All {selectedCategory.name}
 
-            </Link>
+<p
 
+className="
+mb-4
+text-xs
+font-semibold
+uppercase
+tracking-[0.25em]
+text-[#C8A44D]
+"
 
+>
 
+Shop By Category
 
+</p>
 
 
-            <div className="mt-4 space-y-3">
 
 
-              {categorySubs.map(
 
-                (sub)=>(
 
+<div className="space-y-2">
 
-                  <Link
 
-                    key={sub.id}
+{
 
-                    to={`/shop?subcategory=${sub.slug}`}
+categories.map(
 
-                    onClick={onClose}
+(category)=>(
 
-                    className="
-                      flex
-                      items-center
-                      gap-4
-                      rounded-xl
-                      border
-                      border-neutral-200
-                      bg-white
-                      p-3
-                    "
 
-                  >
+<div
 
+key={category.id}
 
+className="
+overflow-hidden
+rounded-xl
+border
+border-neutral-200
+bg-white
+"
 
-                    <div
+>
 
-                      className="
-                        h-16
-                        w-16
-                        shrink-0
-                        overflow-hidden
-                        rounded-lg
-                        bg-[#F8F6F1]
-                      "
 
-                    >
+<button
 
+onClick={()=>{
 
-                      {sub.image_url && (
 
-                        <img
+setExpandedCategory(
 
-                          src={sub.image_url}
+expandedCategory === category.id
 
-                          alt={sub.name}
+?
 
-                          className="
-                            h-full
-                            w-full
-                            object-cover
-                          "
+null
 
-                        />
+:
 
-                      )}
+category.id
 
+);
 
-                    </div>
 
+}}
 
+className="
+flex
+w-full
+items-center
+justify-between
+px-4
+py-4
+"
 
+>
 
-                    <span
 
-                      className="
-                        text-sm
-                        font-medium
-                        text-neutral-900
-                      "
+<span
 
-                    >
+className="
+text-sm
+font-medium
+text-neutral-900
+"
 
-                      {sub.name}
+>
 
-                    </span>
+{category.name}
 
+</span>
 
-                  </Link>
 
 
-                )
 
-              )}
 
+{
 
-            </div>
+expandedCategory === category.id
 
+?
 
+<ChevronUp
 
-          </motion.div>
+size={18}
 
+className="text-[#C8A44D]"
 
-        )}
+/>
 
+:
 
+<ChevronDown
 
-      </AnimatePresence>
+size={18}
 
+className="text-[#C8A44D]"
 
-    </div>
+/>
 
-  );
+}
+
+
+
+</button>
+
+
+
+
+
+<AnimatePresence>
+
+
+{
+
+expandedCategory === category.id && (
+
+
+<motion.div
+
+initial={{
+
+height:0,
+
+opacity:0
+
+}}
+
+
+animate={{
+
+height:"auto",
+
+opacity:1
+
+}}
+
+
+exit={{
+
+height:0,
+
+opacity:0
+
+}}
+
+
+transition={{
+
+duration:0.25
+
+}}
+
+
+className="
+overflow-hidden
+border-t
+border-neutral-100
+bg-[#F8F6F1]
+px-4
+py-3
+space-y-2
+"
+
+>
+
+
+
+
+
+{/* Shop All */}
+
+
+
+<Link
+
+to={`/shop?category=${category.slug}`}
+
+onClick={onClose}
+
+className="
+block
+rounded-lg
+py-2
+text-sm
+font-medium
+text-black
+hover:text-[#C8A44D]
+"
+
+>
+
+✨ Shop All {category.name}
+
+</Link>
+
+
+
+
+
+
+
+
+{/* Sub Categories */}
+
+
+
+{
+
+subcategories
+
+.filter(
+
+(sub)=>
+
+sub.category_id === category.id
+
+)
+
+.map(
+
+(sub)=>(
+
+
+<Link
+
+
+key={sub.id}
+
+
+to={`/shop?subcategory=${sub.slug}`}
+
+
+onClick={onClose}
+
+
+className="
+block
+rounded-lg
+py-2
+text-sm
+text-neutral-700
+transition
+hover:text-[#C8A44D]
+"
+
+>
+
+
+{sub.name}
+
+
+</Link>
+
+
+)
+
+
+)
+
+
+}
+
+
+
+</motion.div>
+
+
+
+)
+
+
+}
+
+
+
+</AnimatePresence>
+
+
+
+
+
+
+</div>
+
+
+)
+
+
+)
+
+
+}
+
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+</div>
+
+
+);
 
 }
