@@ -1,15 +1,36 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import {
+  Routes,
+  Route,
+} from "react-router-dom";
 
-function HomePage() {
-  return <h1>TNM Jewels</h1>;
-}
 
-export default function AppRouter() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-      </Routes>
-    </BrowserRouter>
-  );
+import App from "@/App";
+
+import AccountPage from "@/features/customers/pages/AccountPage";
+
+
+
+export default function AppRouter(){
+
+return (
+
+<Routes>
+
+
+<Route
+path="/"
+element={<App />}
+/>
+
+
+<Route
+path="/account"
+element={<AccountPage />}
+/>
+
+
+</Routes>
+
+);
+
 }

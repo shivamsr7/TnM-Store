@@ -5,8 +5,8 @@ import {
  AuthProvider
 } from "@/features/Auth/context/AuthContext";
 import "./index.css";
+import AppRouter from "./app/router/AppRouter";
 
-import App from "./App";
 
 import QueryProvider from "@/app/providers/QueryProvider";
 
@@ -30,7 +30,7 @@ createRoot(
 
 <AuthDialogProvider>
 
-<App />
+<AppRouter />
 <Toaster
             position="top-right"
             richColors
