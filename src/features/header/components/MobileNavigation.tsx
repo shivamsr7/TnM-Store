@@ -77,6 +77,7 @@ export default function MobileNavigation({
 
 
 
+
   return (
 
     <div className="relative overflow-hidden">
@@ -85,45 +86,58 @@ export default function MobileNavigation({
       <AnimatePresence mode="wait">
 
 
+        {/* MAIN MENU */}
+
         {!selectedCategory ? (
+
 
           <motion.div
 
+
             key="main"
 
+
             initial={{
-              x:-30,
-              opacity:0,
+              x: -25,
+              opacity: 0,
             }}
+
 
             animate={{
-              x:0,
-              opacity:1,
+              x: 0,
+              opacity: 1,
             }}
+
 
             exit={{
-              x:-30,
-              opacity:0,
+              x: -25,
+              opacity: 0,
             }}
+
 
             transition={{
-              duration:0.25,
+              duration: 0.25,
+              ease: "easeOut",
             }}
 
+
             className="space-y-6 p-6"
+
 
           >
 
 
 
-            {/* Main Links */}
+            {/* Navigation Links */}
+
 
             <div className="space-y-1">
 
 
               {navigationItems.map(
-                (item)=>(
-                  
+
+                (item) => (
+
                   <NavLink
 
                     key={item.href}
@@ -132,7 +146,9 @@ export default function MobileNavigation({
 
                     onClick={onClose}
 
-                    className={({isActive})=>
+
+                    className={({isActive}) =>
+
                       `
                       block
                       border-b
@@ -140,21 +156,27 @@ export default function MobileNavigation({
                       py-3
                       text-base
                       font-medium
+                      transition-colors
+
                       ${
                         isActive
                         ? "text-[#C8A44D]"
                         : "text-neutral-900"
                       }
+
                       `
+
                     }
 
                   >
 
                     {item.label}
 
+
                   </NavLink>
 
                 )
+
               )}
 
 
@@ -164,19 +186,23 @@ export default function MobileNavigation({
 
 
 
+
             {/* Categories */}
+
 
             <div>
 
 
-              <p className="
-                mb-3
-                text-xs
-                font-semibold
-                uppercase
-                tracking-[0.25em]
-                text-[#C8A44D]
-              ">
+              <p
+                className="
+                  mb-3
+                  text-xs
+                  font-semibold
+                  uppercase
+                  tracking-[0.25em]
+                  text-[#C8A44D]
+                "
+              >
 
                 Shop By Category
 
@@ -185,16 +211,20 @@ export default function MobileNavigation({
 
 
 
-              <div className="space-y-2">
+
+              <div className="space-y-3">
 
 
                 {categories.map(
-                  (category)=>(
+
+                  (category) => (
 
 
                     <button
 
+
                       key={category.id}
+
 
                       onClick={() =>
                         setSelectedCategory(
@@ -204,28 +234,46 @@ export default function MobileNavigation({
 
 
                       className="
-                      flex
-                      w-full
-                      items-center
-                      justify-between
-                      rounded-xl
-                      bg-[#F8F6F1]
-                      px-4
-                      py-4
-                      text-left
-                      text-sm
-                      font-medium
-                      text-neutral-900
+                        flex
+                        w-full
+                        items-center
+                        justify-between
+                        rounded-xl
+                        border
+                        border-neutral-200
+                        bg-white
+                        px-4
+                        py-4
+                        text-left
+                        text-sm
+                        font-medium
+                        text-neutral-900
+                        transition-all
+                        duration-300
+                        hover:border-[#C8A44D]
+                        hover:bg-[#F8F6F1]
                       "
+
 
                     >
 
-                      {category.name}
+
+                      <span>
+
+                        {category.name}
+
+                      </span>
+
 
 
                       <ChevronRight
+
                         size={18}
-                        className="text-[#C8A44D]"
+
+                        className="
+                          text-[#C8A44D]
+                        "
+
                       />
 
 
@@ -233,6 +281,7 @@ export default function MobileNavigation({
 
 
                   )
+
                 )}
 
 
@@ -242,7 +291,10 @@ export default function MobileNavigation({
             </div>
 
 
+
           </motion.div>
+
+
 
 
 
@@ -250,85 +302,149 @@ export default function MobileNavigation({
 
 
 
+
+          /* CATEGORY DETAIL */
+
+
           <motion.div
+
 
             key="category"
 
+
             initial={{
-              x:30,
-              opacity:0,
+              x: 25,
+              opacity: 0,
             }}
+
 
             animate={{
-              x:0,
-              opacity:1,
+              x: 0,
+              opacity: 1,
             }}
+
 
             exit={{
-              x:30,
-              opacity:0,
+              x: 25,
+              opacity: 0,
             }}
+
 
             transition={{
-              duration:0.25,
+              duration: 0.25,
+              ease: "easeOut",
             }}
 
+
             className="p-6"
+
 
           >
 
 
 
 
-            {/* Back */}
 
-            <button
-
-              onClick={() =>
-                setSelectedCategory(null)
-              }
-
-              className="
-              mb-6
-              flex
-              items-center
-              gap-2
-              text-sm
-              font-medium
-              text-neutral-700
-              "
-
-            >
-
-              <ArrowLeft size={18}/>
-
-              {selectedCategory.name}
-
-            </button>
+            {/* Header */}
 
 
+            <div className="mb-6">
 
+
+              <button
+
+
+                onClick={() =>
+                  setSelectedCategory(null)
+                }
+
+
+                className="
+                  flex
+                  items-center
+                  gap-2
+                  text-sm
+                  font-medium
+                  text-neutral-700
+                "
+
+
+              >
+
+                <ArrowLeft size={18}/>
+
+
+                Back
+
+
+              </button>
+
+
+
+
+
+              <h2
+
+
+                className="
+                  mt-4
+                  text-2xl
+                  font-semibold
+                  text-neutral-900
+                "
+
+
+              >
+
+                {selectedCategory.name}
+
+
+              </h2>
+
+
+
+            </div>
+
+
+
+
+
+
+
+
+            {/* View All */}
 
 
             <Link
 
+
               to={`/shop?category=${selectedCategory.slug}`}
+
 
               onClick={onClose}
 
+
               className="
-              mb-4
-              block
-              rounded-xl
-              bg-black
-              px-4
-              py-4
-              text-sm
-              font-medium
-              text-white
+                mb-4
+                block
+                rounded-xl
+                border
+                border-[#C8A44D]
+                bg-[#F8F6F1]
+                px-4
+                py-4
+                text-sm
+                font-medium
+                text-neutral-900
+                transition-all
+                duration-300
+                hover:bg-[#C8A44D]
+                hover:text-white
               "
 
+
             >
+
 
               View All {selectedCategory.name}
 
@@ -340,45 +456,83 @@ export default function MobileNavigation({
 
 
 
+
+            {/* Subcategories */}
+
+
+
             <div className="space-y-2">
 
 
-              {categorySubs.map(
-                (sub)=>(
+              {categorySubs.length > 0 ? (
 
 
-                  <Link
+                categorySubs.map(
 
-                    key={sub.id}
-
-                    to={`/shop?subcategory=${sub.slug}`}
-
-                    onClick={onClose}
-
-                    className="
-                    block
-                    rounded-xl
-                    border
-                    border-neutral-200
-                    px-4
-                    py-3
-                    text-sm
-                    font-medium
-                    text-neutral-800
-                    transition
-                    hover:border-[#C8A44D]
-                    hover:text-[#C8A44D]
-                    "
-
-                  >
-
-                    {sub.name}
+                  (sub) => (
 
 
-                  </Link>
+                    <Link
+
+
+                      key={sub.id}
+
+
+                      to={`/shop?subcategory=${sub.slug}`}
+
+
+                      onClick={onClose}
+
+
+                      className="
+                        block
+                        rounded-xl
+                        border
+                        border-neutral-200
+                        bg-white
+                        px-4
+                        py-3
+                        text-sm
+                        font-medium
+                        text-neutral-800
+                        transition-all
+                        duration-300
+                        hover:border-[#C8A44D]
+                        hover:bg-[#F8F6F1]
+                        hover:text-[#C8A44D]
+                      "
+
+
+                    >
+
+                      {sub.name}
+
+
+                    </Link>
+
+
+                  )
 
 
                 )
+
+
+              ) : (
+
+
+                <p className="
+                  rounded-xl
+                  bg-neutral-50
+                  p-4
+                  text-sm
+                  text-neutral-500
+                ">
+
+                  No subcategories available.
+
+                </p>
+
+
               )}
 
 
@@ -386,7 +540,9 @@ export default function MobileNavigation({
 
 
 
+
           </motion.div>
+
 
 
         )}
