@@ -1,6 +1,8 @@
 import * as React from "react";
-import { Drawer as DrawerPrimitive } from "vaul";
 
+import {
+  Drawer as DrawerPrimitive,
+} from "vaul";
 
 import { cn } from "@/lib/utils";
 
@@ -8,27 +10,25 @@ import { cn } from "@/lib/utils";
 
 const Drawer = DrawerPrimitive.Root;
 
-
-
 const DrawerTrigger =
-DrawerPrimitive.Trigger;
-
-
+  DrawerPrimitive.Trigger;
 
 const DrawerClose =
-DrawerPrimitive.Close;
-
-
+  DrawerPrimitive.Close;
 
 const DrawerPortal =
-DrawerPrimitive.Portal;
+  DrawerPrimitive.Portal;
+
 
 
 
 const DrawerOverlay =
 React.forwardRef<
+
   React.ElementRef<typeof DrawerPrimitive.Overlay>,
+
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay>
+
 >(
 
 (
@@ -37,27 +37,41 @@ className,
 ...props
 },
 ref
+
 )=>(
+
 
 <DrawerPrimitive.Overlay
 
 ref={ref}
 
 className={cn(
-  "fixed inset-0 z-50 bg-black/40",
-  className
+
+`
+fixed
+inset-0
+z-50
+bg-black/40
+`,
+
+className
+
 )}
 
 {...props}
 
 />
 
+
 )
 
 );
 
+
 DrawerOverlay.displayName =
 DrawerPrimitive.Overlay.displayName;
+
+
 
 
 
@@ -79,6 +93,7 @@ children,
 ...props
 },
 ref
+
 )=>(
 
 
@@ -92,31 +107,54 @@ ref
 
 ref={ref}
 
+
 className={cn(
 
-"fixed bottom-0 left-0 right-0 z-50 mt-24 flex flex-col rounded-t-[20px] bg-white",
+`
+fixed
+bottom-0
+left-0
+right-0
+
+z-50
+
+flex
+flex-col
+
+rounded-t-3xl
+
+bg-white
+
+outline-none
+
+touch-none
+`,
 
 className
 
 )}
+
 
 {...props}
 
 >
 
 
+{/* Drag Handle */}
+
 <div
 
 className="
 mx-auto
-mt-4
-h-2
-w-[100px]
+mt-3
+h-1.5
+w-12
 rounded-full
 bg-neutral-300
 "
 
 />
+
 
 
 {children}
@@ -134,8 +172,7 @@ bg-neutral-300
 
 
 DrawerContent.displayName =
-"DrawerContent";
-
+DrawerPrimitive.Content.displayName;
 
 
 

@@ -8,11 +8,9 @@ import AuthContent from "./AuthContent";
 
 interface Props {
 
-  open: boolean;
+  open:boolean;
 
-  onOpenChange: (
-    open: boolean
-  ) => void;
+  onOpenChange:(open:boolean)=>void;
 
 }
 
@@ -24,38 +22,45 @@ export default function MobileAuthDrawer({
 
   onOpenChange,
 
-}: Props) {
+}:Props){
 
 
-  return (
+return (
 
-    <Drawer
+<Drawer
 
-      open={open}
+  open={open}
 
-      onOpenChange={onOpenChange}
+  onOpenChange={onOpenChange}
 
-      shouldScaleBackground
+  shouldScaleBackground={false}
 
-    >
+  dismissible={true}
 
-
-      <DrawerContent
-
-        className="
-          max-h-[90vh]
-        "
-
-      >
-
-        <AuthContent />
+>
 
 
-      </DrawerContent>
+<DrawerContent
+
+className="
+h-[70vh]
+max-h-[70vh]
+rounded-t-3xl
+overflow-hidden
+"
+
+>
 
 
-    </Drawer>
+<AuthContent />
 
-  );
+
+</DrawerContent>
+
+
+</Drawer>
+
+
+);
 
 }
