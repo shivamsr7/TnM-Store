@@ -4,18 +4,80 @@ import {
   ArrowRight,
 } from "lucide-react";
 
+import {
+  useCustomerMembership,
+} from "@/features/customers/hooks/useCustomerMembership";
+
+
 
 
 export default function MobileRewardSummary(){
 
 
-const points = 0;
+
+const {
+  data:membership,
+  isLoading,
+}=useCustomerMembership();
 
 
-// T&M Reward Rule:
-// 1000 points = ₹10 discount
 
-const value = (points / 1000) * 10;
+
+
+if(isLoading){
+
+return (
+
+<div
+
+className="
+rounded-3xl
+border
+border-neutral-800
+bg-neutral-950
+p-5
+text-sm
+text-neutral-400
+"
+
+>
+
+Loading rewards...
+
+</div>
+
+);
+
+}
+
+
+
+
+
+if(!membership){
+
+return null;
+
+}
+
+
+
+
+
+
+
+const {
+
+points,
+rewardValue,
+rules
+
+}=membership;
+
+
+
+
+
 
 
 
@@ -37,7 +99,12 @@ p-5
 
 
 
+
+
+
+
 {/* Header */}
+
 
 
 <div
@@ -73,6 +140,7 @@ text-[#C8A44D]
 
 
 
+
 <Sparkles
 
 size={18}
@@ -85,6 +153,7 @@ text-[#C8A44D]
 
 
 </div>
+
 
 
 
@@ -106,6 +175,7 @@ text-white
 Reward Points 🎁
 
 </h3>
+
 
 
 
@@ -146,6 +216,7 @@ Available Balance
 
 
 
+
 <p
 
 className="
@@ -179,6 +250,7 @@ Points
 
 
 
+
 <p
 
 className="
@@ -189,9 +261,10 @@ text-neutral-400
 
 >
 
-Worth ₹{value.toFixed(2)}
+Worth ₹{rewardValue}
 
 </p>
+
 
 
 
@@ -205,7 +278,7 @@ Worth ₹{value.toFixed(2)}
 
 
 
-{/* Redeem Info */}
+{/* Redemption */}
 
 
 
@@ -242,6 +315,7 @@ Redeem Value
 
 
 
+
 <p
 
 className="
@@ -252,7 +326,7 @@ text-white
 
 >
 
-1000 pts = ₹10
+{rules.point_value_points} pts = ₹{rules.point_value_amount}
 
 </p>
 
@@ -265,9 +339,6 @@ text-white
 
 
 
-
-
-{/* Button */}
 
 
 
@@ -298,6 +369,8 @@ View Rewards
 
 
 </button>
+
+
 
 
 

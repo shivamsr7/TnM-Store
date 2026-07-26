@@ -7,17 +7,54 @@ import MobileBottomNav from "./MobileBottomNav";
 
 
 import {
-  useAuth,
-} from "@/features/Auth/context/AuthContext";
+  useCustomerProfile,
+} from "@/features/customers/hooks/useCustomerProfile";
+
+
 
 
 
 export default function MobileLounge(){
 
 
+
 const {
-customer
-}=useAuth();
+  data:profile,
+  isLoading,
+}=useCustomerProfile();
+
+
+
+
+
+
+
+if(isLoading){
+
+return (
+
+<div
+
+className="
+min-h-screen
+bg-black
+p-5
+text-neutral-400
+"
+
+>
+
+Loading Lounge...
+
+</div>
+
+);
+
+}
+
+
+
+
 
 
 
@@ -35,7 +72,12 @@ text-white
 >
 
 
+
+
+
 {/* Header */}
+
+
 
 <div
 
@@ -66,6 +108,8 @@ text-white
 
 
 
+
+
 <h1
 
 className="
@@ -79,6 +123,7 @@ text-[#C8A44D]
 My T&M Lounge ✨
 
 </h1>
+
 
 
 
@@ -102,6 +147,7 @@ border-neutral-700
 
 🔔
 
+
 <span
 
 className="
@@ -116,7 +162,10 @@ bg-pink-500
 
 />
 
+
 </button>
+
+
 
 
 
@@ -125,6 +174,10 @@ bg-pink-500
 
 
 
+
+
+
+{/* Customer Greeting */}
 
 
 
@@ -139,7 +192,7 @@ text-white
 
 >
 
-Welcome back, {customer?.first_name} 👋
+Welcome back, {profile?.first_name ?? "Member"} 👋
 
 </p>
 
@@ -161,13 +214,7 @@ px-4
 
 
 
-<MobileMemberHero
-
-customer={customer}
-
-/>
-
-
+<MobileMemberHero />
 
 
 
@@ -175,17 +222,11 @@ customer={customer}
 
 
 
-
-
 <MobileQuickActions />
 
 
 
-
-
 <MobileWelcomeGift />
-
-
 
 
 
@@ -203,7 +244,9 @@ customer={customer}
 
 
 
+
 <MobileBottomNav />
+
 
 
 

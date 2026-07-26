@@ -1,18 +1,95 @@
+import {
+  useCustomerMembership,
+} from "@/features/customers/hooks/useCustomerMembership";
+
+
+
 export default function MobileTierProgress(){
 
 
-const currentSpend = 1200;
+const {
+  data: membership,
+  isLoading,
+} = useCustomerMembership();
 
-const goldTarget = 5000;
 
 
-const progress = Math.min(
-  (currentSpend / goldTarget) * 100,
-  100
+
+
+if(isLoading){
+
+return (
+
+<div
+
+className="
+rounded-3xl
+border
+border-neutral-800
+bg-neutral-950
+p-5
+text-sm
+text-neutral-400
+"
+
+>
+
+Loading membership...
+
+</div>
+
 );
 
+}
 
-const remaining = goldTarget - currentSpend;
+
+
+
+
+if(!membership){
+
+return null;
+
+}
+
+
+
+
+
+
+
+const {
+
+tier,
+lifetimeSpend,
+nextTier,
+progress
+
+}=membership;
+
+
+
+
+
+
+const remaining = nextTier
+
+?
+
+Math.max(
+nextTier.amount - lifetimeSpend,
+0
+)
+
+:
+
+0;
+
+
+
+
+
+
 
 
 
@@ -21,25 +98,36 @@ const tiers = [
 {
 name:"Silver",
 letter:"S",
-style:"from-white via-slate-300 to-slate-500",
-active:true,
+style:
+"from-white via-slate-300 to-slate-500",
+active:
+tier.name === "Silver",
 },
+
 
 {
 name:"Gold",
 letter:"G",
-style:"from-yellow-200 via-yellow-400 to-yellow-600",
-active:false,
+style:
+"from-yellow-200 via-yellow-400 to-yellow-600",
+active:
+tier.name === "Gold",
 },
+
 
 {
 name:"Platinum",
 letter:"P",
-style:"from-purple-200 via-purple-500 to-purple-800",
-active:false,
+style:
+"from-purple-200 via-purple-500 to-purple-800",
+active:
+tier.name === "Platinum",
 },
 
 ];
+
+
+
 
 
 
@@ -57,6 +145,9 @@ p-5
 "
 
 >
+
+
+
 
 
 <h2
@@ -95,9 +186,6 @@ Unlock higher T&M benefits
 
 
 
-{/* Tier Progress */}
-
-
 
 <div
 
@@ -129,7 +217,7 @@ bg-neutral-700
 
 
 
-{/* Completed Line */}
+{/* Progress Line */}
 
 <div
 
@@ -140,6 +228,8 @@ top-5
 h-1
 rounded-full
 bg-[#C8A44D]
+transition-all
+duration-700
 "
 
 style={{
@@ -149,6 +239,7 @@ width:`${progress}%`
 }}
 
 />
+
 
 
 
@@ -167,15 +258,14 @@ justify-between
 >
 
 
-
 {
 
-tiers.map((tier)=>(
+tiers.map((item)=>(
 
 
 <div
 
-key={tier.name}
+key={item.name}
 
 className="
 flex
@@ -203,10 +293,10 @@ font-bold
 text-white
 shadow-inner
 
-${tier.style}
+${item.style}
 
 ${
-tier.active
+item.active
 
 ?
 
@@ -222,7 +312,7 @@ tier.active
 
 >
 
-{tier.letter}
+{item.letter}
 
 </div>
 
@@ -241,9 +331,11 @@ text-neutral-300
 
 >
 
-{tier.name}
+{item.name}
 
 </p>
+
+
 
 
 
@@ -258,6 +350,8 @@ text-neutral-300
 
 
 </div>
+
+
 
 
 
@@ -281,6 +375,13 @@ text-neutral-300
 
 >
 
+{
+
+nextTier
+
+?
+
+<>
 
 <span
 
@@ -298,10 +399,20 @@ text-[#C8A44D]
 
 {" "}
 
-away from Gold Member
+away from {nextTier.name}
+
+</>
+
+:
+
+"Maximum tier unlocked"
+
+}
+
 
 
 </p>
+
 
 
 
@@ -329,7 +440,7 @@ text-neutral-500
 
 >
 
-₹{currentSpend.toLocaleString()} spent
+₹{lifetimeSpend.toLocaleString()} spent
 
 </span>
 
@@ -344,13 +455,14 @@ text-[#C8A44D]
 
 >
 
-{Math.round(progress)}% Completed
+{progress}% Completed
 
 </span>
 
 
 
 </div>
+
 
 
 

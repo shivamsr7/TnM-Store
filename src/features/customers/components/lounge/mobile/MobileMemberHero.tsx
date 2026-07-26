@@ -1,21 +1,109 @@
 import {
   ArrowRight,
 } from "lucide-react";
-import silverCard from "@/assets/card/silver-card.png"
 
-interface Props {
 
-customer:any;
+import silverCard from "@/assets/card/silver-card.png";
+import goldCard from "@/assets/card/gold-card.png";
+import platinumCard from "@/assets/card/platinum-card.png";
+
+
+import {
+  useCustomerMembership,
+} from "@/features/customers/hooks/useCustomerMembership";
+
+
+
+
+
+
+
+
+export default function MobileMemberHero(){
+
+
+
+
+
+const {
+data:membership,
+isLoading,
+
+}=useCustomerMembership();
+
+
+
+
+
+if(isLoading){
+
+return (
+
+<div
+
+className="
+rounded-3xl
+bg-neutral-900
+p-5
+text-sm
+text-neutral-400
+"
+
+>
+
+Loading membership...
+
+</div>
+
+);
 
 }
 
 
 
-export default function MobileMemberHero({
+
+
+if(!membership){
+
+return null;
+
+}
 
 
 
-}:Props){
+
+
+const tier =
+membership.tier.name.toLowerCase();
+
+
+
+
+
+
+
+const cardImages:any = {
+
+silver:silverCard,
+
+gold:goldCard,
+
+platinum:platinumCard,
+
+};
+
+
+
+
+
+
+const cardImage =
+cardImages[tier] ?? silverCard;
+
+
+
+
+
 
 
 
@@ -32,13 +120,17 @@ rounded-3xl
 >
 
 
-{/* Membership Card Image */}
+
+
+
+{/* Membership Card */}
+
 
 <img
 
-src={silverCard}
+src={cardImage}
 
-alt="Silver Membership"
+alt={`${membership.tier.name} Membership`}
 
 className="
 w-full
@@ -53,7 +145,11 @@ object-cover
 
 
 
-{/* Overlay Content */}
+
+
+
+{/* Overlay Button */}
+
 
 
 <div
@@ -62,7 +158,6 @@ className="
 absolute
 bottom-5
 left-5
-right-5
 "
 
 >
@@ -96,6 +191,8 @@ View Benefits
 
 
 </div>
+
+
 
 
 

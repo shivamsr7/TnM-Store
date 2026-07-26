@@ -5,19 +5,9 @@ import {
 } from "lucide-react";
 
 
-
-const benefits = [
-
-"Member Only Offers",
-
-"Early Sale Access",
-
-"Birthday Surprise",
-
-"Welcome Rewards",
-
-];
-
+import {
+  useCustomerMembership,
+} from "@/features/customers/hooks/useCustomerMembership";
 
 
 
@@ -25,7 +15,84 @@ const benefits = [
 export default function MembershipCard(){
 
 
-const tier = "Silver";
+
+const {
+data:membership,
+isLoading,
+
+}=useCustomerMembership();
+
+
+
+
+
+if(isLoading){
+
+return (
+
+<div
+
+className="
+rounded-3xl
+bg-neutral-900
+p-5
+text-sm
+text-neutral-400
+"
+
+>
+
+Loading membership...
+
+</div>
+
+);
+
+}
+
+
+
+
+
+if(!membership){
+
+return null;
+
+}
+
+
+
+
+
+
+
+const {
+
+tier
+
+}=membership;
+
+
+
+
+
+
+
+const benefits: string[] = 
+tier.benefits?.length
+? tier.benefits
+: [
+    "Member Only Offers",
+    "Early Sale Access",
+    "Birthday Surprise",
+    "Welcome Rewards",
+  ];
+
+
+
+
+
+
 
 
 
@@ -38,20 +105,22 @@ relative
 overflow-hidden
 rounded-3xl
 border
-border-white/60
+border-white/40
 bg-gradient-to-br
-from-[#f8fafc]
-via-[#d1d5db]
-to-[#94a3b8]
+from-white
+via-slate-200
+to-slate-400
 p-5
 text-black
-shadow-[0_0_40px_rgba(255,255,255,0.18)]
+shadow-xl
 "
 
 >
 
 
-{/* Moving Silver Shimmer */}
+
+{/* Shimmer */}
+
 
 <div
 
@@ -60,7 +129,7 @@ pointer-events-none
 absolute
 inset-0
 -translate-x-full
-animate-[shimmer_3s_infinite]
+animate-[silverShimmer_5s_infinite]
 bg-gradient-to-r
 from-transparent
 via-white/60
@@ -73,7 +142,7 @@ to-transparent
 
 
 
-{/* Content */}
+
 
 
 <div
@@ -87,7 +156,6 @@ z-10
 
 
 
-{/* Header */}
 
 
 <div
@@ -107,9 +175,9 @@ justify-between
 <p
 
 className="
-text-[11px]
+text-xs
 uppercase
-tracking-[0.2em]
+tracking-widest
 text-neutral-600
 "
 
@@ -125,15 +193,14 @@ Your Current Tier
 
 className="
 mt-1
-text-xl
+text-2xl
 font-serif
 font-semibold
-text-neutral-900
 "
 
 >
 
-{tier} Member
+{tier.name} Member
 
 </h2>
 
@@ -145,8 +212,6 @@ text-neutral-900
 
 
 
-{/* Silver Badge */}
-
 
 <div
 
@@ -157,28 +222,22 @@ w-16
 items-center
 justify-center
 rounded-full
-border
-border-white
-bg-gradient-to-br
-from-white
-via-slate-300
-to-slate-500
-text-4xl
+bg-black
+text-3xl
 font-serif
 text-white
-shadow-inner
 "
 
 >
 
-S
+{tier.name.charAt(0)}
 
 </div>
 
 
 
-
 </div>
+
 
 
 
@@ -192,7 +251,6 @@ S
 className="
 mt-5
 text-sm
-leading-relaxed
 text-neutral-700
 "
 
@@ -205,12 +263,11 @@ Enjoy exclusive benefits as a
 className="
 mx-1
 font-semibold
-text-neutral-900
 "
 
 >
 
-Silver
+{tier.name}
 
 </span>
 
@@ -225,8 +282,6 @@ member of T&M Family.
 
 
 
-{/* Benefits */}
-
 
 <div
 
@@ -240,12 +295,12 @@ space-y-2
 
 {
 
-benefits.map((item)=>(
+benefits.slice(0,4).map((benefit)=>(
 
 
 <div
 
-key={item}
+key={benefit}
 
 className="
 flex
@@ -272,23 +327,15 @@ w-7
 items-center
 justify-center
 rounded-full
-bg-white/60
+bg-white
 "
 
 >
 
-<Gift
-
-size={14}
-
-className="
-text-neutral-700
-"
-
-/>
-
+<Gift size={14}/>
 
 </div>
+
 
 
 
@@ -297,12 +344,11 @@ text-neutral-700
 className="
 text-xs
 font-medium
-text-neutral-800
 "
 
 >
 
-{item}
+{benefit}
 
 </p>
 
@@ -327,9 +373,6 @@ text-neutral-800
 
 
 
-{/* Button */}
-
-
 
 <button
 
@@ -346,8 +389,6 @@ py-3
 text-xs
 font-semibold
 text-white
-transition
-hover:bg-neutral-800
 "
 
 >
@@ -368,7 +409,11 @@ View All Benefits
 
 
 
+
+
 </div>
+
+
 
 
 
