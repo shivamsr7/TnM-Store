@@ -3,16 +3,37 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
 import "./index.css";
+
 import App from "./App";
 
 import QueryProvider from "@/app/providers/QueryProvider";
 
-createRoot(document.getElementById("root")!).render(
+import {
+  AuthDialogProvider,
+} from "@/features/Auth/context/AuthDialogContext";
+
+
+
+createRoot(
+  document.getElementById("root")!
+).render(
+
   <StrictMode>
+
     <QueryProvider>
+
       <BrowserRouter>
-        <App />
+
+        <AuthDialogProvider>
+
+          <App />
+
+        </AuthDialogProvider>
+
       </BrowserRouter>
+
     </QueryProvider>
+
   </StrictMode>
+
 );

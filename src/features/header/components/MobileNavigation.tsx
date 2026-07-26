@@ -17,7 +17,9 @@ import {
   motion,
 } from "framer-motion";
 
-
+import {
+useAuthDialog
+} from "@/features/Auth/context/AuthDialogContext";
 import {
   navigationItems,
 } from "../constants/navigation";
@@ -44,6 +46,7 @@ export default function MobileNavigation({
   onClose,
 }: Props) {
 
+  
 
   const {
     data: categories = [],
@@ -62,7 +65,9 @@ export default function MobileNavigation({
     setSelectedCategory,
   ] = useState<any>(null);
 
-
+const {
+openAuth,
+}=useAuthDialog();
 
 
   const categorySubs =
@@ -125,7 +130,84 @@ export default function MobileNavigation({
 
 
           >
+{/* Account Card */}
 
+<div
+  className="
+    rounded-2xl
+    border
+    border-[#C8A44D]
+    bg-[#F8F6F1]
+    p-4
+  "
+>
+
+
+<div className="
+flex
+items-center
+justify-between
+">
+
+
+<div>
+
+<p
+className="
+text-sm
+font-semibold
+text-neutral-900
+"
+>
+
+Join T&M Family
+
+</p>
+
+
+<p
+className="
+mt-1
+text-xs
+text-neutral-500
+"
+>
+
+Rewards • Wishlist • Orders
+
+</p>
+
+
+</div>
+
+
+</div>
+
+
+
+<button
+
+onClick={openAuth}
+
+className="
+mt-4
+w-full
+rounded-xl
+bg-black
+py-3
+text-sm
+font-medium
+text-white
+"
+
+>
+
+Login / Register
+
+</button>
+
+
+</div>
 
 
             {/* Navigation Links */}
@@ -710,7 +792,6 @@ export default function MobileNavigation({
 
 
       </AnimatePresence>
-
 
     </div>
 
