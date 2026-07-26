@@ -507,7 +507,7 @@ export default function MobileNavigation({
             >
 
 
-              View All {selectedCategory.name}
+              ✨ Shop All {selectedCategory.name}
 
 
             </Link>
@@ -522,82 +522,182 @@ export default function MobileNavigation({
 
 
 
-            <div className="space-y-2">
+<motion.div
+
+  className="space-y-3"
+
+  initial="hidden"
+
+  animate="show"
+
+  variants={{
+    hidden: {},
+
+    show: {
+
+      transition: {
+
+        staggerChildren: 0.08,
+
+      },
+
+    },
+
+  }}
+
+>
 
 
-              {categorySubs.length > 0 ? (
+  {categorySubs.map(
+
+    (sub) => (
+
+      <motion.div
+
+        key={sub.id}
+
+        variants={{
+
+          hidden: {
+
+            opacity:0,
+
+            y:15,
+
+          },
+
+          show: {
+
+            opacity:1,
+
+            y:0,
+
+          },
+
+        }}
+
+        transition={{
+
+          duration:0.25,
+
+        }}
+
+      >
+
+        <Link
+
+          to={`/shop?subcategory=${sub.slug}`}
+
+          onClick={onClose}
+
+          className="
+            flex
+            items-center
+            gap-4
+            rounded-xl
+            border
+            border-neutral-200
+            bg-white
+            p-3
+            transition-all
+            duration-300
+            hover:border-[#C8A44D]
+            hover:bg-[#F8F6F1]
+          "
+
+        >
 
 
-                categorySubs.map(
+          {/* Image */}
 
-                  (sub) => (
+          <div
 
+            className="
+              h-16
+              w-16
+              shrink-0
+              overflow-hidden
+              rounded-lg
+              bg-[#F8F6F1]
+            "
 
-                    <Link
+          >
 
+            {sub.image_url ? (
 
-                      key={sub.id}
+              <img
 
+                src={sub.image_url}
 
-                      to={`/shop?subcategory=${sub.slug}`}
+                alt={sub.name}
 
+                className="
+                  h-full
+                  w-full
+                  object-cover
+                  transition-transform
+                  duration-300
+                  hover:scale-110
+                "
 
-                      onClick={onClose}
+              />
 
+            ) : (
 
-                      className="
-                        block
-                        rounded-xl
-                        border
-                        border-neutral-200
-                        bg-white
-                        px-4
-                        py-3
-                        text-sm
-                        font-medium
-                        text-neutral-800
-                        transition-all
-                        duration-300
-                        hover:border-[#C8A44D]
-                        hover:bg-[#F8F6F1]
-                        hover:text-[#C8A44D]
-                      "
+              <div
 
+                className="
+                  flex
+                  h-full
+                  items-center
+                  justify-center
+                  text-[10px]
+                  text-neutral-400
+                "
 
-                    >
+              >
 
-                      {sub.name}
+                No Image
 
+              </div>
 
-                    </Link>
+            )}
 
-
-                  )
-
-
-                )
-
-
-              ) : (
-
-
-                <p className="
-                  rounded-xl
-                  bg-neutral-50
-                  p-4
-                  text-sm
-                  text-neutral-500
-                ">
-
-                  No subcategories available.
-
-                </p>
+          </div>
 
 
-              )}
 
 
-            </div>
+
+          {/* Name */}
+
+          <span
+
+            className="
+              text-sm
+              font-medium
+              text-neutral-900
+            "
+
+          >
+
+            {sub.name}
+
+          </span>
+
+
+
+        </Link>
+
+
+      </motion.div>
+
+    )
+
+  )}
+
+
+</motion.div>
 
 
 
