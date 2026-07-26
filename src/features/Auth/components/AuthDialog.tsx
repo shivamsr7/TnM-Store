@@ -191,12 +191,15 @@ onOpenChange={closeDialog}
 <DialogContent
 
 className="
+w-[92vw]
 max-w-md
 overflow-hidden
 rounded-3xl
 border-none
 p-0
 shadow-2xl
+
+md:w-full
 "
 
 >
@@ -211,9 +214,13 @@ className="
 bg-gradient-to-b
 from-[#F8F6F1]
 to-white
-px-6
+
+px-4
 pb-1
-pt-8
+pt-5
+
+md:px-6
+md:pt-8
 "
 
 >
@@ -235,8 +242,12 @@ text-center
 
 className="
 flex
-h-20
-w-20
+h-16
+w-16
+
+md:h-20
+md:w-20
+
 items-center
 justify-center
 overflow-hidden
@@ -270,11 +281,14 @@ p-2
 <h2
 
 className="
-mt-4
-text-2xl
+mt-2
+text-xl
 font-semibold
 tracking-wide
 text-[#C8A44D]
+
+md:mt-4
+md:text-2xl
 "
 
 >
@@ -288,9 +302,12 @@ T&M Jewels
 <p
 
 className="
-mt-2
-text-sm
+mt-1
+text-xs
 text-neutral-500
+
+md:mt-2
+md:text-sm
 "
 
 >
@@ -311,7 +328,19 @@ Your luxury jewellery experience
 
 
 
-<div className="px-6 pb-6 pt-3">
+<div
+
+className="
+px-4
+pb-5
+pt-2
+
+md:px-6
+md:pb-6
+md:pt-3
+"
+
+>
 
 
 <AnimatePresence mode="wait">
@@ -483,7 +512,6 @@ Continue
 
 
 
-
 {/* OTP */}
 
 
@@ -553,15 +581,21 @@ Enter the 6-digit OTP sent to
 </p>
 
 
-<p className="
+<p
+
+className="
 mt-1
 text-sm
 font-medium
-">
+"
+
+>
 
 +91 {phone}
 
 </p>
+
+
 
 
 
@@ -620,6 +654,25 @@ otpRefs.current[index+1]?.focus();
 }}
 
 
+
+onKeyDown={(e)=>{
+
+if(
+e.key==="Backspace"
+&&
+!otp[index]
+&&
+index>0
+){
+
+otpRefs.current[index-1]?.focus();
+
+}
+
+}}
+
+
+
 className="
 h-12
 w-10
@@ -631,6 +684,8 @@ text-lg
 font-semibold
 outline-none
 focus:border-[#C8A44D]
+focus:ring-1
+focus:ring-[#C8A44D]
 "
 
 />
@@ -646,31 +701,48 @@ focus:border-[#C8A44D]
 
 
 
-<div className="
+<div
+
+className="
 mt-5
 text-center
 text-sm
 text-neutral-500
-">
+"
+
+>
 
 {
+
 timer>0
+
 ?
+
 `Resend OTP in 00:${timer}`
+
 :
+
 <button
+
 className="
 text-[#C8A44D]
 "
+
 onClick={()=>
 setTimer(30)
 }
+
 >
+
 Resend OTP
+
 </button>
+
 }
 
 </div>
+
+
 
 
 
@@ -745,8 +817,12 @@ text-center
 
 className="
 flex
-h-12
-w-12
+h-10
+w-10
+
+md:h-12
+md:w-12
+
 items-center
 justify-center
 rounded-full
@@ -770,9 +846,12 @@ className="text-[#C8A44D]"
 <h3
 
 className="
-mt-4
-text-xl
+mt-3
+text-lg
 font-semibold
+
+md:mt-4
+md:text-xl
 "
 
 >
@@ -835,6 +914,8 @@ py-3.5
 text-sm
 outline-none
 focus:border-[#C8A44D]
+focus:ring-1
+focus:ring-[#C8A44D]
 "
 
 />
@@ -865,6 +946,8 @@ py-3.5
 text-sm
 outline-none
 focus:border-[#C8A44D]
+focus:ring-1
+focus:ring-[#C8A44D]
 "
 
 />
@@ -877,10 +960,14 @@ focus:border-[#C8A44D]
 
 
 
+
 <div
 
 className="
-mt-6
+mt-4
+
+md:mt-6
+
 grid
 grid-cols-3
 gap-2
@@ -889,13 +976,17 @@ gap-2
 >
 
 
-<div className="
+<div
+
+className="
 rounded-xl
 bg-[#F8F6F1]
 px-2
 py-3
 text-center
-">
+"
+
+>
 
 🎁
 
@@ -906,13 +997,19 @@ Rewards
 </div>
 
 
-<div className="
+
+
+<div
+
+className="
 rounded-xl
 bg-[#F8F6F1]
 px-2
 py-3
 text-center
-">
+"
+
+>
 
 💎
 
@@ -923,13 +1020,19 @@ Offers
 </div>
 
 
-<div className="
+
+
+<div
+
+className="
 rounded-xl
 bg-[#F8F6F1]
 px-2
 py-3
 text-center
-">
+"
+
+>
 
 ♡
 
@@ -940,7 +1043,9 @@ Wishlist
 </div>
 
 
+
 </div>
+
 
 
 
@@ -952,7 +1057,11 @@ Wishlist
 disabled={!isProfileValid}
 
 className={`
-mt-6
+
+mt-5
+
+md:mt-6
+
 w-full
 rounded-xl
 py-3.5
@@ -960,12 +1069,18 @@ text-sm
 font-medium
 text-white
 
+
 ${
 isProfileValid
+
 ?
+
 "bg-[#111111] hover:bg-[#C8A44D]"
+
 :
+
 "cursor-not-allowed bg-neutral-300"
+
 }
 
 `}
