@@ -3,31 +3,21 @@ import {
   useContext,
   useState,
 } from "react";
-
 import type { ReactNode } from "react";
-import MobileAuthSheet
-from "../components/MobileAuthSheet";
-
-
-import DesktopAuthDialog
-from "../components/DesktopAuthDialog";
-
+import AuthDialog from "../components/AuthDialog";
 
 
 interface AuthDialogContextType {
 
-  openAuth:()=>void;
+  openAuth: () => void;
 
-  closeAuth:()=>void;
+  closeAuth: () => void;
 
 }
 
 
-
 const AuthDialogContext =
 createContext<AuthDialogContextType | null>(null);
-
-
 
 
 
@@ -36,9 +26,7 @@ export function AuthDialogProvider({
 children,
 
 }:{
-
 children:ReactNode;
-
 }){
 
 
@@ -49,12 +37,9 @@ setOpen
 
 
 
-
-
 return (
 
 <AuthDialogContext.Provider
-
 
 value={{
 
@@ -64,118 +49,44 @@ closeAuth:()=>setOpen(false),
 
 }}
 
-
 >
-
 
 {children}
 
 
-
-
-<AuthRenderer
+<AuthDialog
 
 open={open}
 
-setOpen={setOpen}
+onOpenChange={setOpen}
 
 />
 
 
 </AuthDialogContext.Provider>
 
-
 );
 
-
 }
-
-
-
-
-
-function AuthRenderer({
-
-open,
-
-setOpen,
-
-}:{
-
-open:boolean;
-
-setOpen:(value:boolean)=>void;
-
-}){
-
-
-const isMobile =
-window.matchMedia(
-"(max-width: 768px)"
-).matches;
-
-
-
-if(isMobile){
-
-
-return (
-
-<MobileAuthSheet
-
-open={open}
-
-onOpenChange={setOpen}
-
-/>
-
-);
-
-
-}
-
-
-
-return (
-
-<DesktopAuthDialog
-
-open={open}
-
-onOpenChange={setOpen}
-
-/>
-
-);
-
-
-}
-
-
-
 
 
 
 
 export function useAuthDialog(){
 
-
 const context =
 useContext(AuthDialogContext);
-
 
 
 if(!context){
 
 throw new Error(
-"AuthDialog must be used inside AuthDialogProvider"
+"useAuthDialog must be used inside AuthDialogProvider"
 );
 
 }
 
 
-
 return context;
-
 
 }

@@ -17,9 +17,12 @@ import {
   motion,
 } from "framer-motion";
 
+
 import {
-useAuthDialog
+  useAuthDialog,
 } from "@/features/Auth/context/AuthDialogContext";
+
+
 import {
   navigationItems,
 } from "../constants/navigation";
@@ -46,7 +49,6 @@ export default function MobileNavigation({
   onClose,
 }: Props) {
 
-  
 
   const {
     data: categories = [],
@@ -65,17 +67,20 @@ export default function MobileNavigation({
     setSelectedCategory,
   ] = useState<any>(null);
 
-const {
-openAuth,
-}=useAuthDialog();
+
+
+  const {
+    openAuth,
+  } = useAuthDialog();
+
+
 
 
   const categorySubs =
     selectedCategory
       ? subcategories.filter(
           (sub) =>
-            sub.category_id ===
-            selectedCategory.id
+            sub.category_id === selectedCategory.id
         )
       : [];
 
@@ -91,123 +96,118 @@ openAuth,
       <AnimatePresence mode="wait">
 
 
-        {/* MAIN MENU */}
-
         {!selectedCategory ? (
 
 
           <motion.div
 
-
             key="main"
 
-
             initial={{
-              x: -25,
-              opacity: 0,
+              x:-25,
+              opacity:0,
             }}
-
 
             animate={{
-              x: 0,
-              opacity: 1,
+              x:0,
+              opacity:1,
             }}
-
 
             exit={{
-              x: -25,
-              opacity: 0,
+              x:-25,
+              opacity:0,
             }}
-
 
             transition={{
-              duration: 0.25,
-              ease: "easeOut",
+              duration:0.25,
+              ease:"easeOut",
             }}
 
-
-            className="space-y-6 p-6"
-
+            className="
+              space-y-6
+              p-6
+            "
 
           >
-{/* Account Card */}
-
-<div
-  className="
-    rounded-2xl
-    border
-    border-[#C8A44D]
-    bg-[#F8F6F1]
-    p-4
-  "
->
-
-
-<div className="
-flex
-items-center
-justify-between
-">
-
-
-<div>
-
-<p
-className="
-text-sm
-font-semibold
-text-neutral-900
-"
->
-
-Join T&M Family
-
-</p>
-
-
-<p
-className="
-mt-1
-text-xs
-text-neutral-500
-"
->
-
-Rewards • Wishlist • Orders
-
-</p>
-
-
-</div>
-
-
-</div>
 
 
 
-<button
+            {/* Account Card */}
 
-onClick={openAuth}
+            <div
 
-className="
-mt-4
-w-full
-rounded-xl
-bg-black
-py-3
-text-sm
-font-medium
-text-white
-"
+              className="
+                rounded-2xl
+                border
+                border-[#C8A44D]
+                bg-[#F8F6F1]
+                p-4
+              "
 
->
-
-Login / Register
-
-</button>
+            >
 
 
-</div>
+              <p
+
+                className="
+                  text-sm
+                  font-semibold
+                  text-neutral-900
+                "
+
+              >
+
+                Join T&M Family
+
+              </p>
+
+
+
+              <p
+
+                className="
+                  mt-1
+                  text-xs
+                  text-neutral-500
+                "
+
+              >
+
+                Rewards • Wishlist • Orders
+
+              </p>
+
+
+
+
+              <button
+
+                onClick={openAuth}
+
+                className="
+                  mt-4
+                  w-full
+                  rounded-xl
+                  bg-black
+                  py-3
+                  text-sm
+                  font-medium
+                  text-white
+                "
+
+              >
+
+                Login / Register
+
+              </button>
+
+
+
+            </div>
+
+
+
+
 
 
             {/* Navigation Links */}
@@ -218,7 +218,8 @@ Login / Register
 
               {navigationItems.map(
 
-                (item) => (
+                (item)=>(
+
 
                   <NavLink
 
@@ -231,22 +232,21 @@ Login / Register
 
                     className={({isActive}) =>
 
-                      `
-                      block
-                      border-b
-                      border-neutral-100
-                      py-3
-                      text-base
-                      font-medium
-                      transition-colors
+                    `
+                    block
+                    border-b
+                    border-neutral-100
+                    py-3
+                    text-base
+                    font-medium
 
-                      ${
-                        isActive
-                        ? "text-[#C8A44D]"
-                        : "text-neutral-900"
-                      }
+                    ${
+                      isActive
+                      ? "text-[#C8A44D]"
+                      : "text-neutral-900"
+                    }
 
-                      `
+                    `
 
                     }
 
@@ -256,6 +256,7 @@ Login / Register
 
 
                   </NavLink>
+
 
                 )
 
@@ -269,169 +270,189 @@ Login / Register
 
 
 
+
+
             {/* Categories */}
 
 
-<div>
+            <div>
 
 
-  <p
-    className="
-      mb-4
-      text-xs
-      font-semibold
-      uppercase
-      tracking-[0.25em]
-      text-[#C8A44D]
-    "
-  >
-    Shop By Category
-  </p>
+              <p
+
+                className="
+                  mb-4
+                  text-xs
+                  font-semibold
+                  uppercase
+                  tracking-[0.25em]
+                  text-[#C8A44D]
+                "
+
+              >
+
+                Shop By Category
+
+              </p>
 
 
 
-  <div className="space-y-3">
+
+              <div className="space-y-3">
 
 
-    {categories.map(
+                {categories.map(
 
-      (category) => (
-
-        <button
-
-          key={category.id}
-
-          onClick={() =>
-            setSelectedCategory(category)
-          }
+                  (category)=>(
 
 
-          className="
-            flex
-            w-full
-            items-center
-            justify-between
-            rounded-xl
-            border
-            border-neutral-200
-            bg-white
-            p-3
-            text-left
-            transition-all
-            duration-300
-            hover:border-[#C8A44D]
-            hover:bg-[#F8F6F1]
-          "
+                    <button
 
-        >
+                      key={category.id}
+
+                      onClick={()=>
+                        setSelectedCategory(category)
+                      }
 
 
-          {/* Left Content */}
+                      className="
+                        flex
+                        w-full
+                        items-center
+                        justify-between
+                        rounded-xl
+                        border
+                        border-neutral-200
+                        bg-white
+                        p-3
+                        text-left
+                        transition-all
+                        duration-300
+                        hover:border-[#C8A44D]
+                        hover:bg-[#F8F6F1]
+                      "
 
-          <div className="flex items-center gap-4">
+                    >
 
 
-            {/* Category Image */}
 
-            <div
-              className="
-                h-14
-                w-14
-                shrink-0
-                overflow-hidden
-                rounded-full
-                bg-[#F8F6F1]
-              "
-            >
+                      <div
 
-              {category.image_url ? (
+                        className="
+                          flex
+                          items-center
+                          gap-4
+                        "
 
-                <img
+                      >
 
-                  src={category.image_url}
 
-                  alt={category.name}
+                        <div
 
-                  className="
-                    h-full
-                    w-full
-                    object-cover
-                    transition-transform
-                    duration-300
-                    hover:scale-110
-                  "
+                          className="
+                            h-14
+                            w-14
+                            shrink-0
+                            overflow-hidden
+                            rounded-full
+                            bg-[#F8F6F1]
+                          "
 
-                />
+                        >
 
-              ) : (
 
-                <div
-                  className="
-                    flex
-                    h-full
-                    w-full
-                    items-center
-                    justify-center
-                    text-[10px]
-                    text-neutral-400
-                  "
-                >
-                  No Image
-                </div>
+                          {category.image_url ? (
 
-              )}
+
+                            <img
+
+                              src={category.image_url}
+
+                              alt={category.name}
+
+                              className="
+                                h-full
+                                w-full
+                                object-cover
+                              "
+
+                            />
+
+
+                          ) : (
+
+
+                            <div
+
+                              className="
+                                flex
+                                h-full
+                                items-center
+                                justify-center
+                                text-[10px]
+                                text-neutral-400
+                              "
+
+                            >
+
+                              No Image
+
+                            </div>
+
+
+                          )}
+
+
+                        </div>
+
+
+
+
+                        <span
+
+                          className="
+                            text-sm
+                            font-medium
+                            text-neutral-900
+                          "
+
+                        >
+
+                          {category.name}
+
+                        </span>
+
+
+                      </div>
+
+
+
+
+
+                      <ChevronRight
+
+                        size={18}
+
+                        className="
+                          text-[#C8A44D]
+                        "
+
+                      />
+
+
+                    </button>
+
+
+                  )
+
+                )}
+
+
+              </div>
+
 
             </div>
 
-
-
-
-
-            {/* Category Name */}
-
-            <span
-              className="
-                text-sm
-                font-medium
-                text-neutral-900
-              "
-            >
-
-              {category.name}
-
-            </span>
-
-
-          </div>
-
-
-
-
-
-          {/* Arrow */}
-
-          <ChevronRight
-
-            size={18}
-
-            className="
-              text-[#C8A44D]
-            "
-
-          />
-
-
-        </button>
-
-      )
-
-    )}
-
-
-  </div>
-
-
-</div>
 
 
 
@@ -445,130 +466,90 @@ Login / Register
 
 
 
-
-          /* CATEGORY DETAIL */
-
-
           <motion.div
-
 
             key="category"
 
-
             initial={{
-              x: 25,
-              opacity: 0,
+              x:25,
+              opacity:0,
             }}
-
 
             animate={{
-              x: 0,
-              opacity: 1,
+              x:0,
+              opacity:1,
             }}
-
 
             exit={{
-              x: 25,
-              opacity: 0,
+              x:25,
+              opacity:0,
             }}
-
 
             transition={{
-              duration: 0.25,
-              ease: "easeOut",
+              duration:0.25,
             }}
 
-
             className="p-6"
-
 
           >
 
 
 
+            <button
 
+              onClick={()=>
+                setSelectedCategory(null)
+              }
 
-            {/* Header */}
+              className="
+                flex
+                items-center
+                gap-2
+                text-sm
+                font-medium
+                text-neutral-700
+              "
 
+            >
 
-            <div className="mb-6">
+              <ArrowLeft size={18}/>
 
+              Back
 
-              <button
-
-
-                onClick={() =>
-                  setSelectedCategory(null)
-                }
-
-
-                className="
-                  flex
-                  items-center
-                  gap-2
-                  text-sm
-                  font-medium
-                  text-neutral-700
-                "
-
-
-              >
-
-                <ArrowLeft size={18}/>
-
-
-                Back
-
-
-              </button>
+            </button>
 
 
 
 
 
-              <h2
+            <h2
 
+              className="
+                mt-4
+                text-2xl
+                font-semibold
+                text-neutral-900
+              "
 
-                className="
-                  mt-4
-                  text-2xl
-                  font-semibold
-                  text-neutral-900
-                "
+            >
 
+              {selectedCategory.name}
 
-              >
-
-                {selectedCategory.name}
-
-
-              </h2>
-
-
-
-            </div>
+            </h2>
 
 
 
 
-
-
-
-
-            {/* View All */}
 
 
             <Link
 
-
               to={`/shop?category=${selectedCategory.slug}`}
-
 
               onClick={onClose}
 
-
               className="
-                mb-4
+                mt-5
                 block
                 rounded-xl
                 border
@@ -578,19 +559,11 @@ Login / Register
                 py-4
                 text-sm
                 font-medium
-                text-neutral-900
-                transition-all
-                duration-300
-                hover:bg-[#C8A44D]
-                hover:text-white
               "
-
 
             >
 
-
               ✨ Shop All {selectedCategory.name}
-
 
             </Link>
 
@@ -599,199 +572,111 @@ Login / Register
 
 
 
+            <div className="mt-4 space-y-3">
 
-            {/* Subcategories */}
 
+              {categorySubs.map(
 
+                (sub)=>(
 
-<motion.div
 
-  className="space-y-3"
+                  <Link
 
-  initial="hidden"
+                    key={sub.id}
 
-  animate="show"
+                    to={`/shop?subcategory=${sub.slug}`}
 
-  variants={{
-    hidden: {},
+                    onClick={onClose}
 
-    show: {
+                    className="
+                      flex
+                      items-center
+                      gap-4
+                      rounded-xl
+                      border
+                      border-neutral-200
+                      bg-white
+                      p-3
+                    "
 
-      transition: {
+                  >
 
-        staggerChildren: 0.08,
 
-      },
 
-    },
+                    <div
 
-  }}
+                      className="
+                        h-16
+                        w-16
+                        shrink-0
+                        overflow-hidden
+                        rounded-lg
+                        bg-[#F8F6F1]
+                      "
 
->
+                    >
 
 
-  {categorySubs.map(
+                      {sub.image_url && (
 
-    (sub) => (
+                        <img
 
-      <motion.div
+                          src={sub.image_url}
 
-        key={sub.id}
+                          alt={sub.name}
 
-        variants={{
+                          className="
+                            h-full
+                            w-full
+                            object-cover
+                          "
 
-          hidden: {
+                        />
 
-            opacity:0,
+                      )}
 
-            y:15,
 
-          },
+                    </div>
 
-          show: {
 
-            opacity:1,
 
-            y:0,
 
-          },
+                    <span
 
-        }}
+                      className="
+                        text-sm
+                        font-medium
+                        text-neutral-900
+                      "
 
-        transition={{
+                    >
 
-          duration:0.25,
+                      {sub.name}
 
-        }}
+                    </span>
 
-      >
 
-        <Link
+                  </Link>
 
-          to={`/shop?subcategory=${sub.slug}`}
 
-          onClick={onClose}
+                )
 
-          className="
-            flex
-            items-center
-            gap-4
-            rounded-xl
-            border
-            border-neutral-200
-            bg-white
-            p-3
-            transition-all
-            duration-300
-            hover:border-[#C8A44D]
-            hover:bg-[#F8F6F1]
-          "
+              )}
 
-        >
 
-
-          {/* Image */}
-
-          <div
-
-            className="
-              h-16
-              w-16
-              shrink-0
-              overflow-hidden
-              rounded-lg
-              bg-[#F8F6F1]
-            "
-
-          >
-
-            {sub.image_url ? (
-
-              <img
-
-                src={sub.image_url}
-
-                alt={sub.name}
-
-                className="
-                  h-full
-                  w-full
-                  object-cover
-                  transition-transform
-                  duration-300
-                  hover:scale-110
-                "
-
-              />
-
-            ) : (
-
-              <div
-
-                className="
-                  flex
-                  h-full
-                  items-center
-                  justify-center
-                  text-[10px]
-                  text-neutral-400
-                "
-
-              >
-
-                No Image
-
-              </div>
-
-            )}
-
-          </div>
-
-
-
-
-
-          {/* Name */}
-
-          <span
-
-            className="
-              text-sm
-              font-medium
-              text-neutral-900
-            "
-
-          >
-
-            {sub.name}
-
-          </span>
-
-
-
-        </Link>
-
-
-      </motion.div>
-
-    )
-
-  )}
-
-
-</motion.div>
-
+            </div>
 
 
 
           </motion.div>
 
 
-
         )}
 
 
+
       </AnimatePresence>
+
 
     </div>
 
