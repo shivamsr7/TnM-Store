@@ -118,7 +118,8 @@ const otpRefs =
 useRef<(HTMLInputElement|null)[]>([]);
 
 
-
+const SKIP_OTP =
+import.meta.env.VITE_SKIP_OTP === "true";
 
 
 const isPhoneValid =
@@ -578,7 +579,11 @@ onClick={async()=>{
 
 try{
 
-await sendOtp(phone);
+if(!SKIP_OTP){
+
+  await sendOtp(phone);
+
+}
 
 setTimer(30);
 
@@ -939,10 +944,14 @@ otp.join("");
 
 
 
-await verifyOtp(
-phone,
-otpCode
-);
+if(!SKIP_OTP){
+
+  await verifyOtp(
+    phone,
+    otpCode
+  );
+
+}
 
 
 
