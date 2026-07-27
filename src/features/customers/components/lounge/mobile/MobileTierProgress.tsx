@@ -199,6 +199,7 @@ mt-6
 
 {/* Background Line */}
 
+
 <div
 
 className="
@@ -219,6 +220,7 @@ bg-neutral-700
 
 {/* Progress Line */}
 
+
 <div
 
 className="
@@ -234,7 +236,7 @@ duration-700
 
 style={{
 
-width:`${progress}%`
+width:`calc(${progress}% - 20px)`
 
 }}
 
@@ -247,10 +249,14 @@ width:`${progress}%`
 
 
 
+{/* Tier Circles */}
+
+
 <div
 
 className="
 relative
+z-10
 flex
 justify-between
 "
