@@ -4,9 +4,19 @@ import {
   ArrowRight,
 } from "lucide-react";
 
+
+import {
+  useState,
+} from "react";
+
+
 import {
   useCustomerMembership,
 } from "@/features/customers/hooks/useCustomerMembership";
+
+
+import RewardHistoryDialog from "../RewardsHistoryDialog";
+
 
 
 
@@ -19,6 +29,14 @@ const {
   data:membership,
   isLoading,
 }=useCustomerMembership();
+
+
+
+const [
+  historyOpen,
+  setHistoryOpen
+]=useState(false);
+
 
 
 
@@ -82,6 +100,9 @@ rules
 
 
 return (
+
+<>
+
 
 <div
 
@@ -344,6 +365,8 @@ text-white
 
 <button
 
+onClick={()=>setHistoryOpen(true)}
+
 className="
 mt-4
 flex
@@ -377,6 +400,25 @@ View Rewards
 
 
 </div>
+
+
+
+
+
+
+
+
+<RewardHistoryDialog
+
+open={historyOpen}
+
+onClose={()=>setHistoryOpen(false)}
+
+/>
+
+
+
+</>
 
 );
 

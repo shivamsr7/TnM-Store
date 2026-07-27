@@ -6,6 +6,16 @@ import {
 
 
 import {
+  useState,
+} from "react";
+
+
+import {
+  useNavigate,
+} from "react-router-dom";
+
+
+import {
   useCustomerMembership,
 } from "@/features/customers/hooks/useCustomerMembership";
 
@@ -15,10 +25,20 @@ import {
 } from "@/features/customers/hooks/useCustomerStats";
 
 
+import RewardHistoryDialog from "../RewardsHistoryDialog";
+
+import MembershipBenefitsDialog from "../MembershipBenefitsDialog";
+
+
 
 
 
 export default function MobileQuickActions(){
+
+
+
+const navigate = useNavigate();
+
 
 
 
@@ -36,6 +56,28 @@ const {
   isLoading:statsLoading,
 
 }=useCustomerStats();
+
+
+
+
+
+
+const [
+rewardOpen,
+setRewardOpen
+]=useState(false);
+
+
+
+
+
+const [
+benefitsOpen,
+setBenefitsOpen
+]=useState(false);
+
+
+
 
 
 
@@ -90,6 +132,8 @@ animate-pulse
 
 
 
+
+
 if(!membership){
 
 return null;
@@ -106,10 +150,16 @@ const actions = [
 
 {
 title:"Orders",
+
 value:
 `${stats?.ordersCount ?? 0}`,
+
 icon:Package,
+
+action:()=>navigate("/account/orders"),
+
 },
+
 
 
 
@@ -123,20 +173,32 @@ icon:Package,
 
 
 
+
 {
 title:"Rewards",
+
 value:
 `${membership.points}`,
+
 icon:Gift,
+
+action:()=>setRewardOpen(true),
+
 },
+
 
 
 
 {
 title:"Membership",
+
 value:
 membership.tier.name,
+
 icon:Crown,
+
+action:()=>setBenefitsOpen(true),
+
 },
 
 
@@ -150,6 +212,9 @@ icon:Crown,
 
 
 return (
+
+<>
+
 
 <div
 
@@ -255,6 +320,8 @@ text-white
 
 <button
 
+onClick={item.action}
+
 className="
 mt-2
 text-[11px]
@@ -284,6 +351,37 @@ View →
 
 
 </div>
+
+
+
+
+
+
+
+
+<RewardHistoryDialog
+
+open={rewardOpen}
+
+onClose={()=>setRewardOpen(false)}
+
+/>
+
+
+
+
+
+<MembershipBenefitsDialog
+
+open={benefitsOpen}
+
+onClose={()=>setBenefitsOpen(false)}
+
+/>
+
+
+
+</>
 
 );
 

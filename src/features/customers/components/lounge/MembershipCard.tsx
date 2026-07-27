@@ -6,8 +6,16 @@ import {
 
 
 import {
+  useState,
+} from "react";
+
+
+import {
   useCustomerMembership,
 } from "@/features/customers/hooks/useCustomerMembership";
+
+
+import MembershipBenefitsDialog from "./MembershipBenefitsDialog";
 
 
 
@@ -21,6 +29,13 @@ data:membership,
 isLoading,
 
 }=useCustomerMembership();
+
+
+
+
+
+const [benefitsOpen,setBenefitsOpen] = useState(false);
+
 
 
 
@@ -97,6 +112,9 @@ tier.benefits?.length
 
 
 return (
+
+<>
+
 
 <div
 
@@ -376,6 +394,8 @@ font-medium
 
 <button
 
+onClick={()=>setBenefitsOpen(true)}
+
 className="
 mt-5
 flex
@@ -418,6 +438,24 @@ View All Benefits
 
 
 </div>
+
+
+
+
+
+
+
+<MembershipBenefitsDialog
+
+open={benefitsOpen}
+
+onClose={()=>setBenefitsOpen(false)}
+
+/>
+
+
+
+</>
 
 );
 

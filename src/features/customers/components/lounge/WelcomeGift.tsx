@@ -2,7 +2,28 @@ import {
   Gift,
   Users,
   ArrowRight,
+  CheckCircle,
 } from "lucide-react";
+
+
+import {
+  useState,
+} from "react";
+
+
+import {
+  useClaimWelcomeBonus,
+} from "@/features/customers/hooks/useClaimWelcomeBonus";
+
+
+import {
+  useCustomerMembership,
+} from "@/features/customers/hooks/useCustomerMembership";
+
+
+import InviteEarnDialog from "./InviteEarnDialog";
+
+
 
 
 
@@ -10,7 +31,42 @@ export default function WelcomeGift(){
 
 
 
+const {
+  data:membership,
+}=useCustomerMembership();
+
+
+
+
+const {
+  mutate:claimBonus,
+  isPending,
+}=useClaimWelcomeBonus();
+
+
+
+
+const [inviteOpen,setInviteOpen]=useState(false);
+
+
+
+
+
+
+const claimed =
+membership?.welcomeBonusGiven ?? false;
+
+
+
+
+
+
+
+
 return (
+
+<>
+
 
 <div
 
@@ -21,6 +77,8 @@ md:grid-cols-2
 "
 
 >
+
+
 
 
 
@@ -71,9 +129,24 @@ text-[#C8A44D]
 
 >
 
+{
+
+claimed
+
+?
+
+<CheckCircle size={20}/>
+
+:
+
 <Gift size={20}/>
 
+}
+
+
 </div>
+
+
 
 
 
@@ -90,7 +163,19 @@ text-white
 
 >
 
-Welcome Gift
+{
+
+claimed
+
+?
+
+"Welcome Bonus Claimed"
+
+:
+
+"Welcome Gift"
+
+}
 
 </h3>
 
@@ -105,7 +190,19 @@ text-neutral-400
 
 >
 
-A surprise from T&M
+{
+
+claimed
+
+?
+
+"Your reward points are added"
+
+:
+
+"A surprise from T&M"
+
+}
 
 </p>
 
@@ -115,6 +212,8 @@ A surprise from T&M
 
 
 </div>
+
+
 
 
 
@@ -132,7 +231,19 @@ text-neutral-300
 
 >
 
-Your first reward is waiting ✨
+{
+
+claimed
+
+?
+
+"50 points have been added to your wallet ✨"
+
+:
+
+"Your first reward is waiting ✨"
+
+}
 
 </p>
 
@@ -140,7 +251,18 @@ Your first reward is waiting ✨
 
 
 
+
+
+{
+
+!claimed && (
+
+
 <button
+
+onClick={()=>claimBonus()}
+
+disabled={isPending}
 
 className="
 mt-4
@@ -154,15 +276,39 @@ py-2
 text-xs
 font-semibold
 text-black
+disabled:opacity-50
 "
 
 >
 
-Claim Now
+{
+
+isPending
+
+?
+
+"Claiming..."
+
+:
+
+"Claim Now"
+
+}
+
 
 <ArrowRight size={14}/>
 
 </button>
+
+
+)
+
+
+
+}
+
+
+
 
 
 
@@ -294,6 +440,8 @@ Earn rewards by inviting your friends.
 
 <button
 
+onClick={()=>setInviteOpen(true)}
+
 className="
 mt-4
 rounded-xl
@@ -323,6 +471,24 @@ Invite Friends
 
 
 </div>
+
+
+
+
+
+
+
+<InviteEarnDialog
+
+open={inviteOpen}
+
+onClose={()=>setInviteOpen(false)}
+
+/>
+
+
+
+</>
 
 );
 

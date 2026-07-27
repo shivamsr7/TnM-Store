@@ -3,6 +3,11 @@ import {
 } from "lucide-react";
 
 
+import {
+  useState,
+} from "react";
+
+
 import silverCard from "@/assets/card/silver-card.png";
 import goldCard from "@/assets/card/gold-card.png";
 import platinumCard from "@/assets/card/platinum-card.png";
@@ -11,6 +16,9 @@ import platinumCard from "@/assets/card/platinum-card.png";
 import {
   useCustomerMembership,
 } from "@/features/customers/hooks/useCustomerMembership";
+
+
+import MembershipBenefitsDialog from "../MembershipBenefitsDialog";
 
 
 
@@ -30,6 +38,14 @@ data:membership,
 isLoading,
 
 }=useCustomerMembership();
+
+
+
+
+const [
+benefitsOpen,
+setBenefitsOpen
+]=useState(false);
 
 
 
@@ -109,6 +125,8 @@ cardImages[tier] ?? silverCard;
 
 return (
 
+<>
+
 <div
 
 className="
@@ -165,6 +183,8 @@ left-5
 
 <button
 
+onClick={()=>setBenefitsOpen(true)}
+
 className="
 flex
 items-center
@@ -199,6 +219,25 @@ View Benefits
 
 
 </div>
+
+
+
+
+
+
+
+
+<MembershipBenefitsDialog
+
+open={benefitsOpen}
+
+onClose={()=>setBenefitsOpen(false)}
+
+/>
+
+
+
+</>
 
 );
 

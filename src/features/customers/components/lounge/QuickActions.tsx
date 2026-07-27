@@ -1,9 +1,108 @@
 import {
   Package,
-  Heart,
   Gift,
   Crown,
 } from "lucide-react";
+
+
+import {
+  useCustomerMembership,
+} from "@/features/customers/hooks/useCustomerMembership";
+
+
+import {
+  useCustomerStats,
+} from "@/features/customers/hooks/useCustomerStats";
+
+
+
+
+
+export default function QuickActions(){
+
+
+
+const {
+  data:membership,
+  isLoading:membershipLoading,
+
+}=useCustomerMembership();
+
+
+
+
+const {
+  data:stats,
+  isLoading:statsLoading,
+
+}=useCustomerStats();
+
+
+
+
+
+
+
+if(membershipLoading || statsLoading){
+
+return (
+
+<div
+
+className="
+grid
+grid-cols-2
+gap-3
+lg:grid-cols-3
+"
+
+>
+
+{
+
+Array.from({
+length:3
+}).map((_,index)=>(
+
+
+<div
+
+key={index}
+
+className="
+h-32
+rounded-2xl
+bg-neutral-900
+animate-pulse
+"
+
+/>
+
+
+))
+
+}
+
+</div>
+
+);
+
+}
+
+
+
+
+
+
+
+if(!membership){
+
+return null;
+
+}
+
+
+
 
 
 
@@ -12,28 +111,39 @@ const actions = [
 
 {
 title:"Orders",
-value:"0",
+value:
+`${stats?.ordersCount ?? 0}`,
 label:"Orders",
 icon:Package,
 },
 
-{
-title:"Wishlist",
-value:"0",
-label:"Items",
-icon:Heart,
-},
+
+
+// Wishlist will be added after wishlist table creation
+//
+// {
+// title:"Wishlist",
+// value:"0",
+// label:"Items",
+// icon:Heart,
+// },
+
+
 
 {
 title:"Rewards",
-value:"0",
+value:
+`${membership.points}`,
 label:"Points",
 icon:Gift,
 },
 
+
+
 {
 title:"Membership",
-value:"Silver",
+value:
+membership.tier.name,
 label:"",
 icon:Crown,
 },
@@ -43,8 +153,6 @@ icon:Crown,
 
 
 
-
-export default function QuickActions(){
 
 
 
@@ -56,7 +164,7 @@ className="
 grid
 grid-cols-2
 gap-3
-lg:grid-cols-4
+lg:grid-cols-3
 "
 
 >
@@ -119,7 +227,6 @@ text-[#C8A44D]
 
 
 
-
 </div>
 
 
@@ -143,6 +250,8 @@ text-neutral-500
 {item.title}
 
 </p>
+
+
 
 
 
@@ -177,6 +286,7 @@ text-white
 
 
 
+
 <p
 
 className="
@@ -192,7 +302,10 @@ text-neutral-400
 </p>
 
 
+
 </div>
+
+
 
 
 

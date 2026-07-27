@@ -5,12 +5,32 @@ import {
 } from "lucide-react";
 
 
+import {
+  useState,
+} from "react";
+
+
+import InviteEarnDialog from "../InviteEarnDialog";
+
+
+
 
 export default function MobileWelcomeGift(){
 
 
 
+const [
+inviteOpen,
+setInviteOpen
+]=useState(false);
+
+
+
+
+
 return (
+
+<>
 
 <div
 
@@ -303,11 +323,15 @@ text-neutral-300
 
 Earn
 
-<span className="
+<span
+
+className="
 mx-1
 font-semibold
 text-[#C8A44D]
-">
+"
+
+>
 
 500 points
 
@@ -320,6 +344,8 @@ text-[#C8A44D]
 
 
 <button
+
+onClick={()=>setInviteOpen(true)}
 
 className="
 rounded-xl
@@ -356,6 +382,25 @@ Invite
 
 
 </div>
+
+
+
+
+
+
+
+
+<InviteEarnDialog
+
+open={inviteOpen}
+
+onClose={()=>setInviteOpen(false)}
+
+/>
+
+
+
+</>
 
 );
 

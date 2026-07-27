@@ -4,22 +4,101 @@ import {
   ArrowRight,
 } from "lucide-react";
 
+import { useState } from "react";
+
+
+import {
+  useCustomerMembership,
+} from "@/features/customers/hooks/useCustomerMembership";
+
+
+import RewardsHistoryDialog from "./RewardsHistoryDialog";
+
+
+
 
 
 export default function RewardsCard(){
 
 
-const points = 0;
+
+const {
+
+data:membership,
+
+isLoading,
+
+}=useCustomerMembership();
 
 
-// T&M reward rule:
-// 1000 points = ₹10
 
-const value = (points / 1000) * 10;
+
+const [openHistory,setOpenHistory]=useState(false);
+
+
+
+
+
+
+if(isLoading){
+
+return (
+
+<div
+
+className="
+rounded-3xl
+bg-neutral-900
+p-5
+text-sm
+text-neutral-400
+"
+
+>
+
+Loading rewards...
+
+</div>
+
+);
+
+}
+
+
+
+
+
+if(!membership){
+
+return null;
+
+}
+
+
+
+
+
+
+const {
+
+points,
+
+rewardValue,
+
+rules
+
+}=membership;
+
+
+
+
 
 
 
 return (
+
+<>
+
 
 <div
 
@@ -70,6 +149,7 @@ text-[#C8A44D]
 
 
 
+
 <Sparkles
 
 size={18}
@@ -108,6 +188,8 @@ Rewards Wallet 🎁
 
 
 
+
+
 <div
 
 className="
@@ -136,6 +218,7 @@ Available Points
 
 
 
+
 <p
 
 className="
@@ -153,6 +236,9 @@ text-[#C8A44D]
 
 
 
+
+
+
 <p
 
 className="
@@ -163,13 +249,16 @@ text-neutral-400
 
 >
 
-Worth ₹{value.toFixed(2)}
+Worth ₹{rewardValue.toFixed(2)}
 
 </p>
 
 
 
+
 </div>
+
+
 
 
 
@@ -206,6 +295,8 @@ Redeem Value
 
 
 
+
+
 <p
 
 className="
@@ -216,7 +307,7 @@ text-white
 
 >
 
-1000 points = ₹10 discount
+{rules.point_value_points} points = ₹{rules.point_value_amount} discount
 
 </p>
 
@@ -231,7 +322,10 @@ text-white
 
 
 
+
 <button
+
+onClick={()=>setOpenHistory(true)}
 
 className="
 mt-4
@@ -254,6 +348,7 @@ hover:bg-[#E2C675]
 
 View Rewards
 
+
 <ArrowRight size={14}/>
 
 
@@ -264,7 +359,26 @@ View Rewards
 
 
 
+
 </div>
+
+
+
+
+
+
+
+<RewardsHistoryDialog
+
+open={openHistory}
+
+onClose={()=>setOpenHistory(false)}
+
+/>
+
+
+
+</>
 
 );
 

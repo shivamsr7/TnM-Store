@@ -1,22 +1,137 @@
+import {
+  useCustomerMembership,
+} from "@/features/customers/hooks/useCustomerMembership";
+
+
+
 export default function TierProgress(){
 
 
 
-const currentSpend = 1200;
+const {
+  data:membership,
+  isLoading,
+}=useCustomerMembership();
 
-const goldTarget = 5000;
 
 
-const progress = Math.min(
 
-(currentSpend / goldTarget) * 100,
 
-100
+if(isLoading){
+
+return (
+
+<div
+
+className="
+rounded-3xl
+border
+border-neutral-800
+bg-neutral-950
+p-5
+text-sm
+text-neutral-400
+"
+
+>
+
+Loading tier progress...
+
+</div>
 
 );
 
+}
 
-const remaining = goldTarget - currentSpend;
+
+
+
+
+if(!membership){
+
+return null;
+
+}
+
+
+
+
+
+const {
+
+tier,
+lifetimeSpend,
+nextTier,
+progress
+
+}=membership;
+
+
+
+
+
+
+const remaining = nextTier
+
+?
+
+Math.max(
+nextTier.amount - lifetimeSpend,
+0
+)
+
+:
+
+0;
+
+
+
+
+
+
+
+const tiers = [
+
+{
+name:"Silver",
+letter:"S",
+style:
+"from-white via-slate-300 to-slate-500",
+
+active:
+tier.name==="Silver"
+
+},
+
+
+{
+name:"Gold",
+letter:"G",
+style:
+"from-yellow-200 via-yellow-400 to-yellow-600",
+
+active:
+tier.name==="Gold"
+
+},
+
+
+{
+name:"Platinum",
+letter:"P",
+style:
+"from-purple-200 via-purple-500 to-purple-800",
+
+active:
+tier.name==="Platinum"
+
+},
+
+];
+
+
+
+
 
 
 
@@ -36,6 +151,8 @@ p-5
 
 
 
+
+
 <div
 
 className="
@@ -48,7 +165,6 @@ justify-between
 
 
 <div>
-
 
 <h2
 
@@ -84,6 +200,8 @@ Unlock your next T&M level
 
 
 
+
+
 <span
 
 className="
@@ -98,13 +216,15 @@ text-[#C8A44D]
 
 >
 
-Silver
+{tier.name}
 
 </span>
 
 
 
 </div>
+
+
 
 
 
@@ -119,7 +239,7 @@ Silver
 <div
 
 className="
-mt-5
+mt-6
 flex
 items-center
 justify-between
@@ -128,49 +248,14 @@ justify-between
 >
 
 
-
 {
 
-[
-
-{
-
-name:"Silver",
-
-letter:"S",
-
-active:true
-
-},
-
-{
-
-name:"Gold",
-
-letter:"G",
-
-active:false
-
-},
-
-{
-
-name:"Platinum",
-
-letter:"P",
-
-active:false
-
-}
-
-]
-
-.map((tier)=>(
+tiers.map((item)=>(
 
 
 <div
 
-key={tier.name}
+key={item.name}
 
 className="
 text-center
@@ -187,9 +272,9 @@ mx-auto
 
 flex
 
-h-9
+h-10
 
-w-9
+w-10
 
 items-center
 
@@ -199,21 +284,28 @@ rounded-full
 
 border
 
+bg-gradient-to-br
+
 text-sm
 
-font-semibold
+font-bold
+
+text-white
+
+
+${item.style}
 
 
 ${
-tier.active
+item.active
 
 ?
 
-"border-[#C8A44D] bg-[#C8A44D]/10 text-[#C8A44D]"
+"border-white shadow-[0_0_18px_rgba(255,255,255,0.5)]"
 
 :
 
-"border-neutral-700 text-neutral-500"
+"border-white/30"
 
 }
 
@@ -221,9 +313,12 @@ tier.active
 
 >
 
-{tier.letter}
+{item.letter}
 
 </div>
+
+
+
 
 
 
@@ -231,13 +326,13 @@ tier.active
 
 className="
 mt-2
-text-[11px]
+text-xs
 text-neutral-400
 "
 
 >
 
-{tier.name}
+{item.name}
 
 </p>
 
@@ -274,7 +369,37 @@ text-neutral-400
 
 >
 
-₹{remaining.toLocaleString()} away from Gold Member
+
+{
+
+nextTier
+
+?
+
+<>
+
+<span className="
+text-[#C8A44D]
+font-semibold
+">
+
+₹{remaining.toLocaleString()}
+
+</span>
+
+{" "}
+
+away from {nextTier.name} Member
+
+</>
+
+:
+
+"Maximum tier unlocked"
+
+}
+
+
 
 </p>
 
@@ -310,6 +435,7 @@ h-full
 rounded-full
 bg-[#C8A44D]
 transition-all
+duration-700
 "
 
 style={{
@@ -349,9 +475,11 @@ text-neutral-500
 
 >
 
-₹{currentSpend.toLocaleString()} spent
+₹{lifetimeSpend.toLocaleString()} spent
 
 </span>
+
+
 
 
 
@@ -363,13 +491,14 @@ text-[#C8A44D]
 
 >
 
-{Math.round(progress)}%
+{progress}%
 
 </span>
 
 
 
 </div>
+
 
 
 
