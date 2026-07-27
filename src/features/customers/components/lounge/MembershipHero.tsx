@@ -45,49 +45,6 @@ const tierName =
 membership?.tier?.name ?? "Silver";
 
 
-const tierTheme =
-tierName === "Platinum"
-
-?
-{
-  background:
-  "from-purple-200 via-purple-100 to-white",
-
-  text:
-  "text-purple-900",
-
-  accent:
-  "#8B5CF6"
-}
-
-:
-
-tierName === "Gold"
-
-?
-{
-  background:
-  "from-yellow-100 via-amber-50 to-white",
-
-  text:
-  "text-yellow-900",
-
-  accent:
-  "#D4AF37"
-}
-
-:
-
-{
-  background:
-  "from-slate-100 via-white to-slate-200",
-
-  text:
-  "text-slate-900",
-
-  accent:
-  "#C0C0C0"
-};
 
 
 const membershipCard =
