@@ -952,6 +952,14 @@ if(!SKIP_OTP){
   );
 
 }
+else{
+
+  localStorage.setItem(
+    "tnm_test_phone",
+    phone
+  );
+
+}
 
 
 

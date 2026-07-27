@@ -109,7 +109,40 @@ session.user.phone
 .slice(-10);
 
 
+const { data } = await supabase.auth.getSession();
+if(!data.session){
 
+const testPhone =
+localStorage.getItem(
+"tnm_test_phone"
+);
+
+
+if(testPhone){
+
+const customerData =
+await getCustomerByPhone(testPhone);
+
+
+if(customerData){
+
+localStorage.setItem(
+"tnm_customer",
+JSON.stringify(customerData)
+);
+
+setCustomer(customerData);
+
+}
+
+
+setLoading(false);
+
+return;
+
+}
+
+}
 
 
 if(phone){
@@ -194,6 +227,41 @@ setCustomer(customerData);
 
 
 }
+else{
+
+
+const testPhone =
+localStorage.getItem(
+"tnm_test_phone"
+);
+
+
+
+if(testPhone){
+
+
+const customerData =
+await getCustomerByPhone(testPhone);
+
+
+
+if(customerData){
+
+localStorage.setItem(
+"tnm_customer",
+JSON.stringify(customerData)
+);
+
+
+setCustomer(customerData);
+
+}
+
+
+}
+
+
+}
 
 
 
@@ -201,7 +269,6 @@ setLoading(false);
 
 
 }
-
 
 
 
