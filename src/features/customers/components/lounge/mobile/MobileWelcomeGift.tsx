@@ -2,6 +2,7 @@ import {
   Gift,
   Users,
   ArrowRight,
+  CheckCircle,
 } from "lucide-react";
 
 
@@ -10,12 +11,42 @@ import {
 } from "react";
 
 
+import {
+  useClaimWelcomeBonus,
+} from "@/features/customers/hooks/useClaimWelcomeBonus";
+
+
+import {
+  useCustomerMembership,
+} from "@/features/customers/hooks/useCustomerMembership";
+
+
 import InviteEarnDialog from "../InviteEarnDialog";
 
 
 
 
+
 export default function MobileWelcomeGift(){
+
+
+
+const {
+data:membership,
+
+}=useCustomerMembership();
+
+
+
+
+
+const {
+mutate:claimBonus,
+isPending,
+
+}=useClaimWelcomeBonus();
+
+
 
 
 
@@ -28,9 +59,20 @@ setInviteOpen
 
 
 
+
+const claimed =
+membership?.welcomeBonusGiven ?? false;
+
+
+
+
+
+
+
 return (
 
 <>
+
 
 <div
 
@@ -68,26 +110,6 @@ p-5
 <div
 
 className="
-absolute
-right-0
-top-0
-h-24
-w-24
-rounded-full
-bg-[#C8A44D]/10
-blur-2xl
-"
-
-/>
-
-
-
-
-
-<div
-
-className="
-relative
 flex
 items-center
 gap-4
@@ -111,9 +133,25 @@ text-[#C8A44D]
 
 >
 
+
+{
+
+claimed
+
+?
+
+<CheckCircle size={25}/>
+
+:
+
 <Gift size={25}/>
 
+}
+
+
 </div>
+
+
 
 
 
@@ -131,9 +169,22 @@ text-white
 
 >
 
-Welcome Gift 🎁
+{
+
+claimed
+
+?
+
+"Welcome Bonus Claimed"
+
+:
+
+"Welcome Gift 🎁"
+
+}
 
 </h3>
+
 
 
 
@@ -147,7 +198,19 @@ text-neutral-400
 
 >
 
-Your first reward is waiting
+{
+
+claimed
+
+?
+
+"Your reward points are added"
+
+:
+
+"Your first reward is waiting"
+
+}
 
 </p>
 
@@ -165,7 +228,48 @@ Your first reward is waiting
 
 
 
+
+<p
+
+className="
+mt-4
+text-sm
+text-neutral-300
+"
+
+>
+
+{
+
+claimed
+
+?
+
+"50 points have been added to your wallet ✨"
+
+:
+
+"Your first reward is waiting ✨"
+
+}
+
+</p>
+
+
+
+
+
+
+
+{
+
+!claimed && (
+
 <button
+
+onClick={()=>claimBonus()}
+
+disabled={isPending}
 
 className="
 mt-4
@@ -179,16 +283,35 @@ py-2.5
 text-xs
 font-semibold
 text-black
+disabled:opacity-50
 "
 
 >
 
-Claim Now
+{
+
+isPending
+
+?
+
+"Claiming..."
+
+:
+
+"Claim Now"
+
+}
+
+
 
 <ArrowRight size={14}/>
 
+
 </button>
 
+)
+
+}
 
 
 
@@ -271,6 +394,7 @@ text-white
 Refer & Earn
 
 </h3>
+
 
 
 <p
