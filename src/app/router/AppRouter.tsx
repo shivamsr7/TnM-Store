@@ -7,6 +7,7 @@ import {
 import App from "@/App";
 
 import AccountPage from "@/features/customers/pages/AccountPage";
+import Shop from "@/pages/shop";
 
 
 
@@ -27,7 +28,13 @@ element={<App />}
 path="/account"
 element={<AccountPage />}
 />
+<Route
 
+path="/shop"
+
+element={<Shop />}
+
+/>
 
 </Routes>
 

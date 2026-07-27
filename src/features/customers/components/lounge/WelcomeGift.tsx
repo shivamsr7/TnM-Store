@@ -46,6 +46,7 @@ const {
 
 
 
+
 const [inviteOpen,setInviteOpen]=useState(false);
 
 
@@ -56,7 +57,8 @@ const [inviteOpen,setInviteOpen]=useState(false);
 const claimed =
 membership?.welcomeBonusGiven ?? false;
 
-
+const welcomeBonusPoints =
+membership?.rules?.welcome_bonus ?? 0;
 
 
 
@@ -237,7 +239,7 @@ claimed
 
 ?
 
-"50 points have been added to your wallet ✨"
+`${welcomeBonusPoints} points have been added to your wallet ✨`
 
 :
 

@@ -34,7 +34,11 @@ isLoading,
 
 
 
-const [benefitsOpen,setBenefitsOpen] = useState(false);
+const [
+benefitsOpen,
+setBenefitsOpen
+]=useState(false);
+
 
 
 
@@ -80,12 +84,82 @@ return null;
 
 
 
-
 const {
-
 tier
-
 }=membership;
+
+
+
+
+
+const tierName =
+tier.name;
+
+
+
+
+
+const cardTheme =
+
+tierName === "Platinum"
+
+?
+
+{
+background:
+"from-purple-200 via-purple-100 to-purple-300",
+
+text:
+"text-purple-950",
+
+label:
+"text-purple-700",
+
+shimmer:
+"from-transparent via-purple-200/70 to-transparent"
+
+}
+
+
+:
+
+tierName === "Gold"
+
+?
+
+{
+background:
+"from-yellow-100 via-amber-100 to-yellow-300",
+
+text:
+"text-yellow-950",
+
+label:
+"text-amber-700",
+
+shimmer:
+"from-transparent via-yellow-200/70 to-transparent"
+
+}
+
+
+:
+
+{
+background:
+"from-white via-slate-200 to-slate-400",
+
+text:
+"text-slate-900",
+
+label:
+"text-neutral-600",
+
+shimmer:
+"from-transparent via-white/70 to-transparent"
+
+};
+
 
 
 
@@ -94,15 +168,21 @@ tier
 
 
 const benefits: string[] = 
-tier.benefits?.length
-? tier.benefits
-: [
-    "Member Only Offers",
-    "Early Sale Access",
-    "Birthday Surprise",
-    "Welcome Rewards",
-  ];
 
+tier.benefits?.length
+
+?
+
+tier.benefits
+
+:
+
+[
+"Member Only Offers",
+"Early Sale Access",
+"Birthday Surprise",
+"Welcome Rewards",
+];
 
 
 
@@ -118,43 +198,42 @@ return (
 
 <div
 
-className="
+className={`
 relative
 overflow-hidden
 rounded-3xl
 border
 border-white/40
 bg-gradient-to-br
-from-white
-via-slate-200
-to-slate-400
+${cardTheme.background}
 p-5
-text-black
+${cardTheme.text}
 shadow-xl
-"
+`}
 
 >
 
 
 
-{/* Shimmer */}
+
+
+{/* Dynamic Shimmer */}
 
 
 <div
 
-className="
+className={`
 pointer-events-none
 absolute
 inset-0
 -translate-x-full
 animate-[silverShimmer_5s_infinite]
 bg-gradient-to-r
-from-transparent
-via-white/60
-to-transparent
-"
+${cardTheme.shimmer}
+`}
 
 ></div>
+
 
 
 
@@ -176,6 +255,7 @@ z-10
 
 
 
+
 <div
 
 className="
@@ -187,23 +267,25 @@ justify-between
 >
 
 
+
 <div>
 
 
 <p
 
-className="
+className={`
 text-xs
 uppercase
 tracking-widest
-text-neutral-600
-"
+${cardTheme.label}
+`}
 
 >
 
 Your Current Tier
 
 </p>
+
 
 
 
@@ -218,9 +300,10 @@ font-semibold
 
 >
 
-{tier.name} Member
+{tierName} Member
 
 </h2>
+
 
 
 </div>
@@ -248,9 +331,12 @@ text-white
 
 >
 
-{tier.name.charAt(0)}
+{tierName.charAt(0)}
 
 </div>
+
+
+
 
 
 
@@ -285,7 +371,7 @@ font-semibold
 
 >
 
-{tier.name}
+{tierName}
 
 </span>
 
@@ -353,6 +439,7 @@ bg-white
 <Gift size={14}/>
 
 </div>
+
 
 
 
@@ -430,8 +517,8 @@ View All Benefits
 
 
 
-
 </div>
+
 
 
 

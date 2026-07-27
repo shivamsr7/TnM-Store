@@ -26,7 +26,6 @@ import MembershipBenefitsDialog from "../MembershipBenefitsDialog";
 
 
 
-
 export default function MobileMemberHero(){
 
 
@@ -90,7 +89,9 @@ return null;
 
 
 const tier =
-membership.tier.name.toLowerCase();
+membership?.tier?.name
+?.toLowerCase()
+?? "silver";
 
 
 

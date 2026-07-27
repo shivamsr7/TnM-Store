@@ -4,12 +4,23 @@ import {
 } from "lucide-react";
 
 
+import type {
+  CustomerMembership,
+} from "@/features/customers/types/membership";
+
+import silverCard from "@/assets/card/silver-card.png";
+import goldCard from "@/assets/card/gold-card.png";
+import platinumCard from "@/assets/card/platinum-card.png";
+
 
 interface Props {
 
 customer:any;
 
+membership?:CustomerMembership;
+
 }
+
 
 
 
@@ -19,11 +30,103 @@ export default function MembershipHero({
 
 customer,
 
+membership,
+
 }:Props){
 
 
 
-const tier = "Silver";
+const tier =
+membership?.tier;
+
+
+
+const tierName =
+membership?.tier?.name ?? "Silver";
+
+
+const tierTheme =
+tierName === "Platinum"
+
+?
+{
+  background:
+  "from-purple-200 via-purple-100 to-white",
+
+  text:
+  "text-purple-900",
+
+  accent:
+  "#8B5CF6"
+}
+
+:
+
+tierName === "Gold"
+
+?
+{
+  background:
+  "from-yellow-100 via-amber-50 to-white",
+
+  text:
+  "text-yellow-900",
+
+  accent:
+  "#D4AF37"
+}
+
+:
+
+{
+  background:
+  "from-slate-100 via-white to-slate-200",
+
+  text:
+  "text-slate-900",
+
+  accent:
+  "#C0C0C0"
+};
+
+
+const membershipCard =
+  tierName === "Platinum"
+    ? platinumCard
+    : tierName === "Gold"
+    ? goldCard
+    : silverCard;
+
+const memberSince =
+new Date(customer?.created_at)
+.toLocaleDateString(
+"en-IN",
+{
+day:"numeric",
+month:"long",
+year:"numeric"
+}
+);
+
+
+
+const tierEmoji =
+tierName === "Platinum"
+?
+"💎"
+
+:
+
+tierName === "Gold"
+?
+"🥇"
+
+:
+
+"🥈";
+
+
+
 
 
 
@@ -50,7 +153,7 @@ p-5
 
 
 
-{/* Gold Glow */}
+{/* Glow */}
 
 
 <div
@@ -73,6 +176,7 @@ blur-3xl
 
 
 
+
 <div
 
 className="
@@ -83,6 +187,8 @@ justify-between
 "
 
 >
+
+
 
 
 
@@ -129,6 +235,7 @@ text-[#C8A44D]
 
 
 
+
 <div>
 
 
@@ -153,25 +260,42 @@ text-white
 
 
 
+
+
+
 <div
 
 className="
 mt-1
 inline-flex
+items-center
+gap-1
 rounded-full
-bg-[#C8A44D]/10
 px-3
 py-1
 text-xs
 font-medium
-text-[#C8A44D]
 "
+
+style={{
+
+backgroundColor:
+`${tier?.color ?? "#C8A44D"}20`,
+
+color:
+tier?.color ?? "#C8A44D"
+
+}}
 
 >
 
-🥈 {tier} Member
+{tierEmoji}
+
+{tierName} Member
 
 </div>
+
+
 
 
 
@@ -192,18 +316,22 @@ text-neutral-500
 
 <CalendarDays size={12}/>
 
-Member since 2026
+Member since {memberSince}
 
 </div>
 
 
 
-</div>
-
-
 
 
 </div>
+
+
+
+
+
+</div>
+
 
 
 
@@ -217,25 +345,44 @@ Member since 2026
 
 
 <div
-
-className="
-flex
-h-20
-w-20
-items-center
-justify-center
+className={`
+overflow-hidden
 rounded-2xl
-border
-border-[#C8A44D]/40
-bg-[#C8A44D]/5
-text-4xl
-font-serif
-text-[#C8A44D]
-"
+transition-all
 
+${
+tierName === "Platinum"
+?
+"h-32 w-52"
+
+:
+
+tierName === "Gold"
+?
+"h-28 w-44"
+
+:
+
+"h-24 w-40"
+
+}
+
+`}
 >
 
-S
+<img
+
+src={membershipCard}
+
+alt={`${tierName} membership card`}
+
+className="
+h-full
+w-full
+object-cover
+"
+
+/>
 
 </div>
 
@@ -244,6 +391,7 @@ S
 
 
 
+
 </div>
 
 
@@ -251,7 +399,6 @@ S
 
 
 
-{/* Bottom Text */}
 
 
 
@@ -268,6 +415,8 @@ text-neutral-400
 Your exclusive T&M Family membership ✨
 
 </p>
+
+
 
 
 

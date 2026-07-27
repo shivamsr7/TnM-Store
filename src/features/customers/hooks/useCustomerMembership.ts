@@ -121,7 +121,11 @@ error:rulesError
 
 point_value_points,
 
-point_value_amount
+point_value_amount,
+
+welcome_bonus,
+
+referral_bonus
 
 `)
 
@@ -142,8 +146,39 @@ throw rulesError;
 
 
 
+const { data: tiers, error: tiersError } =
+await supabase
+.from("reward_tiers")
+.select(`
+  tier_name,
+  minimum_spend,
+  benefits,
+  badge_color
+`)
+.eq("is_active", true)
+.order("minimum_spend", {
+  ascending: true
+});
+
+
+if(tiersError){
+  throw tiersError;
+}
+
+
+const lifetimeSpend =
+Number(rewardData.lifetime_spend ?? 0);
+
+
 const tier =
-rewardData.reward_tiers?.[0];
+tiers
+?.filter(
+(item) =>
+lifetimeSpend >= Number(item.minimum_spend)
+)
+.pop()
+??
+tiers?.[0];
 
 
 
@@ -224,26 +259,78 @@ ascending:true
 
 
 
-let progress = 100;
+// Timeline progress calculation
 
+let progress = 100;
 
 
 if(nextTier){
 
+const currentTierIndex =
+tiers?.findIndex(
+(item)=>
+item.tier_name === tier?.tier_name
+) ?? 0;
+
+
+
+
+
+
+
+const totalSteps =
+(tiers?.length ?? 1) - 1;
+
+
+
+// Completed tiers
+
+const completedProgress =
+(currentTierIndex / totalSteps) * 100;
+
+
+
+// Progress inside current → next tier
+
+const currentTierSpend =
+Number(
+tier?.minimum_spend ?? 0
+);
+
+
+const nextTierSpend =
+Number(
+nextTier.minimum_spend
+);
+
+
+const insideProgress =
+(
+(
+lifetimeSpend - currentTierSpend
+)
+/
+(
+nextTierSpend - currentTierSpend
+)
+)
+*
+(
+100 / totalSteps
+);
+
+
 
 progress =
-
-(
-rewardData.lifetime_spend /
-
-nextTier.minimum_spend
-
-) * 100;
+completedProgress + insideProgress;
 
 
-progress = Math.min(
+progress = Math.max(
+0,
+Math.min(
 progress,
 100
+)
 );
 
 
@@ -339,12 +426,17 @@ Math.round(progress),
 
 
 rules:{
+  point_value_points:
+    rules.point_value_points,
 
-point_value_points:
-rules.point_value_points,
+  point_value_amount:
+    rules.point_value_amount,
 
-point_value_amount:
-rules.point_value_amount,
+  welcome_bonus:
+    rules.welcome_bonus,
+
+  referral_bonus:
+    rules.referral_bonus,
 
 }
 

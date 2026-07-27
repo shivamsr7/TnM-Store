@@ -67,6 +67,18 @@ membership?.welcomeBonusGiven ?? false;
 
 
 
+const welcomeBonus =
+membership?.rules?.welcome_bonus ?? 0;
+
+
+
+const referralBonus =
+membership?.rules?.referral_bonus ?? 0;
+
+
+
+
+
 
 
 return (
@@ -245,7 +257,7 @@ claimed
 
 ?
 
-"50 points have been added to your wallet ✨"
+`${welcomeBonus} points have been added to your wallet ✨`
 
 :
 
@@ -457,7 +469,7 @@ text-[#C8A44D]
 
 >
 
-500 points
+{referralBonus} points
 
 </span>
 

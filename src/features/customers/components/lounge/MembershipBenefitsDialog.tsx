@@ -63,7 +63,16 @@ return null;
 
 
 const benefits =
-membership.tier.benefits ?? [];
+membership.tier.benefits?.length
+?
+membership.tier.benefits
+:
+[
+  "Member Only Offers",
+  "Early Sale Access",
+  "Birthday Surprise",
+  "Welcome Rewards",
+];
 
 
 

@@ -25,6 +25,10 @@ export interface RewardRules {
 
   point_value_amount: number;
 
+   welcome_bonus:number;
+
+   referral_bonus:number,
+
 }
 
 

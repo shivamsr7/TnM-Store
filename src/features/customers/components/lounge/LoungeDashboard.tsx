@@ -11,6 +11,12 @@ import {
 } from "@/features/Auth/context/AuthContext";
 
 
+import {
+  useCustomerMembership,
+} from "@/features/customers/hooks/useCustomerMembership";
+
+
+
 
 export default function LoungeDashboard(){
 
@@ -18,6 +24,13 @@ export default function LoungeDashboard(){
 const {
 customer
 }=useAuth();
+
+
+
+const {
+data:membership,
+}=useCustomerMembership();
+
 
 
 
@@ -47,6 +60,8 @@ max-w-[1400px]
 "
 
 >
+
+
 
 
 
@@ -103,6 +118,7 @@ Welcome back, {customer?.first_name}
 
 
 
+
 <div
 
 className="
@@ -130,6 +146,7 @@ border-neutral-700
 🔔
 
 </button>
+
 
 
 
@@ -164,8 +181,8 @@ border-[#C8A44D]
 
 
 
-{/* Main Layout */}
 
+{/* Main Layout */}
 
 
 <div
@@ -181,8 +198,9 @@ xl:grid-cols-[1fr_320px]
 
 
 
-{/* Left Side */}
 
+
+{/* Left */}
 
 
 <div
@@ -194,16 +212,21 @@ space-y-5
 >
 
 
+
 <MembershipHero
 
 customer={customer}
+
+membership={membership}
 
 />
 
 
 
 
+
 <TierProgress />
+
 
 
 
@@ -215,13 +238,23 @@ customer={customer}
 
 
 
-<BenefitsSection />
+
+
+<BenefitsSection
+
+membership={membership}
+
+/>
+
+
 
 
 
 
 
 <WelcomeGift />
+
+
 
 
 
@@ -233,8 +266,8 @@ customer={customer}
 
 
 
-{/* Right Side */}
 
+{/* Right */}
 
 
 <div
@@ -255,6 +288,7 @@ space-y-5
 
 
 </div>
+
 
 
 

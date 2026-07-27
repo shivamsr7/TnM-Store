@@ -7,7 +7,6 @@ import {
 export default function TierProgress(){
 
 
-
 const {
   data:membership,
   isLoading,
@@ -57,6 +56,7 @@ return null;
 
 
 
+
 const {
 
 tier,
@@ -65,6 +65,7 @@ nextTier,
 progress
 
 }=membership;
+
 
 
 
@@ -83,6 +84,7 @@ nextTier.amount - lifetimeSpend,
 :
 
 0;
+
 
 
 
@@ -135,6 +137,8 @@ tier.name==="Platinum"
 
 
 
+
+
 return (
 
 <div
@@ -148,6 +152,7 @@ p-5
 "
 
 >
+
 
 
 
@@ -221,7 +226,6 @@ text-[#C8A44D]
 </span>
 
 
-
 </div>
 
 
@@ -232,20 +236,84 @@ text-[#C8A44D]
 
 
 
-{/* Tier Steps */}
+{/* Tier Timeline */}
 
 
 
 <div
 
 className="
-mt-6
+relative
+mt-8
+"
+
+>
+
+
+
+
+
+{/* Progress Line */}
+
+
+<div
+
+className="
+absolute
+left-10
+right-10
+top-5
+h-[3px]
+bg-neutral-800
+"
+
+>
+
+
+<div
+
+className="
+h-full
+rounded-full
+bg-[#C8A44D]
+transition-all
+duration-700
+"
+
+style={{
+
+width:`${progress}%`
+
+}}
+
+/>
+
+
+</div>
+
+
+
+
+
+
+
+
+{/* Circles */}
+
+
+
+<div
+
+className="
+relative
+z-10
 flex
 items-center
 justify-between
 "
 
 >
+
 
 
 {
@@ -258,7 +326,9 @@ tiers.map((item)=>(
 key={item.name}
 
 className="
-text-center
+flex
+flex-col
+items-center
 "
 
 >
@@ -267,8 +337,6 @@ text-center
 <div
 
 className={`
-
-mx-auto
 
 flex
 
@@ -356,6 +424,14 @@ text-neutral-400
 
 
 
+</div>
+
+
+
+
+
+
+
 
 
 <p
@@ -378,10 +454,14 @@ nextTier
 
 <>
 
-<span className="
-text-[#C8A44D]
+<span
+
+className="
 font-semibold
-">
+text-[#C8A44D]
+"
+
+>
 
 ₹{remaining.toLocaleString()}
 
@@ -411,54 +491,10 @@ away from {nextTier.name} Member
 
 
 
-{/* Progress */}
-
-
-
 <div
 
 className="
 mt-4
-h-2
-overflow-hidden
-rounded-full
-bg-neutral-800
-"
-
->
-
-
-<div
-
-className="
-h-full
-rounded-full
-bg-[#C8A44D]
-transition-all
-duration-700
-"
-
-style={{
-
-width:`${progress}%`
-
-}}
-
-/>
-
-
-</div>
-
-
-
-
-
-
-
-<div
-
-className="
-mt-3
 flex
 justify-between
 text-xs
@@ -478,6 +514,7 @@ text-neutral-500
 ₹{lifetimeSpend.toLocaleString()} spent
 
 </span>
+
 
 
 

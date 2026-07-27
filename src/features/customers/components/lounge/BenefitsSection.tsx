@@ -35,7 +35,21 @@ icon:Cake,
 
 
 
-export default function BenefitsSection(){
+import type {
+  CustomerMembership,
+} from "@/features/customers/types/membership";
+
+
+interface Props {
+
+  membership?: CustomerMembership;
+
+}
+
+
+export default function BenefitsSection({
+
+}: Props){
 
 
 
