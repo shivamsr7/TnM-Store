@@ -2,7 +2,9 @@ import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
-
+import {
+ applyReferralCode
+} from "@/features/customers/services/customerReferral.service";
 import {
   useState,
   useEffect,
@@ -102,7 +104,8 @@ useState("");
 const [email,setEmail]=
 useState("");
 
-
+const [referralCode,setReferralCode]=
+useState("");
 
 const [authSuccess,setAuthSuccess]=
 useState(false);
@@ -1257,7 +1260,7 @@ onChange={(e)=>
 setEmail(e.target.value)
 }
 
-placeholder="Email (optional)"
+placeholder="Email"
 
 type="email"
 
@@ -1285,7 +1288,33 @@ focus:border-[#C8A44D]
 
 />
 
+<input
 
+value={referralCode}
+
+onChange={(e)=>
+setReferralCode(
+e.target.value.toUpperCase()
+)
+}
+
+placeholder="Referral Code (optional)"
+
+className="
+w-full
+rounded-xl
+border
+border-white/20
+bg-white
+px-4
+py-3.5
+text-sm
+text-black
+outline-none
+focus:border-[#C8A44D]
+"
+
+/>
 </div>
 
 
@@ -1324,6 +1353,7 @@ nameParts
 
 
 
+const customer =
 await createCustomer({
 
 first_name:firstName,
@@ -1335,6 +1365,17 @@ email:email || undefined,
 phone:phone
 
 });
+
+
+
+if(referralCode){
+
+await applyReferralCode(
+customer.id,
+referralCode
+);
+
+}
 
 
 
