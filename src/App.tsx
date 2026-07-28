@@ -1,7 +1,7 @@
 import Header from "@/features/header/components/Header";
 import HeroSection from "@/features/home/hero/components/HeroSection";
 import HangingCategories from "@/features/categories/components/HangingCategories";
-
+import Footer from "@/shared/components/footer/Footer";
 export default function App() {
 
   return (
@@ -17,7 +17,7 @@ export default function App() {
         <HangingCategories />
 
       </main>
-
+<Footer />
     </>
 
   );
