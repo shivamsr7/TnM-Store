@@ -44,8 +44,6 @@ const [hoverPreview,setHoverPreview] = useState(false);
 
 const [imageChanging,setImageChanging] = useState(false);
 
-const [showRewardInfo,setShowRewardInfo] = useState(false);
-
 
 
 const displayImage =
@@ -736,77 +734,37 @@ discount>0 &&
 <div
 
 className="
+hidden
+
+sm:flex
+
 mt-3
-flex
 items-center
 gap-1.5
 text-xs
 text-[#D4AF37]
-"
 
->
-
-<div
-
-className="
-flex
-items-center
-gap-1
-leading-none
 "
 
 >
 
 <Coins
-
 size={15}
-
 strokeWidth={2}
-
-className="
-text-yellow-400
-"
-
+className="text-yellow-400"
 />
 
 
-<span className="
-text-yellow-400
-font-medium
-">
-
+<span>
 {product.price}
-
 </span>
 
 
-</div>
-
-
-
-
-
 <button
-
-onClick={() =>
-setShowRewardInfo(!showRewardInfo)
-}
-
-onMouseEnter={() =>
-setShowRewardInfo(true)
-}
-
-onMouseLeave={() =>
-setShowRewardInfo(false)
-}
-
 className="
-flex
-items-center
 text-neutral-400
 hover:text-[#D4AF37]
 "
-
 >
 
 ⓘ
@@ -814,44 +772,7 @@ hover:text-[#D4AF37]
 </button>
 
 
-
-
-
-{
-showRewardInfo && (
-
-<div
-
-className="
-absolute
-bottom-6
-left-0
-z-30
-w-52
-rounded-lg
-border
-border-[#D4AF37]/30
-bg-black
-px-3
-py-2
-text-xs
-text-white
-shadow-lg
-"
-
->
-
-Earn {product.price} Reward Points on this purchase ✨
-
 </div>
-
-)
-
-}
-
-
-</div>
-
 
 
 
