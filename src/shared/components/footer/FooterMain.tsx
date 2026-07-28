@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 
-import logo from "@/assets/logo/mainlogo.png";
+import logo from "@/assets/logo/mainLogo.png";
 
 
 const columns = [
