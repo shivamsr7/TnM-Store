@@ -43,7 +43,7 @@ const [hoverPreview,setHoverPreview] = useState(false);
 
 const [imageChanging,setImageChanging] = useState(false);
 
-
+const [showRewardInfo,setShowRewardInfo] = useState(false);
 
 
 
@@ -732,22 +732,93 @@ discount>0 &&
 
 {/* Rewards */}
 
-<p
+<div
 
 className="
+relative
 mt-2
-
+flex
+items-center
+gap-1
 text-xs
-
 text-neutral-400
-
 "
 
 >
 
+<p>
+
 🪙 {product.price}
 
 </p>
+
+
+
+<button
+
+onClick={() =>
+setShowRewardInfo(!showRewardInfo)
+}
+
+onMouseEnter={() =>
+setShowRewardInfo(true)
+}
+
+onMouseLeave={() =>
+setShowRewardInfo(false)
+}
+
+className="
+text-neutral-500
+transition
+hover:text-[#D4AF37]
+"
+
+>
+
+ⓘ
+
+</button>
+
+
+
+
+
+{
+
+showRewardInfo && (
+
+<div
+
+className="
+absolute
+bottom-6
+left-0
+z-30
+w-52
+rounded-lg
+border
+border-[#D4AF37]/30
+bg-black
+px-3
+py-2
+text-xs
+text-white
+shadow-lg
+"
+
+>
+
+Earn {product.price} Reward Points on this purchase ✨
+
+</div>
+
+)
+
+}
+
+
+</div>
 
 
 
