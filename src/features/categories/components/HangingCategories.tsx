@@ -1,8 +1,6 @@
 import { Link } from "react-router-dom";
 
-import {
-  useCategories,
-} from "../hooks/useCategories";
+import { useCategories } from "../hooks/useCategories";
 
 
 export default function HangingCategories(){
@@ -36,55 +34,16 @@ return (
 <section
 
 className="
-relative
-isolate
-overflow-hidden
-
-bg-gradient-to-br
-from-black
-via-neutral-900
-to-black
+bg-black
 
 px-5
 pb-16
-pt-8
+pt-16
 
 md:px-10
-
 "
 
 >
-
-
-{/* Luxury Gold Glow */}
-
-<div
-
-className="
-pointer-events-none
-
-absolute
-
-left-1/2
-top-[65%]
-
-h-[450px]
-w-[450px]
-
--translate-x-1/2
--translate-y-1/2
-
-rounded-full
-
-bg-[#C8A44D]/10
-
-blur-[120px]
-
-"
-
-/>
-
-
 
 
 
@@ -95,13 +54,8 @@ blur-[120px]
 <div
 
 className="
-relative
-z-10
-
-mb-6
-
+mb-12
 text-center
-
 "
 
 >
@@ -128,7 +82,7 @@ text-transparent
 
 >
 
-Explore Our Collection ✨
+Explore Our Collection
 
 </h2>
 
@@ -138,8 +92,7 @@ Explore Our Collection ✨
 <p
 
 className="
-mt-2
-
+mt-3
 text-neutral-400
 
 md:text-base
@@ -167,32 +120,26 @@ Discover jewellery crafted to make every moment special
 <div
 
 className="
-relative
-z-10
-
 mx-auto
 
-flex
+grid
 
 w-full
 
 max-w-7xl
 
-gap-5
+grid-cols-3
 
-overflow-x-auto
+gap-x-4
 
-pb-4
+gap-y-10
 
-snap-x
 
-snap-mandatory
-
-scroll-smooth
+md:flex
 
 md:justify-between
 
-md:overflow-hidden
+md:gap-3
 
 "
 
@@ -213,17 +160,9 @@ key={category.id}
 className="
 flex
 
-min-w-[110px]
-
-snap-center
-
 flex-col
 
 items-center
-
-md:min-w-0
-
-md:flex-1
 
 "
 
@@ -249,14 +188,13 @@ items-center
 
 
 
-
-
 <div
 
 className="
 relative
 
 h-28
+
 w-28
 
 overflow-hidden
@@ -266,10 +204,6 @@ rounded-full
 border
 
 border-[#C8A44D]/60
-
-bg-black/20
-
-shadow-[0_0_35px_rgba(200,164,77,0.30)]
 
 transition-all
 
@@ -317,22 +251,6 @@ group-hover:scale-110
 
 
 
-
-
-<div
-
-className="
-absolute
-
-inset-0
-
-bg-black/10
-
-"
-
-/>
-
-
 </div>
 
 
@@ -372,7 +290,6 @@ md:text-sm
 
 
 </Link>
-
 
 
 </div>
