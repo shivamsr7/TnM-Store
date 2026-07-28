@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 
 import { useCategories } from "../hooks/useCategories";
 
@@ -10,7 +11,6 @@ const {
   data:categories,
   isLoading,
 }=useCategories();
-
 
 
 
@@ -150,12 +150,50 @@ md:gap-3
 
 displayCategories.map(
 
-(category)=>(
+(category,index)=>(
 
 
-<div
+<motion.div
 
 key={category.id}
+
+animate={{
+
+y:
+
+typeof window !== "undefined" && window.innerWidth < 768
+
+?
+
+[0,-8,0]
+
+:
+
+0
+
+}}
+
+transition={{
+
+duration:4,
+
+repeat:
+
+typeof window !== "undefined" && window.innerWidth < 768
+
+?
+
+Infinity
+
+:
+
+0,
+
+ease:"easeInOut",
+
+delay:index * 0.3
+
+}}
 
 className="
 flex
@@ -292,7 +330,7 @@ md:text-sm
 </Link>
 
 
-</div>
+</motion.div>
 
 
 ))
