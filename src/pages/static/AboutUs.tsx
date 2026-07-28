@@ -226,8 +226,8 @@ md:text-3xl
 
 >
 
-"We believe trends inspire you,
-but your style should define you."
+We believe trends inspire you,
+but your style should define you.
 
 </p>
 

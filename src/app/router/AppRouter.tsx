@@ -5,7 +5,7 @@ import {
 
 
 import App from "@/App";
-
+import ScrollToTop from "@/shared/components/ScrollToTop";
 import AccountPage from "@/features/customers/pages/AccountPage";
 import Shop from "@/pages/shop";
 import AboutUs from "@/pages/static/AboutUs";
@@ -16,6 +16,10 @@ import MainLayout from "@/layouts/MainLayout";
 export default function AppRouter(){
 
 return (
+
+  <>
+  <ScrollToTop />
+  
 
 <Routes>
 
@@ -52,7 +56,7 @@ element={<Shop />}
 
 
 </Routes>
-
+</>
 );
 
 }
