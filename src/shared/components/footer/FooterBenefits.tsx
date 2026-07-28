@@ -38,21 +38,14 @@ return (
 className="
 overflow-hidden
 
-border-b
-border-[#C8A44D]/40
-
-bg-gradient-to-r
-
-from-[#8B6508]
-
-via-[#D4AF37]
-
-to-[#8B6508]
-
 py-4
 
 "
-
+style={{
+  background:
+    "linear-gradient(90deg, #B8862E 0%, #D4AF37 30%, #E8C768 55%, #F7E3A3 80%, #FFF8E7 100%)",
+  borderColor: "#C79A2F",
+}}
 >
 
 
