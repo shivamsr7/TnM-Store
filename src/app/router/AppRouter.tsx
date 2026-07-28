@@ -11,7 +11,7 @@ import Shop from "@/pages/shop";
 import AboutUs from "@/pages/static/AboutUs";
 import ContactUs from "@/pages/static/ContactUs"
 import MainLayout from "@/layouts/MainLayout";
-
+import FAQ from "@/pages/static/FAQ"
 
 export default function AppRouter(){
 
@@ -41,7 +41,10 @@ element={<AboutUs />}
 path="/contact-us"
 element={<ContactUs />}
 />
-
+<Route 
+path="/faq" 
+element={<FAQ />} 
+/>
 </Route>
 
 
