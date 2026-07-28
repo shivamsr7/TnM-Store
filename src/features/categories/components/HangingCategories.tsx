@@ -128,7 +128,7 @@ text-transparent
 
 >
 
-Explore Our Collection
+Explore Our Collection ✨
 
 </h2>
 
@@ -162,7 +162,7 @@ Discover jewellery crafted to make every moment special
 
 
 
-{/* Static Category Circles */}
+{/* Category Circles */}
 
 <div
 
@@ -178,11 +178,21 @@ w-full
 
 max-w-7xl
 
-justify-between
+gap-5
 
-gap-3
+overflow-x-auto
 
-overflow-hidden
+pb-4
+
+snap-x
+
+snap-mandatory
+
+scroll-smooth
+
+md:justify-between
+
+md:overflow-hidden
 
 "
 
@@ -203,13 +213,17 @@ key={category.id}
 className="
 flex
 
-min-w-0
+min-w-[110px]
 
-flex-1
+snap-center
 
 flex-col
 
 items-center
+
+md:min-w-0
+
+md:flex-1
 
 "
 
@@ -242,9 +256,8 @@ items-center
 className="
 relative
 
-h-[clamp(80px,12vw,150px)]
-
-w-[clamp(80px,12vw,150px)]
+h-28
+w-28
 
 overflow-hidden
 
@@ -265,6 +278,11 @@ duration-500
 group-hover:scale-105
 
 group-hover:border-[#C8A44D]
+
+
+md:h-[clamp(80px,12vw,150px)]
+
+md:w-[clamp(80px,12vw,150px)]
 
 "
 
@@ -296,6 +314,7 @@ group-hover:scale-110
 "
 
 />
+
 
 
 
