@@ -378,6 +378,152 @@ answer:
 
 ]
 
+},
+{
+title:"Membership & Rewards",
+
+items:[
+
+{
+question:"What is the T&M Jewels Membership Program?",
+
+answer:
+`The T&M Jewels Membership Program is designed to reward you every time you shop with us.
+
+As you shop more, you’ll unlock higher membership tiers and enjoy exclusive benefits, rewards, and special offers.`
+},
+
+
+
+{
+question:"What are the membership tiers?",
+
+answer:
+`We currently offer three membership tiers:
+
+✦ Silver – Every registered customer
+
+✦ Gold – Lifetime shopping of ₹5,000+
+
+✦ Platinum – Lifetime shopping of ₹15,000+
+
+Your membership tier is automatically upgraded once you reach the required lifetime purchase value.`
+},
+
+
+
+{
+question:"How do I earn Reward Points?",
+
+answer:
+`You can earn Reward Points in multiple ways:
+
+✦ ₹1 Spent = 1 Reward Point
+
+✦ Text Review = 50 Reward Points
+
+✦ Photo Review = 150 Reward Points
+
+✦ Video Review = 300 Reward Points
+
+✦ Refer a Friend = 500 Reward Points
+
+✦ Referred Friend’s First Successful Order = 250 Reward Points
+
+✦ Spin & Win = Earn exciting Reward Points
+
+Reward Points are credited only after the qualifying action is successfully completed.`
+},
+
+
+
+{
+question:"How much is 1 Reward Point worth?",
+
+answer:
+`You earn 1 Reward Point for every ₹1 spent.
+
+When redeeming:
+
+1,000 Reward Points = ₹10 OFF
+
+Reward Points can be redeemed only on the product value and cannot be used towards shipping charges.`
+},
+
+
+
+{
+question:"How do I redeem my Reward Points?",
+
+answer:
+`You can redeem your available Reward Points during checkout.
+
+The eligible discount will be automatically applied to your product value based on your available Reward Points.`
+},
+
+
+
+{
+question:"Do Reward Points expire?",
+
+answer:
+`Yes. All Reward Points are valid for 12 months from the date they are earned.
+
+Any unused Reward Points will automatically expire after the validity period.`
+},
+
+
+
+{
+question:"Can I earn points for multiple reviews of the same product?",
+
+answer:
+`No. Only one reward will be given per review.
+
+✦ A Text Review earns 50 Reward Points.
+
+✦ A Photo Review (with text) earns 150 Reward Points.
+
+✦ A Video Review (with photo/text if included) earns 300 Reward Points.
+
+Reward Points are not cumulative. You’ll receive points only for the highest eligible review type.`
+},
+
+
+
+{
+question:"Can I use Reward Points with coupons or other offers?",
+
+answer:
+`Eligible Reward Points can be redeemed during checkout according to the offers and promotions available at that time.
+
+Any applicable redemption limits or promotional conditions will be shown during checkout.`
+},
+
+
+
+{
+question:"How does Refer & Earn work?",
+
+answer:
+`Invite your friends using your referral link or code.
+
+✦ You’ll receive 500 Reward Points after your friend’s first successful order.
+
+✦ Your friend will receive 250 Reward Points after completing their first successful order.`
+},
+
+
+
+{
+question:"Who can play Spin & Win?",
+
+answer:
+`All Silver, Gold, and Platinum members are eligible to participate in Spin & Win and earn exciting Reward Points and other eligible rewards, subject to the campaign rules.`
+}
+
+]
+
 }
 
 ];
