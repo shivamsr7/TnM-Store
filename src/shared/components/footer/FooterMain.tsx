@@ -101,7 +101,7 @@ md:grid-cols-5
 className="
 text-center
 md:col-span-1
-
+md:text-left
 "
 
 >
@@ -114,7 +114,11 @@ src={logo}
 alt="T&M Jewels"
 
 className="
+mx-auto
+
 w-44
+
+md:mx-0
 
 "
 
@@ -155,7 +159,11 @@ mt-6
 
 flex
 
+justify-center
+
 gap-3
+
+md:justify-start
 
 "
 
