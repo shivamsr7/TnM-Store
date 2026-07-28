@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
-
+import {
+  FaInstagram,
+  FaWhatsapp,
+  FaFacebookF,
+} from "react-icons/fa";
 import logo from "@/assets/logo/mainLogo.png";
 
 
@@ -161,7 +165,7 @@ flex
 
 justify-center
 
-gap-3
+gap-4
 
 md:justify-start
 
@@ -169,24 +173,16 @@ md:justify-start
 
 >
 
-{
+<a
 
-["Instagram","WhatsApp","Facebook","Pinterest"].map(item=>(
-
-
-<div
-
-key={item}
+href="#"
 
 className="
 flex
-
-h-9
-
-w-9
+h-10
+w-10
 
 items-center
-
 justify-center
 
 rounded-full
@@ -194,8 +190,6 @@ rounded-full
 border
 
 border-[#C8A44D]/50
-
-text-xs
 
 text-[#C8A44D]
 
@@ -209,14 +203,91 @@ hover:text-black
 
 >
 
-{item[0]}
+<FaInstagram size={18}/>
 
-</div>
+</a>
 
 
-))
 
-}
+
+<a
+
+href="#"
+
+className="
+flex
+h-10
+w-10
+
+items-center
+justify-center
+
+rounded-full
+
+border
+
+border-[#C8A44D]/50
+
+text-[#C8A44D]
+
+transition
+
+hover:bg-[#C8A44D]
+
+hover:text-black
+
+"
+
+>
+
+<FaWhatsapp size={18}/>
+
+</a>
+
+
+
+
+
+<a
+
+href="#"
+
+className="
+flex
+h-10
+w-10
+
+items-center
+justify-center
+
+rounded-full
+
+border
+
+border-[#C8A44D]/50
+
+text-[#C8A44D]
+
+transition
+
+hover:bg-[#C8A44D]
+
+hover:text-black
+
+"
+
+>
+
+<FaFacebookF size={18}/>
+
+</a>
+
+
+
+
+
+
+
 
 </div>
 
