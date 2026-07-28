@@ -41,7 +41,13 @@ overflow-hidden
 border-b
 border-[#C8A44D]/40
 
-bg-black
+bg-gradient-to-r
+
+from-[#8B6508]
+
+via-[#D4AF37]
+
+to-[#8B6508]
 
 py-4
 
@@ -107,7 +113,9 @@ text-xs
 
 tracking-wider
 
-text-[#C8A44D]
+font-medium
+
+text-black
 
 md:text-sm
 
