@@ -14,7 +14,7 @@ export const navigationItems: NavigationItem[] = [
   },
   {
     label: "Collections",
-    href: "/collections",
+    href: "/shop",
   },
   {
     label: "Contact",

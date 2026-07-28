@@ -7,12 +7,16 @@ import {
 import App from "@/App";
 import ScrollToTop from "@/shared/components/ScrollToTop";
 import AccountPage from "@/features/customers/pages/AccountPage";
-import Shop from "@/pages/shop";
 import AboutUs from "@/pages/static/AboutUs";
-import ContactUs from "@/pages/static/ContactUs"
+import ContactUs from "@/pages/static/ContactUs";
 import MainLayout from "@/layouts/MainLayout";
-import FAQ from "@/pages/static/FAQ"
-
+import FAQ from "@/pages/static/FAQ";
+import JewelleryCare from "@/pages/static/JewelleryCare";
+import ShippingDelivery from "@/pages/static/ShippingDelivery";
+import ReturnsExchange from "@/pages/static/ReturnsExchange";
+import PrivacyPolicy from "@/pages/static/PrivacyPolicy";
+import TermsConditions from "@/pages/static/TermsConditions";
+import Shop from "@/features/shop/pages/Shop";
 export default function AppRouter(){
 
 return (
@@ -45,6 +49,30 @@ element={<ContactUs />}
 path="/faq" 
 element={<FAQ />} 
 />
+<Route
+path="/jewellery-care"
+element={<JewelleryCare />}
+/>
+<Route 
+path="/shipping" 
+element={<ShippingDelivery />}
+/>
+<Route
+path="/returns"
+element={<ReturnsExchange />}
+/>
+<Route
+path="/privacy-policy"
+element={<PrivacyPolicy />}
+/>
+<Route
+path="/terms"
+element={<TermsConditions />}
+/>
+<Route
+path="/shop"
+element={<Shop />}
+/>
 </Route>
 
 
@@ -55,10 +83,7 @@ element={<AccountPage />}
 />
 
 
-<Route
-path="/shop"
-element={<Shop />}
-/>
+
 
 
 </Routes>
