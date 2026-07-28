@@ -99,6 +99,7 @@ md:grid-cols-5
 <div
 
 className="
+text-center
 md:col-span-1
 
 "
