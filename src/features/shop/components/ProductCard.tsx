@@ -3,6 +3,7 @@ import {
   Heart,
   ChevronLeft,
   ChevronRight,
+  Coins,
 } from "lucide-react";
 
 import type { Product } from "@/features/products/types/product.types";
@@ -735,22 +736,53 @@ discount>0 &&
 <div
 
 className="
-relative
-mt-2
+mt-3
 flex
 items-center
-gap-1
+gap-1.5
 text-xs
-text-neutral-400
+text-[#D4AF37]
 "
 
 >
 
-<p>
+<div
 
-🪙 {product.price}
+className="
+flex
+items-center
+gap-1
+leading-none
+"
 
-</p>
+>
+
+<Coins
+
+size={15}
+
+strokeWidth={2}
+
+className="
+text-yellow-400
+"
+
+/>
+
+
+<span className="
+text-yellow-400
+font-medium
+">
+
+{product.price}
+
+</span>
+
+
+</div>
+
+
 
 
 
@@ -769,8 +801,9 @@ setShowRewardInfo(false)
 }
 
 className="
-text-neutral-500
-transition
+flex
+items-center
+text-neutral-400
 hover:text-[#D4AF37]
 "
 
@@ -785,7 +818,6 @@ hover:text-[#D4AF37]
 
 
 {
-
 showRewardInfo && (
 
 <div
@@ -819,7 +851,6 @@ Earn {product.price} Reward Points on this purchase ✨
 
 
 </div>
-
 
 
 
