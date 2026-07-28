@@ -1,6 +1,6 @@
 import Header from "@/features/header/components/Header";
 import HeroSection from "@/features/home/hero/components/HeroSection";
-
+import HangingCategories from "@/features/categories/components/HangingCategories";
 
 export default function App() {
 
@@ -13,6 +13,8 @@ export default function App() {
       <main>
 
         <HeroSection />
+
+        <HangingCategories />
 
       </main>
 
