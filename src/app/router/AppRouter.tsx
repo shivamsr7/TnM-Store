@@ -9,7 +9,7 @@ import ScrollToTop from "@/shared/components/ScrollToTop";
 import AccountPage from "@/features/customers/pages/AccountPage";
 import Shop from "@/pages/shop";
 import AboutUs from "@/pages/static/AboutUs";
-
+import ContactUs from "@/pages/static/ContactUs"
 import MainLayout from "@/layouts/MainLayout";
 
 
@@ -37,7 +37,10 @@ element={<App />}
 path="/about-us"
 element={<AboutUs />}
 />
-
+<Route
+path="/contact-us"
+element={<ContactUs />}
+/>
 
 </Route>
 
