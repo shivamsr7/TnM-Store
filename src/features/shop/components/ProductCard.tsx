@@ -9,13 +9,21 @@ import type { Product } from "@/features/products/types/product.types";
 
 
 interface ProductCardProps {
+
   product: Product & {
+
     product_images?: {
+
       image_url: string;
+
       is_primary: boolean;
+
       sort_order: number;
+
     }[];
+
   };
+
 }
 
 
@@ -25,111 +33,186 @@ export default function ProductCard({
 }: ProductCardProps) {
 
 
+
   const images =
     product.product_images
       ?.sort(
         (a, b) => a.sort_order - b.sort_order
       )
-      .map((item) => item.image_url) || [];
+      .map(
+        (item) => item.image_url
+      ) || [];
 
 
 
-const [activeImage, setActiveImage] = useState(0);
 
-const [hoverPreview, setHoverPreview] = useState(false);
+  const [activeImage, setActiveImage] = useState(0);
+
+  const [hoverPreview, setHoverPreview] = useState(false);
 
 
-const [imageChanging, setImageChanging] = useState(false);
 
-const displayImage =
-  hoverPreview && activeImage === 0 && images[1]
-    ? images[1]
-    : images[activeImage];
+
+
+  const displayImage =
+
+    hoverPreview &&
+    activeImage === 0 &&
+    images[1]
+
+      ?
+
+      images[1]
+
+      :
+
+      images[activeImage];
+
+
+
 
 
 
 
   const discount =
+
     product.compare_price
-      ? Math.round(
-          ((product.compare_price - product.price) /
-            product.compare_price) *
-            100
-        )
-      : 0;
+
+      ?
+
+      Math.round(
+
+        ((product.compare_price - product.price)
+
+        /
+
+        product.compare_price)
+
+        *
+
+        100
+
+      )
+
+      :
+
+      0;
+
+
+
 
 
 
 
   const badge =
+
     product.best_seller
-      ? "Best Seller"
-      : product.new_arrival
-      ? "New Arrival"
-      : product.trending
-      ? "Trending"
-      : product.editors_pick
-      ? "Editor's Pick"
-      : null;
+
+      ?
+
+      "Best Seller"
+
+      :
+
+    product.new_arrival
+
+      ?
+
+      "New Arrival"
+
+      :
+
+    product.trending
+
+      ?
+
+      "Trending"
+
+      :
+
+    product.editors_pick
+
+      ?
+
+      "Editor's Pick"
+
+      :
+
+      null;
 
 
 
 
-const previousImage = () => {
-
-if(!images.length) return;
-
-
-const newIndex =
-activeImage === 0
-?
-images.length - 1
-:
-activeImage - 1;
-
-
-setImageChanging(true);
-
-
-setTimeout(()=>{
-
-setActiveImage(newIndex);
-
-setImageChanging(false);
-
-},150);
-
-
-};
 
 
 
- const nextImage = () => {
 
-if(!images.length) return;
-
-
-const newIndex =
-activeImage === images.length - 1
-?
-0
-:
-activeImage + 1;
+  const previousImage = () => {
 
 
-setImageChanging(true);
+    if(!images.length)
+      return;
 
 
-setTimeout(()=>{
 
-setActiveImage(newIndex);
-
-setImageChanging(false);
-
-},150);
+    setHoverPreview(false);
 
 
-};
+
+    setActiveImage(
+
+      activeImage === 0
+
+      ?
+
+      images.length - 1
+
+      :
+
+      activeImage - 1
+
+    );
+
+  };
+
+
+
+
+
+
+
+
+  const nextImage = () => {
+
+
+    if(!images.length)
+      return;
+
+
+
+    setHoverPreview(false);
+
+
+
+    setActiveImage(
+
+      activeImage === images.length - 1
+
+      ?
+
+      0
+
+      :
+
+      activeImage + 1
+
+    );
+
+  };
+
+
+
+
 
 
 
@@ -145,6 +228,10 @@ setImageChanging(false);
 
 
 
+
+
+
+
 return (
 
 <div
@@ -152,7 +239,7 @@ return (
 className="
 group
 overflow-hidden
-rounded-3xl
+rounded-2xl
 border
 border-[#D4AF37]/20
 bg-[#0b0b0b]
@@ -165,35 +252,54 @@ hover:border-[#D4AF37]/70
 >
 
 
+
+
+
+
+
 {/* IMAGE */}
 
 <div
 
-onMouseEnter={() => {
+onMouseEnter={()=>{
 
-  if(activeImage === 0){
-    setHoverPreview(true);
-  }
+if(activeImage===0){
+
+setHoverPreview(true);
+
+}
 
 }}
 
-onMouseLeave={() => {
+onMouseLeave={()=>{
 
-  setHoverPreview(false);
+setHoverPreview(false);
 
 }}
 
 className="
 relative
-aspect-[4/5]
+mx-auto
+aspect-square
+w-[85%]
 overflow-hidden
+rounded-full
 bg-neutral-900
+
+sm:w-full
+sm:aspect-[4/5]
+sm:rounded-3xl
 "
 
 >
 
 
-{displayImage && (
+
+
+
+
+{
+displayImage &&
 
 <img
 
@@ -201,29 +307,21 @@ src={displayImage}
 
 alt={product.name}
 
-className={`
+className="
 h-full
 w-full
 object-cover
-
-transition-all
-duration-300
-
-${
-imageChanging
-?
-"opacity-0 scale-95"
-:
-"opacity-100 scale-100"
-}
-
+transition-transform
+duration-700
 group-hover:scale-105
-
-`}
+"
 
 />
 
-)}
+}
+
+
+
 
 
 
@@ -234,12 +332,12 @@ group-hover:scale-105
 
 className="
 absolute
-right-4
-top-4
+right-2
+top-2
 z-20
 flex
-h-10
-w-10
+h-8
+w-8
 items-center
 justify-center
 rounded-full
@@ -248,6 +346,11 @@ backdrop-blur-md
 text-white
 transition
 hover:text-[#D4AF37]
+
+sm:right-4
+sm:top-4
+sm:h-10
+sm:w-10
 "
 
 >
@@ -261,9 +364,13 @@ hover:text-[#D4AF37]
 
 
 
+
+
 {/* Badge */}
 
-{badge && (
+{
+
+badge &&
 
 <div
 
@@ -288,7 +395,9 @@ text-black
 
 </div>
 
-)}
+}
+
+
 
 
 
@@ -298,76 +407,86 @@ text-black
 
 {/* Arrows */}
 
-{images.length > 1 && (
-  <div>
+{
 
-    <button
-      onClick={() => {
-  setHoverPreview(false);
-  previousImage();
-}}
-      className="
-      absolute
-      left-3
-      top-1/2
-      z-20
-      flex
-      h-8
-      w-8
-      -translate-y-1/2
-      items-center
-      justify-center
-      rounded-full
-      bg-black/50
-      text-white
-      opacity-70
-      transition
-      md:opacity-0
-      md:group-hover:opacity-100
-      hover:bg-[#D4AF37]
-      hover:text-black
-      "
-    >
-      <ChevronLeft size={18}/>
-    </button>
+images.length > 1 &&
 
+<>
 
-    <button
-      onClick={() => {
-  setHoverPreview(false);
-  nextImage();
-}}
-      className="
-      absolute
-      right-3
-      top-1/2
-      z-20
-      flex
-      h-8
-      w-8
-      -translate-y-1/2
-      items-center
-      justify-center
-      rounded-full
-      bg-black/50
-      text-white
-      opacity-70
-      transition
-      md:opacity-0
-      md:group-hover:opacity-100
-      hover:bg-[#D4AF37]
-      hover:text-black
-      "
-    >
-      <ChevronRight size={18}/>
-    </button>
+<button
 
-  </div>
-)}
+onClick={previousImage}
+
+className="
+absolute
+left-2
+top-1/2
+z-20
+flex
+h-7
+w-7
+-translate-y-1/2
+items-center
+justify-center
+rounded-full
+bg-black/50
+text-white
+transition
+hover:bg-[#D4AF37]
+hover:text-black
+
+sm:left-3
+sm:h-8
+sm:w-8
+"
+
+>
+
+<ChevronLeft size={16}/>
+
+</button>
 
 
 
 
+
+<button
+
+onClick={nextImage}
+
+className="
+absolute
+right-2
+top-1/2
+z-20
+flex
+h-7
+w-7
+-translate-y-1/2
+items-center
+justify-center
+rounded-full
+bg-black/50
+text-white
+transition
+hover:bg-[#D4AF37]
+hover:text-black
+
+sm:right-3
+sm:h-8
+sm:w-8
+"
+
+>
+
+<ChevronRight size={16}/>
+
+</button>
+
+
+</>
+
+}
 
 
 
@@ -376,15 +495,23 @@ text-black
 
 
 
+
+
+
+
+
+
 {/* DETAILS */}
 
 <div
 
 className="
-p-5
+p-3
+sm:p-5
 "
 
 >
+
 
 
 <a href={`/product/${product.slug}`}>
@@ -393,11 +520,13 @@ p-5
 
 className="
 line-clamp-2
-text-lg
+text-sm
 font-medium
 text-[#F7E3A3]
-transition
+
+sm:text-lg
 hover:text-[#D4AF37]
+transition
 "
 
 >
@@ -417,7 +546,9 @@ hover:text-[#D4AF37]
 
 {/* Rating */}
 
-{product.rating > 0 && (
+{
+
+product.rating > 0 &&
 
 <div
 
@@ -438,7 +569,9 @@ text-sm
 </span>
 
 
-{product.review_count > 0 && (
+{
+
+product.review_count > 0 &&
 
 <span className="text-neutral-500">
 
@@ -446,11 +579,13 @@ text-sm
 
 </span>
 
-)}
+}
+
 
 </div>
 
-)}
+}
+
 
 
 
@@ -464,20 +599,26 @@ text-sm
 <div
 
 className="
-mt-4
+mt-3
 flex
 items-center
-gap-3
+gap-2
+
+sm:mt-4
+sm:gap-3
 "
 
 >
 
+
 <span
 
 className="
-text-xl
+text-base
 font-semibold
 text-white
+
+sm:text-xl
 "
 
 >
@@ -488,14 +629,19 @@ text-white
 
 
 
-{product.compare_price && (
+
+{
+
+product.compare_price &&
 
 <span
 
 className="
-text-sm
+text-xs
 text-neutral-500
 line-through
+
+sm:text-sm
 "
 
 >
@@ -504,22 +650,36 @@ line-through
 
 </span>
 
-)}
+}
 
 
 
 
-{discount > 0 && (
 
-<span className="text-xs text-[#D4AF37]">
+
+{
+
+discount > 0 &&
+
+<span
+
+className="
+text-xs
+text-[#D4AF37]
+"
+
+>
 
 {discount}% OFF
 
 </span>
 
-)}
+}
+
 
 </div>
+
+
 
 
 
@@ -532,7 +692,7 @@ line-through
 <p
 
 className="
-mt-3
+mt-2
 text-xs
 text-neutral-400
 "
@@ -549,23 +709,29 @@ Earn {product.price} Reward Points ✨
 
 
 
-{/* Cart */}
+
+{/* Add Cart */}
 
 <button
 
 onClick={handleAddToCart}
 
 className="
-mt-5
+mt-4
 w-full
 rounded-full
 bg-white
-py-3
-text-sm
+py-2
+text-xs
 font-medium
 text-black
 transition
+
 hover:bg-[#D4AF37]
+
+sm:mt-5
+sm:py-3
+sm:text-sm
 "
 
 >
@@ -576,7 +742,11 @@ Add To Cart
 
 
 
+
+
 </div>
+
+
 
 
 
