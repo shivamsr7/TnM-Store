@@ -1,6 +1,9 @@
 import { motion } from "framer-motion";
 import logo from "@/assets/logo/mainLogo.png";
-
+import {
+  FaInstagram,
+  FaYoutube
+} from "react-icons/fa";
 
 export default function AboutUs() {
 
@@ -1083,7 +1086,122 @@ Co-Founder
 
 </p>
 
+<div
 
+className="
+mt-5
+
+flex
+
+justify-center
+
+gap-4
+
+"
+
+>
+
+
+<a
+
+href="https://www.instagram.com/__singh__tanishq?igsh=d3QzdWp6eGY3cm1i"
+
+target="_blank"
+
+rel="noopener noreferrer"
+
+className="
+flex
+
+items-center
+
+gap-2
+
+rounded-full
+
+border
+
+border-[#D4AF37]/40
+
+px-4
+
+py-2
+
+text-sm
+
+text-[#D4AF37]
+
+transition-all
+
+duration-300
+
+hover:bg-[#D4AF37]
+
+hover:text-black
+
+"
+
+>
+
+<FaInstagram size={16}/>
+
+Instagram
+
+</a>
+
+
+
+
+
+<a
+
+href="https://youtube.com/@singh__tanishq?si=ZlnZ1JfZ0rVU7xm2"
+
+target="_blank"
+
+rel="noopener noreferrer"
+
+className="
+flex
+
+items-center
+
+gap-2
+
+rounded-full
+
+border
+
+border-[#D4AF37]/40
+
+px-4
+
+py-2
+
+text-sm
+
+text-[#D4AF37]
+
+transition-all
+
+duration-300
+
+hover:bg-[#D4AF37]
+
+hover:text-black
+
+"
+
+>
+
+<FaYoutube size={16}/>
+
+YouTube
+
+</a>
+
+
+</div>
 
 <p
 
@@ -1243,7 +1361,122 @@ text-[#D4AF37]
 Co-Founder
 
 </p>
+<div
 
+className="
+mt-5
+
+flex
+
+justify-center
+
+gap-4
+
+"
+
+>
+
+
+<a
+
+href="https://www.instagram.com/muskan_singh23m?igsh=MW5odXNvamR1bGZpbQ=="
+
+target="_blank"
+
+rel="noopener noreferrer"
+
+className="
+flex
+
+items-center
+
+gap-2
+
+rounded-full
+
+border
+
+border-[#D4AF37]/40
+
+px-4
+
+py-2
+
+text-sm
+
+text-[#D4AF37]
+
+transition-all
+
+duration-300
+
+hover:bg-[#D4AF37]
+
+hover:text-black
+
+"
+
+>
+
+<FaInstagram size={16}/>
+
+Instagram
+
+</a>
+
+
+
+
+
+<a
+
+href="https://youtube.com/@therealmuskansingh?si=5OW181uD5m3BzcXR"
+
+target="_blank"
+
+rel="noopener noreferrer"
+
+className="
+flex
+
+items-center
+
+gap-2
+
+rounded-full
+
+border
+
+border-[#D4AF37]/40
+
+px-4
+
+py-2
+
+text-sm
+
+text-[#D4AF37]
+
+transition-all
+
+duration-300
+
+hover:bg-[#D4AF37]
+
+hover:text-black
+
+"
+
+>
+
+<FaYoutube size={16}/>
+
+YouTube
+
+</a>
+
+
+</div>
 
 
 <p
