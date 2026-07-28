@@ -22,6 +22,6 @@ export const navigationItems: NavigationItem[] = [
   },
   {
     label: "About Us",
-    href: "/aboutUs",
+    href: "/about-us",
   },
 ];

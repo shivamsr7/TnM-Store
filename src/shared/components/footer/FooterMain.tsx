@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
+import { motion } from "framer-motion";
+
 import {
   FaInstagram,
   FaWhatsapp,
   FaFacebookF,
 } from "react-icons/fa";
+
 import logo from "@/assets/logo/mainLogo.png";
 
 
@@ -26,7 +29,6 @@ links:[
 ]
 },
 
-
 {
 title:"QUICK LINKS",
 links:[
@@ -40,7 +42,6 @@ links:[
 "About Us"
 ]
 },
-
 
 {
 title:"INFORMATION",
@@ -56,7 +57,46 @@ links:[
 
 ];
 
+const getLinkPath = (link:string) => {
 
+switch(link){
+
+case "About Us":
+return "/about-us";
+
+case "Contact Us":
+return "/contact-us";
+
+case "FAQs":
+return "/faq";
+
+case "Track Your Order":
+return "/track-order";
+
+case "Shipping & Delivery":
+return "/shipping";
+
+case "Returns & Exchanges":
+return "/returns";
+
+case "Size Guide":
+return "/size-guide";
+
+case "Jewellery Care":
+return "/jewellery-care";
+
+case "Privacy Policy":
+return "/privacy-policy";
+
+case "Terms & Conditions":
+return "/terms";
+
+default:
+return "#";
+
+}
+
+};
 
 export default function FooterMain(){
 
@@ -71,28 +111,19 @@ return (
 
 className="
 mx-auto
-
 max-w-7xl
-
 px-5
-
 py-14
-
 "
 
 >
-
-
 
 <div
 
 className="
 grid
-
-gap-12
-
+gap-10
 md:grid-cols-5
-
 "
 
 >
@@ -100,9 +131,28 @@ md:grid-cols-5
 
 {/* Brand */}
 
-<div
+<motion.div
+
+initial={{
+opacity:0,
+y:25
+}}
+
+whileInView={{
+opacity:1,
+y:0
+}}
+
+viewport={{
+once:true
+}}
+
+transition={{
+duration:.6
+}}
 
 className="
+min-w-0
 text-center
 md:col-span-1
 md:text-left
@@ -119,9 +169,7 @@ alt="T&M Jewels"
 
 className="
 mx-auto
-
 w-44
-
 md:mx-0
 
 "
@@ -134,13 +182,9 @@ md:mx-0
 
 className="
 mt-5
-
 text-sm
-
 leading-relaxed
-
 text-neutral-400
-
 "
 
 >
@@ -160,20 +204,37 @@ Jewellery that celebrates you.
 
 className="
 mt-6
-
 flex
-
 justify-center
-
 gap-4
-
 md:justify-start
-
 "
 
 >
 
+
+{[
+{
+icon:FaInstagram
+},
+{
+icon:FaWhatsapp
+},
+{
+icon:FaFacebookF
+}
+
+].map((item,index)=>{
+
+
+const Icon=item.icon;
+
+
+return (
+
 <a
+
+key={index}
 
 href="#"
 
@@ -181,19 +242,20 @@ className="
 flex
 h-10
 w-10
-
 items-center
 justify-center
 
 rounded-full
 
 border
-
 border-[#C8A44D]/50
 
 text-[#C8A44D]
 
-transition
+transition-all
+duration-300
+
+hover:-translate-y-1
 
 hover:bg-[#C8A44D]
 
@@ -203,97 +265,20 @@ hover:text-black
 
 >
 
-<FaInstagram size={18}/>
+<Icon size={18}/>
 
 </a>
 
+)
 
-
-
-<a
-
-href="#"
-
-className="
-flex
-h-10
-w-10
-
-items-center
-justify-center
-
-rounded-full
-
-border
-
-border-[#C8A44D]/50
-
-text-[#C8A44D]
-
-transition
-
-hover:bg-[#C8A44D]
-
-hover:text-black
-
-"
-
->
-
-<FaWhatsapp size={18}/>
-
-</a>
-
-
-
-
-
-<a
-
-href="#"
-
-className="
-flex
-h-10
-w-10
-
-items-center
-justify-center
-
-rounded-full
-
-border
-
-border-[#C8A44D]/50
-
-text-[#C8A44D]
-
-transition
-
-hover:bg-[#C8A44D]
-
-hover:text-black
-
-"
-
->
-
-<FaFacebookF size={18}/>
-
-</a>
-
-
-
-
-
-
+})}
 
 
 </div>
 
 
 
-</div>
+</motion.div>
 
 
 
@@ -307,18 +292,36 @@ hover:text-black
 
 {
 
-columns.map((column)=>(
+columns.map((column,index)=>(
 
 
-<div
+<motion.div
 
 key={column.title}
 
+initial={{
+opacity:0,
+y:25
+}}
+
+whileInView={{
+opacity:1,
+y:0
+}}
+
+viewport={{
+once:true
+}}
+
+transition={{
+duration:.5,
+delay:index*.1
+}}
+
 className="
 hidden
-
+min-w-0
 md:block
-
 "
 
 >
@@ -328,15 +331,10 @@ md:block
 
 className="
 mb-5
-
 text-sm
-
 font-semibold
-
 tracking-wider
-
 text-[#C8A44D]
-
 "
 
 >
@@ -351,11 +349,8 @@ text-[#C8A44D]
 
 className="
 space-y-3
-
 text-sm
-
 text-neutral-300
-
 "
 
 >
@@ -370,14 +365,12 @@ key={link}
 
 className="
 transition
-
 hover:text-[#C8A44D]
-
 "
 
 >
 
-<Link to="#">
+<Link to={getLinkPath(link)}>
 
 {link}
 
@@ -392,7 +385,7 @@ hover:text-[#C8A44D]
 </ul>
 
 
-</div>
+</motion.div>
 
 
 ))
@@ -403,19 +396,33 @@ hover:text-[#C8A44D]
 
 
 
-
-
-
-
 {/* Newsletter Desktop */}
 
-<div
+<motion.div
+
+initial={{
+opacity:0,
+y:25
+}}
+
+whileInView={{
+opacity:1,
+y:0
+}}
+
+viewport={{
+once:true
+}}
+
+transition={{
+duration:.6,
+delay:.3
+}}
 
 className="
 hidden
-
+min-w-0
 md:block
-
 "
 
 >
@@ -425,13 +432,9 @@ md:block
 
 className="
 text-sm
-
 font-semibold
-
 tracking-wider
-
 text-[#C8A44D]
-
 "
 
 >
@@ -446,13 +449,9 @@ STAY SPARKLED ✨
 
 className="
 mt-5
-
 text-sm
-
 leading-relaxed
-
 text-neutral-400
-
 "
 
 >
@@ -464,7 +463,6 @@ exclusive offers & member-only perks.
 
 
 
-
 <div
 
 className="
@@ -472,9 +470,19 @@ mt-5
 
 flex
 
+w-full
+
+max-w-[320px]
+
+overflow-hidden
+
+rounded-full
+
 border
 
-border-[#C8A44D]/40
+border-[#C8A44D]/50
+
+bg-black/30
 
 "
 
@@ -485,16 +493,12 @@ border-[#C8A44D]/40
 placeholder="Enter your email"
 
 className="
-w-full
-
+min-w-0
+flex-1
 bg-transparent
-
-px-4
-
+px-5
 text-sm
-
 outline-none
-
 "
 
 />
@@ -503,9 +507,14 @@ outline-none
 <button
 
 className="
-bg-[#C8A44D]
+bg-gradient-to-r
+from-[#B8862E]
+via-[#D4AF37]
+to-[#F7E3A3]
 
-px-5
+px-3
+
+font-medium
 
 text-black
 
@@ -513,7 +522,7 @@ text-black
 
 >
 
-→
+JOIN
 
 </button>
 
@@ -521,12 +530,12 @@ text-black
 </div>
 
 
+</motion.div>
+
+
+
+
 </div>
-
-
-
-
-
 
 
 {/* Mobile Accordion */}
@@ -535,7 +544,6 @@ text-black
 
 className="
 md:hidden
-
 "
 
 >
@@ -551,9 +559,7 @@ key={column.title}
 
 className="
 border-b
-
 border-white/10
-
 "
 
 >
@@ -562,30 +568,20 @@ border-white/10
 <button
 
 onClick={()=>setOpen(
-
 open===index ? null : index
-
 )}
 
 className="
 flex
-
 w-full
-
 items-center
-
 justify-between
-
 py-5
 
 text-sm
-
 font-semibold
-
 tracking-wider
-
 text-[#C8A44D]
-
 "
 
 >
@@ -598,17 +594,11 @@ text-[#C8A44D]
 size={18}
 
 className={
-
 open===index
-
 ?
-
 "rotate-180 transition"
-
 :
-
 "transition"
-
 }
 
 />
@@ -628,13 +618,9 @@ open===index && (
 
 className="
 space-y-3
-
 pb-5
-
 text-sm
-
 text-neutral-300
-
 "
 
 >
@@ -643,17 +629,15 @@ text-neutral-300
 
 column.links.map(link=>(
 
-
 <li key={link}>
 
-<Link to="#">
+<Link to={getLinkPath(link)}>
 
 {link}
 
 </Link>
 
 </li>
-
 
 ))
 
@@ -679,6 +663,12 @@ column.links.map(link=>(
 
 </div>
 
+
+
+
+
+
+
 {/* Mobile Newsletter */}
 
 <div
@@ -686,23 +676,17 @@ column.links.map(link=>(
 className="
 mt-8
 md:hidden
-
 "
 
 >
-
 
 <h3
 
 className="
 text-sm
-
 font-semibold
-
 tracking-wider
-
 text-[#C8A44D]
-
 "
 
 >
@@ -717,11 +701,8 @@ STAY SPARKLED ✨
 
 className="
 mt-3
-
 text-sm
-
 text-neutral-400
-
 "
 
 >
@@ -735,31 +716,46 @@ Join our community for new launches and exclusive offers.
 <div
 
 className="
-mt-4
+mt-5
 
 flex
 
+w-full
+
+max-w-[280px]
+
+overflow-hidden
+
+rounded-full
+
 border
 
-border-[#C8A44D]/40
+border-[#C8A44D]/50
+
+bg-black/30
 
 "
 
 >
-
 
 <input
 
 placeholder="Enter your email"
 
 className="
-w-full
+min-w-0
+
+flex-1
 
 bg-transparent
 
 px-4
 
 text-sm
+
+text-white
+
+placeholder:text-neutral-400
 
 outline-none
 
@@ -771,9 +767,19 @@ outline-none
 <button
 
 className="
-bg-[#C8A44D]
+shrink-0
+
+bg-gradient-to-r
+
+from-[#B8862E]
+
+via-[#D4AF37]
+
+to-[#F7E3A3]
 
 px-5
+
+font-medium
 
 text-black
 
@@ -792,9 +798,6 @@ JOIN
 
 </div>
 
-
-
-</div>
 
 
 

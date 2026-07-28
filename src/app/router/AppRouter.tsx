@@ -8,7 +8,9 @@ import App from "@/App";
 
 import AccountPage from "@/features/customers/pages/AccountPage";
 import Shop from "@/pages/shop";
+import AboutUs from "@/pages/static/AboutUs";
 
+import MainLayout from "@/layouts/MainLayout";
 
 
 export default function AppRouter(){
@@ -24,17 +26,30 @@ element={<App />}
 />
 
 
+<Route element={<MainLayout />}>
+
+
+<Route
+path="/about-us"
+element={<AboutUs />}
+/>
+
+
+</Route>
+
+
+
 <Route
 path="/account"
 element={<AccountPage />}
 />
+
+
 <Route
-
 path="/shop"
-
 element={<Shop />}
-
 />
+
 
 </Routes>
 
