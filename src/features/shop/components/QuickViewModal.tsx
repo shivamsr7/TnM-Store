@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { X, Star } from "lucide-react";
 
 import type { Product } from "@/features/products/types/product.types";
@@ -36,19 +37,69 @@ onClose,
 }:QuickViewModalProps){
 
 
+const [show,setShow] = useState(false);
+
+
+
+useEffect(()=>{
+
+
+if(open){
+
+document.body.style.overflow = "hidden";
+
+
+setTimeout(()=>{
+
+setShow(true);
+
+},20);
+
+
+}
+
+else{
+
+
+setShow(false);
+
+
+document.body.style.overflow = "";
+
+
+}
+
+
+
+return ()=>{
+
+document.body.style.overflow = "";
+
+};
+
+
+},[open]);
+
+
+
+
 
 if(!open)
 return null;
 
 
 
+
+
 const image =
+
 product.product_images
 ?.sort(
 (a,b)=>a.sort_order-b.sort_order
 )
 [0]
 ?.image_url;
+
 
 
 
@@ -69,7 +120,10 @@ sm:items-center
 justify-center
 
 bg-black/60
+
 backdrop-blur-sm
+
+overflow-hidden
 
 "
 
@@ -81,7 +135,9 @@ onClick={onClose}
 
 <div
 
-className="
+onClick={(e)=>e.stopPropagation()}
+
+className={`
 relative
 
 w-full
@@ -92,17 +148,44 @@ bg-[#0b0b0b]
 
 p-5
 
-sm:max-w-md
+
+transition-transform
+
+duration-300
+
+ease-out
+
+
+${
+show
+?
+"translate-y-0"
+:
+"translate-y-full"
+}
+
+
+sm:translate-y-0
+
+sm:max-w-3xl
 
 sm:rounded-3xl
 
-"
+sm:flex
 
-onClick={(e)=>e.stopPropagation()}
+sm:gap-8
+
+sm:p-8
+
+`}
 
 >
 
 
+
+
+
+{/* Close Button */}
 
 <button
 
@@ -110,14 +193,21 @@ onClick={onClose}
 
 className="
 absolute
+
 right-4
+
 top-4
 
+z-20
+
 flex
+
 h-8
+
 w-8
 
 items-center
+
 justify-center
 
 rounded-full
@@ -126,6 +216,12 @@ bg-white/10
 
 text-white
 
+hover:bg-[#D4AF37]
+
+hover:text-black
+
+transition
+
 "
 
 >
@@ -133,6 +229,7 @@ text-white
 <X size={18}/>
 
 </button>
+
 
 
 
@@ -154,6 +251,9 @@ rounded-2xl
 
 bg-neutral-900
 
+
+sm:w-1/2
+
 "
 
 >
@@ -170,8 +270,11 @@ alt={product.name}
 
 className="
 h-full
+
 w-full
+
 object-cover
+
 "
 
 />
@@ -190,11 +293,23 @@ object-cover
 
 {/* Details */}
 
-<h2
+<div
 
 className="
 mt-5
 
+sm:mt-0
+
+sm:flex-1
+
+"
+
+>
+
+
+<h2
+
+className="
 text-xl
 
 font-semibold
@@ -214,6 +329,7 @@ text-[#F7E3A3]
 
 
 
+
 {
 
 product.rating > 0 &&
@@ -221,7 +337,7 @@ product.rating > 0 &&
 <div
 
 className="
-mt-2
+mt-3
 
 flex
 
@@ -237,7 +353,13 @@ text-[#D4AF37]
 
 >
 
-<Star size={15} fill="currentColor"/>
+<Star
+
+size={15}
+
+fill="currentColor"
+
+/>
 
 {product.rating}
 
@@ -281,7 +403,7 @@ text-white
 <button
 
 className="
-mt-5
+mt-6
 
 w-full
 
@@ -297,9 +419,9 @@ font-medium
 
 text-black
 
-hover:bg-[#D4AF37]
-
 transition
+
+hover:bg-[#D4AF37]
 
 "
 
@@ -313,12 +435,14 @@ Add To Cart
 
 
 
+
+
 <a
 
 href={`/product/${product.slug}`}
 
 className="
-mt-3
+mt-4
 
 block
 
@@ -335,6 +459,13 @@ text-[#D4AF37]
 View Full Details →
 
 </a>
+
+
+
+
+</div>
+
+
 
 
 
