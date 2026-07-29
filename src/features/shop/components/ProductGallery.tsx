@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 
 
-
 interface ProductGalleryProps {
 
   images:{
@@ -33,22 +32,18 @@ productName
 }:ProductGalleryProps){
 
 
-
 const [activeImage,setActiveImage]=useState(0);
 
 const [direction,setDirection]=useState<
-"next"|"prev"|null
+"next" | "prev" | null
 >(null);
 
 
 
 
-
-const imageList = images
-.sort(
+const imageList = images.sort(
 (a,b)=>a.sort_order-b.sort_order
 );
-
 
 
 
@@ -58,9 +53,9 @@ const changeImage=(index:number)=>{
 
 setActiveImage(index);
 
+setDirection(null);
+
 };
-
-
 
 
 
@@ -69,7 +64,7 @@ setActiveImage(index);
 const nextImage=()=>{
 
 
-if(imageList.length<=1)
+if(imageList.length <= 1)
 return;
 
 
@@ -80,7 +75,7 @@ setTimeout(()=>{
 
 setActiveImage(
 
-activeImage===imageList.length-1
+activeImage === imageList.length-1
 
 ?
 
@@ -88,12 +83,15 @@ activeImage===imageList.length-1
 
 :
 
-activeImage+1
+activeImage + 1
 
 );
 
 
-},100);
+setDirection(null);
+
+
+},150);
 
 
 };
@@ -105,7 +103,7 @@ activeImage+1
 const previousImage=()=>{
 
 
-if(imageList.length<=1)
+if(imageList.length <= 1)
 return;
 
 
@@ -117,7 +115,7 @@ setTimeout(()=>{
 
 setActiveImage(
 
-activeImage===0
+activeImage === 0
 
 ?
 
@@ -125,16 +123,18 @@ imageList.length-1
 
 :
 
-activeImage-1
+activeImage - 1
 
 );
 
 
-},100);
+setDirection(null);
+
+
+},150);
 
 
 };
-
 
 
 
@@ -155,8 +155,8 @@ w-full
 
 
 
-{/* Main Image */}
 
+{/* Main Image */}
 
 <div
 
@@ -171,15 +171,19 @@ rounded-2xl
 
 bg-neutral-900
 
+
+lg:h-[560px]
+
+lg:aspect-auto
+
 "
 
 >
 
 
-
 {
 
-imageList.length>0 &&
+imageList.length > 0 &&
 
 <img
 
@@ -206,11 +210,11 @@ direction
 
 ?
 
-"opacity-80 scale-105"
+"scale-105 opacity-80"
 
 :
 
-"opacity-100 scale-100"
+"scale-100 opacity-100"
 
 }
 
@@ -255,11 +259,11 @@ text-white
 
 backdrop-blur-sm
 
+transition
+
 hover:bg-[#D4AF37]
 
 hover:text-black
-
-transition
 
 "
 
@@ -268,6 +272,7 @@ transition
 <Heart size={20}/>
 
 </button>
+
 
 
 
@@ -305,11 +310,11 @@ text-white
 
 backdrop-blur-sm
 
+transition
+
 hover:bg-[#D4AF37]
 
 hover:text-black
-
-transition
 
 "
 
@@ -325,14 +330,15 @@ transition
 
 
 
-{/* Arrows */}
+
+
+{/* Desktop arrows */}
 
 {
 
-imageList.length>1 &&
+imageList.length > 1 &&
 
 <>
-
 
 <button
 
@@ -347,7 +353,9 @@ top-1/2
 
 -translate-y-1/2
 
-flex
+hidden
+
+sm:flex
 
 h-9
 
@@ -365,11 +373,11 @@ text-white
 
 backdrop-blur-sm
 
+transition
+
 hover:bg-[#D4AF37]
 
 hover:text-black
-
-transition
 
 "
 
@@ -378,6 +386,7 @@ transition
 <ChevronLeft size={18}/>
 
 </button>
+
 
 
 
@@ -396,7 +405,9 @@ top-1/2
 
 -translate-y-1/2
 
-flex
+hidden
+
+sm:flex
 
 h-9
 
@@ -414,11 +425,11 @@ text-white
 
 backdrop-blur-sm
 
+transition
+
 hover:bg-[#D4AF37]
 
 hover:text-black
-
-transition
 
 "
 
@@ -434,6 +445,7 @@ transition
 }
 
 
+
 </div>
 
 
@@ -444,11 +456,11 @@ transition
 
 
 
-{/* Dots */}
+{/* Mobile dots */}
 
 {
 
-imageList.length>1 &&
+imageList.length > 1 &&
 
 <div
 
@@ -460,6 +472,8 @@ flex
 justify-center
 
 gap-2
+
+sm:hidden
 
 "
 
@@ -527,7 +541,7 @@ activeImage===index
 
 {
 
-imageList.length>1 &&
+imageList.length > 1 &&
 
 <div
 
