@@ -193,7 +193,7 @@ return;
 
 
 
-if(dragY > 120){
+if(dragY > 180){
 
 onClose();
 
@@ -833,7 +833,17 @@ activeImage===index
 className="
 mt-6
 
+max-h-[35vh]
+
+overflow-y-auto
+
+pr-1
+
 sm:mt-0
+
+sm:max-h-none
+
+sm:overflow-visible
 
 sm:flex-1
 
