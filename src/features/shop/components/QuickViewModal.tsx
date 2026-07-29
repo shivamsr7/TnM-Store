@@ -1276,7 +1276,17 @@ Add To Cart
 
 href={`/product/${product.slug}`}
 
+onClick={(e)=>{
+
+e.stopPropagation();
+
+}}
+
 className="
+relative
+
+z-50
+
 mt-4
 
 block
@@ -1287,6 +1297,8 @@ text-sm
 
 text-[#D4AF37]
 
+cursor-pointer
+
 "
 
 >
@@ -1294,7 +1306,6 @@ text-[#D4AF37]
 View Full Details →
 
 </a>
-
 
 
 
