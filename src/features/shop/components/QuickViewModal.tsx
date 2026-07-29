@@ -155,25 +155,47 @@ return;
 
 
 
-const currentY =
-
-e.touches[0].clientY;
+const currentY = e.touches[0].clientY;
 
 
-
-const distance =
-
-currentY - dragStart;
+const distance = currentY - dragStart;
 
 
-
-// only allow downward movement
 
 if(distance > 0){
 
+
+/*
+ Rubber band resistance
+
+ Normal movement:
+ 1px finger = 1px sheet
+
+ After 120px:
+ movement slows down
+*/
+
+
+const resistance =
+
+distance < 120
+
+?
+
+distance
+
+:
+
+120 + ((distance - 120) * 0.35);
+
+
+
 setDragY(
-Math.min(distance, 250)
+
+Math.min(resistance,220)
+
 );
+
 
 }
 
@@ -195,9 +217,15 @@ return;
 
 
 
-if(dragY > 150){
+if(dragY > 90){
 
 onClose();
+
+}
+
+else{
+
+setDragY(0);
 
 }
 
@@ -205,11 +233,8 @@ onClose();
 
 setDragStart(null);
 
-setDragY(0);
-
 
 };
-
 
 
 
@@ -412,17 +437,28 @@ onTouchEnd={handleSheetTouchEnd}
 style={{
 
 transform:
+
 dragY > 0
+
 ?
+
 `translate3d(0, ${dragY}px, 0)`
+
 :
+
 undefined,
 
+
 transition:
+
 dragY === 0
+
 ?
+
 "transform 300ms ease-out"
+
 :
+
 "none"
 
 }}
