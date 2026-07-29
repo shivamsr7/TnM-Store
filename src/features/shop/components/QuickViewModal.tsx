@@ -171,7 +171,9 @@ currentY - dragStart;
 
 if(distance > 0){
 
-setDragY(distance);
+setDragY(
+Math.min(distance, 250)
+);
 
 }
 
@@ -193,7 +195,7 @@ return;
 
 
 
-if(dragY > 180){
+if(dragY > 150){
 
 onClose();
 
@@ -379,6 +381,8 @@ bg-black/70
 
 backdrop-blur-sm
 
+touch-none
+
 "
 
 onClick={onClose}
@@ -394,7 +398,13 @@ onClick={(e)=>e.stopPropagation()}
 
 onTouchStart={handleSheetTouchStart}
 
-onTouchMove={handleSheetTouchMove}
+onTouchMove={(e)=>{
+
+e.preventDefault();
+
+handleSheetTouchMove(e);
+
+}}
 
 onTouchEnd={handleSheetTouchEnd}
 
@@ -402,16 +412,18 @@ onTouchEnd={handleSheetTouchEnd}
 style={{
 
 transform:
-
 dragY > 0
-
 ?
-
-`translateY(${dragY}px)`
-
+`translate3d(0, ${dragY}px, 0)`
 :
+undefined,
 
-undefined
+transition:
+dragY === 0
+?
+"transform 300ms ease-out"
+:
+"none"
 
 }}
 
