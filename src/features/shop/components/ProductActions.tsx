@@ -1,12 +1,11 @@
 import {
   Heart,
   ShoppingBag,
-  CheckCircle2,
-  MapPin
+  CheckCircle2
 } from "lucide-react";
 
 import { useEffect, useState } from "react";
-
+import DeliveryChecker from "./DeliveryChecker";
 
 interface ProductActionsProps {
 
@@ -457,123 +456,7 @@ BUY IT NOW
 
 
 {/* Delivery Checker */}
-
-<div
-
-className="
-mt-8
-
-border-t
-
-border-neutral-800
-
-pt-6
-
-"
-
->
-
-
-<div
-
-className="
-flex
-
-items-center
-
-justify-between
-
-"
-
->
-
-
-<h3
-
-className="
-text-base
-
-font-semibold
-
-text-white
-
-"
-
->
-
-Deliver To
-
-</h3>
-
-
-<button
-
-className="
-text-sm
-
-text-[#D4AF37]
-
-"
-
->
-
-Change
-
-</button>
-
-
-</div>
-
-
-
-
-
-
-
-<div
-
-className="
-mt-4
-
-flex
-
-items-center
-
-gap-2
-
-rounded-xl
-
-border
-
-border-neutral-700
-
-px-4
-
-py-4
-
-text-sm
-
-text-neutral-400
-
-"
-
->
-
-<MapPin size={18}/>
-
-
-<span>
-
-Enter your pincode to check delivery date
-
-</span>
-
-
-</div>
-
-
-
-</div>
+<DeliveryChecker />
 
 
 
