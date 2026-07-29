@@ -425,7 +425,6 @@ onTouchStart={handleSheetTouchStart}
 
 onTouchMove={(e)=>{
 
-e.preventDefault();
 
 handleSheetTouchMove(e);
 
