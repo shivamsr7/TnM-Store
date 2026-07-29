@@ -169,9 +169,9 @@ productName={product.name}
 className="
 flex
 
-items-start
+flex-col
 
-justify-center
+gap-6
 
 "
 
@@ -191,8 +191,8 @@ product={product}
 
 />
 
-</div>
 
+</div>
 
 
 
