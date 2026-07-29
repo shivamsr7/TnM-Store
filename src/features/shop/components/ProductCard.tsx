@@ -592,14 +592,12 @@ sm:w-8
 {/* DETAILS */}
 
 <div
-
 className="
+flex
+flex-col
 p-3
-
 sm:p-5
-
 "
-
 >
 
 
@@ -613,9 +611,13 @@ sm:p-5
 className="
 line-clamp-2
 
+min-h-[40px]
+
 text-sm
 
 font-medium
+
+leading-5
 
 text-[#F7E3A3]
 
@@ -623,12 +625,13 @@ transition
 
 hover:text-[#D4AF37]
 
+sm:min-h-0
+
 sm:text-lg
 
 "
 
 >
-
 {product.name}
 
 </h3>
@@ -971,18 +974,12 @@ Earn {product.price} Reward Points on this purchase ✨
 {/* Cart + Wishlist */}
 
 <div
-
 className="
-mt-4
-
+mt-auto
+pt-4
 flex
-
 gap-2
-
-sm:mt-5
-
 "
-
 >
 
 
