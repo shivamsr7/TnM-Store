@@ -46,7 +46,7 @@ const [imageChanging,setImageChanging] = useState(false);
 
 const [showRewardInfo,setShowRewardInfo] = useState(false);
 
-
+const [touchStart, setTouchStart] = useState<number | null>(null);
 
 
 
@@ -221,7 +221,68 @@ activeImage+1
 
 };
 
+const handleTouchStart = (
+e: React.TouchEvent
+) => {
 
+setTouchStart(
+e.touches[0].clientX
+);
+
+};
+
+
+
+const handleTouchEnd = (
+e: React.TouchEvent
+) => {
+
+
+if(touchStart === null)
+return;
+
+
+const touchEnd =
+e.changedTouches[0].clientX;
+
+
+const distance =
+touchStart - touchEnd;
+
+
+
+if(Math.abs(distance) < 50){
+
+setTouchStart(null);
+
+return;
+
+}
+
+
+
+if(distance > 0){
+
+// swipe left
+
+nextImage();
+
+}
+
+else{
+
+// swipe right
+
+previousImage();
+
+}
+
+
+
+setTouchStart(null);
+
+
+};
 
 
 
@@ -277,6 +338,11 @@ sm:hover:border-[#D4AF37]/70
 
 <div
 
+onTouchStart={handleTouchStart}
+
+onTouchEnd={handleTouchEnd}
+
+
 onMouseEnter={()=>{
 
 if(activeImage===0){
@@ -295,21 +361,15 @@ setHoverPreview(false);
 
 className="
 relative
-
 aspect-square
-
 overflow-hidden
-
 bg-neutral-900
-
 rounded-2xl
 
 sm:aspect-[4/5]
-
 sm:rounded-3xl
 
 "
-
 >
 
 
@@ -485,6 +545,8 @@ images.length > 1 &&
 onClick={previousImage}
 
 className="
+hidden
+sm:flex
 absolute
 
 left-2
@@ -539,6 +601,8 @@ sm:w-8
 onClick={nextImage}
 
 className="
+hidden
+sm:flex
 absolute
 
 right-2
@@ -611,7 +675,7 @@ sm:p-5
 className="
 line-clamp-2
 
-min-h-[40px]
+h-[40px]
 
 text-sm
 
@@ -625,10 +689,9 @@ transition
 
 hover:text-[#D4AF37]
 
-sm:min-h-0
+sm:h-auto
 
 sm:text-lg
-
 "
 
 >
@@ -655,22 +718,25 @@ product.rating > 0 &&
 
 className="
 mt-2
+h-[20px]
 
 flex
-
 items-center
-
-gap-2
 
 text-xs
 
 sm:mt-3
-
+sm:h-auto
 sm:text-sm
-
 "
 
 >
+
+{
+
+product.rating > 0 &&
+
+<>
 
 <span className="text-[#D4AF37]">
 
@@ -683,7 +749,7 @@ sm:text-sm
 
 product.review_count > 0 &&
 
-<span className="text-neutral-500">
+<span className="ml-2 text-neutral-500">
 
 ({product.review_count})
 
@@ -691,6 +757,9 @@ product.review_count > 0 &&
 
 }
 
+</>
+
+}
 
 </div>
 
