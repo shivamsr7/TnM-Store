@@ -650,16 +650,12 @@ top-1/2
 
 -translate-y-1/2
 
-hidden
-
-sm:flex
+flex
 
 h-8
-
 w-8
 
 items-center
-
 justify-center
 
 rounded-full
@@ -668,12 +664,17 @@ bg-black/50
 
 text-white
 
+transition
+
 hover:bg-[#D4AF37]
 
 hover:text-black
 
-"
+sm:h-9
 
+sm:w-9
+
+"
 >
 
 <ChevronLeft size={16}/>
@@ -697,9 +698,7 @@ top-1/2
 
 -translate-y-1/2
 
-hidden
-
-sm:flex
+flex
 
 h-8
 
