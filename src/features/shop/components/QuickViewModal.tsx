@@ -425,6 +425,18 @@ onTouchStart={handleSheetTouchStart}
 
 onTouchMove={(e)=>{
 
+const target = e.target as HTMLElement;
+
+
+if(
+target.closest("a") ||
+target.closest("button")
+){
+
+return;
+
+}
+
 
 handleSheetTouchMove(e);
 
@@ -1270,10 +1282,15 @@ Add To Cart
 
 
 
-
 <a
 
 href={`/product/${product.slug}`}
+
+onTouchStart={(e)=>{
+
+e.stopPropagation();
+
+}}
 
 onClick={(e)=>{
 
@@ -1284,7 +1301,7 @@ e.stopPropagation();
 className="
 relative
 
-z-50
+z-[100]
 
 mt-4
 
