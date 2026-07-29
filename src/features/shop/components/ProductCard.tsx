@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   Heart,
+  Eye,
   ChevronLeft,
   ChevronRight,
   Coins,
@@ -8,7 +9,7 @@ import {
 
 import type { Product } from "@/features/products/types/product.types";
 
-
+import QuickViewModal from "./QuickViewModal";
 interface ProductCardProps {
   product: Product & {
     product_images?: {
@@ -48,7 +49,7 @@ const [showRewardInfo,setShowRewardInfo] = useState(false);
 
 const [touchStart, setTouchStart] = useState<number | null>(null);
 
-
+const [showQuickView, setShowQuickView] = useState(false);
 
 const displayImage =
 
@@ -492,7 +493,65 @@ text-black
 }
 
 
+{/* Quick View + Wishlist */}
 
+<div
+
+className="
+absolute
+right-3
+top-3
+
+z-30
+
+flex
+gap-2
+
+"
+
+>
+
+
+
+
+
+<button
+
+onClick={()=>setShowQuickView(true)}
+
+className="
+flex
+h-8
+w-8
+
+items-center
+justify-center
+
+rounded-full
+
+bg-black/50
+
+text-white
+
+backdrop-blur-sm
+
+transition
+
+hover:bg-[#D4AF37]
+
+hover:text-black
+
+"
+
+>
+
+<Eye size={16}/>
+
+</button>
+
+
+
+</div>
 
 
 
@@ -1173,7 +1232,15 @@ sm:w-12
 </div>
 
 
+<QuickViewModal
 
+product={product}
+
+open={showQuickView}
+
+onClose={()=>setShowQuickView(false)}
+
+/>
 
 
 </div>
