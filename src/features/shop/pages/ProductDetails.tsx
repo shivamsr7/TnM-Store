@@ -7,7 +7,7 @@ import {
 useProductDetails
 } from "../hooks/useProductDetails";
 import ProductInfo from "../components/ProductInfo";
-
+import ProductAccordion from "../components/ProductAccordion"
 import ProductActions from "../components/ProductActions";
 export default function ProductDetails(){
 
@@ -186,6 +186,12 @@ product={product}
 
 
 <ProductActions
+
+product={product}
+
+/>
+
+<ProductAccordion
 
 product={product}
 

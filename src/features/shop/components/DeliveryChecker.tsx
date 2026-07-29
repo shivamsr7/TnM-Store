@@ -1,37 +1,347 @@
 import {
   MapPin,
-  Truck,
-  PackageCheck
+  Loader2
 } from "lucide-react";
 
 import {
-  useState
+  useState,
+  useEffect
 } from "react";
 
+import {
+  useDeliveryCheck
+} from "@/features/shipping/hooks/useDeliveryCheck";
 
 
-export default function DeliveryChecker(){
+
+interface DeliveryCheckerProps {
+
+  product:any;
+
+}
+
+
+export default function DeliveryChecker({
+
+product
+
+}:DeliveryCheckerProps){
 
 
 const [pincode,setPincode] = useState("");
 
-const [checked,setChecked] = useState(false);
+const [savedDelivery,setSavedDelivery] = useState<any>(null);
+
+const [showInput,setShowInput] = useState(false);
+
+const [deliveryError,setDeliveryError] = useState("");
+
+
+
+const {
+  mutate,
+  isPending
+} = useDeliveryCheck();
 
 
 
 
 
-const handleCheck=()=>{
+
+useEffect(()=>{
 
 
-if(!pincode || pincode.length < 6)
-return;
+const saved =
+localStorage.getItem(
+"tnm_delivery_info"
+);
 
 
-setChecked(true);
+
+if(saved){
+
+const parsed =
+JSON.parse(saved);
+
+
+setSavedDelivery(parsed);
+
+setPincode(
+parsed.pincode
+);
+
+}
+
+
+},[]);
+
+
+
+
+
+
+
+
+
+const getDeliveryDate = (
+
+days:number = 3
+
+)=>{
+
+
+const startDate = new Date();
+
+
+startDate.setDate(
+startDate.getDate() + days + 2
+);
+
+
+
+const endDate = new Date();
+
+
+endDate.setDate(
+endDate.getDate() + days + 3
+);
+
+
+
+
+return {
+
+
+start:
+
+startDate.toLocaleDateString(
+"en-IN",
+{
+day:"numeric",
+month:"long",
+year:"numeric"
+}
+),
+
+
+end:
+
+endDate.toLocaleDateString(
+"en-IN",
+{
+day:"numeric",
+month:"long",
+year:"numeric"
+}
+)
 
 
 };
+
+
+};
+
+
+
+
+
+
+
+
+
+const handleCheck = ()=>{
+
+
+if(pincode.length !== 6)
+return;
+
+
+setDeliveryError("");
+
+
+
+mutate(
+
+{
+
+pincode,
+
+weight:
+
+product?.weight || 0.500
+
+},
+
+{
+
+onSuccess:(data)=>{
+
+
+
+const courier =
+
+data
+
+?.data
+
+?.available_courier_companies
+
+?.[0];
+
+
+
+
+
+// No courier available
+
+if(!courier){
+
+
+setDeliveryError(
+"Sorry, delivery is not available for this pincode."
+);
+
+
+setSavedDelivery(null);
+
+
+localStorage.removeItem(
+"tnm_delivery_info"
+);
+
+
+return;
+
+}
+
+
+
+
+
+
+
+const deliveryDate =
+
+getDeliveryDate(
+
+Number(
+
+courier?.estimated_delivery_days ||
+
+courier?.etd ||
+
+3
+
+)
+
+);
+
+
+
+
+
+
+
+const deliveryInfo = {
+
+
+pincode,
+
+
+deliveryDate,
+
+
+shippingCharge:
+
+courier?.rate || 0,
+
+
+courier:
+
+courier?.courier_name || ""
+
+
+
+};
+
+
+
+
+
+
+
+localStorage.setItem(
+
+"tnm_delivery_info",
+
+JSON.stringify(
+deliveryInfo
+)
+
+);
+
+
+
+
+
+
+setSavedDelivery(
+deliveryInfo
+);
+
+
+setShowInput(false);
+
+
+
+},
+
+onError:()=>{
+
+
+setDeliveryError(
+"Sorry, delivery is not available for this pincode."
+);
+
+
+}
+
+
+
+}
+
+);
+
+
+};
+
+
+
+
+
+
+
+
+
+const changePincode = ()=>{
+
+
+setSavedDelivery(null);
+
+setDeliveryError("");
+
+localStorage.removeItem(
+"tnm_delivery_info"
+);
+
+
+setShowInput(true);
+
+
+};
+
+
+
 
 
 
@@ -59,7 +369,7 @@ pt-8
 
 
 
-{/* Header */}
+
 
 <div
 
@@ -90,11 +400,38 @@ text-white
 
 Deliver To
 
+
+{
+
+savedDelivery &&
+
+<span
+
+className="
+ml-2
+
+text-[#D4AF37]
+
+"
+
+>
+
+{savedDelivery.pincode}
+
+</span>
+
+}
+
+
 </h3>
 
 
 
+
+
 <button
+
+onClick={changePincode}
 
 className="
 text-sm
@@ -122,7 +459,73 @@ Change
 
 
 
-{/* Pincode Box */}
+{/* Saved Delivery */}
+
+{
+
+savedDelivery && !showInput &&
+
+<div
+
+className="
+mt-4
+
+rounded-xl
+
+border
+
+border-neutral-700
+
+px-5
+
+py-4
+
+text-sm
+
+text-neutral-300
+
+"
+
+>
+
+Delivery by
+
+<span
+
+className="
+font-medium
+
+text-white
+
+"
+
+>
+
+{" "}
+
+{savedDelivery.deliveryDate.start}
+
+</span>
+
+
+</div>
+
+}
+
+
+
+
+
+
+
+
+
+{/* Input */}
+
+{
+
+(!savedDelivery || showInput) &&
+
 
 <div
 
@@ -159,8 +562,6 @@ gap-3
 
 px-4
 
-py-4
-
 "
 
 >
@@ -168,14 +569,15 @@ py-4
 
 <MapPin
 
-size={19}
+size={18}
 
 className="
-text-[#D4AF37]
+text-[#D4AFG37]
 
 "
 
 />
+
 
 
 
@@ -184,7 +586,16 @@ text-[#D4AF37]
 value={pincode}
 
 onChange={(e)=>
-setPincode(e.target.value.replace(/\D/g,""))
+
+setPincode(
+
+e.target.value.replace(
+/\D/g,
+""
+)
+
+)
+
 }
 
 placeholder="Enter pincode"
@@ -195,6 +606,8 @@ className="
 w-full
 
 bg-transparent
+
+py-4
 
 text-sm
 
@@ -217,12 +630,19 @@ placeholder:text-neutral-500
 
 
 
-
 <button
 
 onClick={handleCheck}
 
+disabled={isPending}
+
 className="
+flex
+
+items-center
+
+gap-2
+
 bg-[#D4AF37]
 
 px-6
@@ -233,191 +653,45 @@ font-medium
 
 text-black
 
-transition
-
-hover:bg-[#e5c45a]
+disabled:opacity-60
 
 "
 
 >
 
-Check
+
+{
+
+isPending
+
+?
+
+<Loader2
+
+size={16}
+
+className="
+animate-spin
+
+"
+
+/>
+
+:
+
+"Check"
+
+}
+
 
 </button>
 
 
-
 </div>
 
+}
 
 
-
-
-
-
-
-
-{/* Delivery Info Card */}
-
-<div
-
-className="
-mt-6
-
-space-y-4
-
-rounded-xl
-
-border
-
-border-neutral-800
-
-bg-neutral-900/60
-
-p-5
-
-"
-
->
-
-
-
-
-
-<div
-
-className="
-flex
-
-items-center
-
-gap-3
-
-text-sm
-
-text-neutral-300
-
-"
-
->
-
-<div
-
-className="
-flex
-
-h-8
-
-w-8
-
-items-center
-
-justify-center
-
-rounded-full
-
-bg-[#D4AF37]/10
-
-"
-
->
-
-<Truck
-
-size={16}
-
-className="
-text-[#D4AF37]
-
-"
-
-/>
-
-
-</div>
-
-
-<span>
-
-Free delivery above ₹2000
-
-</span>
-
-
-</div>
-
-
-
-
-
-
-
-
-
-<div
-
-className="
-flex
-
-items-center
-
-gap-3
-
-text-sm
-
-text-neutral-300
-
-"
-
->
-
-
-<div
-
-className="
-flex
-
-h-8
-
-w-8
-
-items-center
-
-justify-center
-
-rounded-full
-
-bg-[#D4AF37]/10
-
-"
-
->
-
-
-<PackageCheck
-
-size={16}
-
-className="
-text-[#D4AF37]
-
-"
-
-/>
-
-
-</div>
-
-
-
-<span>
-
-Estimated delivery: 3-5 business days
-
-</span>
-
-
-</div>
 
 
 
@@ -427,35 +701,26 @@ Estimated delivery: 3-5 business days
 
 {
 
-checked &&
+deliveryError &&
 
 <div
 
 className="
-border-t
-
-border-neutral-800
-
-pt-4
+mt-4
 
 text-sm
 
-text-green-400
+text-red-400
 
 "
 
 >
 
-✓ Delivery available for {pincode}
+{deliveryError}
 
 </div>
 
 }
-
-
-
-</div>
-
 
 
 

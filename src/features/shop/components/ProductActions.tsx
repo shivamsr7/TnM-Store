@@ -456,7 +456,11 @@ BUY IT NOW
 
 
 {/* Delivery Checker */}
-<DeliveryChecker />
+<DeliveryChecker
+
+product={product}
+
+/>
 
 
 
