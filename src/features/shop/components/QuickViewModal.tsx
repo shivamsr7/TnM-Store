@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { X, Star } from "lucide-react";
+import { createPortal } from "react-dom";
+import {
+  X,
+  Star,
+  ChevronLeft,
+  ChevronRight,
+  Coins,
+} from "lucide-react";
 
 import type { Product } from "@/features/products/types/product.types";
 
@@ -10,17 +17,17 @@ interface QuickViewModalProps {
 
     product_images?: {
 
-      image_url: string;
+      image_url:string;
 
-      sort_order: number;
+      sort_order:number;
 
     }[];
 
   };
 
-  open: boolean;
+  open:boolean;
 
-  onClose: () => void;
+  onClose:()=>void;
 
 }
 
@@ -34,19 +41,27 @@ open,
 
 onClose,
 
-}: QuickViewModalProps) {
-
-
-const [show, setShow] = useState(false);
+}:QuickViewModalProps){
 
 
 
-useEffect(() => {
+const [show,setShow] = useState(false);
+
+const [activeImage,setActiveImage] = useState(0);
+
+const [imageChanging,setImageChanging] = useState(false);
+
+
+
+
+
+useEffect(()=>{
 
 
 if(open){
 
-document.body.style.overflow = "hidden";
+document.body.style.overflow="hidden";
+
 
 requestAnimationFrame(()=>{
 
@@ -56,24 +71,26 @@ setShow(true);
 
 
 }
+
 else{
 
 setShow(false);
 
-document.body.style.overflow = "";
+document.body.style.overflow="";
 
 }
 
 
 
-return () => {
+return ()=>{
 
-document.body.style.overflow = "";
+document.body.style.overflow="";
 
 };
 
 
 },[open]);
+
 
 
 
@@ -86,14 +103,128 @@ return null;
 
 
 
-const image =
+const images =
 
 product.product_images
+
 ?.sort(
+
 (a,b)=>a.sort_order-b.sort_order
+
 )
-[0]
-?.image_url;
+
+.map(
+
+(item)=>item.image_url
+
+)
+
+|| [];
+
+
+
+
+
+
+const discount =
+
+product.compare_price
+
+?
+
+Math.round(
+
+((product.compare_price-product.price)
+
+/
+
+product.compare_price)
+
+*100
+
+)
+
+:
+
+0;
+
+
+
+
+
+const changeImage=(index:number)=>{
+
+
+setImageChanging(true);
+
+
+setTimeout(()=>{
+
+setActiveImage(index);
+
+setImageChanging(false);
+
+},150);
+
+
+};
+
+
+
+
+
+
+const nextImage=()=>{
+
+
+if(images.length <= 1)
+return;
+
+
+changeImage(
+
+activeImage === images.length-1
+
+?
+
+0
+
+:
+
+activeImage+1
+
+);
+
+
+};
+
+
+
+
+
+const previousImage=()=>{
+
+
+if(images.length <= 1)
+return;
+
+
+changeImage(
+
+activeImage === 0
+
+?
+
+images.length-1
+
+:
+
+activeImage-1
+
+);
+
+
+};
 
 
 
@@ -101,25 +232,24 @@ product.product_images
 
 
 
-return (
+const content = (
+
 
 <div
 
 className="
 fixed
 inset-0
-z-50
+z-[999]
 
 flex
 items-end
 sm:items-center
 justify-center
 
-bg-black/60
+bg-black/70
 
 backdrop-blur-sm
-
-overflow-hidden
 
 "
 
@@ -129,15 +259,20 @@ onClick={onClose}
 
 
 
-
 <div
 
 onClick={(e)=>e.stopPropagation()}
 
 className={`
+
 relative
 
 w-full
+
+max-h-[90vh]
+
+overflow-y-auto
+
 
 rounded-t-3xl
 
@@ -145,8 +280,6 @@ bg-[#0b0b0b]
 
 p-5
 
-
-/* Mobile animation */
 
 transition-transform
 
@@ -158,18 +291,20 @@ ease-out
 ${
 show
 ?
+
 "translate-y-0"
+
 :
+
 "translate-y-full"
+
 }
 
 
 
-/* Desktop */
+sm:max-w-5xl
 
-sm:max-w-4xl
-
-sm:h-[520px]
+sm:h-[600px]
 
 sm:rounded-3xl
 
@@ -181,10 +316,8 @@ sm:gap-8
 
 sm:items-center
 
-
 sm:translate-y-0
 
-sm:transition-none
 
 `}
 
@@ -194,7 +327,6 @@ sm:transition-none
 
 
 
-{/* Close Button */}
 
 <button
 
@@ -207,13 +339,13 @@ right-4
 
 top-4
 
-z-30
+z-20
 
 flex
 
-h-8
+h-9
 
-w-8
+w-9
 
 items-center
 
@@ -225,11 +357,11 @@ bg-white/10
 
 text-white
 
-transition
-
 hover:bg-[#D4AF37]
 
 hover:text-black
+
+transition
 
 "
 
@@ -247,21 +379,22 @@ hover:text-black
 
 
 
-{/* Image */}
+{/* IMAGE GALLERY */}
+
 
 <div
 
 className="
-aspect-square
+relative
 
-overflow-hidden
+aspect-square
 
 rounded-2xl
 
+overflow-hidden
+
 bg-neutral-900
 
-
-sm:h-full
 
 sm:w-1/2
 
@@ -269,28 +402,226 @@ sm:w-1/2
 
 >
 
+
 {
 
-image &&
+images.length > 0 &&
 
 <img
 
-src={image}
+src={images[activeImage]}
 
 alt={product.name}
 
-className="
+className={`
+
 h-full
 
 w-full
 
 object-cover
 
-"
+transition-all
+
+duration-300
+
+
+${
+
+imageChanging
+
+?
+
+"opacity-0 scale-95"
+
+:
+
+"opacity-100 scale-100"
+
+}
+
+`}
 
 />
 
 }
+
+
+
+
+
+{
+
+images.length > 1 &&
+
+<>
+
+<button
+
+onClick={previousImage}
+
+className="
+absolute
+
+left-3
+
+top-1/2
+
+-translate-y-1/2
+
+flex
+
+h-8
+
+w-8
+
+items-center
+
+justify-center
+
+rounded-full
+
+bg-black/50
+
+text-white
+
+hover:bg-[#D4AF37]
+
+hover:text-black
+
+"
+
+>
+
+<ChevronLeft size={16}/>
+
+</button>
+
+
+
+
+
+<button
+
+onClick={nextImage}
+
+className="
+absolute
+
+right-3
+
+top-1/2
+
+-translate-y-1/2
+
+flex
+
+h-8
+
+w-8
+
+items-center
+
+justify-center
+
+rounded-full
+
+bg-black/50
+
+text-white
+
+hover:bg-[#D4AF37]
+
+hover:text-black
+
+"
+
+>
+
+<ChevronRight size={16}/>
+
+</button>
+
+
+</>
+
+}
+
+
+
+{/* Image dots */}
+
+{
+
+images.length > 1 &&
+
+<div
+
+className="
+absolute
+
+bottom-4
+
+left-0
+
+right-0
+
+flex
+
+justify-center
+
+gap-2
+
+"
+
+>
+
+{
+
+images.map((_,index)=>(
+
+<button
+
+key={index}
+
+onClick={()=>changeImage(index)}
+
+className={`
+
+h-2
+
+w-2
+
+rounded-full
+
+
+${
+
+activeImage===index
+
+?
+
+"bg-[#D4AF37]"
+
+:
+
+"bg-white/50"
+
+}
+
+`}
+
+/>
+
+))
+
+}
+
+
+</div>
+
+}
+
 
 </div>
 
@@ -302,38 +633,32 @@ object-cover
 
 
 
-{/* Details */}
+{/* DETAILS */}
+
 
 <div
 
 className="
-mt-5
+mt-6
 
 sm:mt-0
 
 sm:flex-1
-
-sm:flex
-
-sm:flex-col
-
-sm:justify-center
 
 "
 
 >
 
 
+
 <h2
 
 className="
-text-xl
+text-2xl
 
 font-semibold
 
 text-[#F7E3A3]
-
-sm:text-2xl
 
 "
 
@@ -362,7 +687,7 @@ flex
 
 items-center
 
-gap-1
+gap-2
 
 text-sm
 
@@ -382,6 +707,19 @@ fill="currentColor"
 
 {product.rating}
 
+
+{
+
+product.review_count > 0 &&
+
+<span className="text-neutral-400">
+
+({product.review_count})
+
+</span>
+
+}
+
 </div>
 
 }
@@ -395,8 +733,21 @@ fill="currentColor"
 <div
 
 className="
-mt-3
+mt-4
 
+flex
+
+items-center
+
+gap-3
+
+"
+
+>
+
+<span
+
+className="
 text-2xl
 
 font-bold
@@ -409,9 +760,195 @@ text-white
 
 ₹{product.price}
 
+</span>
+
+
+
+{
+
+product.compare_price &&
+
+<span
+
+className="
+text-sm
+
+text-neutral-500
+
+line-through
+
+"
+
+>
+
+₹{product.compare_price}
+
+</span>
+
+}
+
+
+
+{
+
+discount > 0 &&
+
+<span
+
+className="
+text-xs
+
+font-medium
+
+text-[#D4AF37]
+
+"
+
+>
+
+{discount}% OFF
+
+</span>
+
+}
+
+
+
 </div>
 
 
+
+
+
+
+
+
+{/* Rewards */}
+
+<div
+
+className="
+mt-4
+
+flex
+
+items-center
+
+gap-2
+
+text-sm
+
+text-yellow-400
+
+"
+
+>
+
+<Coins size={16}/>
+
+<span>
+
++{product.price} Reward Points
+
+</span>
+
+
+</div>
+
+
+
+
+
+
+
+
+{
+
+product.short_description &&
+
+<p
+
+className="
+mt-5
+
+text-sm
+
+leading-6
+
+text-neutral-300
+
+"
+
+>
+
+{product.short_description}
+
+</p>
+
+}
+
+
+
+
+
+
+
+
+
+{
+
+product.care_instructions &&
+
+<div
+
+className="
+mt-5
+
+"
+
+>
+
+<h4
+
+className="
+text-sm
+
+font-medium
+
+text-[#D4AF37]
+
+"
+
+>
+
+Care Instructions
+
+</h4>
+
+
+<p
+
+className="
+mt-2
+
+text-sm
+
+text-neutral-400
+
+leading-6
+
+"
+
+>
+
+{product.care_instructions}
+
+</p>
+
+
+</div>
+
+}
 
 
 
@@ -438,9 +975,9 @@ font-medium
 
 text-black
 
-transition
-
 hover:bg-[#D4AF37]
+
+transition
 
 "
 
@@ -483,19 +1020,34 @@ View Full Details →
 
 
 
-</div>
-
-
-
-
-
-
 
 </div>
 
 
+
+
+
+
+
 </div>
+
+
+</div>
+
 
 );
+
+
+
+
+
+return createPortal(
+
+content,
+
+document.body
+
+);
+
 
 }
