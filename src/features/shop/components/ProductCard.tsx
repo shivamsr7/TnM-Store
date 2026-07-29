@@ -330,11 +330,13 @@ h-full
 
 w-full
 
-object-cover
+object-contain
 
 transition-all
 
 duration-300
+
+p-2
 
 
 ${
