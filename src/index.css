@@ -167,3 +167,90 @@ font-family:'Cormorant Garamond', serif;
 body{
 font-family:'Inter', sans-serif;
 }
+@keyframes cartHit {
+
+0% {
+  transform: translateX(0);
+}
+
+15% {
+  transform: translateX(6px);
+}
+
+30% {
+  transform: translateX(0);
+}
+
+45% {
+  transform: translateX(6px);
+}
+
+60% {
+  transform: translateX(0);
+}
+
+75% {
+  transform: translateX(6px);
+}
+
+100% {
+  transform: translateX(0);
+}
+
+}
+
+
+.animate-cart-hit {
+
+animation: cartHit 0.55s ease-in-out;
+
+}
+
+
+
+@keyframes heartBounce {
+
+
+0% {
+transform: scale(1);
+}
+
+
+15% {
+transform: scale(1.25);
+}
+
+
+30% {
+transform: scale(0.95);
+}
+
+
+45% {
+transform: scale(1.2);
+}
+
+
+60% {
+transform: scale(0.95);
+}
+
+
+75% {
+transform: scale(1.15);
+}
+
+
+100% {
+transform: scale(1);
+}
+
+
+}
+
+
+.animate-heart-bounce {
+
+animation: heartBounce 0.7s ease-in-out;
+
+}

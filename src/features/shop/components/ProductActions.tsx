@@ -5,6 +5,8 @@ import {
   MapPin
 } from "lucide-react";
 
+import { useEffect, useState } from "react";
+
 
 interface ProductActionsProps {
 
@@ -20,7 +22,46 @@ product
 
 }:ProductActionsProps){
 
+const [cartAttention,setCartAttention] = useState(false);
+const [wishlistAttention,setWishlistAttention] = useState(false);
 
+
+
+useEffect(()=>{
+
+
+const interval = setInterval(()=>{
+
+
+setCartAttention(true);
+
+
+setTimeout(()=>{
+
+setWishlistAttention(true);
+
+},300);
+
+
+
+setTimeout(()=>{
+
+setCartAttention(false);
+
+setWishlistAttention(false);
+
+},900);
+
+
+
+},4000);
+
+
+
+return ()=>clearInterval(interval);
+
+
+},[]);
 
 return (
 
@@ -245,7 +286,8 @@ gap-3
 
 <button
 
-className="
+className={`
+
 flex-1
 
 flex
@@ -270,11 +312,28 @@ font-medium
 text-black
 
 
-transition
+transition-all
+
+duration-150
 
 hover:bg-[#e5c45a]
 
-"
+
+${
+
+cartAttention
+
+?
+
+"animate-cart-hit"
+
+:
+
+""
+
+}
+
+`}
 
 >
 
@@ -292,7 +351,8 @@ ADD TO CART
 
 <button
 
-className="
+className={`
+
 flex
 
 h-14
@@ -311,13 +371,31 @@ border-neutral-600
 text-white
 
 
-transition
+transition-all
+
+duration-150
+
 
 hover:border-[#D4AF37]
 
 hover:text-[#D4AF37]
 
-"
+
+${
+
+wishlistAttention
+
+?
+
+"scale-110 border-[#D4AF37] text-[#D4AF37]"
+
+:
+
+"scale-100"
+
+}
+
+`}
 
 >
 
@@ -328,7 +406,6 @@ hover:text-[#D4AF37]
 
 
 </div>
-
 
 
 
