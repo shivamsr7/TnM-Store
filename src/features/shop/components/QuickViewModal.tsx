@@ -10,17 +10,17 @@ interface QuickViewModalProps {
 
     product_images?: {
 
-      image_url:string;
+      image_url: string;
 
-      sort_order:number;
+      sort_order: number;
 
     }[];
 
   };
 
-  open:boolean;
+  open: boolean;
 
-  onClose:()=>void;
+  onClose: () => void;
 
 }
 
@@ -34,44 +34,39 @@ open,
 
 onClose,
 
-}:QuickViewModalProps){
+}: QuickViewModalProps) {
 
 
-const [show,setShow] = useState(false);
+const [show, setShow] = useState(false);
 
 
 
-useEffect(()=>{
+useEffect(() => {
 
 
 if(open){
 
 document.body.style.overflow = "hidden";
 
-
-setTimeout(()=>{
+requestAnimationFrame(()=>{
 
 setShow(true);
 
-},20);
+});
 
 
 }
-
 else{
-
 
 setShow(false);
 
-
 document.body.style.overflow = "";
-
 
 }
 
 
 
-return ()=>{
+return () => {
 
 document.body.style.overflow = "";
 
@@ -99,6 +94,7 @@ product.product_images
 )
 [0]
 ?.image_url;
+
 
 
 
@@ -133,6 +129,7 @@ onClick={onClose}
 
 
 
+
 <div
 
 onClick={(e)=>e.stopPropagation()}
@@ -148,6 +145,8 @@ bg-[#0b0b0b]
 
 p-5
 
+
+/* Mobile animation */
 
 transition-transform
 
@@ -165,17 +164,27 @@ show
 }
 
 
-sm:translate-y-0
 
-sm:max-w-3xl
+/* Desktop */
+
+sm:max-w-4xl
+
+sm:h-[520px]
 
 sm:rounded-3xl
+
+sm:p-8
 
 sm:flex
 
 sm:gap-8
 
-sm:p-8
+sm:items-center
+
+
+sm:translate-y-0
+
+sm:transition-none
 
 `}
 
@@ -198,7 +207,7 @@ right-4
 
 top-4
 
-z-20
+z-30
 
 flex
 
@@ -216,11 +225,11 @@ bg-white/10
 
 text-white
 
+transition
+
 hover:bg-[#D4AF37]
 
 hover:text-black
-
-transition
 
 "
 
@@ -251,6 +260,8 @@ rounded-2xl
 
 bg-neutral-900
 
+
+sm:h-full
 
 sm:w-1/2
 
@@ -302,6 +313,12 @@ sm:mt-0
 
 sm:flex-1
 
+sm:flex
+
+sm:flex-col
+
+sm:justify-center
+
 "
 
 >
@@ -315,6 +332,8 @@ text-xl
 font-semibold
 
 text-[#F7E3A3]
+
+sm:text-2xl
 
 "
 
@@ -459,6 +478,7 @@ text-[#D4AF37]
 View Full Details →
 
 </a>
+
 
 
 

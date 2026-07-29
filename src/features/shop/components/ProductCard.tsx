@@ -305,7 +305,7 @@ product.name
 
 
 return (
-
+<>
 <div
 
 className="
@@ -322,7 +322,7 @@ bg-[#0b0b0b]
 transition-all
 duration-500
 
-sm:hover:-translate-y-1
+sm:hover:-translate-y-[2px]
 sm:hover:border-[#D4AF37]/70
 "
 
@@ -507,6 +507,15 @@ z-30
 flex
 gap-2
 
+opacity-100
+
+sm:opacity-0
+
+sm:group-hover:opacity-100
+
+transition-opacity
+duration-200
+
 "
 
 >
@@ -517,7 +526,16 @@ gap-2
 
 <button
 
-onClick={()=>setShowQuickView(true)}
+onClick={(e)=>{
+
+e.preventDefault();
+
+e.stopPropagation();
+
+setShowQuickView(true);
+
+}}
+
 
 className="
 flex
@@ -1232,6 +1250,11 @@ sm:w-12
 </div>
 
 
+
+
+
+</div>
+
 <QuickViewModal
 
 product={product}
@@ -1241,9 +1264,7 @@ open={showQuickView}
 onClose={()=>setShowQuickView(false)}
 
 />
-
-
-</div>
+</>
 
 );
 
