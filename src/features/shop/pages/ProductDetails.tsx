@@ -6,7 +6,7 @@ import ProductGallery from "../components/ProductGallery";
 import {
 useProductDetails
 } from "../hooks/useProductDetails";
-
+import ProductInfo from "../components/ProductInfo";
 
 
 export default function ProductDetails(){
@@ -178,22 +178,11 @@ justify-center
 >
 
 
-<h1
+<ProductInfo
 
-className="
-text-3xl
+product={product}
 
-font-semibold
-
-text-[#F7E3A3]
-
-"
-
->
-
-{product.name}
-
-</h1>
+/>
 
 
 </div>
