@@ -53,6 +53,16 @@ const [imageChanging,setImageChanging] = useState(false);
 
 
 
+// Mobile swipe close states
+
+const [dragStart,setDragStart] = useState<number | null>(null);
+
+const [dragY,setDragY] = useState(0);
+
+
+
+
+
 
 
 useEffect(()=>{
@@ -61,6 +71,9 @@ useEffect(()=>{
 if(open){
 
 document.body.style.overflow="hidden";
+
+
+setActiveImage(0);
 
 
 requestAnimationFrame(()=>{
@@ -75,6 +88,8 @@ setShow(true);
 else{
 
 setShow(false);
+
+setDragY(0);
 
 document.body.style.overflow="";
 
@@ -96,8 +111,115 @@ document.body.style.overflow="";
 
 
 
+
+
+
+const handleSheetTouchStart = (
+
+e: React.TouchEvent
+
+)=>{
+
+
+// only mobile
+
+if(window.innerWidth >= 640)
+return;
+
+
+
+setDragStart(
+
+e.touches[0].clientY
+
+);
+
+
+};
+
+
+
+
+
+
+
+const handleSheetTouchMove = (
+
+e: React.TouchEvent
+
+)=>{
+
+
+if(dragStart === null)
+return;
+
+
+
+const currentY =
+
+e.touches[0].clientY;
+
+
+
+const distance =
+
+currentY - dragStart;
+
+
+
+// only allow downward movement
+
+if(distance > 0){
+
+setDragY(distance);
+
+}
+
+
+};
+
+
+
+
+
+
+
+
+const handleSheetTouchEnd = ()=>{
+
+
+if(dragStart === null)
+return;
+
+
+
+if(dragY > 120){
+
+onClose();
+
+}
+
+
+
+setDragStart(null);
+
+setDragY(0);
+
+
+};
+
+
+
+
+
+
+
+
+
 if(!open)
 return null;
+
+
 
 
 
@@ -120,6 +242,7 @@ product.product_images
 )
 
 || [];
+
 
 
 
@@ -152,6 +275,8 @@ product.compare_price)
 
 
 
+
+
 const changeImage=(index:number)=>{
 
 
@@ -168,6 +293,7 @@ setImageChanging(false);
 
 
 };
+
 
 
 
@@ -197,6 +323,8 @@ activeImage+1
 
 
 };
+
+
 
 
 
@@ -259,9 +387,34 @@ onClick={onClose}
 
 
 
+
 <div
 
 onClick={(e)=>e.stopPropagation()}
+
+onTouchStart={handleSheetTouchStart}
+
+onTouchMove={handleSheetTouchMove}
+
+onTouchEnd={handleSheetTouchEnd}
+
+
+style={{
+
+transform:
+
+dragY > 0
+
+?
+
+`translateY(${dragY}px)`
+
+:
+
+undefined
+
+}}
+
 
 className={`
 
@@ -290,6 +443,7 @@ ease-out
 
 ${
 show
+
 ?
 
 "translate-y-0"
@@ -327,6 +481,33 @@ sm:translate-y-0
 
 
 
+{/* Mobile Drag Handle */}
+
+<div
+
+className="
+absolute
+
+top-3
+
+left-1/2
+
+-translate-x-1/2
+
+h-1
+
+w-12
+
+rounded-full
+
+bg-white/30
+
+sm:hidden
+
+"
+
+/>
+{/* Close Button */}
 
 <button
 
@@ -469,7 +650,9 @@ top-1/2
 
 -translate-y-1/2
 
-flex
+hidden
+
+sm:flex
 
 h-8
 
@@ -514,7 +697,9 @@ top-1/2
 
 -translate-y-1/2
 
-flex
+hidden
+
+sm:flex
 
 h-8
 
@@ -549,7 +734,11 @@ hover:text-black
 
 
 
-{/* Image dots */}
+
+
+
+
+{/* Image Dots */}
 
 {
 
@@ -593,6 +782,9 @@ h-2
 w-2
 
 rounded-full
+
+
+transition
 
 
 ${
@@ -645,9 +837,15 @@ sm:mt-0
 
 sm:flex-1
 
+sm:flex
+
+sm:flex-col
+
 "
 
 >
+
+
 
 
 
@@ -673,6 +871,10 @@ text-[#F7E3A3]
 
 
 
+
+
+
+{/* Rating */}
 
 {
 
@@ -708,6 +910,7 @@ fill="currentColor"
 {product.rating}
 
 
+
 {
 
 product.review_count > 0 &&
@@ -720,6 +923,8 @@ product.review_count > 0 &&
 
 }
 
+
+
 </div>
 
 }
@@ -729,6 +934,9 @@ product.review_count > 0 &&
 
 
 
+
+
+{/* Price */}
 
 <div
 
@@ -764,6 +972,7 @@ text-white
 
 
 
+
 {
 
 product.compare_price &&
@@ -786,6 +995,8 @@ line-through
 </span>
 
 }
+
+
 
 
 
@@ -813,8 +1024,8 @@ text-[#D4AF37]
 }
 
 
-
 </div>
+
 
 
 
@@ -846,6 +1057,7 @@ text-yellow-400
 
 <Coins size={16}/>
 
+
 <span>
 
 +{product.price} Reward Points
@@ -861,6 +1073,9 @@ text-yellow-400
 
 
 
+
+
+{/* Short Description */}
 
 {
 
@@ -895,6 +1110,8 @@ text-neutral-300
 
 
 
+{/* Care */}
+
 {
 
 product.care_instructions &&
@@ -926,6 +1143,7 @@ Care Instructions
 </h4>
 
 
+
 <p
 
 className="
@@ -933,9 +1151,9 @@ mt-2
 
 text-sm
 
-text-neutral-400
-
 leading-6
+
+text-neutral-400
 
 "
 
@@ -949,6 +1167,8 @@ leading-6
 </div>
 
 }
+
+
 
 
 
@@ -975,9 +1195,9 @@ font-medium
 
 text-black
 
-hover:bg-[#D4AF37]
-
 transition
+
+hover:bg-[#D4AF37]
 
 "
 
@@ -986,6 +1206,8 @@ transition
 Add To Cart
 
 </button>
+
+
 
 
 
