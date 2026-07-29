@@ -420,6 +420,30 @@ group-hover:scale-105
 
 }
 
+<div
+
+className="
+absolute
+inset-x-0
+bottom-0
+
+h-20
+
+pointer-events-none
+
+bg-gradient-to-t
+
+from-black/30
+
+via-black/10
+
+to-transparent
+
+"
+
+>
+
+</div>
 
 
 
