@@ -67,13 +67,21 @@ w-full
 <h1
 
 className="
+font-serif
+
 text-2xl
 
-font-semibold
+font-medium
 
-text-[#F7E3A3]
+leading-snug
+
+tracking-wide
+
+text-[#F5E6B8]
 
 sm:text-3xl
+
+lg:text-4xl
 
 "
 
@@ -82,8 +90,6 @@ sm:text-3xl
 {product.name}
 
 </h1>
-
-
 
 
 
@@ -100,7 +106,7 @@ product.rating > 0 &&
 <div
 
 className="
-mt-3
+mt-4
 
 flex
 
@@ -123,6 +129,14 @@ items-center
 
 gap-1
 
+rounded-full
+
+bg-[#D4AF37]/10
+
+px-3
+
+py-1
+
 text-[#D4AF37]
 
 "
@@ -131,13 +145,17 @@ text-[#D4AF37]
 
 <Star
 
-size={16}
+size={15}
 
 fill="currentColor"
 
 />
 
+<span>
+
 {product.rating}
+
+</span>
 
 </div>
 
@@ -174,14 +192,12 @@ text-neutral-400
 
 
 
-
-
 {/* Price */}
 
 <div
 
 className="
-mt-5
+mt-6
 
 "
 
@@ -205,9 +221,11 @@ gap-3
 <span
 
 className="
-text-3xl
+text-4xl
 
-font-bold
+font-semibold
+
+tracking-tight
 
 text-white
 
@@ -218,6 +236,7 @@ text-white
 ₹{product.price}
 
 </span>
+
 
 
 
@@ -249,6 +268,7 @@ line-through
 
 
 
+
 {
 
 discount > 0 &&
@@ -258,7 +278,7 @@ discount > 0 &&
 className="
 rounded-full
 
-bg-[#D4AF37]/20
+bg-[#D4AF37]/15
 
 px-3
 
@@ -307,7 +327,6 @@ Inclusive of all taxes
 
 
 </div>
-
 
 
 

@@ -8,7 +8,7 @@ useProductDetails
 } from "../hooks/useProductDetails";
 import ProductInfo from "../components/ProductInfo";
 
-
+import ProductActions from "../components/ProductActions";
 export default function ProductDetails(){
 
 
@@ -184,6 +184,12 @@ product={product}
 
 />
 
+
+<ProductActions
+
+product={product}
+
+/>
 
 </div>
 

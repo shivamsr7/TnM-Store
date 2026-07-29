@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
-
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -158,4 +158,12 @@ background-position:200% center;
 background-position:-200% center;
 }
 
+}
+
+.font-serif{
+font-family:'Cormorant Garamond', serif;
+}
+
+body{
+font-family:'Inter', sans-serif;
 }
