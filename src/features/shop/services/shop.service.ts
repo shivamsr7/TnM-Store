@@ -13,6 +13,29 @@ return products.filter(
 product.status==="active"
 );
 
+},
+
+async getProductBySlug(slug:string){
+
+const products = await productService.getAll();
+
+
+const product = products.find(
+
+(product:any)=>
+
+product.slug===slug
+
+&&
+
+product.status==="active"
+
+);
+
+
+return product;
+
 }
 
 };
+

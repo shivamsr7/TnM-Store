@@ -17,6 +17,7 @@ import ReturnsExchange from "@/pages/static/ReturnsExchange";
 import PrivacyPolicy from "@/pages/static/PrivacyPolicy";
 import TermsConditions from "@/pages/static/TermsConditions";
 import Shop from "@/features/shop/pages/Shop";
+import ProductDetails from "@/features/shop/pages/ProductDetails";
 export default function AppRouter(){
 
 return (
@@ -72,6 +73,13 @@ element={<TermsConditions />}
 <Route
 path="/shop"
 element={<Shop />}
+/>
+<Route
+
+path="/product/:slug"
+
+element={<ProductDetails />}
+
 />
 </Route>
 
