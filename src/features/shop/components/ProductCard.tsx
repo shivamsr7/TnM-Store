@@ -44,6 +44,10 @@ const [hoverPreview,setHoverPreview] = useState(false);
 
 const [imageChanging,setImageChanging] = useState(false);
 
+const [showRewardInfo,setShowRewardInfo] = useState(false);
+
+
+
 
 
 const displayImage =
@@ -291,11 +295,17 @@ setHoverPreview(false);
 
 className="
 relative
+
 aspect-square
+
 overflow-hidden
+
 bg-neutral-900
 
+rounded-2xl
+
 sm:aspect-[4/5]
+
 sm:rounded-3xl
 
 "
@@ -357,7 +367,55 @@ group-hover:scale-105
 
 
 
-{/* Badge */}
+{/* Discount Badge */}
+
+{
+
+discount > 0 &&
+
+<div
+
+className="
+absolute
+
+left-3
+top-3
+
+z-20
+
+rounded-full
+
+bg-[#D4AF37]
+
+px-3
+
+py-1
+
+text-xs
+
+font-semibold
+
+text-black
+
+"
+
+>
+
+{discount}% OFF
+
+</div>
+
+}
+
+
+
+
+
+
+
+
+
+{/* Product Badge - Desktop Only */}
 
 {
 
@@ -367,28 +425,34 @@ badge &&
 
 className="
 hidden
+
 sm:block
 
 absolute
+
 left-4
-top-4
+
+bottom-4
+
+z-20
 
 rounded-full
 
-bg-[#D4AF37]
+bg-black/80
+
+border
+
+border-[#D4AF37]/40
 
 px-3
+
 py-1
 
 text-xs
 
 font-medium
 
-uppercase
-
-tracking-wide
-
-text-black
+text-[#D4AF37]
 
 "
 
@@ -412,7 +476,7 @@ text-black
 
 {
 
-images.length>1 &&
+images.length > 1 &&
 
 <>
 
@@ -455,6 +519,7 @@ sm:left-3
 
 sm:h-8
 sm:w-8
+
 "
 
 >
@@ -508,6 +573,7 @@ sm:right-3
 
 sm:h-8
 sm:w-8
+
 "
 
 >
@@ -523,15 +589,6 @@ sm:w-8
 
 
 </div>
-
-
-
-
-
-
-
-
-
 {/* DETAILS */}
 
 <div
@@ -540,6 +597,7 @@ className="
 p-3
 
 sm:p-5
+
 "
 
 >
@@ -566,6 +624,7 @@ transition
 hover:text-[#D4AF37]
 
 sm:text-lg
+
 "
 
 >
@@ -587,12 +646,12 @@ sm:text-lg
 
 {
 
-product.rating>0 &&
+product.rating > 0 &&
 
 <div
 
 className="
-mt-3
+mt-2
 
 flex
 
@@ -600,7 +659,11 @@ items-center
 
 gap-2
 
-text-sm
+text-xs
+
+sm:mt-3
+
+sm:text-sm
 
 "
 
@@ -615,7 +678,7 @@ text-sm
 
 {
 
-product.review_count>0 &&
+product.review_count > 0 &&
 
 <span className="text-neutral-500">
 
@@ -661,7 +724,7 @@ sm:gap-3
 <span
 
 className="
-text-base
+text-lg
 
 font-semibold
 
@@ -709,9 +772,20 @@ sm:text-sm
 
 {
 
-discount>0 &&
+discount > 0 &&
 
-<span className="text-xs text-[#D4AF37]">
+<span
+
+className="
+text-xs
+
+font-medium
+
+text-[#D4AF37]
+
+"
+
+>
 
 {discount}% OFF
 
@@ -729,7 +803,8 @@ discount>0 &&
 
 
 
-{/* Rewards */}
+
+{/* Rewards - Desktop Only */}
 
 <div
 
@@ -738,33 +813,91 @@ hidden
 
 sm:flex
 
+relative
+
 mt-3
+
 items-center
-gap-1.5
+
+gap-2
+
 text-xs
+
 text-[#D4AF37]
 
 "
 
 >
 
+<div
+
+className="
+flex
+
+items-center
+
+gap-1
+
+"
+
+>
+
 <Coins
+
 size={15}
+
 strokeWidth={2}
+
 className="text-yellow-400"
+
 />
 
 
-<span>
+<span
+
+className="
+font-medium
+
+text-yellow-400
+
+"
+
+>
+
 {product.price}
+
 </span>
 
 
+</div>
+
+
+
+
+
 <button
+
+onClick={() =>
+setShowRewardInfo(!showRewardInfo)
+}
+
+onMouseEnter={() =>
+setShowRewardInfo(true)
+}
+
+onMouseLeave={() =>
+setShowRewardInfo(false)
+}
+
 className="
 text-neutral-400
+
+transition
+
 hover:text-[#D4AF37]
+
 "
+
 >
 
 ⓘ
@@ -772,7 +905,62 @@ hover:text-[#D4AF37]
 </button>
 
 
+
+
+
+
+
+{
+
+showRewardInfo && (
+
+<div
+
+className="
+absolute
+
+bottom-6
+
+left-0
+
+z-30
+
+w-52
+
+rounded-lg
+
+border
+
+border-[#D4AF37]/30
+
+bg-black
+
+px-3
+
+py-2
+
+text-xs
+
+text-white
+
+shadow-lg
+
+"
+
+>
+
+Earn {product.price} Reward Points on this purchase ✨
+
 </div>
+
+)
+
+}
+
+
+</div>
+
+
 
 
 
@@ -797,6 +985,10 @@ sm:mt-5
 
 >
 
+
+
+
+
 <button
 
 onClick={handleAddToCart}
@@ -820,6 +1012,7 @@ transition
 
 hover:bg-[#D4AF37]
 
+
 sm:py-3
 
 sm:text-sm
@@ -831,6 +1024,7 @@ sm:text-sm
 Add To Cart
 
 </button>
+
 
 
 
@@ -864,6 +1058,7 @@ hover:border-[#D4AF37]
 
 hover:text-[#D4AF37]
 
+
 sm:h-12
 
 sm:w-12
@@ -875,6 +1070,7 @@ sm:w-12
 <Heart size={18}/>
 
 </button>
+
 
 
 </div>
