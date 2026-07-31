@@ -1,11 +1,12 @@
 import {
   Heart,
   ShoppingBag,
-  CheckCircle2
+  CheckCircle2,
+  Sparkles
 } from "lucide-react";
 
-import { useEffect, useState } from "react";
 import DeliveryChecker from "./DeliveryChecker";
+
 
 interface ProductActionsProps {
 
@@ -15,61 +16,34 @@ interface ProductActionsProps {
 
 
 
+
+
 export default function ProductActions({
 
 product
 
 }:ProductActionsProps){
 
-const [cartAttention,setCartAttention] = useState(false);
-const [wishlistAttention,setWishlistAttention] = useState(false);
 
 
 
-useEffect(()=>{
 
-
-const interval = setInterval(()=>{
-
-
-setCartAttention(true);
-
-
-setTimeout(()=>{
-
-setWishlistAttention(true);
-
-},300);
+const isOutOfStock =
+product.stock <= 0;
 
 
 
-setTimeout(()=>{
-
-setCartAttention(false);
-
-setWishlistAttention(false);
-
-},900);
 
 
-
-},4000);
-
-
-
-return ()=>clearInterval(interval);
-
-
-},[]);
 
 return (
 
 <div
 
 className="
-w-full
-
 mt-6
+
+w-full
 
 "
 
@@ -79,11 +53,13 @@ mt-6
 
 
 
+
+
 {/* Stock Status */}
 
 {
 
-product.stock > 0 &&
+!isOutOfStock &&
 
 <div
 
@@ -102,16 +78,17 @@ text-green-400
 
 >
 
+
 <CheckCircle2
 
-size={20}
+size={18}
 
 />
 
 
 <span>
 
-In stock - ready to ship
+Ready to ship
 
 </span>
 
@@ -124,19 +101,14 @@ In stock - ready to ship
 
 
 
+
 {
 
-product.stock <= 0 &&
+isOutOfStock &&
 
 <div
 
 className="
-flex
-
-items-center
-
-gap-2
-
 text-sm
 
 text-red-400
@@ -145,11 +117,7 @@ text-red-400
 
 >
 
-<span>
-
 ✕ Out of stock
-
-</span>
 
 </div>
 
@@ -163,7 +131,7 @@ text-red-400
 
 
 
-{/* Variants Placeholder */}
+{/* Variants */}
 
 {
 
@@ -201,6 +169,7 @@ Color
 </p>
 
 
+
 <div
 
 className="
@@ -212,11 +181,13 @@ gap-3
 
 >
 
+
 {
 
 product.variants.map(
 
 (variant:any)=>(
+
 
 <button
 
@@ -231,7 +202,13 @@ rounded-full
 
 border
 
-border-[#D4AF37]
+border-[#D4AF37]/50
+
+transition-transform
+
+duration-200
+
+hover:scale-105
 
 "
 
@@ -244,6 +221,7 @@ variant.color
 
 />
 
+
 )
 
 )
@@ -266,12 +244,70 @@ variant.color
 
 
 
-{/* Add To Cart + Wishlist */}
+{/* Reward Points */}
 
 <div
 
 className="
-mt-8
+mt-6
+
+flex
+
+items-center
+
+gap-2
+
+rounded-xl
+
+border
+
+border-[#D4AF37]/20
+
+bg-[#D4AF37]/5
+
+px-4
+
+py-3
+
+text-sm
+
+text-[#F7E3A3]
+
+"
+
+>
+
+
+<Sparkles
+
+size={16}
+
+/>
+
+
+<span>
+
+Earn {product.price} T&M Reward Points
+
+</span>
+
+
+</div>
+
+
+
+
+
+
+
+
+
+{/* Main Actions */}
+
+<div
+
+className="
+mt-6
 
 flex
 
@@ -283,9 +319,14 @@ gap-3
 
 
 
+
+
+
 <button
 
-className={`
+disabled={isOutOfStock}
+
+className="
 
 flex-1
 
@@ -298,7 +339,7 @@ justify-center
 gap-2
 
 
-rounded-none
+rounded-xl
 
 bg-[#D4AF37]
 
@@ -306,39 +347,49 @@ py-4
 
 text-sm
 
-font-medium
+font-semibold
 
 text-black
 
 
-transition-all
+transition-colors
 
-duration-150
+duration-200
+
 
 hover:bg-[#e5c45a]
 
 
-${
+disabled:cursor-not-allowed
 
-cartAttention
+disabled:opacity-50
 
-?
-
-"animate-cart-hit"
-
-:
-
-""
-
-}
-
-`}
+"
 
 >
 
-<ShoppingBag size={18}/>
 
-ADD TO CART
+<ShoppingBag
+
+size={18}
+
+/>
+
+
+{
+
+isOutOfStock
+
+?
+
+"OUT OF STOCK"
+
+:
+
+"ADD TO CART"
+
+}
+
 
 </button>
 
@@ -348,9 +399,10 @@ ADD TO CART
 
 
 
+
 <button
 
-className={`
+className="
 
 flex
 
@@ -363,42 +415,35 @@ items-center
 justify-center
 
 
+rounded-xl
+
 border
 
-border-neutral-600
+border-neutral-700
 
 text-white
 
 
-transition-all
+transition-colors
 
-duration-150
+duration-200
 
 
 hover:border-[#D4AF37]
 
 hover:text-[#D4AF37]
 
-
-${
-
-wishlistAttention
-
-?
-
-"scale-110 border-[#D4AF37] text-[#D4AF37]"
-
-:
-
-"scale-100"
-
-}
-
-`}
+"
 
 >
 
-<Heart size={22}/>
+
+<Heart
+
+size={22}
+
+/>
+
 
 </button>
 
@@ -413,31 +458,43 @@ wishlistAttention
 
 
 
+
 {/* Buy Now */}
 
 <button
 
+disabled={isOutOfStock}
+
 className="
+
 mt-3
 
 w-full
 
-rounded-none
+
+rounded-xl
 
 bg-white
 
 py-4
 
+
 text-sm
 
-font-medium
+font-semibold
 
 text-black
 
 
-transition
+transition-colors
+
+duration-200
+
 
 hover:bg-[#D4AF37]
+
+
+disabled:opacity-50
 
 "
 
@@ -455,7 +512,8 @@ BUY IT NOW
 
 
 
-{/* Delivery Checker */}
+{/* Delivery */}
+
 <DeliveryChecker
 
 product={product}

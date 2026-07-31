@@ -1,9 +1,10 @@
 import {
-  ChevronDown
+  ChevronDown,
 } from "lucide-react";
 
 import {
-  useState
+  useMemo,
+  useState,
 } from "react";
 
 
@@ -12,6 +13,7 @@ interface ProductAccordionProps {
   product:any;
 
 }
+
 
 
 
@@ -26,7 +28,8 @@ const [open,setOpen] = useState<string | null>(null);
 
 
 
-const sections = [
+
+const sections = useMemo(()=>[
 
 
 {
@@ -36,51 +39,100 @@ title:"Description",
 
 content:
 
-product.description || 
-"Premium jewellery crafted with attention to detail."
+product.description ||
+
+"Premium jewellery crafted with attention to detail and designed to elevate your everyday style."
+
 },
 
 
 
-{
-id:"specifications",
 
-title:"Specifications",
+{
+id:"details",
+
+title:"Product Details",
 
 content:(
 
-<div className="space-y-2">
+<div
+
+className="
+space-y-3
+
+"
+
+>
 
 
 {
-product.brand_id &&
+product.category?.name &&
 
-<p>
-Brand:
-<span className="text-white ml-2">
-T&M Jewels
+<div className="flex justify-between">
+
+<span className="text-neutral-500">
+Category
 </span>
-</p>
+
+<span className="text-white">
+{product.category.name}
+</span>
+
+</div>
 
 }
 
 
 
-<p>
-Material:
-<span className="text-white ml-2">
-Premium Alloy
+
+<div className="flex justify-between">
+
+<span className="text-neutral-500">
+Material
 </span>
-</p>
 
-
-
-<p>
-Finish:
-<span className="text-white ml-2">
-Luxury Gold Plated Look
+<span className="text-white">
+{product.material || "Premium Alloy"}
 </span>
-</p>
+
+</div>
+
+
+
+
+
+<div className="flex justify-between">
+
+<span className="text-neutral-500">
+Finish
+</span>
+
+<span className="text-white">
+{product.finish || "Luxury Gold Plated Look"}
+</span>
+
+</div>
+
+
+
+
+{
+product.weight &&
+
+<div className="flex justify-between">
+
+<span className="text-neutral-500">
+Weight
+</span>
+
+<span className="text-white">
+{product.weight} g
+</span>
+
+</div>
+
+}
+
 
 
 </div>
@@ -91,18 +143,21 @@ Luxury Gold Plated Look
 
 
 
+
 {
 id:"care",
 
-title:"Care Instructions",
+title:"Care Guide",
 
 content:
 
 product.care_instructions ||
 
-"Keep away from moisture, perfumes and chemicals. Store in the provided packaging when not in use."
+"Keep away from moisture, perfume and chemicals. Store your jewellery in the provided packaging when not in use."
 
 },
+
+
 
 
 
@@ -113,13 +168,17 @@ title:"Shipping & Returns",
 
 content:
 
-"Orders are carefully packed and shipped securely. Delivery timelines depend on your location. Please check our return policy for details."
+"Orders are carefully packed and shipped securely. Delivery timelines depend on your location. Please check our return policy for complete details."
 
 }
 
 
 
-];
+],[
+product
+]);
+
+
 
 
 
@@ -132,11 +191,11 @@ return (
 <div
 
 className="
-mt-10
+mt-8
 
 border-t
 
-border-neutral-800
+border-[#D4AF37]/20
 
 "
 
@@ -155,7 +214,7 @@ key={section.id}
 className="
 border-b
 
-border-neutral-800
+border-[#D4AF37]/20
 
 "
 
@@ -204,11 +263,15 @@ text-left
 <span
 
 className="
-text-base
+text-sm
 
 font-medium
 
+tracking-wide
+
 text-white
+
+md:text-base
 
 "
 
@@ -220,13 +283,13 @@ text-white
 
 
 
+
+
 <ChevronDown
 
-size={20}
+size={18}
 
-className={
-
-`
+className={`
 
 text-[#D4AF37]
 
@@ -234,10 +297,12 @@ transition-transform
 
 duration-300
 
+ease-out
+
 
 ${
 
-open === section.id
+open===section.id
 
 ?
 
@@ -249,11 +314,10 @@ open === section.id
 
 }
 
-`
-
-}
+`}
 
 />
+
 
 
 </button>
@@ -268,24 +332,26 @@ open === section.id
 
 className={`
 
-overflow-hidden
+grid
 
-transition-all
+transition-[grid-template-rows]
 
 duration-300
+
+ease-out
 
 
 ${
 
-open === section.id
+open===section.id
 
 ?
 
-"max-h-96 pb-5 opacity-100"
+"grid-rows-[1fr]"
 
 :
 
-"max-h-0 opacity-0"
+"grid-rows-[0fr]"
 
 }
 
@@ -297,9 +363,21 @@ open === section.id
 <div
 
 className="
+overflow-hidden
+
+"
+
+>
+
+
+<div
+
+className="
+pb-5
+
 text-sm
 
-leading-relaxed
+leading-7
 
 text-neutral-400
 
@@ -315,9 +393,11 @@ text-neutral-400
 </div>
 
 
-
 </div>
 
+
+
+</div>
 
 
 ))
