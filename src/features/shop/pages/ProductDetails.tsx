@@ -1,7 +1,7 @@
 import {
 useParams
 } from "react-router-dom";
-
+import MobileStickyCart from "@/features/products/components/MobileStickyCart";
 import ProductGallery from "../components/ProductGallery";
 import {
 useProductDetails
@@ -209,7 +209,11 @@ product={product}
 
 </div>
 
+<MobileStickyCart
 
+product={product}
+
+/>
 </main>
 
 );
