@@ -106,10 +106,8 @@ text-neutral-400
 
 >
 
-Create your own style, create your own trend.
-
-Explore premium anti-tarnish jewellery,
-traditional designs and timeless pieces.
+Luxury inspired Jewellery you'll love to wear.
+Crafted for every occassion.
 
 </p>
 
