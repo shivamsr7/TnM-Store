@@ -11,25 +11,25 @@ const trustItems = [
 {
 icon:ShieldCheck,
 title:"ANTI-TARNISH",
-description:"Long-lasting shine"
+description:"Long-lasting shine, made for everyday."
 },
 
 {
 icon:Sparkles,
 title:"PREMIUM QUALITY",
-description:"Crafted with care"
+description:"Finest materials crafted to perfection."
 },
 
 {
 icon:Heart,
 title:"CRAFTED WITH LOVE",
-description:"Designed for you"
+description:"Thoughtfully designed for you."
 },
 
 {
 icon:Globe,
 title:"WORLDWIDE SHIPPING",
-description:"Delivered worldwide"
+description:"Delivering happiness to your doorstep."
 }
 
 ];
@@ -54,6 +54,8 @@ px-4
 
 py-5
 
+md:py-10
+
 "
 
 >
@@ -64,19 +66,15 @@ py-5
 className="
 mx-auto
 
-flex
+grid
 
 max-w-7xl
 
-gap-5
+grid-cols-4
 
-overflow-x-auto
+gap-2
 
-scrollbar-hide
-
-md:grid
-
-md:grid-cols-4
+md:gap-8
 
 "
 
@@ -100,27 +98,17 @@ key={item.title}
 className="
 flex
 
-min-w-max
+flex-col
 
 items-center
 
-gap-2
+text-center
 
-border-r
+md:border-r
 
-border-[#C8A44D]/20
-
-pr-5
+md:border-[#C8A44D]/20
 
 last:border-none
-
-md:block
-
-md:min-w-0
-
-md:pr-0
-
-md:text-center
 
 "
 
@@ -132,13 +120,15 @@ md:text-center
 size={20}
 
 className="
-shrink-0
+mb-2
 
 text-[#C8A44D]
 
-md:mx-auto
+md:h-8
 
-md:mb-2
+md:w-8
+
+md:mb-4
 
 "
 
@@ -147,19 +137,20 @@ md:mb-2
 
 
 
-<div>
-
-
 <h4
 
 className="
-text-[10px]
+text-[8px]
 
 font-medium
 
-tracking-widest
+tracking-wider
 
 text-[#C8A44D]
+
+md:text-sm
+
+md:tracking-widest
 
 "
 
@@ -172,18 +163,21 @@ text-[#C8A44D]
 
 
 
+
 <p
 
 className="
 hidden
 
-mt-1
-
-text-[11px]
-
-text-neutral-500
-
 md:block
+
+mt-2
+
+text-xs
+
+leading-relaxed
+
+text-neutral-400
 
 "
 
@@ -192,9 +186,6 @@ md:block
 {item.description}
 
 </p>
-
-
-</div>
 
 
 
