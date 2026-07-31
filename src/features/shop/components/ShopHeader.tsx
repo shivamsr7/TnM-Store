@@ -1,7 +1,6 @@
 import { Search } from "lucide-react";
 
 
-
 interface Props{
 
 search:string;
@@ -41,7 +40,7 @@ setCategory
 
 return (
 
-<section className="mb-14">
+<section className="mb-8 md:mb-14">
 
 
 
@@ -57,13 +56,12 @@ text-center
 
 
 
-
 <h1
 
 className="
 mt-0
 
-text-4xl
+text-3xl
 
 font-semibold
 
@@ -91,23 +89,30 @@ Shop Collection
 
 
 
+
 <p
 
 className="
 mx-auto
 
-mt-5
+mt-3
 
 max-w-2xl
 
+text-sm
+
 text-neutral-400
+
+md:mt-5
+
+md:text-base
 
 "
 
 >
 
 Luxury inspired Jewellery you'll love to wear.
-Crafted for every occassion.
+Crafted for every occasion.
 
 </p>
 
@@ -126,15 +131,15 @@ Crafted for every occassion.
 <div
 
 className="
-mt-10
+mt-6
 
 flex
 
-gap-3
+gap-2
 
 overflow-x-auto
 
-pb-3
+pb-1
 
 scrollbar-hide
 
@@ -162,13 +167,23 @@ whitespace-nowrap
 
 rounded-full
 
-px-6
+px-4
 
-py-2
+py-1.5
 
-text-sm
+text-xs
 
-transition
+transition-all
+
+duration-200
+
+
+md:px-6
+
+md:py-2
+
+md:text-sm
+
 
 ${
 
@@ -218,9 +233,11 @@ activeCategory===item
 className="
 mx-auto
 
-mt-8
+mt-5
 
 max-w-xl
+
+md:mt-8
 
 "
 
@@ -244,9 +261,13 @@ border-[#D4AF37]/30
 
 bg-[#0d0d0d]
 
-px-5
+px-4
 
-py-3
+py-2.5
+
+md:px-5
+
+md:py-3
 
 "
 
@@ -255,9 +276,9 @@ py-3
 
 <Search
 
-size={20}
+size={18}
 
-className="text-[#D4AF37]"
+className="text-[#D4AF37] md:size-5"
 
 />
 
@@ -278,6 +299,8 @@ w-full
 
 bg-transparent
 
+text-sm
+
 text-white
 
 outline-none
@@ -290,7 +313,6 @@ placeholder:text-neutral-500
 
 
 </div>
-
 
 </div>
 
@@ -305,17 +327,21 @@ placeholder:text-neutral-500
 <div
 
 className="
-mt-8
+mt-5
 
 flex
 
-justify-between
-
 items-center
 
-text-sm
+justify-between
+
+text-xs
 
 text-neutral-400
+
+md:mt-8
+
+md:text-sm
 
 "
 
@@ -337,13 +363,21 @@ rounded-full
 
 border
 
-border-[#D4AF37]/30
+border-[#D4AFG37]/30
 
-px-5
+px-4
 
-py-2
+py-1.5
+
+text-xs
 
 text-white
+
+md:px-5
+
+md:py-2
+
+md:text-sm
 
 "
 
