@@ -54,31 +54,14 @@ text-center
 >
 
 
-<p
 
-className="
-text-sm
-
-tracking-[0.3em]
-
-uppercase
-
-text-[#D4AF37]
-
-"
-
->
-
-T&M Jewels
-
-</p>
 
 
 
 <h1
 
 className="
-mt-4
+mt-0
 
 text-4xl
 

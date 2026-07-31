@@ -34,10 +34,7 @@ export default function SpinWheel() {
     </div>
 
     {/* Founder */}
-    <Founder
-      image={founderRight}
-      isPushing={isPushing}
-    />
+
 
   </div>
 
