@@ -6,7 +6,9 @@ import {
   ChevronRight,
   Coins,
 } from "lucide-react";
-
+import {
+  useCartActions
+} from "@/features/cart/hooks/useCartActions";
 import type { Product } from "@/features/products/types/product.types";
 
 import QuickViewModal from "./QuickViewModal";
@@ -288,12 +290,14 @@ setTouchStart(null);
 
 
 
-const handleAddToCart =()=>{
+const {
+  addToCart
+} = useCartActions();
 
-console.log(
-"Added to cart:",
-product.name
-);
+
+const handleAddToCart = () => {
+
+addToCart(product);
 
 };
 

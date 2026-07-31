@@ -18,13 +18,17 @@ import {
   useAuth,
 } from "@/features/Auth/context/AuthContext";
 
-
+import {
+  useCartStore,
+} from "@/features/cart/store/cart.store";
 
 interface HeaderIconsProps {
 
   wishlistCount?: number;
 
   cartCount?: number;
+
+
 
 }
 
@@ -191,11 +195,12 @@ export default function HeaderIcons({
 
 wishlistCount = 0,
 
-cartCount = 0,
-
 }:HeaderIconsProps){
 
-
+const {
+  openCart,
+  getCartCount,
+}=useCartStore();
 
 const {
 openAuth,
@@ -266,7 +271,7 @@ count={wishlistCount}
 
 <IconButton
 
-to="/cart"
+onClick={openCart}
 
 label="Cart"
 
@@ -277,7 +282,7 @@ label="Cart"
 
 <IconBadge
 
-count={cartCount}
+count={getCartCount()}
 
 />
 

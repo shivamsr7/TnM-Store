@@ -9,6 +9,7 @@ useProductDetails
 import ProductInfo from "../components/ProductInfo";
 import ProductAccordion from "../components/ProductAccordion"
 import ProductActions from "../components/ProductActions";
+import { useCartActions } from "@/features/cart/hooks/useCartActions";
 export default function ProductDetails(){
 
 

@@ -7,7 +7,7 @@ import {
   useState
 } from "react";
 
-
+import { useCartActions } from "@/features/cart/hooks/useCartActions";
 interface Props{
 
 product:any;
@@ -25,6 +25,9 @@ product
 
 const [visible,setVisible] = useState(false);
 
+const {
+ addToCart
+}=useCartActions();
 
 
 useEffect(()=>{
@@ -196,7 +199,7 @@ text-white
 
 
 <button
-
+onClick={()=>addToCart(product)}
 className="
 flex
 

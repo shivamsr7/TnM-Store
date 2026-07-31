@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 
 import DeliveryChecker from "./DeliveryChecker";
-
+import { useCartActions } from "@/features/cart/hooks/useCartActions";
 
 interface ProductActionsProps {
 
@@ -26,7 +26,9 @@ product
 
 
 
-
+const {
+  addToCart
+} = useCartActions();
 
 const isOutOfStock =
 product.stock <= 0;
@@ -323,7 +325,7 @@ gap-3
 
 
 <button
-
+onClick={()=>addToCart(product)}
 disabled={isOutOfStock}
 
 className="
