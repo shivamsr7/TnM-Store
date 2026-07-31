@@ -6,31 +6,30 @@ import {
 } from "lucide-react";
 
 
-
 const trustItems = [
 
 {
 icon:ShieldCheck,
 title:"ANTI-TARNISH",
-description:"Long-lasting shine, made for everyday."
+description:"Long-lasting shine"
 },
 
 {
 icon:Sparkles,
 title:"PREMIUM QUALITY",
-description:"Finest materials crafted to perfection."
+description:"Crafted with care"
 },
 
 {
 icon:Heart,
 title:"CRAFTED WITH LOVE",
-description:"Thoughtfully designed for you."
+description:"Designed for you"
 },
 
 {
 icon:Globe,
 title:"WORLDWIDE SHIPPING",
-description:"Delivering happiness to your doorstep."
+description:"Delivered worldwide"
 }
 
 ];
@@ -46,12 +45,14 @@ return (
 
 className="
 border-t
-border-[#C8A44D]/40
+
+border-[#C8A44D]/30
 
 bg-[#080808]
 
-px-5
-py-10
+px-4
+
+py-5
 
 "
 
@@ -63,12 +64,17 @@ py-10
 className="
 mx-auto
 
-grid
+flex
 
 max-w-7xl
 
-gap-8
+gap-5
 
+overflow-x-auto
+
+scrollbar-hide
+
+md:grid
 
 md:grid-cols-4
 
@@ -92,15 +98,29 @@ return (
 key={item.title}
 
 className="
-relative
+flex
 
-text-center
+min-w-max
 
-md:border-r
+items-center
 
-md:border-[#C8A44D]/30
+gap-2
+
+border-r
+
+border-[#C8A44D]/20
+
+pr-5
 
 last:border-none
+
+md:block
+
+md:min-w-0
+
+md:pr-0
+
+md:text-center
 
 "
 
@@ -109,14 +129,16 @@ last:border-none
 
 <Icon
 
-size={32}
+size={20}
 
 className="
-mx-auto
-
-mb-4
+shrink-0
 
 text-[#C8A44D]
+
+md:mx-auto
+
+md:mb-2
 
 "
 
@@ -124,14 +146,18 @@ text-[#C8A44D]
 
 
 
+
+<div>
+
+
 <h4
 
 className="
-text-sm
+text-[10px]
 
 font-medium
 
-tracking-wider
+tracking-widest
 
 text-[#C8A44D]
 
@@ -145,16 +171,19 @@ text-[#C8A44D]
 
 
 
+
 <p
 
 className="
-mt-2
+hidden
 
-text-xs
+mt-1
 
-leading-relaxed
+text-[11px]
 
-text-neutral-400
+text-neutral-500
+
+md:block
 
 "
 
@@ -163,6 +192,9 @@ text-neutral-400
 {item.description}
 
 </p>
+
+
+</div>
 
 
 
