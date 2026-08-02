@@ -1,22 +1,52 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import {
+  create
+} from "zustand";
+
+import {
+  persist
+} from "zustand/middleware";
+
+
 
 
 export interface CartItem {
 
-  id: string;
+  id:string;
 
-  productId: string;
+  productId:string;
 
-  name: string;
+  name:string;
 
-  price: number;
+  price:number;
 
-  image?: string;
+  image?:string;
 
-  quantity: number;
+  quantity:number;
 
 }
+
+
+
+
+
+export interface AppliedCoupon {
+
+id:string;
+
+code:string;
+
+title?:string;
+
+discount:number;
+
+freeShipping:boolean;
+
+freeGift:boolean;
+
+minimumOrderAmount:number;
+
+}
+
 
 
 
@@ -25,34 +55,68 @@ export interface CartItem {
 interface CartStore {
 
 
-items: CartItem[];
+items:CartItem[];
 
-isCartOpen: boolean;
-
-
-
-addItem: (item: CartItem) => void;
-
-removeItem: (id: string) => void;
-
-updateQuantity: (id: string, quantity: number) => void;
-
-clearCart: () => void;
+isCartOpen:boolean;
 
 
 
-openCart: () => void;
+// Coupon
 
-closeCart: () => void;
+appliedCoupon:AppliedCoupon | null;
+
+discount:number;
+
+couponErrorMessage:string;
 
 
 
-getTotal: () => number;
 
-getCartCount: () => number;
+
+addItem:(item:CartItem)=>void;
+
+
+removeItem:(id:string)=>void;
+
+
+updateQuantity:(id:string,quantity:number)=>void;
+
+
+clearCart:()=>void;
+
+
+
+openCart:()=>void;
+
+
+closeCart:()=>void;
+
+
+
+
+getTotal:()=>number;
+
+
+getFinalTotal:()=>number;
+
+
+getCartCount:()=>number;
+
+
+
+
+applyCoupon:(coupon:AppliedCoupon)=>void;
+
+
+removeCoupon:()=>void;
+
+
+clearCouponMessage:()=>void;
 
 
 }
+
+
 
 
 
@@ -62,27 +126,56 @@ export const useCartStore = create<CartStore>()(
 
 persist(
 
-(set, get) => ({
-
-
-items: [],
-
-isCartOpen: false,
+(set,get)=>({
 
 
 
+items:[],
 
 
-addItem: (item) => {
+isCartOpen:false,
+
+
+
+appliedCoupon:null,
+
+
+discount:0,
+
+
+couponErrorMessage:"",
+
+
+
+
+
+
+
+/*
+  Check coupon validity after cart changes
+*/
+
+checkCouponValidity:undefined,
+
+
+
+
+
+
+
+
+
+addItem:(item)=>{
 
 
 const existingItem = get().items.find(
 
-(cartItem) =>
+(cartItem)=>
 
-cartItem.productId === item.productId
+cartItem.productId===item.productId
 
 );
+
 
 
 
@@ -91,11 +184,9 @@ if(existingItem){
 
 set({
 
-items:
+items:get().items.map((cartItem)=>
 
-get().items.map((cartItem)=>
-
-cartItem.productId === item.productId
+cartItem.productId===item.productId
 
 ?
 
@@ -103,9 +194,7 @@ cartItem.productId === item.productId
 
 ...cartItem,
 
-quantity:
-
-cartItem.quantity + item.quantity
+quantity:cartItem.quantity + item.quantity
 
 }
 
@@ -150,17 +239,72 @@ item
 removeItem:(id)=>{
 
 
-set({
-
-items:
-
-get().items.filter(
+const updatedItems = get().items.filter(
 
 (item)=>
 
-item.id !== id
+item.id!==id
 
-)
+);
+
+
+
+
+const coupon = get().appliedCoupon;
+
+
+
+const newTotal = updatedItems.reduce(
+
+(total,item)=>
+
+total + item.price * item.quantity,
+
+0
+
+);
+
+
+
+
+
+if(
+
+coupon &&
+
+coupon.minimumOrderAmount &&
+
+newTotal < coupon.minimumOrderAmount
+
+){
+
+
+set({
+
+items:updatedItems,
+
+appliedCoupon:null,
+
+discount:0,
+
+couponErrorMessage:
+
+"Coupon removed because minimum order value is not met"
+
+});
+
+
+return;
+
+}
+
+
+
+
+
+set({
+
+items:updatedItems
 
 });
 
@@ -176,19 +320,15 @@ item.id !== id
 updateQuantity:(id,quantity)=>{
 
 
-if(quantity<=0){
+if(quantity<=0)
 
 return;
 
-}
 
 
 
-set({
 
-items:
-
-get().items.map((item)=>
+const updatedItems = get().items.map((item)=>
 
 item.id===id
 
@@ -206,7 +346,72 @@ quantity
 
 item
 
-)
+);
+
+
+
+
+
+const coupon = get().appliedCoupon;
+
+
+
+const newTotal = updatedItems.reduce(
+
+(total,item)=>
+
+total + item.price * item.quantity,
+
+0
+
+);
+
+
+
+
+
+
+
+if(
+
+coupon &&
+
+coupon.minimumOrderAmount &&
+
+newTotal < coupon.minimumOrderAmount
+
+){
+
+
+
+set({
+
+items:updatedItems,
+
+appliedCoupon:null,
+
+discount:0,
+
+couponErrorMessage:
+
+"Coupon removed because minimum order value is not met"
+
+});
+
+
+return;
+
+
+}
+
+
+
+
+
+
+set({
+
+items:updatedItems
 
 });
 
@@ -224,7 +429,13 @@ clearCart:()=>{
 
 set({
 
-items:[]
+items:[],
+
+appliedCoupon:null,
+
+discount:0,
+
+couponErrorMessage:""
 
 });
 
@@ -280,9 +491,27 @@ return get().items.reduce(
 
 (total,item)=>
 
-total +
+total + item.price * item.quantity,
 
-(item.price * item.quantity),
+0
+
+);
+
+
+},
+
+
+
+
+
+
+
+getFinalTotal:()=>{
+
+
+return Math.max(
+
+get().getTotal() - get().discount,
 
 0
 
@@ -311,12 +540,75 @@ total + item.quantity,
 );
 
 
+},
+
+
+
+
+
+
+
+applyCoupon:(coupon)=>{
+
+
+set({
+
+appliedCoupon:coupon,
+
+discount:coupon.discount,
+
+couponErrorMessage:""
+
+});
+
+
+},
+
+
+
+
+
+
+
+removeCoupon:()=>{
+
+
+set({
+
+appliedCoupon:null,
+
+discount:0,
+
+couponErrorMessage:""
+
+});
+
+
+},
+
+
+
+
+
+
+
+clearCouponMessage:()=>{
+
+
+set({
+
+couponErrorMessage:""
+
+});
+
+
 }
 
 
 
-}),
 
+
+}),
 
 
 {
@@ -324,6 +616,7 @@ total + item.quantity,
 name:"tnm-cart"
 
 }
+
 
 )
 
