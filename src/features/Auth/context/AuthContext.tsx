@@ -27,6 +27,24 @@ interface Customer {
 
   phone?:string | null;
 
+  avatar?:string | null;
+
+  status?:string;
+
+  email_verified?:boolean;
+
+  phone_verified?:boolean;
+
+  notes?:string | null;
+
+  last_login_at?:string | null;
+
+  created_at?:string;
+
+  updated_at?:string;
+
+  deleted_at?:string | null;
+
 }
 
 

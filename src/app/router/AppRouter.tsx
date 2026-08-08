@@ -5,75 +5,158 @@ import {
 
 
 import App from "@/App";
+
 import ScrollToTop from "@/shared/components/ScrollToTop";
+
 import AccountPage from "@/features/customers/pages/AccountPage";
+
 import AboutUs from "@/pages/static/AboutUs";
 import ContactUs from "@/pages/static/ContactUs";
-import MainLayout from "@/layouts/MainLayout";
 import FAQ from "@/pages/static/FAQ";
 import JewelleryCare from "@/pages/static/JewelleryCare";
 import ShippingDelivery from "@/pages/static/ShippingDelivery";
 import ReturnsExchange from "@/pages/static/ReturnsExchange";
 import PrivacyPolicy from "@/pages/static/PrivacyPolicy";
 import TermsConditions from "@/pages/static/TermsConditions";
+
+import MainLayout from "@/layouts/MainLayout";
+
 import Shop from "@/features/shop/pages/Shop";
 import ProductDetails from "@/features/shop/pages/ProductDetails";
+
+import MyOrders from "@/features/orders/components/MyOrders";
+import OrderDetails from "@/features/orders/components/OrderDetails";
+
+import NotificationsPage from "@/features/notifications/pages/NotificationsPage";
+
+
+
+
+
 export default function AppRouter(){
+
 
 return (
 
-  <>
-  <ScrollToTop />
-  
+<>
+
+<ScrollToTop />
+
 
 <Routes>
 
 
-<Route
-path="/"
-element={<App />}
-/>
 
+
+
+{/* Main Website Layout */}
 
 <Route element={<MainLayout />}>
 
 
+
+{/* Home */}
+
 <Route
+
+path="/"
+
+element={<App />}
+
+/>
+
+
+
+
+
+{/* Static Pages */}
+
+<Route
+
 path="/about-us"
+
 element={<AboutUs />}
+
 />
+
+
 <Route
+
 path="/contact-us"
+
 element={<ContactUs />}
+
 />
-<Route 
-path="/faq" 
-element={<FAQ />} 
-/>
+
+
 <Route
+
+path="/faq"
+
+element={<FAQ />}
+
+/>
+
+
+<Route
+
 path="/jewellery-care"
+
 element={<JewelleryCare />}
+
 />
-<Route 
-path="/shipping" 
+
+
+<Route
+
+path="/shipping"
+
 element={<ShippingDelivery />}
+
 />
+
+
 <Route
+
 path="/returns"
+
 element={<ReturnsExchange />}
+
 />
+
+
 <Route
+
 path="/privacy-policy"
+
 element={<PrivacyPolicy />}
+
 />
+
+
 <Route
+
 path="/terms"
+
 element={<TermsConditions />}
+
 />
+
+
+
+
+
+{/* Shop */}
+
 <Route
+
 path="/shop"
+
 element={<Shop />}
+
 />
+
+
 <Route
 
 path="/product/:slug"
@@ -81,21 +164,70 @@ path="/product/:slug"
 element={<ProductDetails />}
 
 />
+
+
+
 </Route>
 
 
 
+
+
+
+
+
+
+{/* Account */}
+
 <Route
+
 path="/account"
+
 element={<AccountPage />}
+
 />
 
 
 
 
 
+<Route
+
+path="/account/orders"
+
+element={<MyOrders />}
+
+/>
+
+
+<Route
+
+path="/account/orders/:id"
+
+element={<OrderDetails />}
+
+/>
+
+
+<Route
+
+path="/account/notifications"
+
+element={<NotificationsPage />}
+
+/>
+
+
+
+
+
+
+
 </Routes>
+
+
 </>
+
 );
 
 }

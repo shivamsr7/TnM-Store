@@ -88,6 +88,8 @@ export interface CouponPayload {
 
 export interface CreateOrderPayload {
 
+    customerId?: string;
+
 
   customer:CustomerPayload;
 
@@ -132,7 +134,7 @@ export interface CreateOrderPayload {
 
 
 
-
+paymentTransactionId?: string;
 
   advanceAmount:number;
 

@@ -18,19 +18,27 @@ import {
 } from "../store/cart.store";
 
 import CouponModal from "@/features/coupons/components/CouponModal";
+
 import {
-useBestCoupon
+  useBestCoupon
 } from "@/features/coupons/hooks/useBestCoupon";
 
 import {
-useUnlockCoupon
+  useUnlockCoupon
 } from "@/features/coupons/hooks/useUnlockCoupon";
+
+import CheckoutDialog from "@/features/checkout/components/CheckoutDialog";
+
+
 
 const FREE_GIFT_AMOUNT = 1000;
 
 
 
+
+
 export default function CartDrawer(){
+
 
 
 const {
@@ -62,16 +70,34 @@ getFinalTotal,
 
 
 
+
 const total = getTotal();
 
 const finalTotal = getFinalTotal();
 
+
+
+
+
 const {
 bestCoupon
 }=useBestCoupon(total);
+
+
+
+
+
 const {
- couponErrorMessage
+
+couponErrorMessage
+
 }=useCartStore();
+
+
+
+
+
+
 
 const {
 
@@ -80,6 +106,13 @@ unlockCoupon,
 remainingAmount
 
 }=useUnlockCoupon(total);
+
+
+
+
+
+
+
 const [
 
 couponCode,
@@ -87,6 +120,10 @@ couponCode,
 setCouponCode
 
 ]=useState("");
+
+
+
+
 
 
 
@@ -100,6 +137,10 @@ setCouponLoading
 
 
 
+
+
+
+
 const [
 
 couponMessage,
@@ -110,6 +151,10 @@ setCouponMessage
 
 
 
+
+
+
+
 const [
 
 couponError,
@@ -117,6 +162,10 @@ couponError,
 setCouponError
 
 ]=useState("");
+
+
+
+
 
 
 
@@ -133,6 +182,21 @@ setShowCoupons
 
 
 
+
+const [
+
+checkoutOpen,
+
+setCheckoutOpen
+
+]=useState(false);
+
+
+
+
+
+
+
 const remaining = Math.max(
 
 FREE_GIFT_AMOUNT - total,
@@ -140,6 +204,10 @@ FREE_GIFT_AMOUNT - total,
 0
 
 );
+
+
+
+
 
 
 
@@ -151,19 +219,11 @@ const progress = Math.min(
 
 );
 
-
-
-
-
-
-
 const handleApplyCoupon = async()=>{
 
 
 if(!couponCode.trim())
-
 return;
-
 
 
 try{
@@ -208,6 +268,8 @@ result.coupon.minimum_order_amount
 
 
 
+
+
 setCouponMessage(
 
 result.freeShipping
@@ -229,7 +291,6 @@ result.freeGift
 `Coupon applied! You saved ₹${result.discount}`
 
 );
-
 
 
 
@@ -257,11 +318,6 @@ setCouponLoading(false);
 
 
 };
-
-
-
-
-
 
 
 return (
@@ -305,6 +361,7 @@ isCartOpen
 `}
 
 />
+
 
 
 
@@ -372,6 +429,9 @@ isCartOpen
 
 
 
+
+
+
 {/* Header */}
 
 <div
@@ -380,11 +440,11 @@ className="
 
 absolute
 
-top-0
-
 left-0
 
 right-0
+
+top-0
 
 z-10
 
@@ -406,7 +466,15 @@ px-5
 
 >
 
-<h2 className="text-xl font-semibold">
+
+<h2
+
+className="
+text-xl
+font-semibold
+"
+
+>
 
 Your Cart ({items.length} items)
 
@@ -414,11 +482,31 @@ Your Cart ({items.length} items)
 
 
 
-<button onClick={closeCart}>
+
+
+
+
+<button
+
+onClick={closeCart}
+
+className="
+rounded-full
+p-1
+transition
+hover:bg-neutral-100
+"
+
+>
 
 <X size={24}/>
 
 </button>
+
+
+
+
+
 
 
 </div>
@@ -430,7 +518,8 @@ Your Cart ({items.length} items)
 
 
 
-{/* Scroll */}
+
+{/* Scroll Area */}
 
 <div
 
@@ -438,21 +527,21 @@ className="
 
 absolute
 
-top-[86px]
-
 bottom-[185px]
 
 left-0
 
 right-0
 
+top-[86px]
+
 overflow-y-auto
 
 px-5
 
-pt-5
-
 pb-10
+
+pt-5
 
 "
 
@@ -460,6 +549,16 @@ pb-10
 
 
 
+
+
+
+
+
+{
+
+items.length > 0 && (
+
+<>
 
 
 <div
@@ -498,10 +597,24 @@ text-white
 
 
 
-<div className="mt-6">
+{/* Free Gift Progress */}
 
+<div
 
-<div className="text-sm font-medium">
+className="
+mt-6
+"
+
+>
+
+<p
+
+className="
+text-sm
+font-medium
+"
+
+>
 
 {
 
@@ -517,7 +630,11 @@ remaining > 0
 
 }
 
-</div>
+</p>
+
+
+
+
 
 
 
@@ -533,15 +650,16 @@ mt-3
 
 h-2
 
+overflow-hidden
+
 rounded-full
 
 bg-neutral-200
 
-overflow-hidden
-
 "
 
 >
+
 
 <div
 
@@ -550,6 +668,8 @@ className="
 h-full
 
 bg-black
+
+transition-all
 
 "
 
@@ -562,11 +682,97 @@ width:`${progress}%`
 />
 
 
+
 </div>
 
 }
 
 
+
+</div>
+
+
+
+
+
+
+</>
+
+)
+
+}
+
+
+
+
+
+
+
+
+
+{/* Empty Cart */}
+
+{
+
+items.length === 0
+
+?
+
+<div
+
+className="
+
+mt-10
+
+rounded-3xl
+
+border
+
+border-neutral-200
+
+bg-neutral-50
+
+px-5
+
+py-10
+
+text-center
+
+"
+
+>
+
+
+<div
+
+className="
+
+mx-auto
+
+flex
+
+h-16
+
+w-16
+
+items-center
+
+justify-center
+
+rounded-full
+
+bg-white
+
+text-3xl
+
+shadow-sm
+
+"
+
+>
+
+🛍️
+
 </div>
 
 
@@ -575,11 +781,120 @@ width:`${progress}%`
 
 
 
+<h3
+
+className="
+
+mt-5
+
+text-lg
+
+font-semibold
+
+"
+
+>
+
+Your cart is empty
+
+</h3>
 
 
-{/* Products */}
 
-<div className="mt-6 space-y-4">
+
+
+
+
+<p
+
+className="
+
+mt-2
+
+text-sm
+
+leading-relaxed
+
+text-neutral-500
+
+"
+
+>
+
+Looks like you haven't added anything yet.
+
+Explore our jewellery collection and find
+your perfect piece.
+
+</p>
+
+
+
+
+
+
+
+
+<button
+
+onClick={closeCart}
+
+className="
+
+mt-5
+
+rounded-xl
+
+bg-black
+
+px-6
+
+py-3
+
+text-sm
+
+font-medium
+
+text-white
+
+"
+
+>
+
+Continue Shopping
+
+</button>
+
+
+
+
+
+
+
+</div>
+
+
+
+
+
+:
+
+/* Products */
+
+<div
+
+className="
+
+mt-6
+
+space-y-4
+
+"
+
+>
+
+
+
 
 
 {
@@ -597,6 +912,8 @@ rounded-2xl
 
 border
 
+border-neutral-200
+
 p-4
 
 "
@@ -604,12 +921,29 @@ p-4
 >
 
 
-<div className="flex gap-4">
+
+
+
+
+
+<div
+
+className="
+flex
+gap-4
+"
+
+>
+
+
+
 
 
 <img
 
 src={item.image}
+
+alt={item.name}
 
 className="
 
@@ -628,27 +962,47 @@ object-cover
 
 
 
-<div className="flex-1">
 
 
-<div className="flex justify-between">
+
+<div
+
+className="
+flex-1
+"
+
+>
 
 
-<p className="font-medium">
+
+
+
+
+
+<div
+
+className="
+flex
+justify-between
+gap-3
+"
+
+>
+
+
+<p
+
+className="
+font-medium
+leading-tight
+"
+
+>
 
 {item.name}
 
 </p>
 
-
-<span>
-
-₹{item.price}
-
-</span>
-
-
-</div>
 
 
 
@@ -657,26 +1011,12 @@ object-cover
 <span
 
 className="
-
-mt-2
-
-inline-flex
-
-rounded-full
-
-bg-neutral-100
-
-px-3
-
-py-1
-
-text-xs
-
+font-medium
 "
 
 >
 
-GOLD
+₹{item.price}
 
 </span>
 
@@ -684,14 +1024,73 @@ GOLD
 
 
 
-<div className="mt-4 flex items-center gap-3">
+</div>
+
+
+
+
+
+
+
+
+
+<div
+
+className="
+mt-4
+
+flex
+
+items-center
+
+gap-3
+
+"
+
+>
+
+
+
 
 
 <button
 
+disabled={item.quantity===1}
+
 onClick={()=>updateQuantity(item.id,item.quantity-1)}
 
-className="h-8 w-8 border rounded-lg"
+className={`
+
+flex
+
+h-8
+
+w-8
+
+items-center
+
+justify-center
+
+rounded-lg
+
+border
+
+
+${
+
+item.quantity===1
+
+?
+
+"cursor-not-allowed opacity-40"
+
+:
+
+"hover:bg-neutral-100"
+
+}
+
+`}
 
 >
 
@@ -701,7 +1100,20 @@ className="h-8 w-8 border rounded-lg"
 
 
 
-<span>
+
+
+
+
+<span
+
+className="
+min-w-5
+text-center
+text-sm
+font-medium
+"
+
+>
 
 {item.quantity}
 
@@ -709,11 +1121,33 @@ className="h-8 w-8 border rounded-lg"
 
 
 
+
+
+
+
 <button
 
 onClick={()=>updateQuantity(item.id,item.quantity+1)}
 
-className="h-8 w-8 border rounded-lg"
+className="
+
+flex
+
+h-8
+
+w-8
+
+items-center
+
+justify-center
+
+rounded-lg
+
+border
+
+hover:bg-neutral-100
+
+"
 
 >
 
@@ -723,11 +1157,18 @@ className="h-8 w-8 border rounded-lg"
 
 
 
+
+
+
+
 <button
 
 onClick={()=>removeItem(item.id)}
 
-className="ml-auto text-red-500"
+className="
+ml-auto
+text-red-500
+"
 
 >
 
@@ -736,16 +1177,40 @@ className="ml-auto text-red-500"
 </button>
 
 
-</div>
+
+
 
 
 </div>
 
 
+
+
+
+
+
+
+
 </div>
 
 
+
+
+
+
+
 </div>
+
+
+
+
+
+
+
+</div>
+
+
+
 
 
 ))
@@ -753,7 +1218,27 @@ className="ml-auto text-red-500"
 }
 
 
+
+
+
 </div>
+
+}
+
+
+
+
+
+
+
+
+{
+
+items.length > 0 &&
+
+<>
+
+{/* Best Coupon */}
 
 {
 
@@ -763,27 +1248,40 @@ bestCoupon && !appliedCoupon &&
 
 className="
 mt-6
-
 rounded-2xl
-
 bg-green-50
-
 p-4
-
 "
 
 >
 
-<div>
 
-<p className="font-medium">
+<p
+
+className="
+font-medium
+"
+
+>
 
 🎉 Best offer available
 
 </p>
 
 
-<p className="mt-1 text-sm">
+
+
+
+
+<p
+
+className="
+mt-1
+text-sm
+text-neutral-600
+"
+
+>
 
 Use {bestCoupon.code}
 
@@ -792,7 +1290,6 @@ and save ₹{bestCoupon.estimatedSaving}
 </p>
 
 
-</div>
 
 
 
@@ -803,15 +1300,14 @@ and save ₹{bestCoupon.estimatedSaving}
 onClick={async()=>{
 
 
-const result=
-
-await validateCoupon(
+const result = await validateCoupon(
 
 bestCoupon.code,
 
 total
 
 );
+
 
 
 
@@ -839,19 +1335,12 @@ result.coupon.minimum_order_amount
 
 className="
 mt-3
-
 rounded-xl
-
 bg-black
-
 px-4
-
 py-2
-
 text-sm
-
 text-white
-
 "
 
 >
@@ -861,9 +1350,15 @@ Apply
 </button>
 
 
+
+
+
+
 </div>
 
 }
+
+
 
 
 
@@ -874,27 +1369,41 @@ unlockCoupon && !appliedCoupon &&
 <div
 
 className="
-
 mt-6
-
 rounded-2xl
-
 bg-yellow-50
-
 p-4
-
 "
 
 >
 
-<p className="font-medium">
+
+<p
+
+className="
+font-medium
+"
+
+>
 
 🎁 Unlock {unlockCoupon.code}
 
 </p>
 
 
-<p className="mt-1 text-sm text-neutral-700">
+
+
+
+
+<p
+
+className="
+mt-1
+text-sm
+text-neutral-700
+"
+
+>
 
 Add ₹{remainingAmount}
 
@@ -904,18 +1413,18 @@ more to get this offer
 
 
 
+
+
+
+
 <button
 
 onClick={()=>setShowCoupons(true)}
 
 className="
-
 mt-3
-
 text-sm
-
 font-semibold
-
 "
 
 >
@@ -925,29 +1434,38 @@ View Offer →
 </button>
 
 
+
+
+
+
+
 </div>
 
 }
 
 
 
-{/* Coupon */}
+
+
+
+
+
+
+{/* Coupon Box */}
 
 <div
 
 className="
-
 mt-6
-
 rounded-2xl
-
 border
-
+border-neutral-200
 p-4
-
 "
 
 >
+
+
 
 
 
@@ -960,35 +1478,46 @@ appliedCoupon
 <div
 
 className="
-
 flex
-
 justify-between
-
 rounded-xl
-
 border
-
 border-green-200
-
 bg-green-50
-
 p-3
-
 "
 
 >
 
+
 <div>
 
-<p className="font-medium">
+
+<p
+
+className="
+font-medium
+"
+
+>
 
 ✓ {appliedCoupon.code}
 
 </p>
 
 
-<p className="text-sm text-green-700">
+
+
+
+
+<p
+
+className="
+text-sm
+text-green-700
+"
+
+>
 
 {
 
@@ -1015,7 +1544,16 @@ appliedCoupon.freeGift
 </p>
 
 
+
+
+
+
+
 </div>
+
+
+
+
 
 
 
@@ -1033,7 +1571,10 @@ setCouponError("");
 
 }}
 
-className="text-red-500 text-sm"
+className="
+text-sm
+text-red-500
+"
 
 >
 
@@ -1042,7 +1583,17 @@ Remove
 </button>
 
 
+
+
+
+
+
+
 </div>
+
+
+
+
 
 
 
@@ -1051,7 +1602,14 @@ Remove
 <>
 
 
-<div className="flex gap-2">
+<div
+
+className="
+flex
+gap-2
+"
+
+>
 
 
 <input
@@ -1063,20 +1621,20 @@ onChange={(e)=>setCouponCode(e.target.value)}
 placeholder="Enter Coupon Code"
 
 className="
-
 flex-1
-
 rounded-xl
-
 border
-
 px-4
-
 py-3
-
+outline-none
+focus:border-black
 "
 
 />
+
+
+
+
 
 
 
@@ -1087,15 +1645,11 @@ onClick={handleApplyCoupon}
 disabled={couponLoading}
 
 className="
-
 rounded-xl
-
 bg-black
-
 px-5
-
 text-white
-
+disabled:opacity-50
 "
 
 >
@@ -1114,11 +1668,16 @@ couponLoading
 
 }
 
-
 </button>
 
 
+
+
+
+
+
 </div>
+
 
 
 
@@ -1130,15 +1689,10 @@ couponLoading
 onClick={()=>setShowCoupons(true)}
 
 className="
-
 mt-4
-
 w-full
-
 text-sm
-
 font-medium
-
 "
 
 >
@@ -1149,10 +1703,17 @@ View All Offers →
 
 
 
+
+
 </>
 
-
 }
+
+
+
+
+
+
 
 
 
@@ -1160,28 +1721,67 @@ View All Offers →
 
 couponMessage &&
 
-<p className="mt-3 text-sm text-green-600">
+<p
+
+className="
+mt-3
+text-sm
+text-green-600
+"
+
+>
 
 {couponMessage}
 
 </p>
 
 }
+
+
+
+
+
+
+
 {
+
 couponErrorMessage &&
 
-<p className="mt-3 text-sm text-red-500">
+<p
+
+className="
+mt-3
+text-sm
+text-red-500
+"
+
+>
+
 {couponErrorMessage}
+
 </p>
 
 }
+
+
+
+
+
 
 
 {
 
 couponError &&
 
-<p className="mt-3 text-sm text-red-500">
+<p
+
+className="
+mt-3
+text-sm
+text-red-500
+"
+
+>
 
 {couponError}
 
@@ -1191,13 +1791,28 @@ couponError &&
 
 
 
-</div>
-
-
-
 
 
 </div>
+
+
+
+
+
+</>
+
+}
+
+
+
+
+
+
+
+
+
+</div>
+
 
 
 
@@ -1229,23 +1844,72 @@ bg-white
 
 px-5
 
-py-3
+py-4
 
 "
 
 >
 
 
-<div className="space-y-2 text-sm">
 
 
-<div className="flex justify-between">
 
-<span>Subtotal</span>
 
-<span>₹{total.toFixed(2)}</span>
+
+
+{
+
+items.length > 0
+
+?
+
+<>
+
+<div
+
+className="
+space-y-2
+text-sm
+"
+
+>
+
+
+
+
+
+
+<div
+
+className="
+flex
+justify-between
+"
+
+>
+
+<span>
+
+Subtotal
+
+</span>
+
+
+
+<span>
+
+₹{total.toFixed(2)}
+
+</span>
+
 
 </div>
+
+
+
+
+
+
 
 
 
@@ -1253,7 +1917,16 @@ py-3
 
 appliedCoupon &&
 
-<div className="flex justify-between text-green-600">
+<div
+
+className="
+flex
+justify-between
+text-green-600
+"
+
+>
+
 
 <span>
 
@@ -1262,11 +1935,16 @@ Coupon ({appliedCoupon.code})
 </span>
 
 
+
+
+
 <span>
 
 -₹{discount.toFixed(2)}
 
 </span>
+
+
 
 
 </div>
@@ -1277,11 +1955,26 @@ Coupon ({appliedCoupon.code})
 
 
 
-<div className="flex justify-between text-neutral-600">
+
+
+<div
+
+className="
+flex
+justify-between
+text-neutral-600
+"
+
+>
+
 
 <span>
+
 Shipping
+
 </span>
+
+
 
 
 <span>
@@ -1303,7 +1996,15 @@ appliedCoupon?.freeShipping
 </span>
 
 
+
 </div>
+
+
+
+
+
+
+
 {
 
 appliedCoupon?.freeGift &&
@@ -1311,20 +2012,12 @@ appliedCoupon?.freeGift &&
 <div
 
 className="
-mb-2
-
 rounded-xl
-
 bg-green-50
-
 px-3
-
 py-2
-
 text-sm
-
 text-green-700
-
 "
 
 >
@@ -1338,13 +2031,29 @@ text-green-700
 
 
 
-<div className="border-t pt-2 flex justify-between text-lg font-bold">
+
+
+
+<div
+
+className="
+border-t
+pt-3
+flex
+justify-between
+text-lg
+font-bold
+"
+
+>
 
 <span>
 
 Estimated Total
 
 </span>
+
+
 
 
 <span>
@@ -1354,10 +2063,19 @@ Estimated Total
 </span>
 
 
-</div>
 
 
 </div>
+
+
+
+
+
+</div>
+
+
+
+
 
 
 
@@ -1365,38 +2083,113 @@ Estimated Total
 
 <button
 
+onClick={()=>setCheckoutOpen(true)}
+
 className="
-
-mt-3
-
+mt-4
 w-full
-
 rounded-xl
-
 bg-black
-
 py-3
-
 font-semibold
-
 text-white
-
+transition
+hover:bg-neutral-800
 "
 
 >
 
-Proceed To Checkout
+Continue To Checkout
 
 </button>
 
 
 
-<p className="mt-2 text-center text-xs text-neutral-500">
+
+
+
+
+<p
+
+className="
+mt-2
+text-center
+text-xs
+text-neutral-500
+"
+
+>
 
 ⚡ Dispatched in 1 day
 
 </p>
 
+</>
+
+
+
+:
+
+<div
+
+className="
+text-center
+"
+
+>
+
+<p
+
+className="
+text-sm
+text-neutral-500
+"
+
+>
+
+Add jewellery pieces to continue shopping
+
+</p>
+
+
+
+
+
+
+
+<button
+
+onClick={closeCart}
+
+className="
+mt-4
+w-full
+rounded-xl
+bg-black
+py-3
+font-semibold
+text-white
+"
+
+>
+
+Start Shopping
+
+</button>
+
+
+
+
+
+</div>
+
+}
+
+
+
+
+
+
 
 </div>
 
@@ -1407,6 +2200,10 @@ Proceed To Checkout
 
 
 </div>
+
+
+
+
 
 
 
@@ -1424,6 +2221,7 @@ appliedCoupon={appliedCoupon}
 
 onApply={async(coupon)=>{
 
+
 try{
 
 
@@ -1435,6 +2233,9 @@ setCouponMessage("");
 
 
 
+
+
+
 const result = await validateCoupon(
 
 coupon.code,
@@ -1442,6 +2243,10 @@ coupon.code,
 total
 
 );
+
+
+
+
 
 
 
@@ -1463,6 +2268,10 @@ minimumOrderAmount:
 result.coupon.minimum_order_amount
 
 });
+
+
+
+
 
 
 
@@ -1490,6 +2299,9 @@ result.freeGift
 
 
 
+
+
+
 setShowCoupons(false);
 
 
@@ -1498,24 +2310,48 @@ setShowCoupons(false);
 
 catch(error:any){
 
+
 setCouponError(
 
 error.message || "Invalid coupon"
 
 );
 
+
+
 }
 
 finally{
 
+
 setCouponLoading(false);
 
+
 }
+
 
 
 }}
 
 />
+
+
+
+
+
+
+
+
+
+<CheckoutDialog
+
+open={checkoutOpen}
+
+onClose={()=>setCheckoutOpen(false)}
+
+/>
+
+
 
 
 

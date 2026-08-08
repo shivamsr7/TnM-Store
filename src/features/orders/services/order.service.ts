@@ -7,7 +7,9 @@ import type {
 } from "../types/order.types";
 
 
-
+import {
+  notificationService
+} from "@/features/notifications/services/notification.service";
 
 
 function generateOrderNumber(){
@@ -15,6 +17,84 @@ function generateOrderNumber(){
   return `TNM-${Date.now()}`;
 
 }
+
+
+
+
+
+
+async function createOrderActivity({
+
+  orderId,
+  eventType,
+  title,
+  description,
+  metadata
+
+}:{
+
+  orderId:string;
+
+  eventType:string;
+
+  title:string;
+
+  description?:string;
+
+  metadata?:Record<string,unknown>;
+
+}){
+
+
+const {
+  data:{
+    user
+  }
+}=await supabase.auth.getUser();
+
+
+
+
+const {
+
+error
+
+}=await supabase
+
+.from("order_activity")
+
+.insert({
+
+  order_id:orderId,
+
+  event_type:eventType,
+
+  title,
+
+  description:description ?? null,
+
+  metadata:metadata ?? {},
+
+  created_by:user?.id ?? null
+
+});
+
+
+
+if(error){
+
+console.error(
+"Create activity failed:",
+error
+);
+
+}
+
+
+}
+
+
+
 
 
 
@@ -30,7 +110,10 @@ export async function createOrder(
 
 
 
+
 const orderNumber = generateOrderNumber();
+
+
 
 
 
@@ -46,7 +129,12 @@ order_number:orderNumber,
 
 
 
+
 // Customer
+
+customer_id:
+payload.customerId ?? null,
+
 
 customer_name:
 payload.customer.name,
@@ -58,6 +146,7 @@ payload.customer.email ?? null,
 
 customer_phone:
 payload.customer.phone,
+
 
 
 
@@ -90,6 +179,7 @@ payload.totalAmount,
 
 
 
+
 // Payment
 
 advance_amount:
@@ -104,6 +194,11 @@ payment_method:
 payload.paymentMethod,
 
 
+payment_transaction_id:
+payload.paymentTransactionId ?? null,
+
+
+
 
 
 
@@ -116,6 +211,7 @@ payload.coupon?.id ?? null,
 
 coupon_code:
 payload.coupon?.code ?? null,
+
 
 
 
@@ -195,6 +291,8 @@ total:item.total,
 
 
 
+
+
 const {
 
 data,
@@ -212,6 +310,7 @@ order_data:orderData
 }
 
 );
+
 
 
 
@@ -241,10 +340,172 @@ throw error;
 
 
 
+const orderId = data;
+
+
+
+
+
+
+
+
+
+// Activity 1: Order Created
+
+await createOrderActivity({
+
+orderId,
+
+
+eventType:"order_created",
+
+
+title:"Order Created",
+
+
+description:
+`Order #${orderNumber} was placed successfully.`,
+
+
+metadata:{
+
+order_number:orderNumber
+
+}
+
+});
+
+
+
+
+
+
+
+
+
+// Notification 1: Order Placed
+
+if(payload.customerId){
+
+
+await notificationService.createNotification({
+
+customerId:
+payload.customerId,
+
+
+title:
+"Order Placed",
+
+
+message:
+`Your order #${orderNumber} has been placed successfully.`,
+
+
+type:"order",
+
+
+referenceId:
+orderId,
+
+
+});
+
+
+}
+
+
+
+
+
+
+
+
+
+// Activity 2: Payment Received
+
+if(payload.paymentMethod==="prepaid"){
+
+
+await createOrderActivity({
+
+orderId,
+
+
+eventType:"payment_received",
+
+
+title:"Payment Received",
+
+
+description:
+`Payment received for order #${orderNumber}.`,
+
+
+metadata:{
+
+payment_method:"prepaid",
+
+transaction_id:
+payload.paymentTransactionId ?? null
+
+}
+
+});
+
+
+
+
+
+
+
+
+
+// Notification 2: Payment Received
+
+
+if(payload.customerId){
+
+
+await notificationService.createNotification({
+
+customerId:
+payload.customerId,
+
+
+title:
+"Payment Received",
+
+
+message:
+`Payment received for order #${orderNumber}.`,
+
+
+type:"payment",
+
+
+referenceId:
+orderId,
+
+
+});
+
+
+}
+
+
+}
+
+
+
+
+
+
+
 return {
 
 
-orderId:data,
+orderId,
 
 
 orderNumber
