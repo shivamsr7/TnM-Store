@@ -543,8 +543,6 @@ onClick={onClose}
 
 
 
-
-
 <div
 
 className="
@@ -553,13 +551,13 @@ left-1/2
 top-1/2
 z-[1100]
 
+flex
+max-h-[90vh]
 w-[calc(100%-32px)]
-
 max-w-[560px]
-
 -translate-x-1/2
-
 -translate-y-1/2
+flex-col
 
 overflow-hidden
 
@@ -568,10 +566,6 @@ rounded-3xl
 bg-white
 
 shadow-2xl
-
-max-h-[90vh]
-
-overflow-y-auto
 "
 
 >
@@ -589,7 +583,9 @@ overflow-y-auto
 <div
 
 className="
+shrink-0
 border-b
+bg-white
 px-6
 py-5
 "
@@ -931,6 +927,8 @@ index < currentStepIndex
 <div
 
 className="
+flex-1
+overflow-y-auto
 px-6
 py-7
 "
@@ -1380,6 +1378,7 @@ onSuccess={handlePaymentSuccess}
 <div
 
 className="
+shrink-0
 border-t
 bg-neutral-50
 px-6

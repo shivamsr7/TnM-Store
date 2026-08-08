@@ -1,7 +1,8 @@
 import {
   ShieldCheck,
   CreditCard,
-  Loader2
+  Loader2,
+  CheckCircle2,
 } from "lucide-react";
 
 import {
@@ -10,7 +11,8 @@ import {
 
 
 import {
-  createRazorpayOrder, verifyRazorpayPayment
+  createRazorpayOrder,
+  verifyRazorpayPayment
 } from "@/features/payment/services/razorpay.service";
 
 
@@ -48,6 +50,11 @@ const [error,setError]=useState("");
 
 
 async function handlePayment(){
+
+
+if(loading)
+return;
+
 
 
 try{
@@ -115,6 +122,10 @@ handler:async function(response:any){
 try{
 
 
+setLoading(true);
+
+
+
 const verification =
 
 await verifyRazorpayPayment({
@@ -154,8 +165,13 @@ else{
 
 
 setError(
-"Payment verification failed"
+
+"Payment verification failed. Please try again."
+
 );
+
+
+setLoading(false);
 
 
 }
@@ -171,8 +187,13 @@ console.error(error);
 
 
 setError(
-"Payment verification failed"
+
+"Payment verification failed. Please try again."
+
 );
+
+
+setLoading(false);
 
 
 }
@@ -225,7 +246,15 @@ ondismiss:()=>{
 setLoading(false);
 
 
+setError(
+
+"Payment cancelled"
+
+);
+
+
 }
+
 
 
 }
@@ -265,18 +294,14 @@ setError(
 
 err.message ||
 
-"Payment failed"
+"Payment failed. Please try again."
 
 );
 
 
 
-}
-
-finally{
-
-
 setLoading(false);
+
 
 
 }
@@ -339,9 +364,9 @@ className="
 
 flex
 
-h-10
+h-11
 
-w-10
+w-11
 
 items-center
 
@@ -350,6 +375,8 @@ justify-center
 rounded-full
 
 bg-white
+
+shadow-sm
 
 "
 
@@ -366,14 +393,14 @@ bg-white
 
 <p className="font-medium">
 
-Online Payment
+Secure Online Payment
 
 </p>
 
 
 <p className="text-sm text-neutral-500">
 
-UPI, Cards, Net Banking
+UPI • Cards • Net Banking
 
 </p>
 
@@ -421,7 +448,7 @@ Amount Payable
 
 
 
-<span className="font-semibold">
+<span className="text-lg font-semibold">
 
 ₹{totalAmount}
 
@@ -469,6 +496,12 @@ font-medium
 
 text-white
 
+transition
+
+hover:bg-neutral-800
+
+disabled:cursor-not-allowed
+
 disabled:opacity-60
 
 "
@@ -482,6 +515,8 @@ loading
 
 ?
 
+<>
+
 <Loader2
 
 size={18}
@@ -489,6 +524,10 @@ size={18}
 className="animate-spin"
 
 />
+
+Processing Payment...
+
+</>
 
 :
 
@@ -510,15 +549,23 @@ className="animate-spin"
 
 error &&
 
-<p
+<div
 
 className="
+
+rounded-xl
+
+bg-red-50
+
+px-4
+
+py-3
 
 text-center
 
 text-sm
 
-text-red-500
+text-red-600
 
 "
 
@@ -526,7 +573,7 @@ text-red-500
 
 {error}
 
-</p>
+</div>
 
 }
 
@@ -560,6 +607,38 @@ text-neutral-500
 <ShieldCheck size={16}/>
 
 Secure payment powered by Razorpay
+
+</div>
+
+
+
+
+
+
+
+<div
+
+className="
+
+flex
+
+items-center
+
+justify-center
+
+gap-2
+
+text-xs
+
+text-neutral-400
+
+"
+
+>
+
+<CheckCircle2 size={14}/>
+
+Your payment details are protected
 
 </div>
 
