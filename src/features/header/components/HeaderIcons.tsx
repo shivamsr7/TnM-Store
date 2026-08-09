@@ -56,7 +56,6 @@ import {
 interface HeaderIconsProps {
 
   wishlistCount?: number;
-  cartCount?: number;
 
 }
 

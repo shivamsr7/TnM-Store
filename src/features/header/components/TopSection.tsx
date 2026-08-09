@@ -13,7 +13,6 @@ interface TopSectionProps {
 
 export default function TopSection({
   wishlistCount = 0,
-  cartCount = 0,
   search = "",
   onSearchChange,
   onSearch,
@@ -39,7 +38,6 @@ export default function TopSection({
         <div className="shrink-0">
           <HeaderIcons
             wishlistCount={wishlistCount}
-            cartCount={cartCount}
           />
         </div>
       </div>

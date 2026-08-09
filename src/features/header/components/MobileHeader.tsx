@@ -25,15 +25,17 @@ import {
 
 import Logo from "./logo";
 
-
 import SearchBar from "./SearchBar";
-
 
 
 import {
   useAuth,
 } from "@/features/Auth/context/AuthContext";
 
+
+import {
+  useCartStore,
+} from "@/features/cart/store/cart.store";
 
 
 import {
@@ -42,7 +44,6 @@ import {
   useMarkNotificationRead,
   useMarkAllNotificationsRead,
 } from "@/features/notifications/hooks/useNotifications";
-
 
 
 import {
@@ -66,8 +67,6 @@ interface MobileHeaderProps {
   onSearch?: ()=>void;
 
   wishlistCount?:number;
-
-  cartCount?:number;
 
 }
 
@@ -178,8 +177,6 @@ export default function MobileHeader({
 
   wishlistCount=0,
 
-  cartCount=0,
-
 }:MobileHeaderProps){
 
 
@@ -213,6 +210,21 @@ useRef<HTMLDivElement>(null);
 const {
 customer
 }=useAuth();
+
+
+
+
+
+
+
+const {
+
+openCart,
+
+getCartCount,
+
+}=useCartStore();
+
 
 
 
@@ -517,6 +529,8 @@ text-black
 
 <button
 
+onClick={openCart}
+
 className="
 relative
 rounded-md
@@ -533,7 +547,7 @@ hover:bg-neutral-800
 
 {
 
-cartCount > 0 && (
+getCartCount() > 0 && (
 
 <span
 
@@ -555,7 +569,19 @@ text-black
 
 >
 
-{cartCount}
+{
+
+getCartCount() > 99
+
+?
+
+"99+"
+
+:
+
+getCartCount()
+
+}
 
 </span>
 
@@ -673,6 +699,7 @@ notificationCount
 
 
 
+
 <div
 
 className={`
@@ -765,7 +792,9 @@ onClick={()=>{
 
 
 markAllRead(
+
 customer.id
+
 );
 
 
@@ -819,7 +848,9 @@ overflow-y-auto
 notifications
 
 .filter(
+
 (item:any)=>!item.is_read
+
 )
 
 .slice(0,5)
@@ -829,7 +860,9 @@ notifications
 
 const Icon =
 getNotificationIcon(
+
 item.type
+
 );
 
 
@@ -891,7 +924,9 @@ rounded-full
 ${
 
 getNotificationColor(
+
 item.type
+
 )
 
 }
@@ -959,7 +994,9 @@ text-neutral-500
 ">
 
 {timeAgo(
+
 item.created_at
+
 )}
 
 </p>
@@ -1003,8 +1040,11 @@ bg-[#C8A44D]
 
 
 {
+
 notifications.filter(
+
 (item:any)=>!item.is_read
+
 ).length===0 && (
 
 
@@ -1057,7 +1097,7 @@ text-neutral-600
 
 ">
 
-We'll notify you about orders and rewards.
+We'll notify you about orders and updates.
 
 </p>
 
@@ -1073,7 +1113,6 @@ We'll notify you about orders and rewards.
 
 
 
- id="5yq8vj"
 </div>
 
 
