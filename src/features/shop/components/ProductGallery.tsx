@@ -1,7 +1,8 @@
+
 import {
   useState,
-  useRef,
 } from "react";
+
 
 import {
   ChevronLeft,
@@ -9,6 +10,7 @@ import {
   Heart,
   Share2,
 } from "lucide-react";
+
 
 
 
@@ -41,29 +43,29 @@ productName
 
 
 
+const imageList = [...images].sort(
+
+(a,b)=>a.sort_order-b.sort_order
+
+);
+
+
+
+
+
 const [activeImage,setActiveImage]=useState(0);
 
-const [touchStart,setTouchStart]=useState<number | null>(null);
-
-const [loaded,setLoaded]=useState(false);
 
 const [direction,setDirection]=useState<
 "next"|"prev"|null
 >(null);
 
 
-
-const imageRef = useRef<HTMLDivElement>(null);
-
+const [loaded,setLoaded]=useState(false);
 
 
+const [touchStart,setTouchStart]=useState<number | null>(null);
 
-
-const imageList = [...images].sort(
-
-(a,b)=>a.sort_order-b.sort_order
-
-);
 
 
 
@@ -77,6 +79,11 @@ const changeImage=(index:number)=>{
 
 if(index===activeImage)
 return;
+
+
+
+setLoaded(false);
+
 
 
 setDirection(
@@ -94,18 +101,22 @@ index > activeImage
 );
 
 
-setLoaded(false);
-
 
 setTimeout(()=>{
 
+
 setActiveImage(index);
 
-},80);
+
+setDirection(null);
+
+
+},120);
 
 
 
 };
+
 
 
 
@@ -119,6 +130,7 @@ const nextImage=()=>{
 
 if(imageList.length<=1)
 return;
+
 
 
 changeImage(
@@ -145,11 +157,13 @@ activeImage+1
 
 
 
+
 const previousImage=()=>{
 
 
 if(imageList.length<=1)
 return;
+
 
 
 changeImage(
@@ -168,6 +182,7 @@ activeImage-1
 
 
 };
+
 
 
 
@@ -198,6 +213,8 @@ e.touches[0].clientX
 
 
 
+
+
 const handleTouchEnd=(
 
 e:React.TouchEvent
@@ -209,18 +226,22 @@ if(touchStart===null)
 return;
 
 
-const touchEnd =
+
+const touchEnd=
+
 e.changedTouches[0].clientX;
 
 
 
-const distance =
+const distance=
+
 touchStart-touchEnd;
 
 
 
 
 if(Math.abs(distance)>50){
+
 
 
 if(distance>0){
@@ -235,11 +256,13 @@ previousImage();
 }
 
 
+
 }
 
 
 
 setTouchStart(null);
+
 
 
 };
@@ -262,11 +285,11 @@ w-full
 
 
 
-{/* Main Gallery */}
+
+
+{/* Main Image */}
 
 <div
-
-ref={imageRef}
 
 onTouchStart={handleTouchStart}
 
@@ -285,10 +308,8 @@ rounded-3xl
 
 bg-neutral-900
 
+
 shadow-xl
-
-
-sm:aspect-square
 
 
 lg:h-[560px]
@@ -303,15 +324,16 @@ lg:aspect-auto
 
 
 
+
+
+
 {
 
 imageList.length > 0 &&
 
 <img
 
-src={
-imageList[activeImage].image_url
-}
+src={imageList[activeImage].image_url}
 
 alt={productName}
 
@@ -326,6 +348,7 @@ h-full
 w-full
 
 object-cover
+
 
 
 transition-all
@@ -349,6 +372,7 @@ loaded
 "opacity-0 scale-105"
 
 }
+
 
 
 
@@ -407,19 +431,24 @@ left-1/2
 
 -translate-x-1/2
 
+
 rounded-full
 
 bg-black/60
+
 
 px-3
 
 py-1
 
+
 text-xs
 
 text-white
 
+
 backdrop-blur-md
+
 
 sm:hidden
 
@@ -427,7 +456,7 @@ sm:hidden
 
 >
 
-{activeImage+1}/{imageList.length}
+{activeImage + 1}/{imageList.length}
 
 </div>
 
@@ -467,6 +496,7 @@ justify-center
 
 rounded-full
 
+
 bg-black/40
 
 
@@ -483,7 +513,9 @@ duration-300
 
 hover:scale-110
 
+
 hover:bg-[#D4AF37]
+
 
 hover:text-black
 
@@ -532,6 +564,7 @@ justify-center
 
 rounded-full
 
+
 bg-black/40
 
 
@@ -548,7 +581,9 @@ duration-300
 
 hover:scale-110
 
+
 hover:bg-[#D4AF37]
+
 
 hover:text-black
 
@@ -571,7 +606,7 @@ active:scale-95
 
 
 
-{/* Desktop Arrows */}
+{/* Desktop Navigation */}
 
 {
 
@@ -591,11 +626,13 @@ left-4
 
 top-1/2
 
+
 hidden
 
 h-10
 
 w-10
+
 
 -translate-y-1/2
 
@@ -606,6 +643,7 @@ justify-center
 
 
 rounded-full
+
 
 bg-black/50
 
@@ -620,6 +658,7 @@ transition
 
 
 hover:bg-[#D4AF37]
+
 
 hover:text-black
 
@@ -642,7 +681,6 @@ sm:flex
 
 
 
-
 <button
 
 onClick={nextImage}
@@ -655,11 +693,13 @@ right-4
 
 top-1/2
 
+
 hidden
 
 h-10
 
 w-10
+
 
 -translate-y-1/2
 
@@ -670,6 +710,7 @@ justify-center
 
 
 rounded-full
+
 
 bg-black/50
 
@@ -684,6 +725,7 @@ transition
 
 
 hover:bg-[#D4AF37]
+
 
 hover:text-black
 
@@ -708,6 +750,8 @@ sm:flex
 
 
 
+
+
 </div>
 
 
@@ -718,7 +762,7 @@ sm:flex
 
 
 
-{/* Mobile Dots */}
+{/* Mobile Pagination */}
 
 {
 
@@ -735,6 +779,7 @@ flex
 justify-center
 
 gap-2
+
 
 sm:hidden
 
@@ -753,13 +798,16 @@ key={index}
 
 onClick={()=>changeImage(index)}
 
-className={`
 
-rounded-full
+className={`
 
 transition-all
 
 duration-300
+
+
+rounded-full
+
 
 
 ${
@@ -784,7 +832,6 @@ activeImage===index
 ))
 
 }
-
 
 </div>
 
@@ -814,6 +861,7 @@ hidden
 
 gap-3
 
+
 sm:flex
 
 "
@@ -830,6 +878,7 @@ imageList.map((image,index)=>(
 key={index}
 
 onClick={()=>changeImage(index)}
+
 
 className={`
 
@@ -870,12 +919,12 @@ activeImage===index
 
 >
 
-
 <img
 
 src={image.image_url}
 
 alt={productName}
+
 
 className="
 
@@ -889,9 +938,7 @@ object-cover
 
 />
 
-
 </button>
-
 
 ))
 
@@ -900,6 +947,9 @@ object-cover
 </div>
 
 }
+
+
+
 
 
 

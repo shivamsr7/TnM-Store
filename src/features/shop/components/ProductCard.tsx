@@ -1,4 +1,8 @@
-import { useState } from "react";
+import {
+  useState
+} from "react";
+
+
 import {
   Heart,
   Eye,
@@ -6,62 +10,185 @@ import {
   ChevronRight,
   Coins,
 } from "lucide-react";
+
+
 import {
   useCartActions
 } from "@/features/cart/hooks/useCartActions";
-import type { Product } from "@/features/products/types/product.types";
+
+
+import type {
+  Product
+} from "@/features/products/types/product.types";
+
 
 import QuickViewModal from "./QuickViewModal";
+
+
+
+
+
 interface ProductCardProps {
+
   product: Product & {
+
     product_images?: {
-      image_url: string;
-      is_primary: boolean;
-      sort_order: number;
+
+      image_url:string;
+
+      is_primary:boolean;
+
+      sort_order:number;
+
     }[];
+
   };
+
 }
 
 
 
+
+
+
+
+
 export default function ProductCard({
-  product,
-}: ProductCardProps) {
+
+product,
+
+}:ProductCardProps){
+
+
+
 
 
 const images =
+
 product.product_images
+
 ?.sort(
+
 (a,b)=>a.sort_order-b.sort_order
+
 )
+
 .map(
+
 (item)=>item.image_url
-) || [];
+
+)
+
+|| [];
 
 
 
 
-const [activeImage,setActiveImage] = useState(0);
 
-const [hoverPreview,setHoverPreview] = useState(false);
 
-const [imageChanging,setImageChanging] = useState(false);
 
-const [showRewardInfo,setShowRewardInfo] = useState(false);
 
-const [touchStart, setTouchStart] = useState<number | null>(null);
+const [
 
-const [showQuickView, setShowQuickView] = useState(false);
+activeImage,
+
+setActiveImage
+
+]=useState(0);
+
+
+
+
+
+const [
+
+hoverPreview,
+
+setHoverPreview
+
+]=useState(false);
+
+
+
+
+
+const [
+
+imageChanging,
+
+setImageChanging
+
+]=useState(false);
+
+
+
+
+
+const [
+
+imageLoaded,
+
+setImageLoaded
+
+]=useState(false);
+
+
+
+
+
+const [
+
+showRewardInfo,
+
+setShowRewardInfo
+
+]=useState(false);
+
+
+
+
+
+const [
+
+touchStart,
+
+setTouchStart
+
+]=useState<number|null>(null);
+
+
+
+
+
+const [
+
+showQuickView,
+
+setShowQuickView
+
+]=useState(false);
+
+
+
+
+
+
+
 
 const displayImage =
 
+
 hoverPreview &&
-activeImage === 0 &&
+
+activeImage===0 &&
+
 images[1]
+
 
 ?
 
 images[1]
+
 
 :
 
@@ -73,23 +200,33 @@ images[activeImage];
 
 
 
+
+
 const discount =
+
 
 product.compare_price
 
+
 ?
+
 
 Math.round(
 
-((product.compare_price-product.price)
+(
+
+(product.compare_price-product.price)
 
 /
 
-product.compare_price)
+product.compare_price
+
+)
 
 *100
 
 )
+
 
 :
 
@@ -101,37 +238,48 @@ product.compare_price)
 
 
 
+
+
 const badge =
 
+
 product.best_seller
+
 
 ?
 
 "Best Seller"
 
+
 :
 
 product.new_arrival
+
 
 ?
 
 "New Arrival"
 
+
 :
 
 product.trending
+
 
 ?
 
 "Trending"
 
+
 :
 
 product.editors_pick
 
+
 ?
 
 "Editor's Pick"
+
 
 :
 
@@ -142,19 +290,33 @@ null;
 
 
 
+const changeImage=(index:number)=>{
 
 
-const changeImage = (index:number)=>{
+if(index===activeImage)
+return;
+
+
 
 setImageChanging(true);
 
+setImageLoaded(false);
+
+
+
 setTimeout(()=>{
+
 
 setActiveImage(index);
 
+
 setImageChanging(false);
 
-},150);
+
+
+},180);
+
+
 
 };
 
@@ -164,14 +326,19 @@ setImageChanging(false);
 
 
 
-const previousImage = ()=>{
+
+
+const previousImage=()=>{
 
 
 if(!images.length)
+
 return;
 
 
+
 setHoverPreview(false);
+
 
 
 changeImage(
@@ -197,14 +364,19 @@ activeImage-1
 
 
 
-const nextImage = ()=>{
+
+
+const nextImage=()=>{
 
 
 if(!images.length)
+
 return;
 
 
+
 setHoverPreview(false);
+
 
 
 changeImage(
@@ -222,39 +394,68 @@ activeImage+1
 );
 
 
+
 };
 
-const handleTouchStart = (
-e: React.TouchEvent
-) => {
+
+
+
+
+
+
+
+
+const handleTouchStart=(
+
+e:React.TouchEvent
+
+)=>{
+
 
 setTouchStart(
+
 e.touches[0].clientX
+
 );
+
 
 };
 
 
 
-const handleTouchEnd = (
-e: React.TouchEvent
-) => {
 
 
-if(touchStart === null)
+
+
+
+
+const handleTouchEnd=(
+
+e:React.TouchEvent
+
+)=>{
+
+
+if(touchStart===null)
+
 return;
 
 
-const touchEnd =
+
+const touchEnd=
+
 e.changedTouches[0].clientX;
 
 
-const distance =
-touchStart - touchEnd;
+
+const distance=
+
+touchStart-touchEnd;
 
 
 
-if(Math.abs(distance) < 50){
+
+if(Math.abs(distance)<50){
 
 setTouchStart(null);
 
@@ -264,9 +465,8 @@ return;
 
 
 
-if(distance > 0){
 
-// swipe left
+if(distance>0){
 
 nextImage();
 
@@ -274,32 +474,46 @@ nextImage();
 
 else{
 
-// swipe right
-
 previousImage();
 
 }
 
 
 
+
 setTouchStart(null);
 
 
+
 };
+
+
+
+
 
 
 
 
 const {
-  addToCart
-} = useCartActions();
+
+addToCart
+
+}=useCartActions();
 
 
-const handleAddToCart = () => {
+
+
+
+
+
+const handleAddToCart=()=>{
+
 
 addToCart(product);
 
+
 };
+
 
 
 
@@ -309,25 +523,41 @@ addToCart(product);
 
 
 return (
+
 <>
+
 <div
 
 className="
+
 group
+
 overflow-hidden
+
 rounded-2xl
 
-border-0
-sm:border
-sm:border-[#D4AF37]/20
 
 bg-[#0b0b0b]
 
+
+border-0
+
+
+sm:border
+
+sm:border-[#D4AF37]/20
+
+
 transition-all
+
 duration-500
 
-sm:hover:-translate-y-[2px]
+
+sm:hover:-translate-y-1
+
+
 sm:hover:border-[#D4AF37]/70
+
 "
 
 >
@@ -339,7 +569,8 @@ sm:hover:border-[#D4AF37]/70
 
 
 
-{/* IMAGE */}
+
+{/* IMAGE SECTION */}
 
 <div
 
@@ -348,7 +579,9 @@ onTouchStart={handleTouchStart}
 onTouchEnd={handleTouchEnd}
 
 
+
 onMouseEnter={()=>{
+
 
 if(activeImage===0){
 
@@ -356,26 +589,49 @@ setHoverPreview(true);
 
 }
 
+
+
 }}
+
+
 
 onMouseLeave={()=>{
 
+
 setHoverPreview(false);
+
 
 }}
 
+
+
 className="
+
 relative
-aspect-square
+
+
+aspect-[4/5]
+
+
 overflow-hidden
-bg-neutral-900
+
+
 rounded-2xl
 
-sm:aspect-[4/5]
+
+bg-neutral-900
+
+
 sm:rounded-3xl
 
 "
+
 >
+
+
+
+
+
 
 
 
@@ -389,6 +645,10 @@ src={displayImage}
 
 alt={product.name}
 
+
+onLoad={()=>setImageLoaded(true)}
+
+
 className={`
 
 h-full
@@ -397,9 +657,14 @@ w-full
 
 object-cover
 
+
+
 transition-all
 
-duration-300
+duration-500
+
+ease-out
+
 
 
 ${
@@ -408,13 +673,22 @@ imageChanging
 
 ?
 
-"opacity-0 scale-95"
+"scale-95 opacity-0"
 
 :
 
-"opacity-100 scale-100"
+imageLoaded
+
+?
+
+"scale-100 opacity-100"
+
+:
+
+"scale-105 opacity-0"
 
 }
+
 
 
 group-hover:scale-105
@@ -425,30 +699,49 @@ group-hover:scale-105
 
 }
 
+
+
+
+
+
+
+
+
+{/* Bottom Gradient */}
+
 <div
 
 className="
+
 absolute
+
 inset-x-0
+
 bottom-0
 
-h-20
+
+h-24
+
 
 pointer-events-none
 
+
 bg-gradient-to-t
 
-from-black/30
+
+from-black/40
+
 
 via-black/10
+
 
 to-transparent
 
 "
 
->
+/>
 
-</div>
+
 
 
 
@@ -460,29 +753,40 @@ to-transparent
 
 {
 
-discount > 0 &&
+discount>0 &&
 
 <div
 
 className="
+
 absolute
 
+
 left-3
+
 top-3
+
 
 z-20
 
+
 rounded-full
+
 
 bg-[#D4AF37]
 
+
 px-3
+
 
 py-1
 
+
 text-xs
 
+
 font-semibold
+
 
 text-black
 
@@ -497,69 +801,99 @@ text-black
 }
 
 
-{/* Quick View + Wishlist */}
+
+
+
+
+
+
+
+{/* Quick View */}
 
 <div
 
 className="
+
 absolute
+
+
 right-3
+
+
 top-3
+
 
 z-30
 
-flex
-gap-2
 
 opacity-100
 
+
 sm:opacity-0
+
 
 sm:group-hover:opacity-100
 
+
 transition-opacity
-duration-200
+
+duration-300
 
 "
 
 >
 
-
-
-
-
 <button
 
 onClick={(e)=>{
+
 
 e.preventDefault();
 
 e.stopPropagation();
 
+
 setShowQuickView(true);
+
 
 }}
 
 
+
 className="
+
 flex
-h-8
-w-8
+
+
+h-9
+
+
+w-9
+
 
 items-center
+
+
 justify-center
+
 
 rounded-full
 
+
 bg-black/50
+
 
 text-white
 
-backdrop-blur-sm
+
+backdrop-blur-md
+
 
 transition
 
+
 hover:bg-[#D4AF37]
+
 
 hover:text-black
 
@@ -572,7 +906,6 @@ hover:text-black
 </button>
 
 
-
 </div>
 
 
@@ -580,7 +913,11 @@ hover:text-black
 
 
 
-{/* Product Badge - Desktop Only */}
+
+
+
+
+{/* Product Badge */}
 
 {
 
@@ -589,9 +926,11 @@ badge &&
 <div
 
 className="
+
 hidden
 
 sm:block
+
 
 absolute
 
@@ -599,23 +938,32 @@ left-4
 
 bottom-4
 
+
 z-20
+
 
 rounded-full
 
-bg-black/80
 
 border
 
 border-[#D4AF37]/40
 
+
+bg-black/80
+
+
 px-3
+
 
 py-1
 
+
 text-xs
 
+
 font-medium
+
 
 text-[#D4AF37]
 
@@ -637,7 +985,7 @@ text-[#D4AF37]
 
 
 
-{/* Arrows */}
+{/* Desktop Arrows */}
 
 {
 
@@ -650,42 +998,57 @@ images.length > 1 &&
 onClick={previousImage}
 
 className="
+
 hidden
+
 sm:flex
+
+
 absolute
 
-left-2
+left-3
+
+
 top-1/2
+
 
 z-20
 
-flex
 
-h-7
-w-7
+h-8
+
+
+w-8
+
 
 -translate-y-1/2
 
+
 items-center
+
+
 justify-center
+
 
 rounded-full
 
+
 bg-black/50
+
 
 text-white
 
+
+backdrop-blur-md
+
+
 transition
+
 
 hover:bg-[#D4AF37]
 
+
 hover:text-black
-
-
-sm:left-3
-
-sm:h-8
-sm:w-8
 
 "
 
@@ -701,47 +1064,63 @@ sm:w-8
 
 
 
+
 <button
 
 onClick={nextImage}
 
 className="
+
 hidden
+
 sm:flex
+
+
 absolute
 
-right-2
+right-3
+
+
 top-1/2
+
 
 z-20
 
-flex
 
-h-7
-w-7
+h-8
+
+
+w-8
+
 
 -translate-y-1/2
 
+
 items-center
+
+
 justify-center
+
 
 rounded-full
 
+
 bg-black/50
+
 
 text-white
 
+
+backdrop-blur-md
+
+
 transition
+
 
 hover:bg-[#D4AF37]
 
+
 hover:text-black
-
-
-sm:right-3
-
-sm:h-8
-sm:w-8
 
 "
 
@@ -752,22 +1131,50 @@ sm:w-8
 </button>
 
 
+
+
+
 </>
 
 }
 
 
+
+
+
 </div>
+
+
+
+
+
+
+
+
+
 {/* DETAILS */}
 
 <div
+
 className="
+
 flex
+
 flex-col
+
+
 p-3
+
+
 sm:p-5
+
 "
+
 >
+
+
+
+
 
 
 
@@ -778,33 +1185,46 @@ sm:p-5
 <h3
 
 className="
+
 line-clamp-2
 
-h-[40px]
+
+h-[42px]
+
 
 text-sm
 
+
 font-medium
+
 
 leading-5
 
+
 text-[#F7E3A3]
+
 
 transition
 
+
 hover:text-[#D4AF37]
+
 
 sm:h-auto
 
+
 sm:text-lg
+
 "
 
 >
+
 {product.name}
 
 </h3>
 
 </a>
+
 
 
 
@@ -822,39 +1242,65 @@ product.rating > 0 &&
 <div
 
 className="
+
 mt-2
-h-[20px]
+
 
 flex
+
+
 items-center
+
 
 text-xs
 
+
 sm:mt-3
-sm:h-auto
+
+
 sm:text-sm
+
 "
 
 >
 
-{
 
-product.rating > 0 &&
+<span
 
-<>
+className="
 
-<span className="text-[#D4AF37]">
+text-[#D4AF37]
+
+"
+
+>
 
 ★ {product.rating}
 
 </span>
 
 
+
+
+
+
+
 {
 
 product.review_count > 0 &&
 
-<span className="ml-2 text-neutral-500">
+<span
+
+className="
+
+ml-2
+
+
+text-neutral-500
+
+"
+
+>
 
 ({product.review_count})
 
@@ -862,13 +1308,14 @@ product.review_count > 0 &&
 
 }
 
-</>
 
-}
+
+
 
 </div>
 
 }
+
 
 
 
@@ -882,15 +1329,21 @@ product.review_count > 0 &&
 <div
 
 className="
+
 mt-3
+
 
 flex
 
+
 items-center
+
 
 gap-2
 
+
 sm:mt-4
+
 
 sm:gap-3
 
@@ -898,14 +1351,19 @@ sm:gap-3
 
 >
 
+
 <span
 
 className="
+
 text-lg
+
 
 font-semibold
 
+
 text-white
+
 
 sm:text-xl
 
@@ -919,6 +1377,12 @@ sm:text-xl
 
 
 
+
+
+
+
+
+
 {
 
 product.compare_price &&
@@ -926,11 +1390,15 @@ product.compare_price &&
 <span
 
 className="
+
 text-xs
+
 
 text-neutral-500
 
+
 line-through
+
 
 sm:text-sm
 
@@ -947,6 +1415,11 @@ sm:text-sm
 
 
 
+
+
+
+
+
 {
 
 discount > 0 &&
@@ -954,9 +1427,12 @@ discount > 0 &&
 <span
 
 className="
+
 text-xs
 
+
 font-medium
+
 
 text-[#D4AF37]
 
@@ -971,6 +1447,9 @@ text-[#D4AF37]
 }
 
 
+
+
+
 </div>
 
 
@@ -981,24 +1460,32 @@ text-[#D4AF37]
 
 
 
-{/* Rewards - Desktop Only */}
+{/* Rewards */}
 
 <div
 
 className="
+
 hidden
+
 
 sm:flex
 
+
 relative
+
 
 mt-3
 
+
 items-center
+
 
 gap-2
 
+
 text-xs
+
 
 text-[#D4AF37]
 
@@ -1006,12 +1493,16 @@ text-[#D4AF37]
 
 >
 
+
 <div
 
 className="
+
 flex
 
+
 items-center
+
 
 gap-1
 
@@ -1023,17 +1514,18 @@ gap-1
 
 size={15}
 
-strokeWidth={2}
-
 className="text-yellow-400"
 
 />
 
 
+
 <span
 
 className="
+
 font-medium
+
 
 text-yellow-400
 
@@ -1052,24 +1544,26 @@ text-yellow-400
 
 
 
+
+
+
+
 <button
 
-onClick={() =>
-setShowRewardInfo(!showRewardInfo)
-}
+onClick={()=>setShowRewardInfo(!showRewardInfo)}
 
-onMouseEnter={() =>
-setShowRewardInfo(true)
-}
+onMouseEnter={()=>setShowRewardInfo(true)}
 
-onMouseLeave={() =>
-setShowRewardInfo(false)
-}
+onMouseLeave={()=>setShowRewardInfo(false)}
+
 
 className="
+
 text-neutral-400
 
+
 transition
+
 
 hover:text-[#D4AF37]
 
@@ -1087,38 +1581,54 @@ hover:text-[#D4AF37]
 
 
 
+
+
 {
 
-showRewardInfo && (
+showRewardInfo &&
 
 <div
 
 className="
+
 absolute
+
 
 bottom-6
 
+
 left-0
+
 
 z-30
 
+
 w-52
+
 
 rounded-lg
 
+
 border
+
 
 border-[#D4AF37]/30
 
+
 bg-black
+
 
 px-3
 
+
 py-2
+
 
 text-xs
 
+
 text-white
+
 
 shadow-lg
 
@@ -1130,9 +1640,8 @@ Earn {product.price} Reward Points on this purchase ✨
 
 </div>
 
-)
-
 }
+
 
 
 </div>
@@ -1148,13 +1657,22 @@ Earn {product.price} Reward Points on this purchase ✨
 {/* Cart + Wishlist */}
 
 <div
+
 className="
+
 mt-auto
-pt-4
+
 flex
+
 gap-2
+
+pt-4
+
 "
+
 >
+
+
 
 
 
@@ -1164,27 +1682,47 @@ gap-2
 
 onClick={handleAddToCart}
 
+
 className="
+
 flex-1
+
 
 rounded-full
 
+
 bg-white
 
-py-2
+
+py-2.5
+
 
 text-xs
 
+
 font-medium
+
 
 text-black
 
-transition
+
+
+transition-all
+
+
+duration-300
+
+
 
 hover:bg-[#D4AF37]
 
 
+active:scale-[0.98]
+
+
+
 sm:py-3
+
 
 sm:text-sm
 
@@ -1202,35 +1740,65 @@ Add To Cart
 
 
 
+
+
 <button
 
 className="
+
 flex
 
-h-9
 
-w-9
+h-10
+
+
+w-10
+
+
+shrink-0
+
 
 items-center
 
+
 justify-center
+
 
 rounded-full
 
+
 border
+
 
 border-white/20
 
+
 text-white
 
-transition
+
+
+transition-all
+
+
+
+duration-300
+
+
 
 hover:border-[#D4AF37]
+
+
 
 hover:text-[#D4AF37]
 
 
+
+active:scale-95
+
+
+
 sm:h-12
+
 
 sm:w-12
 
@@ -1244,6 +1812,19 @@ sm:w-12
 
 
 
+
+
+
+
+</div>
+
+
+
+
+
+
+
+
 </div>
 
 
@@ -1251,13 +1832,17 @@ sm:w-12
 
 
 
-</div>
-
-
-
 
 
 </div>
+
+
+
+
+
+
+
+
 
 <QuickViewModal
 
@@ -1268,6 +1853,13 @@ open={showQuickView}
 onClose={()=>setShowQuickView(false)}
 
 />
+
+
+
+
+
+
+
 </>
 
 );
