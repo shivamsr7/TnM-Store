@@ -172,7 +172,25 @@ setStep("address");
 
 },[authCustomer]);
 
+useEffect(()=>{
+  
+if(open){
 
+setOrderSuccess(false);
+
+setOrderNumber("");
+
+setStep(
+authCustomer
+?
+"address"
+:
+"login"
+);
+
+}
+
+},[open]);
 
 
 if(!open)
@@ -613,7 +631,18 @@ font-semibold
 
 >
 
-Checkout
+{
+orderSuccess
+
+?
+
+"Order Confirmed"
+
+:
+
+"Checkout"
+
+}
 
 </h2>
 
