@@ -113,7 +113,7 @@ export default function Header() {
 
           wishlistCount={0}
 
-          cartCount={0}
+          
 
         />
 
