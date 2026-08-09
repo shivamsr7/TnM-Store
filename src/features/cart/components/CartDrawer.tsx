@@ -5,27 +5,35 @@ import {
   Plus,
 } from "lucide-react";
 
+
 import {
+  useEffect,
   useState
 } from "react";
+
 
 import {
   validateCoupon
 } from "@/features/coupons/services/coupon.service";
 
+
 import {
   useCartStore
 } from "../store/cart.store";
 
+
 import CouponModal from "@/features/coupons/components/CouponModal";
+
 
 import {
   useBestCoupon
 } from "@/features/coupons/hooks/useBestCoupon";
 
+
 import {
   useUnlockCoupon
 } from "@/features/coupons/hooks/useUnlockCoupon";
+
 
 import CheckoutDialog from "@/features/checkout/components/CheckoutDialog";
 
@@ -71,9 +79,65 @@ getFinalTotal,
 
 
 
-const total = getTotal();
+const total=getTotal();
 
-const finalTotal = getFinalTotal();
+const finalTotal=getFinalTotal();
+
+
+
+
+
+
+
+/*
+ Mobile body scroll lock
+*/
+
+useEffect(()=>{
+
+
+if(isCartOpen){
+
+
+document.body.style.overflow="hidden";
+
+document.body.style.position="fixed";
+
+document.body.style.width="100%";
+
+
+}
+
+else{
+
+
+document.body.style.overflow="";
+
+document.body.style.position="";
+
+document.body.style.width="";
+
+
+}
+
+
+
+return ()=>{
+
+
+document.body.style.overflow="";
+
+document.body.style.position="";
+
+document.body.style.width="";
+
+
+};
+
+
+},[isCartOpen]);
+
+
 
 
 
@@ -87,12 +151,12 @@ bestCoupon
 
 
 
+
 const {
 
 couponErrorMessage
 
 }=useCartStore();
-
 
 
 
@@ -125,8 +189,6 @@ setCouponCode
 
 
 
-
-
 const [
 
 couponLoading,
@@ -134,8 +196,6 @@ couponLoading,
 setCouponLoading
 
 ]=useState(false);
-
-
 
 
 
@@ -153,8 +213,6 @@ setCouponMessage
 
 
 
-
-
 const [
 
 couponError,
@@ -167,8 +225,6 @@ setCouponError
 
 
 
-
-
 const [
 
 showCoupons,
@@ -176,8 +232,6 @@ showCoupons,
 setShowCoupons
 
 ]=useState(false);
-
-
 
 
 
@@ -197,9 +251,9 @@ setCheckoutOpen
 
 
 
-const remaining = Math.max(
+const remaining=Math.max(
 
-FREE_GIFT_AMOUNT - total,
+FREE_GIFT_AMOUNT-total,
 
 0
 
@@ -211,19 +265,22 @@ FREE_GIFT_AMOUNT - total,
 
 
 
-const progress = Math.min(
+const progress=Math.min(
 
-(total / FREE_GIFT_AMOUNT) * 100,
+(total/FREE_GIFT_AMOUNT)*100,
 
 100
 
 );
 
+
 const handleApplyCoupon = async()=>{
 
 
 if(!couponCode.trim())
+
 return;
+
 
 
 try{
@@ -237,6 +294,7 @@ setCouponMessage("");
 
 
 
+
 const result = await validateCoupon(
 
 couponCode,
@@ -244,6 +302,8 @@ couponCode,
 total
 
 );
+
+
 
 
 
@@ -265,6 +325,8 @@ minimumOrderAmount:
 result.coupon.minimum_order_amount
 
 });
+
+
 
 
 
@@ -320,9 +382,20 @@ setCouponLoading(false);
 };
 
 
+
+
+
+
+
+
+
 return (
 
 <>
+
+
+
+
 
 {/* Overlay */}
 
@@ -346,6 +419,7 @@ duration-300
 
 
 ${
+
 isCartOpen
 
 ?
@@ -369,6 +443,7 @@ isCartOpen
 
 
 
+
 {/* Drawer */}
 
 <div
@@ -383,13 +458,15 @@ top-0
 
 z-[1000]
 
-h-full
+flex
+
+h-[100dvh]
 
 w-full
 
 max-w-md
 
-rounded-l-3xl
+flex-col
 
 bg-white
 
@@ -398,11 +475,11 @@ text-black
 shadow-2xl
 
 
-transform-gpu
-
 transition-transform
 
 duration-300
+
+ease-in-out
 
 
 ${
@@ -419,11 +496,10 @@ isCartOpen
 
 }
 
-`
-
-}
+`}
 
 >
+
 
 
 
@@ -438,19 +514,11 @@ isCartOpen
 
 className="
 
-absolute
-
-left-0
-
-right-0
-
-top-0
-
-z-10
-
 flex
 
-h-[86px]
+h-[76px]
+
+shrink-0
 
 items-center
 
@@ -460,23 +528,31 @@ border-b
 
 bg-white
 
-px-5
+px-4
+
+pt-[env(safe-area-inset-top)]
 
 "
 
 >
+
+
+
 
 
 <h2
 
 className="
-text-xl
+
+text-lg
+
 font-semibold
+
 "
 
 >
 
-Your Cart ({items.length} items)
+Your Cart ({items.length})
 
 </h2>
 
@@ -491,15 +567,28 @@ Your Cart ({items.length} items)
 onClick={closeCart}
 
 className="
+
+flex
+
+h-10
+
+w-10
+
+items-center
+
+justify-center
+
 rounded-full
-p-1
+
 transition
+
 hover:bg-neutral-100
+
 "
 
 >
 
-<X size={24}/>
+<X size={22}/>
 
 </button>
 
@@ -519,27 +608,21 @@ hover:bg-neutral-100
 
 
 
-{/* Scroll Area */}
+{/* Scroll Content */}
 
 <div
 
 className="
 
-absolute
-
-bottom-[185px]
-
-left-0
-
-right-0
-
-top-[86px]
+flex-1
 
 overflow-y-auto
 
-px-5
+overscroll-contain
 
-pb-10
+px-4
+
+pb-5
 
 pt-5
 
@@ -554,12 +637,15 @@ pt-5
 
 
 
+
+
 {
 
 items.length > 0 && (
 
 <>
 
+{/* Offer Banner */}
 
 <div
 
@@ -602,16 +688,22 @@ text-white
 <div
 
 className="
+
 mt-6
+
 "
 
 >
 
+
 <p
 
 className="
+
 text-sm
+
 font-medium
+
 "
 
 >
@@ -660,7 +752,6 @@ bg-neutral-200
 
 >
 
-
 <div
 
 className="
@@ -680,8 +771,6 @@ width:`${progress}%`
 }}
 
 />
-
-
 
 </div>
 
@@ -714,7 +803,7 @@ width:`${progress}%`
 
 {
 
-items.length === 0
+items.length===0
 
 ?
 
@@ -823,11 +912,9 @@ text-neutral-500
 
 Looks like you haven't added anything yet.
 
-Explore our jewellery collection and find
-your perfect piece.
+Explore our jewellery collection and find your perfect piece.
 
 </p>
-
 
 
 
@@ -879,19 +966,21 @@ Continue Shopping
 
 :
 
-/* Products */
-
 <div
 
 className="
 
 mt-6
 
-space-y-4
+space-y-3
 
 "
 
 >
+
+
+
+
 
 
 
@@ -914,7 +1003,9 @@ border
 
 border-neutral-200
 
-p-4
+p-3
+
+sm:p-4
 
 "
 
@@ -929,11 +1020,15 @@ p-4
 <div
 
 className="
+
 flex
-gap-4
+
+gap-3
+
 "
 
 >
+
 
 
 
@@ -947,13 +1042,19 @@ alt={item.name}
 
 className="
 
-h-24
+h-20
 
-w-24
+w-20
+
+shrink-0
 
 rounded-xl
 
 object-cover
+
+sm:h-24
+
+sm:w-24
 
 "
 
@@ -965,10 +1066,15 @@ object-cover
 
 
 
+
 <div
 
 className="
+
+min-w-0
+
 flex-1
+
 "
 
 >
@@ -977,14 +1083,16 @@ flex-1
 
 
 
-
-
 <div
 
 className="
+
 flex
+
 justify-between
-gap-3
+
+gap-2
+
 "
 
 >
@@ -993,8 +1101,15 @@ gap-3
 <p
 
 className="
+
+line-clamp-2
+
+text-sm
+
 font-medium
+
 leading-tight
+
 "
 
 >
@@ -1011,7 +1126,13 @@ leading-tight
 <span
 
 className="
-font-medium
+
+shrink-0
+
+text-sm
+
+font-semibold
+
 "
 
 >
@@ -1019,8 +1140,6 @@ font-medium
 ₹{item.price}
 
 </span>
-
-
 
 
 
@@ -1037,13 +1156,14 @@ font-medium
 <div
 
 className="
+
 mt-4
 
 flex
 
 items-center
 
-gap-3
+gap-2
 
 "
 
@@ -1057,7 +1177,13 @@ gap-3
 
 disabled={item.quantity===1}
 
-onClick={()=>updateQuantity(item.id,item.quantity-1)}
+onClick={()=>updateQuantity(
+
+item.id,
+
+item.quantity-1
+
+)}
 
 className={`
 
@@ -1107,10 +1233,15 @@ item.quantity===1
 <span
 
 className="
+
 min-w-5
+
 text-center
+
 text-sm
+
 font-medium
+
 "
 
 >
@@ -1127,7 +1258,13 @@ font-medium
 
 <button
 
-onClick={()=>updateQuantity(item.id,item.quantity+1)}
+onClick={()=>updateQuantity(
+
+item.id,
+
+item.quantity+1
+
+)}
 
 className="
 
@@ -1166,8 +1303,17 @@ hover:bg-neutral-100
 onClick={()=>removeItem(item.id)}
 
 className="
+
 ml-auto
+
+rounded-lg
+
+p-1
+
 text-red-500
+
+hover:bg-red-50
+
 "
 
 >
@@ -1182,8 +1328,6 @@ text-red-500
 
 
 </div>
-
-
 
 
 
@@ -1221,9 +1365,12 @@ text-red-500
 
 
 
+
+
 </div>
 
 }
+
 
 
 
@@ -1247,10 +1394,15 @@ bestCoupon && !appliedCoupon &&
 <div
 
 className="
+
 mt-6
+
 rounded-2xl
+
 bg-green-50
+
 p-4
+
 "
 
 >
@@ -1259,7 +1411,9 @@ p-4
 <p
 
 className="
+
 font-medium
+
 "
 
 >
@@ -1276,9 +1430,13 @@ font-medium
 <p
 
 className="
+
 mt-1
+
 text-sm
+
 text-neutral-600
+
 "
 
 >
@@ -1310,7 +1468,6 @@ total
 
 
 
-
 applyCoupon({
 
 id:result.coupon.id,
@@ -1334,13 +1491,21 @@ result.coupon.minimum_order_amount
 }}
 
 className="
+
 mt-3
+
 rounded-xl
+
 bg-black
+
 px-4
+
 py-2
+
 text-sm
+
 text-white
+
 "
 
 >
@@ -1362,6 +1527,10 @@ Apply
 
 
 
+
+
+
+
 {
 
 unlockCoupon && !appliedCoupon &&
@@ -1369,10 +1538,15 @@ unlockCoupon && !appliedCoupon &&
 <div
 
 className="
-mt-6
+
+mt-5
+
 rounded-2xl
+
 bg-yellow-50
+
 p-4
+
 "
 
 >
@@ -1381,7 +1555,9 @@ p-4
 <p
 
 className="
+
 font-medium
+
 "
 
 >
@@ -1398,16 +1574,18 @@ font-medium
 <p
 
 className="
+
 mt-1
+
 text-sm
+
 text-neutral-700
+
 "
 
 >
 
-Add ₹{remainingAmount}
-
-more to get this offer
+Add ₹{remainingAmount} more to get this offer
 
 </p>
 
@@ -1422,9 +1600,13 @@ more to get this offer
 onClick={()=>setShowCoupons(true)}
 
 className="
+
 mt-3
+
 text-sm
+
 font-semibold
+
 "
 
 >
@@ -1451,16 +1633,23 @@ View Offer →
 
 
 
+
 {/* Coupon Box */}
 
 <div
 
 className="
+
 mt-6
+
 rounded-2xl
+
 border
+
 border-neutral-200
+
 p-4
+
 "
 
 >
@@ -1478,13 +1667,25 @@ appliedCoupon
 <div
 
 className="
+
 flex
+
+items-start
+
 justify-between
+
+gap-3
+
 rounded-xl
+
 border
+
 border-green-200
+
 bg-green-50
+
 p-3
+
 "
 
 >
@@ -1496,7 +1697,9 @@ p-3
 <p
 
 className="
+
 font-medium
+
 "
 
 >
@@ -1513,8 +1716,13 @@ font-medium
 <p
 
 className="
+
+mt-1
+
 text-sm
+
 text-green-700
+
 "
 
 >
@@ -1572,8 +1780,11 @@ setCouponError("");
 }}
 
 className="
+
 text-sm
+
 text-red-500
+
 "
 
 >
@@ -1601,12 +1812,14 @@ Remove
 
 <>
 
-
 <div
 
 className="
+
 flex
+
 gap-2
+
 "
 
 >
@@ -1621,13 +1834,25 @@ onChange={(e)=>setCouponCode(e.target.value)}
 placeholder="Enter Coupon Code"
 
 className="
+
+min-w-0
+
 flex-1
+
 rounded-xl
+
 border
-px-4
+
+px-3
+
 py-3
+
+text-sm
+
 outline-none
+
 focus:border-black
+
 "
 
 />
@@ -1645,11 +1870,19 @@ onClick={handleApplyCoupon}
 disabled={couponLoading}
 
 className="
+
 rounded-xl
+
 bg-black
-px-5
+
+px-4
+
+text-sm
+
 text-white
+
 disabled:opacity-50
+
 "
 
 >
@@ -1689,10 +1922,15 @@ couponLoading
 onClick={()=>setShowCoupons(true)}
 
 className="
+
 mt-4
+
 w-full
+
 text-sm
+
 font-medium
+
 "
 
 >
@@ -1724,9 +1962,13 @@ couponMessage &&
 <p
 
 className="
+
 mt-3
+
 text-sm
+
 text-green-600
+
 "
 
 >
@@ -1750,9 +1992,13 @@ couponErrorMessage &&
 <p
 
 className="
+
 mt-3
+
 text-sm
+
 text-red-500
+
 "
 
 >
@@ -1776,9 +2022,13 @@ couponError &&
 <p
 
 className="
+
 mt-3
+
 text-sm
+
 text-red-500
+
 "
 
 >
@@ -1794,6 +2044,10 @@ text-red-500
 
 
 </div>
+
+
+
+
 
 
 
@@ -1821,30 +2075,23 @@ text-red-500
 
 
 
-
-{/* Footer */}
+{/* Fixed Footer */}
 
 <div
 
 className="
 
-absolute
-
-bottom-0
-
-left-0
-
-right-0
-
-z-20
+shrink-0
 
 border-t
 
 bg-white
 
-px-5
+px-4
 
-py-4
+pb-[env(safe-area-inset-bottom)]
+
+pt-4
 
 "
 
@@ -1868,8 +2115,11 @@ items.length > 0
 <div
 
 className="
-space-y-2
+
+space-y-3
+
 text-sm
+
 "
 
 >
@@ -1878,12 +2128,14 @@ text-sm
 
 
 
-
 <div
 
 className="
+
 flex
+
 justify-between
+
 "
 
 >
@@ -1920,9 +2172,13 @@ appliedCoupon &&
 <div
 
 className="
+
 flex
+
 justify-between
+
 text-green-600
+
 "
 
 >
@@ -1960,9 +2216,13 @@ Coupon ({appliedCoupon.code})
 <div
 
 className="
+
 flex
+
 justify-between
+
 text-neutral-600
+
 "
 
 >
@@ -2005,44 +2265,24 @@ appliedCoupon?.freeShipping
 
 
 
-{
-
-appliedCoupon?.freeGift &&
-
-<div
-
-className="
-rounded-xl
-bg-green-50
-px-3
-py-2
-text-sm
-text-green-700
-"
-
->
-
-🎁 Free gift will be added to your order
-
-</div>
-
-}
-
-
-
-
-
 
 
 <div
 
 className="
+
 border-t
+
 pt-3
+
 flex
+
 justify-between
+
 text-lg
+
 font-bold
+
 "
 
 >
@@ -2086,15 +2326,35 @@ Estimated Total
 onClick={()=>setCheckoutOpen(true)}
 
 className="
+
 mt-4
+
+flex
+
 w-full
+
+items-center
+
+justify-center
+
 rounded-xl
+
 bg-black
-py-3
+
+py-3.5
+
+text-sm
+
 font-semibold
+
 text-white
+
 transition
+
+active:scale-[0.98]
+
 hover:bg-neutral-800
+
 "
 
 >
@@ -2112,10 +2372,15 @@ Continue To Checkout
 <p
 
 className="
+
 mt-2
+
 text-center
+
 text-xs
+
 text-neutral-500
+
 "
 
 >
@@ -2123,6 +2388,10 @@ text-neutral-500
 ⚡ Dispatched in 1 day
 
 </p>
+
+
+
+
 
 </>
 
@@ -2133,7 +2402,9 @@ text-neutral-500
 <div
 
 className="
+
 text-center
+
 "
 
 >
@@ -2141,8 +2412,11 @@ text-center
 <p
 
 className="
+
 text-sm
+
 text-neutral-500
+
 "
 
 >
@@ -2162,13 +2436,23 @@ Add jewellery pieces to continue shopping
 onClick={closeCart}
 
 className="
+
 mt-4
+
 w-full
+
 rounded-xl
+
 bg-black
-py-3
+
+py-3.5
+
+text-sm
+
 font-semibold
+
 text-white
+
 "
 
 >
@@ -2194,15 +2478,7 @@ Start Shopping
 </div>
 
 
-
-
-
-
-
 </div>
-
-
-
 
 
 

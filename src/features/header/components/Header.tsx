@@ -113,7 +113,6 @@ export default function Header() {
 
           wishlistCount={0}
 
-          
 
         />
 
