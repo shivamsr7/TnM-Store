@@ -1,13 +1,15 @@
 import {
-  useState
+  useState,
+  useRef,
 } from "react";
 
 import {
   ChevronLeft,
   ChevronRight,
   Heart,
-  Share2
+  Share2,
 } from "lucide-react";
+
 
 
 interface ProductGalleryProps {
@@ -23,6 +25,10 @@ interface ProductGalleryProps {
 
 
 
+
+
+
+
 export default function ProductGallery({
 
 images,
@@ -32,18 +38,35 @@ productName
 }:ProductGalleryProps){
 
 
+
+
+
 const [activeImage,setActiveImage]=useState(0);
 
+const [touchStart,setTouchStart]=useState<number | null>(null);
+
+const [loaded,setLoaded]=useState(false);
+
 const [direction,setDirection]=useState<
-"next" | "prev" | null
+"next"|"prev"|null
 >(null);
 
 
 
+const imageRef = useRef<HTMLDivElement>(null);
 
-const imageList = images.sort(
+
+
+
+
+const imageList = [...images].sort(
+
 (a,b)=>a.sort_order-b.sort_order
+
 );
+
+
+
 
 
 
@@ -51,11 +74,41 @@ const imageList = images.sort(
 
 const changeImage=(index:number)=>{
 
+
+if(index===activeImage)
+return;
+
+
+setDirection(
+
+index > activeImage
+
+?
+
+"next"
+
+:
+
+"prev"
+
+);
+
+
+setLoaded(false);
+
+
+setTimeout(()=>{
+
 setActiveImage(index);
 
-setDirection(null);
+},80);
+
+
 
 };
+
+
+
 
 
 
@@ -64,18 +117,13 @@ setDirection(null);
 const nextImage=()=>{
 
 
-if(imageList.length <= 1)
+if(imageList.length<=1)
 return;
 
 
-setDirection("next");
+changeImage(
 
-
-setTimeout(()=>{
-
-setActiveImage(
-
-activeImage === imageList.length-1
+activeImage===imageList.length-1
 
 ?
 
@@ -83,18 +131,15 @@ activeImage === imageList.length-1
 
 :
 
-activeImage + 1
+activeImage+1
 
 );
 
 
-setDirection(null);
-
-
-},150);
-
-
 };
+
+
+
 
 
 
@@ -103,19 +148,13 @@ setDirection(null);
 const previousImage=()=>{
 
 
-if(imageList.length <= 1)
+if(imageList.length<=1)
 return;
 
 
-setDirection("prev");
+changeImage(
 
-
-setTimeout(()=>{
-
-
-setActiveImage(
-
-activeImage === 0
+activeImage===0
 
 ?
 
@@ -123,15 +162,9 @@ imageList.length-1
 
 :
 
-activeImage - 1
+activeImage-1
 
 );
-
-
-setDirection(null);
-
-
-},150);
 
 
 };
@@ -140,6 +173,76 @@ setDirection(null);
 
 
 
+
+
+
+const handleTouchStart=(
+
+e:React.TouchEvent
+
+)=>{
+
+
+setTouchStart(
+
+e.touches[0].clientX
+
+);
+
+
+};
+
+
+
+
+
+
+
+const handleTouchEnd=(
+
+e:React.TouchEvent
+
+)=>{
+
+
+if(touchStart===null)
+return;
+
+
+const touchEnd =
+e.changedTouches[0].clientX;
+
+
+
+const distance =
+touchStart-touchEnd;
+
+
+
+
+if(Math.abs(distance)>50){
+
+
+if(distance>0){
+
+nextImage();
+
+}
+else{
+
+previousImage();
+
+}
+
+
+}
+
+
+
+setTouchStart(null);
+
+
+};
 
 
 return (
@@ -156,20 +259,36 @@ w-full
 
 
 
-{/* Main Image */}
+
+
+
+{/* Main Gallery */}
 
 <div
 
+ref={imageRef}
+
+onTouchStart={handleTouchStart}
+
+onTouchEnd={handleTouchEnd}
+
+
 className="
+
 relative
 
-aspect-square
+aspect-[4/5]
 
 overflow-hidden
 
-rounded-2xl
+rounded-3xl
 
 bg-neutral-900
+
+shadow-xl
+
+
+sm:aspect-square
 
 
 lg:h-[560px]
@@ -181,15 +300,24 @@ lg:aspect-auto
 >
 
 
+
+
+
 {
 
 imageList.length > 0 &&
 
 <img
 
-src={imageList[activeImage].image_url}
+src={
+imageList[activeImage].image_url
+}
 
 alt={productName}
+
+
+onLoad={()=>setLoaded(true)}
+
 
 className={`
 
@@ -199,24 +327,53 @@ w-full
 
 object-cover
 
+
 transition-all
 
-duration-300
+duration-500
+
+ease-out
+
 
 
 ${
 
-direction
+loaded
 
 ?
 
-"scale-105 opacity-80"
+"opacity-100 scale-100"
 
 :
 
-"scale-100 opacity-100"
+"opacity-0 scale-105"
 
 }
+
+
+
+${
+
+direction==="next"
+
+?
+
+"translate-x-2"
+
+:
+
+direction==="prev"
+
+?
+
+"-translate-x-2"
+
+:
+
+""
+
+}
+
 
 `}
 
@@ -230,46 +387,114 @@ direction
 
 
 
+
+
+{/* Image Counter Mobile */}
+
+{
+
+imageList.length > 1 &&
+
+<div
+
+className="
+
+absolute
+
+bottom-4
+
+left-1/2
+
+-translate-x-1/2
+
+rounded-full
+
+bg-black/60
+
+px-3
+
+py-1
+
+text-xs
+
+text-white
+
+backdrop-blur-md
+
+sm:hidden
+
+"
+
+>
+
+{activeImage+1}/{imageList.length}
+
+</div>
+
+}
+
+
+
+
+
+
+
+
+
 {/* Wishlist */}
 
 <button
 
 className="
+
 absolute
 
 right-4
 
 top-4
 
+
 flex
 
-h-10
+h-11
 
-w-10
+w-11
 
 items-center
 
 justify-center
 
+
 rounded-full
 
 bg-black/40
 
+
 text-white
 
-backdrop-blur-sm
 
-transition
+backdrop-blur-md
+
+
+transition-all
+
+duration-300
+
+
+hover:scale-110
 
 hover:bg-[#D4AF37]
 
 hover:text-black
 
+
+active:scale-95
+
 "
 
 >
 
-<Heart size={20}/>
+<Heart size={21}/>
 
 </button>
 
@@ -286,41 +511,55 @@ hover:text-black
 <button
 
 className="
-absolute
 
-right-4
+absolute
 
 bottom-4
 
+right-4
+
+
 flex
 
-h-10
+h-11
 
-w-10
+w-11
 
 items-center
 
 justify-center
 
+
 rounded-full
 
 bg-black/40
 
+
 text-white
 
-backdrop-blur-sm
 
-transition
+backdrop-blur-md
+
+
+transition-all
+
+duration-300
+
+
+hover:scale-110
 
 hover:bg-[#D4AF37]
 
 hover:text-black
 
+
+active:scale-95
+
 "
 
 >
 
-<Share2 size={18}/>
+<Share2 size={19}/>
 
 </button>
 
@@ -332,7 +571,7 @@ hover:text-black
 
 
 
-{/* Desktop arrows */}
+{/* Desktop Arrows */}
 
 {
 
@@ -345,47 +584,59 @@ imageList.length > 1 &&
 onClick={previousImage}
 
 className="
+
 absolute
 
-left-3
+left-4
 
 top-1/2
 
--translate-y-1/2
-
 hidden
 
-sm:flex
+h-10
 
-h-9
+w-10
 
-w-9
+-translate-y-1/2
+
 
 items-center
 
 justify-center
 
+
 rounded-full
 
-bg-black/40
+bg-black/50
+
 
 text-white
 
-backdrop-blur-sm
+
+backdrop-blur-md
+
 
 transition
+
 
 hover:bg-[#D4AF37]
 
 hover:text-black
 
+
+sm:flex
+
 "
 
 >
 
-<ChevronLeft size={18}/>
+<ChevronLeft size={20}/>
 
 </button>
+
+
+
+
 
 
 
@@ -397,47 +648,58 @@ hover:text-black
 onClick={nextImage}
 
 className="
+
 absolute
 
-right-3
+right-4
 
 top-1/2
 
--translate-y-1/2
-
 hidden
 
-sm:flex
+h-10
 
-h-9
+w-10
 
-w-9
+-translate-y-1/2
+
 
 items-center
 
 justify-center
 
+
 rounded-full
 
-bg-black/40
+bg-black/50
+
 
 text-white
 
-backdrop-blur-sm
+
+backdrop-blur-md
+
 
 transition
+
 
 hover:bg-[#D4AF37]
 
 hover:text-black
 
+
+sm:flex
+
 "
 
 >
 
-<ChevronRight size={18}/>
+<ChevronRight size={20}/>
 
 </button>
+
+
+
 
 
 </>
@@ -456,7 +718,7 @@ hover:text-black
 
 
 
-{/* Mobile dots */}
+{/* Mobile Dots */}
 
 {
 
@@ -465,7 +727,8 @@ imageList.length > 1 &&
 <div
 
 className="
-mt-4
+
+mt-5
 
 flex
 
@@ -492,13 +755,11 @@ onClick={()=>changeImage(index)}
 
 className={`
 
-h-2
-
-w-2
-
 rounded-full
 
-transition
+transition-all
+
+duration-300
 
 
 ${
@@ -507,11 +768,11 @@ activeImage===index
 
 ?
 
-"bg-[#D4AF37]"
+"h-2.5 w-7 bg-[#D4AF37]"
 
 :
 
-"bg-neutral-500"
+"h-2.5 w-2.5 bg-neutral-600"
 
 }
 
@@ -537,7 +798,7 @@ activeImage===index
 
 
 
-{/* Desktop thumbnails */}
+{/* Desktop Thumbnails */}
 
 {
 
@@ -546,13 +807,14 @@ imageList.length > 1 &&
 <div
 
 className="
+
 mt-5
 
 hidden
 
-sm:flex
-
 gap-3
+
+sm:flex
 
 "
 
@@ -575,11 +837,17 @@ h-20
 
 w-20
 
+
 overflow-hidden
+
 
 rounded-xl
 
-border
+
+border-2
+
+
+transition-all
 
 
 ${
@@ -588,15 +856,17 @@ activeImage===index
 
 ?
 
-"border-[#D4AF37]"
+"scale-105 border-[#D4AF37]"
 
 :
 
-"border-transparent"
+"border-transparent opacity-70 hover:opacity-100"
 
 }
 
-`}
+`
+
+}
 
 >
 
@@ -605,9 +875,10 @@ activeImage===index
 
 src={image.image_url}
 
-alt="thumbnail"
+alt={productName}
 
 className="
+
 h-full
 
 w-full
@@ -626,10 +897,11 @@ object-cover
 
 }
 
-
 </div>
 
 }
+
+
 
 
 
