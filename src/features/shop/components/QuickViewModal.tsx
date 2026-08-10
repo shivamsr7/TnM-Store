@@ -1,5 +1,7 @@
 import {
   useEffect,
+  useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -88,98 +90,70 @@ export default function QuickViewModal({
   ] = useState(0);
 
 
-  const [
-    imageChanging,
-    setImageChanging,
-  ] = useState(false);
-
-
-  /*
-   * Mobile swipe close
-   */
-
-  const [
-    dragStart,
-    setDragStart,
-  ] = useState<number | null>(null);
-
-
-  const [
-    dragY,
-    setDragY,
-  ] = useState(0);
-
-
   /*
    * =========================================================
-   * Modal lifecycle
+   * Mobile drag refs
+   *
+   * IMPORTANT:
+   *
+   * These are refs instead of React state.
+   *
+   * Touchmove can fire many times per second.
+   * Updating React state on every event was causing
+   * unnecessary renders on mobile.
    * =========================================================
    */
 
-  useEffect(() => {
-
-    if (open) {
-
-      const previousOverflow =
-        document.body.style.overflow;
+  const dragStartRef =
+    useRef<number | null>(
+      null
+    );
 
 
-      document.body.style.overflow =
-        "hidden";
+  const dragYRef =
+    useRef(0);
 
 
-      setActiveImage(0);
-
-      setDragY(0);
-
-
-      requestAnimationFrame(() => {
-
-        setShow(true);
-
-      });
+  const sheetRef =
+    useRef<HTMLDivElement | null>(
+      null
+    );
 
 
-      return () => {
-
-        document.body.style.overflow =
-          previousOverflow;
-
-      };
-
-    }
-
-
-    setShow(false);
-
-    setDragY(0);
-
-    document.body.style.overflow = "";
-
-
-    return undefined;
-
-  }, [open]);
+  const closeTimerRef =
+    useRef<number | null>(
+      null
+    );
 
 
   /*
    * =========================================================
    * Images
+   *
+   * useMemo prevents sorting/mapping the product images
+   * again on every render.
    * =========================================================
    */
 
-  const images = [
-    ...(product.product_images ?? []),
-  ]
-    .sort(
-      (a, b) =>
-        a.sort_order -
-        b.sort_order
-    )
-    .map(
-      (item) =>
-        item.image_url
-    );
+  const images =
+    useMemo(() => {
+
+      return [
+        ...(product.product_images ?? []),
+      ]
+        .sort(
+          (a, b) =>
+            a.sort_order -
+            b.sort_order
+        )
+        .map(
+          (item) =>
+            item.image_url
+        );
+
+    }, [
+      product.product_images,
+    ]);
 
 
   /*
@@ -225,18 +199,176 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
+   * Modal lifecycle
+   * =========================================================
+   */
+
+  useEffect(() => {
+
+    /*
+     * Clear any pending close timer.
+     */
+
+    if (
+      closeTimerRef.current !==
+      null
+    ) {
+
+      window.clearTimeout(
+        closeTimerRef.current
+      );
+
+      closeTimerRef.current =
+        null;
+
+    }
+
+
+    if (open) {
+
+      /*
+       * Lock page scrolling.
+       */
+
+      const previousOverflow =
+        document.body.style.overflow;
+
+
+      document.body.style.overflow =
+        "hidden";
+
+
+      /*
+       * Reset image.
+       */
+
+      setActiveImage(0);
+
+
+      /*
+       * Reset mobile drag.
+       */
+
+      dragStartRef.current =
+        null;
+
+      dragYRef.current =
+        0;
+
+
+      if (
+        sheetRef.current
+      ) {
+
+        sheetRef.current.style.transform =
+          "";
+
+      }
+
+
+      /*
+       * Start opening animation on next frame.
+       *
+       * This is only one render and is kept because
+       * the CSS transition needs an initial state.
+       */
+
+      requestAnimationFrame(() => {
+
+        setShow(true);
+
+      });
+
+
+      return () => {
+
+        document.body.style.overflow =
+          previousOverflow;
+
+      };
+
+    }
+
+
+    /*
+     * Closing.
+     */
+
+    setShow(false);
+
+
+    dragStartRef.current =
+      null;
+
+    dragYRef.current =
+      0;
+
+
+    document.body.style.overflow =
+      "";
+
+
+    return () => {
+
+      document.body.style.overflow =
+        "";
+
+    };
+
+  }, [
+    open,
+  ]);
+
+
+  /*
+   * =========================================================
+   * Cleanup
+   * =========================================================
+   */
+
+  useEffect(() => {
+
+    return () => {
+
+      if (
+        closeTimerRef.current !==
+        null
+      ) {
+
+        window.clearTimeout(
+          closeTimerRef.current
+        );
+
+      }
+
+      document.body.style.overflow =
+        "";
+
+    };
+
+  }, []);
+
+
+  /*
+   * =========================================================
    * Add To Cart
    * =========================================================
    */
 
   const handleAddToCart = () => {
 
-    if (isOutOfStock) {
+    if (
+      isOutOfStock
+    ) {
+
       return;
+
     }
 
 
-    addToCart(product);
+    addToCart(
+      product
+    );
 
   };
 
@@ -244,6 +376,11 @@ export default function QuickViewModal({
   /*
    * =========================================================
    * Image change
+   *
+   * NO artificial timeout.
+   *
+   * The old version waited 130ms before changing the image,
+   * which made taps/swipes feel delayed on mobile.
    * =========================================================
    */
 
@@ -256,52 +393,14 @@ export default function QuickViewModal({
       index < 0 ||
       index >= images.length
     ) {
+
       return;
+
     }
 
 
-    setImageChanging(true);
-
-
-    window.setTimeout(() => {
-
-      setActiveImage(index);
-
-      setImageChanging(false);
-
-    }, 130);
-
-  };
-
-
-  const nextImage = () => {
-
-    if (images.length <= 1) {
-      return;
-    }
-
-
-    changeImage(
-      activeImage ===
-        images.length - 1
-        ? 0
-        : activeImage + 1
-    );
-
-  };
-
-
-  const previousImage = () => {
-
-    if (images.length <= 1) {
-      return;
-    }
-
-
-    changeImage(
-      activeImage === 0
-        ? images.length - 1
-        : activeImage - 1
+    setActiveImage(
+      index
     );
 
   };
@@ -309,7 +408,95 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Mobile swipe
+   * Next image
+   * =========================================================
+   */
+
+  const nextImage = () => {
+
+    if (
+      images.length <= 1
+    ) {
+
+      return;
+
+    }
+
+
+    setActiveImage(
+      (current) =>
+        current ===
+          images.length - 1
+
+          ? 0
+
+          : current + 1
+    );
+
+  };
+
+
+  /*
+   * =========================================================
+   * Previous image
+   * =========================================================
+   */
+
+  const previousImage = () => {
+
+    if (
+      images.length <= 1
+    ) {
+
+      return;
+
+    }
+
+
+    setActiveImage(
+      (current) =>
+        current === 0
+
+          ? images.length - 1
+
+          : current - 1
+    );
+
+  };
+
+
+  /*
+   * =========================================================
+   * Mobile drag helpers
+   * =========================================================
+   */
+
+  const applyDragTransform = (
+    value: number
+  ) => {
+
+    const sheet =
+      sheetRef.current;
+
+
+    if (!sheet) {
+
+      return;
+
+    }
+
+
+    sheet.style.transform =
+      value > 0
+        ? `translate3d(0, ${value}px, 0)`
+        : "";
+
+  };
+
+
+  /*
+   * =========================================================
+   * Mobile swipe start
    * =========================================================
    */
 
@@ -317,41 +504,121 @@ export default function QuickViewModal({
     e: React.TouchEvent
   ) => {
 
+    /*
+     * Only use sheet-drag behaviour on mobile.
+     */
+
     if (
       window.innerWidth >= 640
     ) {
+
       return;
+
     }
 
 
-    setDragStart(
-      e.touches[0].clientY
-    );
+    /*
+     * Don't start a sheet drag when touching
+     * interactive controls.
+     */
+
+    const target =
+      e.target as HTMLElement;
+
+
+    if (
+      target.closest("button") ||
+      target.closest("a") ||
+      target.closest("input")
+    ) {
+
+      return;
+
+    }
+
+
+    const touch =
+      e.touches[0];
+
+
+    if (!touch) {
+
+      return;
+
+    }
+
+
+    dragStartRef.current =
+      touch.clientY;
+
+    dragYRef.current =
+      0;
+
+
+    const sheet =
+      sheetRef.current;
+
+
+    if (sheet) {
+
+      sheet.style.transition =
+        "none";
+
+    }
 
   };
 
+
+  /*
+   * =========================================================
+   * Mobile swipe move
+   *
+   * IMPORTANT:
+   *
+   * No React state update here.
+   *
+   * Direct DOM transform keeps this interaction on the
+   * browser's rendering path instead of causing React
+   * re-renders on every touch event.
+   * =========================================================
+   */
 
   const handleSheetTouchMove = (
     e: React.TouchEvent
   ) => {
 
     if (
-      dragStart === null
+      dragStartRef.current ===
+      null
     ) {
+
       return;
+
     }
 
 
-    const currentY =
-      e.touches[0].clientY;
+    const touch =
+      e.touches[0];
+
+
+    if (!touch) {
+
+      return;
+
+    }
 
 
     const distance =
-      currentY - dragStart;
+      touch.clientY -
+      dragStartRef.current;
 
 
-    if (distance <= 0) {
+    if (
+      distance <= 0
+    ) {
+
       return;
+
     }
 
 
@@ -367,57 +634,144 @@ export default function QuickViewModal({
           );
 
 
-    setDragY(
+    const nextY =
       Math.min(
         resistance,
         220
-      )
+      );
+
+
+    dragYRef.current =
+      nextY;
+
+
+    applyDragTransform(
+      nextY
     );
 
   };
 
 
+  /*
+   * =========================================================
+   * Mobile swipe end
+   * =========================================================
+   */
+
   const handleSheetTouchEnd = () => {
 
     if (
-      dragStart === null
+      dragStartRef.current ===
+      null
     ) {
+
       return;
+
     }
 
+
+    const finalDrag =
+      dragYRef.current;
+
+
+    dragStartRef.current =
+      null;
+
+
+    /*
+     * Close if dragged far enough.
+     */
 
     if (
-      dragY > 90
+      finalDrag > 90
     ) {
 
-      onClose();
+      const sheet =
+        sheetRef.current;
 
-    } else {
 
-      setDragY(0);
+      if (sheet) {
+
+        sheet.style.transition =
+          "transform 180ms ease-out";
+
+        sheet.style.transform =
+          "translate3d(0, 100%, 0)";
+
+      }
+
+
+      closeTimerRef.current =
+        window.setTimeout(() => {
+
+          onClose();
+
+        }, 180);
+
+
+      return;
 
     }
 
 
-    setDragStart(null);
+    /*
+     * Otherwise spring back.
+     */
+
+    const sheet =
+      sheetRef.current;
+
+
+    if (sheet) {
+
+      sheet.style.transition =
+        "transform 220ms ease-out";
+
+      sheet.style.transform =
+        "translate3d(0, 0, 0)";
+
+    }
+
+
+    dragYRef.current =
+      0;
 
   };
 
 
   /*
    * =========================================================
-   * Don't render
+   * Prevent background click when interacting with sheet
    * =========================================================
    */
 
-  if (!open) {
+  const handleSheetClick = (
+    e: React.MouseEvent
+  ) => {
+
+    e.stopPropagation();
+
+  };
+
+
+  /*
+   * =========================================================
+   * Don't render when closed
+   * =========================================================
+   */
+
+  if (
+    !open
+  ) {
+
     return null;
+
   }
 
 
   /*
    * =========================================================
-   * Modal
+   * Modal content
    * =========================================================
    */
 
@@ -433,23 +787,43 @@ export default function QuickViewModal({
         justify-center
         bg-black/75
         p-0
-        backdrop-blur-md
         sm:items-center
         sm:p-5
+
+        /*
+         * Avoid backdrop blur on mobile.
+         *
+         * This is considerably cheaper for mobile GPUs.
+         */
+        backdrop-blur-0
+
+        sm:backdrop-blur-md
       "
-      onClick={onClose}
+
+      onClick={
+        onClose
+      }
+
       role="dialog"
+
       aria-modal="true"
-      aria-label={`Quick view of ${product.name}`}
+
+      aria-label={
+        `Quick view of ${product.name}`
+      }
     >
 
-      {/* =====================================================
+      {/* ===================================================
           MODAL SHEET
-      ====================================================== */}
+      ==================================================== */}
 
       <div
-        onClick={(e) =>
-          e.stopPropagation()
+        ref={
+          sheetRef
+        }
+
+        onClick={
+          handleSheetClick
         }
 
         onTouchStart={
@@ -465,15 +839,14 @@ export default function QuickViewModal({
         }
 
         style={{
+          willChange:
+            "transform",
+
           transform:
-            dragY > 0
-              ? `translate3d(0, ${dragY}px, 0)`
-              : undefined,
+            undefined,
 
           transition:
-            dragY === 0
-              ? "transform 300ms ease-out"
-              : "none",
+            "transform 300ms ease-out",
         }}
 
         className={`
@@ -487,7 +860,9 @@ export default function QuickViewModal({
           border
           border-white/[0.07]
           bg-[#090909]
+
           shadow-[0_-20px_80px_rgba(0,0,0,0.55)]
+
           transition-transform
           duration-300
           ease-out
@@ -507,9 +882,9 @@ export default function QuickViewModal({
         `}
       >
 
-        {/* ===================================================
-            Mobile Handle
-        ==================================================== */}
+        {/* =================================================
+            MOBILE HANDLE
+        ================================================== */}
 
         <div
           className="
@@ -527,14 +902,19 @@ export default function QuickViewModal({
         />
 
 
-        {/* ===================================================
-            Close Button
-        ==================================================== */}
+        {/* =================================================
+            CLOSE
+        ================================================== */}
 
         <button
           type="button"
-          onClick={onClose}
+
+          onClick={
+            onClose
+          }
+
           aria-label="Close quick view"
+
           className="
             absolute
             right-3
@@ -551,12 +931,15 @@ export default function QuickViewModal({
             bg-black/60
             text-white
             shadow-lg
-            backdrop-blur-md
+
             transition-all
+
             hover:border-[#D4AF37]/40
             hover:bg-[#D4AF37]
             hover:text-black
+
             active:scale-95
+
             sm:right-5
             sm:top-5
           "
@@ -569,21 +952,19 @@ export default function QuickViewModal({
         </button>
 
 
-        {/* ===================================================
+        {/* =================================================
             IMAGE SIDE
-        ==================================================== */}
+        ================================================== */}
 
         <div
           className="
+            relative
             shrink-0
-            px-4
-            pb-4
-            pt-8
+
             sm:flex
-            sm:w-[52%]
+            sm:w-1/2
             sm:flex-col
-            sm:px-6
-            sm:py-6
+            sm:p-5
           "
         >
 
@@ -593,38 +974,47 @@ export default function QuickViewModal({
             className="
               relative
               aspect-[4/5]
+              w-full
               overflow-hidden
-              rounded-2xl
-              bg-[#111111]
-              ring-1
-              ring-white/[0.06]
-              sm:flex-1
+              bg-neutral-900
+
               sm:aspect-auto
+              sm:h-full
+              sm:rounded-2xl
             "
           >
 
             {images.length > 0 ? (
 
               <img
+                key={
+                  images[activeImage]
+                }
+
                 src={
                   images[activeImage]
                 }
+
                 alt={
                   product.name
                 }
-                className={`
+
+                loading="eager"
+
+                decoding="async"
+
+                fetchPriority="high"
+
+                draggable={false}
+
+                className="
                   h-full
                   w-full
+                  select-none
                   object-cover
-                  transition-all
-                  duration-300
-
-                  ${
-                    imageChanging
-                      ? "scale-[0.985] opacity-0"
-                      : "scale-100 opacity-100"
-                  }
-                `}
+                  transition-opacity
+                  duration-150
+                "
               />
 
             ) : (
@@ -636,122 +1026,105 @@ export default function QuickViewModal({
                   w-full
                   items-center
                   justify-center
-                  text-neutral-700
+                  text-xs
+                  text-neutral-600
                 "
               >
-
-                <ShoppingBag
-                  size={34}
-                  strokeWidth={1.3}
-                />
-
+                No image available
               </div>
 
             )}
 
 
-            {/* Image gradient */}
+            {/* Desktop arrows */}
 
-            <div
-              className="
-                pointer-events-none
-                absolute
-                inset-x-0
-                bottom-0
-                h-28
-                bg-gradient-to-t
-                from-black/45
-                to-transparent
-              "
-            />
+            {images.length > 1 && (
 
+              <>
 
-            {/* Discount */}
+                <button
+                  type="button"
 
-            {discount > 0 && (
-
-              <div
-                className="
-                  absolute
-                  left-3
-                  top-3
-                  rounded-full
-                  bg-[#D4AF37]
-                  px-3
-                  py-1.5
-                  text-[10px]
-                  font-bold
-                  tracking-wide
-                  text-black
-                  shadow-lg
-                  sm:left-4
-                  sm:top-4
-                "
-              >
-                {discount}% OFF
-              </div>
-
-            )}
-
-
-            {/* Stock */}
-
-            <div
-              className={`
-                absolute
-                bottom-3
-                left-3
-                inline-flex
-                items-center
-                gap-1.5
-                rounded-full
-                border
-                px-2.5
-                py-1.5
-                text-[9px]
-                font-medium
-                backdrop-blur-md
-                sm:bottom-4
-                sm:left-4
-
-                ${
-                  isOutOfStock
-                    ? `
-                      border-red-400/20
-                      bg-red-950/60
-                      text-red-300
-                    `
-                    : `
-                      border-emerald-400/20
-                      bg-black/55
-                      text-emerald-300
-                    `
-                }
-              `}
-            >
-
-              <span
-                className={`
-                  h-1.5
-                  w-1.5
-                  rounded-full
-
-                  ${
-                    isOutOfStock
-                      ? "bg-red-400"
-                      : "bg-emerald-400"
+                  onClick={
+                    previousImage
                   }
-                `}
-              />
 
-              {isOutOfStock
-                ? "Out of Stock"
-                : "In Stock"}
+                  aria-label="Previous image"
 
-            </div>
+                  className="
+                    absolute
+                    left-3
+                    top-1/2
+                    hidden
+                    h-10
+                    w-10
+                    -translate-y-1/2
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-black/50
+                    text-white
+
+                    transition
+
+                    hover:bg-[#D4AF37]
+                    hover:text-black
+
+                    sm:flex
+                  "
+                >
+
+                  <ChevronLeft
+                    size={19}
+                  />
+
+                </button>
 
 
-            {/* Image counter */}
+                <button
+                  type="button"
+
+                  onClick={
+                    nextImage
+                  }
+
+                  aria-label="Next image"
+
+                  className="
+                    absolute
+                    right-3
+                    top-1/2
+                    hidden
+                    h-10
+                    w-10
+                    -translate-y-1/2
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-black/50
+                    text-white
+
+                    transition
+
+                    hover:bg-[#D4AF37]
+                    hover:text-black
+
+                    sm:flex
+                  "
+                >
+
+                  <ChevronRight
+                    size={19}
+                  />
+
+                </button>
+
+              </>
+
+            )}
+
+
+            {/* Mobile image counter */}
 
             {images.length > 1 && (
 
@@ -759,115 +1132,24 @@ export default function QuickViewModal({
                 className="
                   absolute
                   bottom-3
-                  right-3
+                  left-1/2
+                  -translate-x-1/2
                   rounded-full
-                  border
-                  border-white/10
                   bg-black/55
                   px-2.5
-                  py-1.5
+                  py-1
                   text-[9px]
                   font-medium
-                  text-white/80
-                  backdrop-blur-md
-                  sm:bottom-4
-                  sm:right-4
+                  text-white
+                  sm:hidden
                 "
               >
 
                 {activeImage + 1}
-
                 {" / "}
-
                 {images.length}
 
               </div>
-
-            )}
-
-
-            {/* Previous */}
-
-            {images.length > 1 && (
-
-              <button
-                type="button"
-                onClick={
-                  previousImage
-                }
-                aria-label="Previous image"
-                className="
-                  absolute
-                  left-3
-                  top-1/2
-                  flex
-                  h-9
-                  w-9
-                  -translate-y-1/2
-                  items-center
-                  justify-center
-                  rounded-full
-                  border
-                  border-white/10
-                  bg-black/45
-                  text-white
-                  backdrop-blur-md
-                  transition-all
-                  hover:border-[#D4AF37]/40
-                  hover:bg-[#D4AF37]
-                  hover:text-black
-                  sm:left-4
-                "
-              >
-
-                <ChevronLeft
-                  size={17}
-                />
-
-              </button>
-
-            )}
-
-
-            {/* Next */}
-
-            {images.length > 1 && (
-
-              <button
-                type="button"
-                onClick={
-                  nextImage
-                }
-                aria-label="Next image"
-                className="
-                  absolute
-                  right-3
-                  top-1/2
-                  flex
-                  h-9
-                  w-9
-                  -translate-y-1/2
-                  items-center
-                  justify-center
-                  rounded-full
-                  border
-                  border-white/10
-                  bg-black/45
-                  text-white
-                  backdrop-blur-md
-                  transition-all
-                  hover:border-[#D4AF37]/40
-                  hover:bg-[#D4AF37]
-                  hover:text-black
-                  sm:right-4
-                "
-              >
-
-                <ChevronRight
-                  size={17}
-                />
-
-              </button>
 
             )}
 
@@ -875,20 +1157,21 @@ export default function QuickViewModal({
 
 
           {/* =================================================
-              Thumbnail Strip
+              MOBILE THUMBNAILS
           ================================================== */}
 
           {images.length > 1 && (
 
             <div
               className="
-                mt-3
                 flex
                 gap-2
                 overflow-x-auto
-                pb-0.5
-                scrollbar-none
-                sm:mt-4
+                px-3
+                py-3
+                scrollbar-hide
+
+                sm:hidden
               "
             >
 
@@ -900,34 +1183,149 @@ export default function QuickViewModal({
 
                   <button
                     key={
-                      image + index
+                      `${image}-${index}`
                     }
+
                     type="button"
+
                     onClick={() =>
-                      changeImage(index)
+                      changeImage(
+                        index
+                      )
                     }
+
                     aria-label={
                       `View image ${index + 1}`
                     }
+
+                    aria-pressed={
+                      activeImage ===
+                      index
+                    }
+
                     className={`
-                      relative
                       h-14
-                      w-11
+                      w-14
                       shrink-0
                       overflow-hidden
                       rounded-lg
                       border
-                      transition-all
+                      bg-neutral-900
+                      transition
 
                       ${
-                        activeImage === index
+                        activeImage ===
+                        index
+
                           ? `
                             border-[#D4AF37]
-                            ring-1
-                            ring-[#D4AF37]/30
+                            opacity-100
                           `
+
                           : `
-                            border-white/10
+                            border-white/[0.08]
+                            opacity-60
+                          `
+                      }
+                    `}
+                  >
+
+                    <img
+                      src={
+                        image
+                      }
+
+                      alt={
+                        `${product.name} thumbnail ${index + 1}`
+                      }
+
+                      loading={
+                        index < 3
+                          ? "eager"
+                          : "lazy"
+                      }
+
+                      decoding="async"
+
+                      draggable={false}
+
+                      className="
+                        h-full
+                        w-full
+                        object-cover
+                      "
+                    />
+
+                  </button>
+
+                )
+              )}
+
+            </div>
+
+          )}
+
+
+          {/* =================================================
+              DESKTOP THUMBNAILS
+          ================================================== */}
+
+          {images.length > 1 && (
+
+            <div
+              className="
+                mt-3
+                hidden
+                gap-2
+                overflow-x-auto
+                scrollbar-hide
+                sm:flex
+              "
+            >
+
+              {images.map(
+                (
+                  image,
+                  index
+                ) => (
+
+                  <button
+                    key={
+                      `${image}-desktop-${index}`
+                    }
+
+                    type="button"
+
+                    onClick={() =>
+                      changeImage(
+                        index
+                      )
+                    }
+
+                    aria-label={
+                      `View image ${index + 1}`
+                    }
+
+                    className={`
+                      h-16
+                      w-16
+                      shrink-0
+                      overflow-hidden
+                      rounded-lg
+                      border-2
+                      transition
+
+                      ${
+                        activeImage ===
+                        index
+
+                          ? `
+                            border-[#D4AF37]
+                            opacity-100
+                          `
+
+                          : `
+                            border-transparent
                             opacity-60
                             hover:opacity-100
                           `
@@ -936,8 +1334,20 @@ export default function QuickViewModal({
                   >
 
                     <img
-                      src={image}
-                      alt=""
+                      src={
+                        image
+                      }
+
+                      alt={
+                        `${product.name} thumbnail ${index + 1}`
+                      }
+
+                      loading="lazy"
+
+                      decoding="async"
+
+                      draggable={false}
+
                       className="
                         h-full
                         w-full
@@ -957,70 +1367,42 @@ export default function QuickViewModal({
         </div>
 
 
-        {/* ===================================================
-            DETAILS SIDE
-        ==================================================== */}
+        {/* =================================================
+            DETAILS
+        ================================================== */}
 
         <div
           className="
             min-h-0
             flex-1
             overflow-y-auto
-            border-t
-            border-white/[0.06]
+            overscroll-contain
             px-5
-            pb-32
-            pt-5
-            scrollbar-thin
-            scrollbar-track-transparent
-            scrollbar-thumb-white/10
-            sm:border-l
-            sm:border-t-0
+            pb-28
+            pt-1
+
             sm:px-7
-            sm:py-8
-            sm:pb-8
+            sm:py-7
+            sm:pb-7
           "
         >
 
-          {/* Brand */}
-
-          <div
-            className="
-              flex
-              items-center
-              gap-2
-              text-[9px]
-              font-medium
-              uppercase
-              tracking-[0.28em]
-              text-[#C8A44D]
-            "
-          >
-
-            <Sparkles
-              size={12}
-            />
-
-            T&M Jewels
-
-          </div>
-
-
-          {/* Product Name */}
+          {/* Product name */}
 
           <h2
             className="
-              mt-2
-              max-w-lg
-              text-xl
+              pr-10
+              text-2xl
               font-semibold
               leading-tight
-              tracking-tight
               text-[#F7E3A3]
+
               sm:text-3xl
             "
           >
+
             {product.name}
+
           </h2>
 
 
@@ -1034,57 +1416,34 @@ export default function QuickViewModal({
                 flex
                 items-center
                 gap-2
+                text-sm
+                text-[#D4AF37]
               "
             >
 
-              <div
-                className="
-                  inline-flex
-                  items-center
-                  gap-1.5
-                  rounded-full
-                  border
-                  border-[#D4AF37]/15
-                  bg-[#D4AF37]/[0.04]
-                  px-2.5
-                  py-1.5
-                "
-              >
+              <Star
+                size={15}
+                fill="currentColor"
+              />
 
-                <Star
-                  size={13}
-                  fill="currentColor"
-                  className="
-                    text-[#D4AF37]
-                  "
-                />
+              <span>
+                {product.rating}
+              </span>
+
+
+              {product.review_count >
+                0 && (
 
                 <span
                   className="
-                    text-xs
-                    font-medium
-                    text-[#E6C96A]
+                    text-neutral-400
                   "
                 >
-                  {product.rating}
-                </span>
-
-              </div>
-
-
-              {product.review_count > 0 && (
-
-                <span
-                  className="
-                    text-xs
-                    text-neutral-500
-                  "
-                >
-                  {product.review_count}
-                  {" "}
-                  {product.review_count === 1
-                    ? "review"
-                    : "reviews"}
+                  (
+                  {
+                    product.review_count
+                  }
+                  )
                 </span>
 
               )}
@@ -1094,39 +1453,28 @@ export default function QuickViewModal({
           )}
 
 
-          {/* Divider */}
-
-          <div
-            className="
-              my-5
-              h-px
-              bg-white/[0.06]
-            "
-          />
-
-
           {/* Price */}
 
           <div
             className="
+              mt-4
               flex
               flex-wrap
-              items-end
-              gap-x-3
-              gap-y-1
+              items-center
+              gap-3
             "
           >
 
             <span
               className="
-                text-3xl
-                font-semibold
-                tracking-tight
+                text-2xl
+                font-bold
                 text-white
-                sm:text-4xl
               "
             >
+
               ₹{product.price}
+
             </span>
 
 
@@ -1134,13 +1482,16 @@ export default function QuickViewModal({
 
               <span
                 className="
-                  pb-1
                   text-sm
-                  text-neutral-600
+                  text-neutral-500
                   line-through
                 "
               >
-                ₹{product.compare_price}
+
+                ₹{
+                  product.compare_price
+                }
+
               </span>
 
             )}
@@ -1150,17 +1501,18 @@ export default function QuickViewModal({
 
               <span
                 className="
-                  mb-1
                   rounded-full
                   bg-[#D4AF37]/10
-                  px-2
+                  px-2.5
                   py-1
-                  text-[10px]
-                  font-semibold
+                  text-xs
+                  font-medium
                   text-[#D4AF37]
                 "
               >
-                Save {discount}%
+
+                {discount}% OFF
+
               </span>
 
             )}
@@ -1168,93 +1520,71 @@ export default function QuickViewModal({
           </div>
 
 
-          {/* Reward Card */}
+          {/* Reward section */}
 
           <div
             className="
-              mt-5
-              rounded-2xl
+              mt-4
+              flex
+              items-center
+              gap-2
+              rounded-xl
               border
               border-[#D4AF37]/15
-              bg-gradient-to-br
-              from-[#D4AF37]/[0.09]
-              via-[#D4AF37]/[0.035]
-              to-transparent
-              p-4
+              bg-[#D4AF37]/[0.035]
+              px-3
+              py-3
+              text-sm
+              text-yellow-400
             "
           >
 
-            <div
-              className="
-                flex
-                items-start
-                gap-3
-              "
-            >
+            <Coins
+              size={17}
+              className="shrink-0"
+            />
 
-              <div
+            <div>
+
+              <p
                 className="
-                  flex
-                  h-9
-                  w-9
-                  shrink-0
-                  items-center
-                  justify-center
-                  rounded-full
-                  bg-[#D4AF37]/10
-                  text-[#D4AF37]
+                  font-medium
+                  text-yellow-400
                 "
               >
 
-                <Coins
-                  size={17}
-                />
+                +{product.price} Reward Points
 
-              </div>
+              </p>
 
+              <p
+                className="
+                  mt-1
+                  text-[11px]
+                  leading-5
+                  text-neutral-500
+                "
+              >
 
-              <div>
-
-                <p
+                Earn{" "}
+                <span
                   className="
-                    text-xs
-                    font-semibold
-                    text-[#F7E3A3]
+                    font-medium
+                    text-[#D4AF37]
                   "
                 >
-                  Earn reward points
-                </p>
+                  +{product.price}
+                </span>{" "}
+                reward points on this purchase.
 
-
-                <p
-                  className="
-                    mt-1
-                    text-[11px]
-                    leading-5
-                    text-neutral-500
-                  "
-                >
-                  Earn{" "}
-                  <span
-                    className="
-                      font-medium
-                      text-[#D4AF37]
-                    "
-                  >
-                    +{product.price}
-                  </span>
-                  {" "}
-                  reward points on this purchase.
-                </p>
-
-              </div>
+              </p>
 
             </div>
 
           </div>
 
 
-          {/* Short Description */}
+          {/* Short description */}
 
           {product.short_description && (
 
@@ -1271,7 +1601,11 @@ export default function QuickViewModal({
                   text-neutral-400
                 "
               >
-                {product.short_description}
+
+                {
+                  product.short_description
+                }
+
               </p>
 
             </div>
@@ -1279,7 +1613,7 @@ export default function QuickViewModal({
           )}
 
 
-          {/* Trust Features */}
+          {/* Trust features */}
 
           <div
             className="
@@ -1320,7 +1654,9 @@ export default function QuickViewModal({
                   sm:text-xs
                 "
               >
+
                 Premium Quality
+
               </span>
 
             </div>
@@ -1356,7 +1692,9 @@ export default function QuickViewModal({
                   sm:text-xs
                 "
               >
+
                 Crafted to Impress
+
               </span>
 
             </div>
@@ -1386,7 +1724,9 @@ export default function QuickViewModal({
                   text-[#D4AF37]
                 "
               >
+
                 Care Instructions
+
               </h4>
 
 
@@ -1398,7 +1738,11 @@ export default function QuickViewModal({
                   text-neutral-500
                 "
               >
-                {product.care_instructions}
+
+                {
+                  product.care_instructions
+                }
+
               </p>
 
             </div>
@@ -1406,9 +1750,7 @@ export default function QuickViewModal({
           )}
 
 
-          {/* =================================================
-              Desktop Actions
-          ================================================== */}
+          {/* Desktop Actions */}
 
           <div
             className="
@@ -1420,12 +1762,15 @@ export default function QuickViewModal({
 
             <button
               type="button"
+
               onClick={
                 handleAddToCart
               }
+
               disabled={
                 isOutOfStock
               }
+
               className="
                 flex
                 w-full
@@ -1454,18 +1799,24 @@ export default function QuickViewModal({
                 size={16}
               />
 
-              {isOutOfStock
-                ? "Out of Stock"
-                : "Add To Cart"}
+              {
+                isOutOfStock
+                  ? "Out of Stock"
+                  : "Add To Cart"
+              }
 
             </button>
 
 
             <a
-              href={`/product/${product.slug}`}
+              href={
+                `/product/${product.slug}`
+              }
+
               onClick={(e) =>
                 e.stopPropagation()
               }
+
               className="
                 mt-3
                 block
@@ -1477,7 +1828,9 @@ export default function QuickViewModal({
                 hover:text-[#F7E3A3]
               "
             >
+
               View Full Details →
+
             </a>
 
           </div>
@@ -1485,9 +1838,9 @@ export default function QuickViewModal({
         </div>
 
 
-        {/* ===================================================
+        {/* =================================================
             MOBILE STICKY CTA
-        ==================================================== */}
+        ================================================== */}
 
         <div
           className="
@@ -1528,7 +1881,9 @@ export default function QuickViewModal({
                   text-neutral-500
                 "
               >
+
                 {product.name}
+
               </p>
 
 
@@ -1540,7 +1895,9 @@ export default function QuickViewModal({
                   text-white
                 "
               >
+
                 ₹{product.price}
+
               </p>
 
             </div>
@@ -1548,12 +1905,15 @@ export default function QuickViewModal({
 
             <button
               type="button"
+
               onClick={
                 handleAddToCart
               }
+
               disabled={
                 isOutOfStock
               }
+
               className="
                 flex
                 min-h-11
@@ -1579,31 +1939,15 @@ export default function QuickViewModal({
                 size={15}
               />
 
-              {isOutOfStock
-                ? "Out of Stock"
-                : "Add To Cart"}
+              {
+                isOutOfStock
+                  ? "Out of Stock"
+                  : "Add To Cart"
+              }
 
             </button>
 
           </div>
-
-
-          <a
-            href={`/product/${product.slug}`}
-            onClick={(e) =>
-              e.stopPropagation()
-            }
-            className="
-              mt-2
-              block
-              text-center
-              text-[10px]
-              font-medium
-              text-[#D4AF37]
-            "
-          >
-            View Full Details →
-          </a>
 
         </div>
 

@@ -62,16 +62,57 @@ export const shopService = {
 
   /*
    * =======================================================
+   * PRODUCT DETAILS
+   * =======================================================
+   *
+   * Used by:
+   *
+   * useProductDetails()
+   *
+   * This was already part of the Shop service and must
+   * remain here.
+   * =======================================================
+   */
+
+  async getProductBySlug(
+    slug: string
+  ) {
+
+    const product =
+      await productService.getBySlug(
+        slug
+      );
+
+
+    /*
+     * Don't expose inactive products
+     * on the customer side.
+     */
+
+    if (
+      !product ||
+      product.status !==
+        "active"
+    ) {
+
+      return null;
+
+    }
+
+
+    return product;
+
+  },
+
+
+  /*
+   * =======================================================
    * CATEGORIES
    * =======================================================
    *
    * Fetches active TOP-LEVEL categories.
    *
-   * Subcategories are fetched separately and attached
-   * to their parent category.
-   *
-   * This keeps the Shop completely database-driven.
-   *
+   * Their active subcategories are attached to them.
    * =======================================================
    */
 
@@ -81,7 +122,7 @@ export const shopService = {
 
     /*
      * -------------------------------------------------------
-     * Fetch categories
+     * Fetch active top-level categories
      * -------------------------------------------------------
      */
 
@@ -104,19 +145,6 @@ export const shopService = {
         "is_active",
         true
       )
-
-      /*
-       * Only main/top-level categories.
-       *
-       * Your current structure uses:
-       *
-       * Bracelets & Bangles
-       *      ↓
-       * subcategories
-       *
-       * So we don't want nested categories appearing
-       * as main Shop categories.
-       */
 
       .is(
         "parent_id",
@@ -159,7 +187,7 @@ export const shopService = {
 
     /*
      * -------------------------------------------------------
-     * Fetch all active subcategories
+     * Get category IDs
      * -------------------------------------------------------
      */
 
@@ -169,6 +197,12 @@ export const shopService = {
           category.id
       );
 
+
+    /*
+     * -------------------------------------------------------
+     * Fetch active subcategories
+     * -------------------------------------------------------
+     */
 
     const {
       data: subcategories,
@@ -223,7 +257,7 @@ export const shopService = {
 
     /*
      * -------------------------------------------------------
-     * Attach subcategories to categories
+     * Attach subcategories
      * -------------------------------------------------------
      */
 
