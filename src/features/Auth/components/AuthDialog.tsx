@@ -37,7 +37,6 @@ import {
 
 import {
   createCustomer,
-  
 } from "@/features/customers/services/customer.service";
 
 import {
@@ -309,11 +308,9 @@ export default function AuthDialog({
       "phone"
     );
 
-
     setPhone(
       ""
     );
-
 
     setOtp([
       "",
@@ -324,41 +321,33 @@ export default function AuthDialog({
       "",
     ]);
 
-
     setFullName(
       ""
     );
-
 
     setEmail(
       ""
     );
 
-
     setReferralCode(
       ""
     );
-
 
     setTimer(
       30
     );
 
-
     setAuthSuccess(
       false
     );
-
 
     setSuccessMessage(
       ""
     );
 
-
     setLoginDebug(
       null
     );
-
 
     onOpenChange(
       false
@@ -379,11 +368,9 @@ export default function AuthDialog({
       "phone"
     );
 
-
     setTimer(
       30
     );
-
 
     setOtp([
       "",
@@ -394,7 +381,6 @@ export default function AuthDialog({
       "",
     ]);
 
-
     setLoginDebug(
       null
     );
@@ -404,13 +390,46 @@ export default function AuthDialog({
 
   /*
    * =========================================================
-   * DIAGNOSTIC CUSTOMER TABLE TEST
+   * DIRECT CUSTOMER DIAGNOSTIC
    * =========================================================
+   *
+   * This checks the EXACT phone being tested.
+   *
+   * It does not merely check whether the customers table
+   * is accessible.
+   *
+   * It checks:
+   *
+   * phone = normalized phone
+   * deleted_at IS NULL
+   *
    */
 
-  async function testCustomerTableAccess() {
+  async function testCustomerTableAccess(
+    phoneNumber: string
+  ) {
 
     try {
+
+      const normalizedPhone =
+        phoneNumber
+          .replace(
+            /\D/g,
+            ""
+          )
+          .slice(-10);
+
+
+      console.log(
+        "[T&M AUTH] DIRECT CUSTOMER TEST",
+      );
+
+
+      console.log(
+        "[T&M AUTH] Phone:",
+        normalizedPhone
+      );
+
 
       const {
         data,
@@ -419,9 +438,29 @@ export default function AuthDialog({
         await supabase
           .from("customers")
           .select(
-            "id, phone, first_name, last_name"
+            "id, phone, first_name, last_name, deleted_at"
           )
-          .limit(5);
+          .eq(
+            "phone",
+            normalizedPhone
+          )
+          .is(
+            "deleted_at",
+            null
+          )
+          .limit(1);
+
+
+      console.log(
+        "[T&M AUTH] Direct customer data:",
+        data
+      );
+
+
+      console.log(
+        "[T&M AUTH] Direct customer error:",
+        error
+      );
 
 
       if (
@@ -439,6 +478,9 @@ export default function AuthDialog({
           error:
             `${error.code || ""} ${error.message || ""}`.trim(),
 
+          customer:
+            null,
+
         };
 
       }
@@ -447,13 +489,16 @@ export default function AuthDialog({
       return {
 
         status:
-          "ACCESSIBLE ✅",
+          "QUERY SUCCESS ✅",
 
         count:
           data?.length ?? 0,
 
         error:
           "",
+
+        customer:
+          data?.[0] ?? null,
 
       };
 
@@ -473,6 +518,9 @@ export default function AuthDialog({
           error?.message ||
           String(error),
 
+        customer:
+          null,
+
       };
 
     }
@@ -489,7 +537,7 @@ export default function AuthDialog({
   async function handleVerifyOtp() {
 
     /*
-     * Clear old debug.
+     * Clear old diagnostic.
      */
 
     setLoginDebug(
@@ -498,7 +546,9 @@ export default function AuthDialog({
 
 
     /*
-     * Normalize phone.
+     * -------------------------------------------------------
+     * Phone values
+     * -------------------------------------------------------
      */
 
     const rawPhone =
@@ -515,7 +565,9 @@ export default function AuthDialog({
 
 
     /*
-     * Initial visual diagnostic.
+     * -------------------------------------------------------
+     * Initial diagnostic
+     * -------------------------------------------------------
      */
 
     setLoginDebug({
@@ -577,62 +629,72 @@ export default function AuthDialog({
 
       /*
        * =====================================================
-       * TEST CUSTOMER TABLE ACCESS
+       * DIRECT CUSTOMER TEST
        * =====================================================
        */
 
       const tableTest =
-        await testCustomerTableAccess();
+        await testCustomerTableAccess(
+          normalizedPhone
+        );
 
 
       /*
-       * Show table result immediately.
+       * Show the DIRECT result.
        */
 
-      setLoginDebug(
-        () => ({
+      setLoginDebug({
 
-          rawPhone,
+        rawPhone,
 
-          normalizedPhone,
+        normalizedPhone,
 
-          supabaseUrl:
-            import.meta.env.VITE_SUPABASE_URL ||
-            "NOT FOUND",
+        supabaseUrl:
+          import.meta.env.VITE_SUPABASE_URL ||
+          "NOT FOUND",
 
-          tableStatus:
-            tableTest.status,
+        tableStatus:
+          tableTest.status,
 
-          rowCount:
-            tableTest.count,
+        rowCount:
+          tableTest.count,
 
-          customerStatus:
-            tableTest.error
-              ? "Not checked"
-              : "Checking...",
+        customerStatus:
+          tableTest.customer
+            ? "DIRECT CUSTOMER FOUND ✅"
+            : tableTest.error
+              ? "QUERY ERROR ❌"
+              : "DIRECT CUSTOMER NOT FOUND ❌",
 
-          customerFound:
-            false,
+        customerFound:
+          !!tableTest.customer,
 
-          customerId:
-            "",
+        customerId:
+          tableTest.customer?.id ||
+          "",
 
-          customerPhone:
-            "",
+        customerPhone:
+          tableTest.customer?.phone ||
+          "",
 
-          customerName:
-            "",
+        customerName:
+          [
+            tableTest.customer?.first_name,
+            tableTest.customer?.last_name,
+          ]
+            .filter(Boolean)
+            .join(" "),
 
-          error:
-            tableTest.error,
+        error:
+          tableTest.error,
 
-        })
-      );
+      });
 
 
       /*
-       * If the whole table is inaccessible,
-       * stop here.
+       * -------------------------------------------------------
+       * Stop if direct query failed.
+       * -------------------------------------------------------
        */
 
       if (
@@ -643,7 +705,6 @@ export default function AuthDialog({
           "Customers table query failed."
         );
 
-
         return;
 
       }
@@ -651,11 +712,13 @@ export default function AuthDialog({
 
       /*
        * =====================================================
-       * DIRECT CUSTOMER LOOKUP
+       * ACTUAL LOGIN
        * =====================================================
        *
-       * We call loginWithPhone() because that is the same
-       * function used by your actual login flow.
+       * This uses AuthContext.
+       *
+       * AuthContext then calls getCustomerByPhone()
+       * and updates the global customer state.
        * =====================================================
        */
 
@@ -707,10 +770,12 @@ export default function AuthDialog({
             true,
 
           customerId:
-            customer.id || "",
+            customer.id ||
+            "",
 
           customerPhone:
-            customer.phone || "",
+            customer.phone ||
+            "",
 
           customerName,
 
@@ -737,7 +802,15 @@ export default function AuthDialog({
 
       /*
        * =====================================================
-       * CUSTOMER NOT FOUND
+       * CUSTOMER NOT FOUND THROUGH AUTH CONTEXT
+       * =====================================================
+       *
+       * Notice:
+       *
+       * The direct query above may have found the customer,
+       * while AuthContext may still return null.
+       *
+       * This is exactly what we need to identify.
        * =====================================================
        */
 
@@ -758,22 +831,31 @@ export default function AuthDialog({
           tableTest.count,
 
         customerStatus:
-          "CUSTOMER NOT FOUND ❌",
+          tableTest.customer
+            ? "DIRECT FOUND BUT AUTH LOOKUP RETURNED NULL ⚠️"
+            : "CUSTOMER NOT FOUND ❌",
 
         customerFound:
-          false,
+          !!tableTest.customer,
 
         customerId:
+          tableTest.customer?.id ||
           "",
 
         customerPhone:
+          tableTest.customer?.phone ||
           "",
 
         customerName:
-          "",
+          [
+            tableTest.customer?.first_name,
+            tableTest.customer?.last_name,
+          ]
+            .filter(Boolean)
+            .join(" "),
 
         error:
-          tableTest.error || "",
+          "",
 
       });
 
@@ -783,14 +865,6 @@ export default function AuthDialog({
       );
 
 
-      /*
-       * IMPORTANT:
-       *
-       * Do not immediately move to profile.
-       * Keep the OTP screen visible so you can read
-       * the diagnostic information.
-       */
-
       return;
 
     } catch (
@@ -798,7 +872,14 @@ export default function AuthDialog({
     ) {
 
       const errorMessage =
-        error?.message ||
+        [
+          error?.code,
+          error?.message,
+          error?.details,
+          error?.hint,
+        ]
+          .filter(Boolean)
+          .join(" | ") ||
         String(error) ||
         "Unknown error";
 
@@ -838,6 +919,12 @@ export default function AuthDialog({
           errorMessage,
 
       });
+
+
+      console.error(
+        "[T&M AUTH] Login error:",
+        error
+      );
 
 
       toast.error(
@@ -885,13 +972,18 @@ export default function AuthDialog({
             lastName,
 
           email:
-            email || undefined,
+            email ||
+            undefined,
 
           phone:
             phone,
 
         });
 
+
+      /*
+       * Referral
+       */
 
       if (
         referralCode.trim()
@@ -923,6 +1015,10 @@ export default function AuthDialog({
       }
 
 
+      /*
+       * Login immediately.
+       */
+
       const loggedInCustomer =
         await loginWithPhone(
           phone
@@ -947,6 +1043,10 @@ export default function AuthDialog({
 
       }
 
+
+      /*
+       * Fallback.
+       */
 
       setSuccessMessage(
         "Welcome to T&M Family ✨"
@@ -1818,8 +1918,6 @@ export default function AuthDialog({
                         "
                       >
 
-                        {/* Phone */}
-
                         <div
                           className="
                             rounded-lg
@@ -1854,8 +1952,6 @@ export default function AuthDialog({
                         </div>
 
 
-                        {/* Normalized */}
-
                         <div
                           className="
                             rounded-lg
@@ -1889,8 +1985,6 @@ export default function AuthDialog({
                         </div>
 
 
-                        {/* Supabase */}
-
                         <div
                           className="
                             rounded-lg
@@ -1923,8 +2017,6 @@ export default function AuthDialog({
 
                         </div>
 
-
-                        {/* Table */}
 
                         <div
                           className="
@@ -1998,8 +2090,6 @@ export default function AuthDialog({
                         </div>
 
 
-                        {/* Customer */}
-
                         <div
                           className="
                             rounded-lg
@@ -2038,8 +2128,6 @@ export default function AuthDialog({
                         </div>
 
 
-                        {/* Customer ID */}
-
                         {loginDebug.customerId && (
 
                           <div
@@ -2076,8 +2164,6 @@ export default function AuthDialog({
 
                         )}
 
-
-                        {/* DB Phone */}
 
                         {loginDebug.customerPhone && (
 
@@ -2116,8 +2202,6 @@ export default function AuthDialog({
                         )}
 
 
-                        {/* Customer name */}
-
                         {loginDebug.customerName && (
 
                           <div
@@ -2153,8 +2237,6 @@ export default function AuthDialog({
 
                         )}
 
-
-                        {/* Error */}
 
                         {loginDebug.error && (
 
