@@ -57,17 +57,13 @@ export default function MobileNavigation({
    * SHOP CATEGORIES
    * =========================================================
    *
-   * IMPORTANT:
+   * Uses the same shop category source as desktop.
    *
-   * We intentionally use useShopCategories() here instead
-   * of useCategories() + useSubcategories().
+   * shopService.getCategories() returns:
    *
-   * shopService.getCategories() already:
-   *
-   * 1. Gets active parent categories
-   * 2. Gets active subcategories
-   * 3. Checks active products
-   * 4. Only returns subcategories with products
+   * - active parent categories
+   * - active subcategories
+   * - only subcategories with active products
    *
    * This keeps mobile and desktop consistent.
    *
@@ -76,27 +72,21 @@ export default function MobileNavigation({
 
   const {
     data: categories = [],
-  } =
-    useShopCategories();
+  } = useShopCategories();
 
 
   /*
    * =========================================================
    * EXPANDED CATEGORY
    * =========================================================
-   *
-   * Only one category stays open at a time.
-   *
-   * =========================================================
    */
 
   const [
     expandedCategory,
     setExpandedCategory,
-  ] =
-    useState<string | null>(
-      null
-    );
+  ] = useState<string | null>(
+    null
+  );
 
 
   /*
@@ -107,8 +97,7 @@ export default function MobileNavigation({
 
   const {
     openAuth,
-  } =
-    useAuthDialog();
+  } = useAuthDialog();
 
 
   /*
@@ -122,14 +111,10 @@ export default function MobileNavigation({
   ) {
 
     setExpandedCategory(
-
-      expandedCategory ===
-        categoryId
-
-        ? null
-
-        : categoryId
-
+      (previous) =>
+        previous === categoryId
+          ? null
+          : categoryId
     );
 
   }
@@ -338,29 +323,21 @@ export default function MobileNavigation({
                 onClose
               }
 
-              className={({
-                isActive,
-              }) => `
-
-                block
-
-                border-b
-
-                border-neutral-100
-
-                py-3
-
-                text-base
-
-                font-medium
-
-                ${
-                  isActive
-                    ? "text-[#C8A44D]"
-                    : "text-neutral-900"
-                }
-
-              `}
+              className={({ isActive }) =>
+                `
+                  block
+                  border-b
+                  border-neutral-100
+                  py-3
+                  text-base
+                  font-medium
+                  ${
+                    isActive
+                      ? "text-[#C8A44D]"
+                      : "text-neutral-900"
+                  }
+                `
+              }
             >
 
               {item.label}
@@ -404,14 +381,14 @@ export default function MobileNavigation({
           {categories.map(
             (category) => {
 
-              const hasSubcategories =
-                category.subcategories.length >
-                0;
-
-
               const isExpanded =
                 expandedCategory ===
                 category.id;
+
+
+              const hasSubcategories =
+                category.subcategories.length >
+                0;
 
 
               return (
@@ -571,45 +548,71 @@ export default function MobileNavigation({
                           >
 
                             {category.subcategories.map(
-                              (subcategory) => (
+                              (subcategory) => {
 
-                                <Link
+                                /*
+                                 * Prefer slug when available.
+                                 *
+                                 * If slug is null, use the
+                                 * database ID.
+                                 *
+                                 * This avoids ever generating
+                                 * a multiline URL and therefore
+                                 * prevents %20 from appearing.
+                                 */
 
-                                  key={
-                                    subcategory.id
-                                  }
+                                const subcategoryValue =
+                                  subcategory.slug ||
+                                  subcategory.id;
 
-                                  to={`
-                                    /shop?category=${
-                                      category.slug
-                                    }&subcategory=${
-                                      subcategory.slug ||
+
+                                /*
+                                 * IMPORTANT:
+                                 *
+                                 * Keep the entire URL on one
+                                 * line. Do NOT use a multiline
+                                 * template literal here.
+                                 */
+
+                                const subcategoryUrl =
+                                  `/shop?category=${category.slug}&subcategory=${subcategoryValue}`;
+
+
+                                return (
+
+                                  <Link
+                                    key={
                                       subcategory.id
                                     }
-                                  `}
 
-                                  onClick={
-                                    onClose
-                                  }
+                                    to={
+                                      subcategoryUrl
+                                    }
 
-                                  className="
-                                    block
-                                    rounded-lg
-                                    py-2
-                                    pl-2
-                                    text-sm
-                                    text-neutral-700
-                                    transition
-                                    hover:bg-white
-                                    hover:text-[#C8A44D]
-                                  "
-                                >
+                                    onClick={
+                                      onClose
+                                    }
 
-                                  {subcategory.name}
+                                    className="
+                                      block
+                                      rounded-lg
+                                      py-2
+                                      pl-2
+                                      text-sm
+                                      text-neutral-700
+                                      transition
+                                      hover:bg-white
+                                      hover:text-[#C8A44D]
+                                    "
+                                  >
 
-                                </Link>
+                                    {subcategory.name}
 
-                              )
+                                  </Link>
+
+                                );
+
+                              }
                             )}
 
                           </div>
