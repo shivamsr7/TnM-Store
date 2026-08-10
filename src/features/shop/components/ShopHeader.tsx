@@ -26,21 +26,39 @@ interface Props {
   setCategory: (value: string) => void;
 
   /*
-   * Parent category subcategories.
+   * Dynamic parent-category subcategories.
    *
-   * Currently used for:
+   * Examples:
    *
    * Bracelets & Bangles
    * ├── Bracelets
-   * └── Bangles
+   * ├── Bangles
+   * └── Haath Phool
+   *
+   * Earrings
+   * ├── Studs
+   * ├── Hoops
+   * └── Jhumkas
+   *
+   * Rings
+   * ├── Adjustable
+   * └── Statement
+   *
+   * No category name is hardcoded here.
    */
   subcategories?: string[];
 
   activeSubcategory?: string | null;
-  setSubcategory?: (value: string | null) => void;
+
+  setSubcategory?: (
+    value: string | null
+  ) => void;
 
   sort: SortOption;
-  setSort: (value: SortOption) => void;
+
+  setSort: (
+    value: SortOption
+  ) => void;
 
   onFilterOpen: () => void;
 
@@ -56,15 +74,22 @@ export default function ShopHeader({
   setCategory,
 
   subcategories = [],
+
   activeSubcategory = null,
+
   setSubcategory,
 
   sort,
   setSort,
+
   onFilterOpen,
+
   filterCount = 0,
+
 }: Props) {
+
   return (
+
     <section
       className="
         mb-3
@@ -102,7 +127,11 @@ export default function ShopHeader({
           "
         />
 
-        <div className="relative">
+        <div
+          className="
+            relative
+          "
+        >
 
           {/* Brand */}
 
@@ -143,7 +172,9 @@ export default function ShopHeader({
                 sm:text-[9px]
               "
             >
+
               T&M Jewels
+
             </span>
 
           </div>
@@ -167,7 +198,9 @@ export default function ShopHeader({
               lg:text-6xl
             "
           >
+
             Shop Collection
+
           </h1>
 
 
@@ -187,8 +220,10 @@ export default function ShopHeader({
               md:text-base
             "
           >
+
             Luxury inspired jewellery you'll love to wear.
             Crafted for every occasion.
+
           </p>
 
         </div>
@@ -226,17 +261,27 @@ export default function ShopHeader({
             (item) => {
 
               const isActive =
-                activeCategory === item;
+                activeCategory ===
+                item;
 
               return (
 
                 <button
-                  key={item}
-                  type="button"
-                  onClick={() =>
-                    setCategory(item)
+                  key={
+                    item
                   }
-                  aria-pressed={isActive}
+
+                  type="button"
+
+                  onClick={() =>
+                    setCategory(
+                      item
+                    )
+                  }
+
+                  aria-pressed={
+                    isActive
+                  }
 
                   className={`
                     shrink-0
@@ -273,7 +318,9 @@ export default function ShopHeader({
                     }
                   `}
                 >
+
                   {item}
+
                 </button>
 
               );
@@ -285,12 +332,10 @@ export default function ShopHeader({
 
 
         {/* ===================================================
-            SUBCATEGORY NAVIGATION
+            DYNAMIC SUBCATEGORY NAVIGATION
         ==================================================== */}
 
-        {activeCategory ===
-          "Bracelets & Bangles" &&
-          subcategories.length > 0 &&
+        {subcategories.length > 0 &&
           setSubcategory && (
 
           <div
@@ -313,7 +358,9 @@ export default function ShopHeader({
               "
             >
 
-              {/* All */}
+              {/* =================================================
+                  ALL
+              ================================================== */}
 
               <button
                 type="button"
@@ -358,16 +405,25 @@ export default function ShopHeader({
                   }
                 `}
               >
+
                 All
+
               </button>
 
 
+              {/* =================================================
+                  DATABASE SUBCATEGORIES
+              ================================================== */}
+
               {subcategories.map(
-                (subcategory) => {
+                (
+                  subcategory
+                ) => {
 
                   const isActive =
                     activeSubcategory ===
                     subcategory;
+
 
                   return (
 
@@ -418,7 +474,9 @@ export default function ShopHeader({
                         }
                       `}
                     >
+
                       {subcategory}
+
                     </button>
 
                   );
@@ -472,6 +530,7 @@ export default function ShopHeader({
 
           <Search
             size={17}
+
             className="
               shrink-0
               text-[#D4AF37]
@@ -485,7 +544,9 @@ export default function ShopHeader({
 
 
           <input
-            value={search}
+            value={
+              search
+            }
 
             onChange={(event) =>
               setSearch(
@@ -537,7 +598,9 @@ export default function ShopHeader({
               "
             >
 
-              <X size={14} />
+              <X
+                size={14}
+              />
 
             </button>
 
@@ -605,7 +668,9 @@ export default function ShopHeader({
                   text-[#D4AF37]
                 "
               >
+
                 {productCount}
+
               </span>
 
             </div>
@@ -628,8 +693,11 @@ export default function ShopHeader({
                   text-neutral-600
                 "
               >
+
                 Collection
+
               </span>
+
 
               <span
                 className="
@@ -640,9 +708,11 @@ export default function ShopHeader({
                   sm:text-sm
                 "
               >
+
                 {productCount === 1
                   ? "1 piece"
                   : `${productCount} pieces`}
+
               </span>
 
             </div>
@@ -665,6 +735,7 @@ export default function ShopHeader({
 
             <button
               type="button"
+
               onClick={
                 onFilterOpen
               }
@@ -699,6 +770,7 @@ export default function ShopHeader({
                 className="text-[#D4AF37]"
               />
 
+
               <span>
                 Filter
               </span>
@@ -721,7 +793,9 @@ export default function ShopHeader({
                     text-black
                   "
                 >
+
                   {filterCount}
+
                 </span>
 
               )}
@@ -731,10 +805,16 @@ export default function ShopHeader({
 
             {/* Sort */}
 
-            <div className="relative">
+            <div
+              className="
+                relative
+              "
+            >
 
               <select
-                value={sort}
+                value={
+                  sort
+                }
 
                 onChange={(event) =>
                   setSort(
@@ -833,6 +913,7 @@ export default function ShopHeader({
 
               <ChevronDown
                 size={13}
+
                 className="
                   pointer-events-none
                   absolute
@@ -878,7 +959,9 @@ export default function ShopHeader({
                 text-neutral-700
               "
             >
+
               Showing
+
             </span>
 
 
@@ -889,7 +972,9 @@ export default function ShopHeader({
                 type="button"
 
                 onClick={() =>
-                  setCategory("All")
+                  setCategory(
+                    "All"
+                  )
                 }
 
                 className="
@@ -911,7 +996,9 @@ export default function ShopHeader({
 
                 {activeCategory}
 
-                <X size={11} />
+                <X
+                  size={11}
+                />
 
               </button>
 
@@ -948,7 +1035,9 @@ export default function ShopHeader({
 
                 {activeSubcategory}
 
-                <X size={11} />
+                <X
+                  size={11}
+                />
 
               </button>
 
@@ -982,9 +1071,14 @@ export default function ShopHeader({
                 "
               >
 
-                <span className="truncate">
+                <span
+                  className="truncate"
+                >
+
                   "{search.trim()}"
+
                 </span>
+
 
                 <X
                   size={11}
@@ -1033,5 +1127,7 @@ export default function ShopHeader({
       </div>
 
     </section>
+
   );
+
 }

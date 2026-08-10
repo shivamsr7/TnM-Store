@@ -1,4 +1,6 @@
-import { supabase } from "@/shared/lib/supabase";
+import {
+  supabase,
+} from "@/shared/lib/supabase";
 
 import {
   productService,
@@ -12,21 +14,35 @@ import {
  */
 
 export interface ShopCategory {
+
   id: string;
+
   name: string;
+
   slug: string;
+
   parent_id: string | null;
+
   sort_order: number;
-  subcategories: ShopSubcategory[];
+
+  subcategories:
+    ShopSubcategory[];
+
 }
 
 
 export interface ShopSubcategory {
+
   id: string;
+
   category_id: string;
+
   name: string;
+
   slug: string | null;
+
   sort_order: number;
+
 }
 
 
@@ -69,8 +85,6 @@ export const shopService = {
    *
    * useProductDetails()
    *
-   * This was already part of the Shop service and must
-   * remain here.
    * =======================================================
    */
 
@@ -112,13 +126,16 @@ export const shopService = {
    *
    * Fetches active TOP-LEVEL categories.
    *
-   * Their active subcategories are attached to them.
+   * Only active subcategories that have at least
+   * one ACTIVE product mapped to them are returned.
+   *
    * =======================================================
    */
 
   async getCategories(): Promise<
     ShopCategory[]
   > {
+
 
     /*
      * -------------------------------------------------------
@@ -131,7 +148,9 @@ export const shopService = {
       error: categoriesError,
     } = await supabase
 
-      .from("categories")
+      .from(
+        "categories"
+      )
 
       .select(`
         id,
@@ -257,7 +276,134 @@ export const shopService = {
 
     /*
      * -------------------------------------------------------
-     * Attach subcategories
+     * If there are no active subcategories,
+     * return categories with empty subcategory arrays.
+     * -------------------------------------------------------
+     */
+
+    if (
+      !subcategories ||
+      subcategories.length === 0
+    ) {
+
+      return categories.map(
+        (category) => ({
+
+          id:
+            category.id,
+
+          name:
+            category.name,
+
+          slug:
+            category.slug,
+
+          parent_id:
+            category.parent_id,
+
+          sort_order:
+            category.sort_order ?? 0,
+
+          subcategories:
+            [],
+
+        })
+      );
+
+    }
+
+
+    /*
+     * -------------------------------------------------------
+     * Fetch ACTIVE products mapped to subcategories
+     * -------------------------------------------------------
+     *
+     * We only need the subcategory_id here.
+     *
+     * Example:
+     *
+     * Product A → subcategory_id = abc
+     * Product B → subcategory_id = abc
+     * Product C → subcategory_id = xyz
+     *
+     * Result:
+     *
+     * abc → has products
+     * xyz → has products
+     *
+     * Any subcategory not present here has no active
+     * product and therefore should NOT appear in Shop.
+     *
+     * -------------------------------------------------------
+     */
+
+    const {
+      data: mappedProducts,
+      error: productsError,
+    } = await supabase
+
+      .from(
+        "products"
+      )
+
+      .select(`
+        subcategory_id
+      `)
+
+      .eq(
+        "status",
+        "active"
+      )
+
+      .in(
+        "subcategory_id",
+        subcategories.map(
+          (subcategory) =>
+            subcategory.id
+        )
+      );
+
+
+    if (
+      productsError
+    ) {
+
+      throw productsError;
+
+    }
+
+
+    /*
+     * -------------------------------------------------------
+     * Build a Set of subcategory IDs that actually
+     * contain at least one active product.
+     * -------------------------------------------------------
+     */
+
+    const subcategoryIdsWithProducts =
+      new Set(
+        (
+          mappedProducts ??
+          []
+        )
+
+          .map(
+            (product) =>
+              product.subcategory_id
+          )
+
+          .filter(
+            (
+              id
+            ): id is string =>
+              Boolean(id)
+          )
+      );
+
+
+    /*
+     * -------------------------------------------------------
+     * Attach ONLY subcategories that have products
      * -------------------------------------------------------
      */
 
@@ -283,11 +429,27 @@ export const shopService = {
           (
             subcategories ??
             []
-          ).filter(
-            (subcategory) =>
-              subcategory.category_id ===
-              category.id
-          ),
+          )
+
+            .filter(
+              (subcategory) =>
+
+                /*
+                 * Must belong to this parent category
+                 */
+
+                subcategory.category_id ===
+                  category.id &&
+
+                /*
+                 * Must have at least one
+                 * active product
+                 */
+
+                subcategoryIdsWithProducts.has(
+                  subcategory.id
+                )
+            ),
 
       })
     );

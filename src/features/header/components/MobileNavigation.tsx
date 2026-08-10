@@ -1,4 +1,3 @@
-
 import {
   Link,
   NavLink,
@@ -13,779 +12,629 @@ import {
   ChevronUp,
 } from "lucide-react";
 
-
 import {
   AnimatePresence,
   motion,
 } from "framer-motion";
 
-
 import {
   useAuthDialog,
 } from "@/features/Auth/context/AuthDialogContext";
-
 
 import {
   navigationItems,
 } from "../constants/navigation";
 
-
 import {
-  useCategories,
-} from "@/features/categories";
-
-
-import {
-  useSubcategories,
-} from "@/features/categories/hooks/useSubcategories";
-
-
-
+  useShopCategories,
+} from "@/features/shop/hooks/useShopCategories";
 
 
 interface Props {
 
-  onClose:()=>void;
+  onClose: () => void;
 
-  customer:any;
+  customer: any;
 
-  onLogout:()=>Promise<void>;
+  onLogout: () => Promise<void>;
 
 }
-
-
-
 
 
 export default function MobileNavigation({
 
-onClose,
+  onClose,
+
+  customer,
+
+  onLogout,
+
+}: Props) {
+
+
+  /*
+   * =========================================================
+   * SHOP CATEGORIES
+   * =========================================================
+   *
+   * IMPORTANT:
+   *
+   * We intentionally use useShopCategories() here instead
+   * of useCategories() + useSubcategories().
+   *
+   * shopService.getCategories() already:
+   *
+   * 1. Gets active parent categories
+   * 2. Gets active subcategories
+   * 3. Checks active products
+   * 4. Only returns subcategories with products
+   *
+   * This keeps mobile and desktop consistent.
+   *
+   * =========================================================
+   */
+
+  const {
+    data: categories = [],
+  } =
+    useShopCategories();
+
+
+  /*
+   * =========================================================
+   * EXPANDED CATEGORY
+   * =========================================================
+   *
+   * Only one category stays open at a time.
+   *
+   * =========================================================
+   */
+
+  const [
+    expandedCategory,
+    setExpandedCategory,
+  ] =
+    useState<string | null>(
+      null
+    );
+
+
+  /*
+   * =========================================================
+   * AUTH
+   * =========================================================
+   */
+
+  const {
+    openAuth,
+  } =
+    useAuthDialog();
+
+
+  /*
+   * =========================================================
+   * CATEGORY TOGGLE
+   * =========================================================
+   */
+
+  function toggleCategory(
+    categoryId: string
+  ) {
+
+    setExpandedCategory(
+
+      expandedCategory ===
+        categoryId
+
+        ? null
+
+        : categoryId
+
+    );
+
+  }
+
+
+  /*
+   * =========================================================
+   * RENDER
+   * =========================================================
+   */
+
+  return (
+
+    <div
+      className="
+        space-y-6
+        p-6
+      "
+    >
+
+      {/* =====================================================
+          ACCOUNT CARD
+      ====================================================== */}
+
+      <div
+        className="
+          rounded-2xl
+          border
+          border-[#C8A44D]
+          bg-[#F8F6F1]
+          p-4
+        "
+      >
+
+        {customer ? (
+
+          <>
 
-customer,
+            <p
+              className="
+                text-sm
+                font-semibold
+                text-neutral-900
+              "
+            >
 
-onLogout,
+              Hi, {customer.first_name} ✨
 
-}:Props){
+            </p>
 
 
+            <p
+              className="
+                mt-1
+                text-xs
+                text-neutral-500
+              "
+            >
 
-const {
+              Welcome back to T&M Family
 
-data:categories=[],
+            </p>
 
-}=useCategories();
 
+            <div
+              className="
+                mt-4
+                space-y-2
+              "
+            >
+
+              <Link
+                to="/account"
 
+                onClick={
+                  onClose
+                }
 
+                className="
+                  block
+                  rounded-xl
+                  bg-black
+                  py-3
+                  text-center
+                  text-sm
+                  font-medium
+                  text-white
+                "
+              >
 
+                My Account
 
-const {
+              </Link>
 
-data:subcategories=[],
 
-}=useSubcategories();
+              <button
+                type="button"
 
+                onClick={
+                  onLogout
+                }
 
+                className="
+                  w-full
+                  rounded-xl
+                  border
+                  border-black
+                  py-3
+                  text-sm
+                  font-medium
+                  text-black
+                "
+              >
 
+                Logout
 
+              </button>
 
+            </div>
 
-// Only one category can stay open
+          </>
 
-const [
+        ) : (
 
-expandedCategory,
+          <>
 
-setExpandedCategory,
+            <p
+              className="
+                text-sm
+                font-semibold
+                text-neutral-900
+              "
+            >
 
-]=useState<string | null>(null);
+              Join T&M Family
 
+            </p>
 
 
+            <p
+              className="
+                mt-1
+                text-xs
+                text-neutral-500
+              "
+            >
 
+              Rewards • Wishlist • Orders
 
+            </p>
 
 
-const {
+            <button
+              type="button"
 
-openAuth,
+              onClick={
+                openAuth
+              }
 
-}=useAuthDialog();
+              className="
+                mt-4
+                w-full
+                rounded-xl
+                bg-black
+                py-3
+                text-sm
+                font-medium
+                text-white
+              "
+            >
 
+              Login / Register
 
+            </button>
 
+          </>
 
+        )}
 
+      </div>
 
 
+      {/* =====================================================
+          NAVIGATION LINKS
+      ====================================================== */}
 
+      <div
+        className="
+          space-y-1
+        "
+      >
 
+        {navigationItems.map(
+          (item) => (
 
+            <NavLink
+              key={
+                item.href
+              }
 
+              to={
+                item.href
+              }
 
+              onClick={
+                onClose
+              }
 
+              className={({
+                isActive,
+              }) => `
 
-return (
+                block
 
-<div
+                border-b
 
-className="
-space-y-6
-p-6
-"
+                border-neutral-100
 
->
+                py-3
 
+                text-base
 
+                font-medium
 
+                ${
+                  isActive
+                    ? "text-[#C8A44D]"
+                    : "text-neutral-900"
+                }
 
+              `}
+            >
 
+              {item.label}
 
+            </NavLink>
 
+          )
+        )}
 
+      </div>
 
-{/* Account Card */}
 
+      {/* =====================================================
+          SHOP BY CATEGORY
+      ====================================================== */}
 
+      <div>
 
-<div
+        <p
+          className="
+            mb-4
+            text-xs
+            font-semibold
+            uppercase
+            tracking-[0.25em]
+            text-[#C8A44D]
+          "
+        >
 
-className="
-rounded-2xl
-border
-border-[#C8A44D]
-bg-[#F8F6F1]
-p-4
-"
+          Shop By Category
 
->
+        </p>
 
 
+        <div
+          className="
+            space-y-2
+          "
+        >
 
-{
+          {categories.map(
+            (category) => {
 
-customer ? (
+              const hasSubcategories =
+                category.subcategories.length >
+                0;
 
 
-<>
+              const isExpanded =
+                expandedCategory ===
+                category.id;
 
 
-<p
+              return (
 
-className="
-text-sm
-font-semibold
-text-neutral-900
-"
+                <div
+                  key={
+                    category.id
+                  }
 
->
+                  className="
+                    overflow-hidden
+                    rounded-xl
+                    border
+                    border-neutral-200
+                    bg-white
+                  "
+                >
 
-Hi, {customer.first_name} ✨
+                  {/* =================================================
+                      CATEGORY HEADER
+                  ================================================== */}
 
-</p>
+                  <button
+                    type="button"
 
+                    onClick={() =>
+                      toggleCategory(
+                        category.id
+                      )
+                    }
 
+                    className="
+                      flex
+                      w-full
+                      items-center
+                      justify-between
+                      px-4
+                      py-4
+                    "
+                  >
 
+                    <span
+                      className="
+                        text-sm
+                        font-medium
+                        text-neutral-900
+                      "
+                    >
 
-<p
+                      {category.name}
 
-className="
-mt-1
-text-xs
-text-neutral-500
-"
+                    </span>
 
->
 
-Welcome back to T&M Family
+                    {isExpanded ? (
 
-</p>
+                      <ChevronUp
+                        size={18}
+                        className="
+                          text-[#C8A44D]
+                        "
+                      />
 
+                    ) : (
 
+                      <ChevronDown
+                        size={18}
+                        className="
+                          text-[#C8A44D]
+                        "
+                      />
 
+                    )}
 
+                  </button>
 
 
+                  {/* =================================================
+                      CATEGORY CONTENT
+                  ================================================== */}
 
-<div className="mt-4 space-y-2">
+                  <AnimatePresence>
 
+                    {isExpanded && (
 
-<Link
+                      <motion.div
 
-to="/account"
+                        initial={{
+                          height: 0,
+                          opacity: 0,
+                        }}
 
-onClick={onClose}
+                        animate={{
+                          height: "auto",
+                          opacity: 1,
+                        }}
 
-className="
-block
-rounded-xl
-bg-black
-py-3
-text-center
-text-sm
-font-medium
-text-white
-"
+                        exit={{
+                          height: 0,
+                          opacity: 0,
+                        }}
 
->
+                        transition={{
+                          duration: 0.25,
+                        }}
 
-My Account
+                        className="
+                          overflow-hidden
+                          border-t
+                          border-neutral-100
+                          bg-[#F8F6F1]
+                          px-4
+                          py-3
+                        "
+                      >
 
-</Link>
+                        {/* =================================================
+                            SHOP ALL
+                        ================================================== */}
 
+                        <Link
+                          to={`/shop?category=${category.slug}`}
 
+                          onClick={
+                            onClose
+                          }
 
+                          className="
+                            block
+                            rounded-lg
+                            py-2
+                            text-sm
+                            font-medium
+                            text-black
+                            transition
+                            hover:text-[#C8A44D]
+                          "
+                        >
 
+                          ✨ Shop All{" "}
+                          {category.name}
 
-<button
+                        </Link>
 
-onClick={onLogout}
 
-className="
-w-full
-rounded-xl
-border
-border-black
-py-3
-text-sm
-font-medium
-text-black
-"
+                        {/* =================================================
+                            SUBCATEGORIES
+                        ================================================== */}
 
->
+                        {hasSubcategories && (
 
-Logout
+                          <div
+                            className="
+                              mt-1
+                              space-y-1
+                            "
+                          >
 
-</button>
+                            {category.subcategories.map(
+                              (subcategory) => (
 
+                                <Link
 
+                                  key={
+                                    subcategory.id
+                                  }
 
-</div>
+                                  to={`
+                                    /shop?category=${
+                                      category.slug
+                                    }&subcategory=${
+                                      subcategory.slug ||
+                                      subcategory.id
+                                    }
+                                  `}
 
+                                  onClick={
+                                    onClose
+                                  }
 
+                                  className="
+                                    block
+                                    rounded-lg
+                                    py-2
+                                    pl-2
+                                    text-sm
+                                    text-neutral-700
+                                    transition
+                                    hover:bg-white
+                                    hover:text-[#C8A44D]
+                                  "
+                                >
 
-</>
+                                  {subcategory.name}
 
+                                </Link>
 
-)
+                              )
+                            )}
 
-:
+                          </div>
 
-(
+                        )}
 
+                      </motion.div>
 
-<>
+                    )}
 
+                  </AnimatePresence>
 
-<p
+                </div>
 
-className="
-text-sm
-font-semibold
-text-neutral-900
-"
+              );
 
->
+            }
+          )}
 
-Join T&M Family
+        </div>
 
-</p>
+      </div>
 
+    </div>
 
-
-
-
-<p
-
-className="
-mt-1
-text-xs
-text-neutral-500
-"
-
->
-
-Rewards • Wishlist • Orders
-
-</p>
-
-
-
-
-
-
-<button
-
-onClick={openAuth}
-
-className="
-mt-4
-w-full
-rounded-xl
-bg-black
-py-3
-text-sm
-font-medium
-text-white
-"
-
->
-
-Login / Register
-
-</button>
-
-
-
-</>
-
-
-)
-
-
-
-}
-
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* Navigation Links */}
-
-
-
-<div className="space-y-1">
-
-
-{
-
-navigationItems.map(
-
-(item)=>(
-
-
-<NavLink
-
-
-key={item.href}
-
-
-to={item.href}
-
-
-onClick={onClose}
-
-
-className={({isActive}) =>
-
-`
-
-block
-
-border-b
-
-border-neutral-100
-
-py-3
-
-text-base
-
-font-medium
-
-
-${
-isActive
-
-?
-
-"text-[#C8A44D]"
-
-:
-
-"text-neutral-900"
-
-}
-
-`
-
-}
-
-
->
-
-
-{item.label}
-
-
-
-</NavLink>
-
-
-)
-
-
-)
-
-}
-
-
-
-</div>
-
-
-
-
-
-
-
-
-{/* Shop By Category */}
-
-
-
-<div>
-
-
-
-<p
-
-className="
-mb-4
-text-xs
-font-semibold
-uppercase
-tracking-[0.25em]
-text-[#C8A44D]
-"
-
->
-
-Shop By Category
-
-</p>
-
-
-
-
-
-
-<div className="space-y-2">
-
-
-{
-
-categories.map(
-
-(category)=>(
-
-
-<div
-
-key={category.id}
-
-className="
-overflow-hidden
-rounded-xl
-border
-border-neutral-200
-bg-white
-"
-
->
-
-
-<button
-
-onClick={()=>{
-
-
-setExpandedCategory(
-
-expandedCategory === category.id
-
-?
-
-null
-
-:
-
-category.id
-
-);
-
-
-}}
-
-className="
-flex
-w-full
-items-center
-justify-between
-px-4
-py-4
-"
-
->
-
-
-<span
-
-className="
-text-sm
-font-medium
-text-neutral-900
-"
-
->
-
-{category.name}
-
-</span>
-
-
-
-
-
-{
-
-expandedCategory === category.id
-
-?
-
-<ChevronUp
-
-size={18}
-
-className="text-[#C8A44D]"
-
-/>
-
-:
-
-<ChevronDown
-
-size={18}
-
-className="text-[#C8A44D]"
-
-/>
-
-}
-
-
-
-</button>
-
-
-
-
-
-<AnimatePresence>
-
-
-{
-
-expandedCategory === category.id && (
-
-
-<motion.div
-
-initial={{
-
-height:0,
-
-opacity:0
-
-}}
-
-
-animate={{
-
-height:"auto",
-
-opacity:1
-
-}}
-
-
-exit={{
-
-height:0,
-
-opacity:0
-
-}}
-
-
-transition={{
-
-duration:0.25
-
-}}
-
-
-className="
-overflow-hidden
-border-t
-border-neutral-100
-bg-[#F8F6F1]
-px-4
-py-3
-space-y-2
-"
-
->
-
-
-
-
-
-{/* Shop All */}
-
-
-
-<Link
-
-to={`/shop?category=${category.slug}`}
-
-onClick={onClose}
-
-className="
-block
-rounded-lg
-py-2
-text-sm
-font-medium
-text-black
-hover:text-[#C8A44D]
-"
-
->
-
-✨ Shop All {category.name}
-
-</Link>
-
-
-
-
-
-
-
-
-{/* Sub Categories */}
-
-
-
-{
-
-subcategories
-
-.filter(
-
-(sub)=>
-
-sub.category_id === category.id
-
-)
-
-.map(
-
-(sub)=>(
-
-
-<Link
-
-
-key={sub.id}
-
-
-to={`/shop?subcategory=${sub.slug}`}
-
-
-onClick={onClose}
-
-
-className="
-block
-rounded-lg
-py-2
-text-sm
-text-neutral-700
-transition
-hover:text-[#C8A44D]
-"
-
->
-
-
-{sub.name}
-
-
-</Link>
-
-
-)
-
-
-)
-
-
-}
-
-
-
-</motion.div>
-
-
-
-)
-
-
-}
-
-
-
-</AnimatePresence>
-
-
-
-
-
-
-</div>
-
-
-)
-
-
-)
-
-
-}
-
-
-
-</div>
-
-
-</div>
-
-
-
-
-
-</div>
-
-
-);
+  );
 
 }
