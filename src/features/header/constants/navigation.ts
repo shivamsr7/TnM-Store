@@ -9,10 +9,6 @@ export const navigationItems: NavigationItem[] = [
     href: "/",
   },
   {
-    label: "New Arrivals",
-    href: "/new-arrivals",
-  },
-  {
     label: "Collections",
     href: "/shop",
   },
