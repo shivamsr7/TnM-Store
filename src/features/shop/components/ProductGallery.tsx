@@ -1,962 +1,1859 @@
-
 import {
+  useEffect,
+  useRef,
   useState,
 } from "react";
 
+import type {
+  TouchEvent,
+  TouchList,
+  WheelEvent,
+} from "react";
 
 import {
   ChevronLeft,
   ChevronRight,
-  Heart,
   Share2,
+  X,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
 } from "lucide-react";
 
-
+import WishlistButton from "@/features/wishlist/components/WishlistButton";
 
 
 interface ProductGalleryProps {
 
-  images:{
-    image_url:string;
-    sort_order:number;
+  productId: string;
+
+  images: {
+    image_url: string;
+    sort_order: number;
   }[];
 
-  productName:string;
+  productName: string;
 
 }
-
-
-
-
-
 
 
 export default function ProductGallery({
 
-images,
+  productId,
 
-productName
+  images,
 
-}:ProductGalleryProps){
+  productName,
 
+}: ProductGalleryProps) {
 
 
+  /*
+   * =========================================================
+   * IMAGE LIST
+   * =========================================================
+   */
 
+  const imageList = [
+    ...images,
+  ].sort(
+    (a, b) =>
+      a.sort_order -
+      b.sort_order
+  );
 
-const imageList = [...images].sort(
 
-(a,b)=>a.sort_order-b.sort_order
+  /*
+   * =========================================================
+   * MAIN IMAGE STATE
+   * =========================================================
+   */
 
-);
+  const [
+    activeImage,
+    setActiveImage,
+  ] = useState(0);
 
 
+  const [
+    direction,
+    setDirection,
+  ] = useState<
+    "next" | "prev" | null
+  >(null);
 
 
+  const [
+    loaded,
+    setLoaded,
+  ] = useState(false);
 
-const [activeImage,setActiveImage]=useState(0);
 
+  const [
+    touchStart,
+    setTouchStart,
+  ] = useState<number | null>(
+    null
+  );
 
-const [direction,setDirection]=useState<
-"next"|"prev"|null
->(null);
 
+  /*
+   * =========================================================
+   * MOBILE THUMBNAILS
+   * =========================================================
+   */
 
-const [loaded,setLoaded]=useState(false);
+  const mobileThumbnailRef =
+    useRef<HTMLDivElement | null>(
+      null
+    );
 
 
-const [touchStart,setTouchStart]=useState<number | null>(null);
+  /*
+   * =========================================================
+   * ZOOM STATE
+   * =========================================================
+   */
 
+  const [
+    zoomOpen,
+    setZoomOpen,
+  ] = useState(false);
 
 
+  const [
+    zoomLevel,
+    setZoomLevel,
+  ] = useState(1);
 
 
+  /*
+   * =========================================================
+   * PINCH STATE
+   * =========================================================
+   */
 
+  const pinchStartDistance =
+    useRef<number | null>(
+      null
+    );
 
 
+  const pinchStartZoom =
+    useRef(1);
 
-const changeImage=(index:number)=>{
 
+  /*
+   * =========================================================
+   * ZOOM PAN
+   * =========================================================
+   */
 
-if(index===activeImage)
-return;
+  const [
+    zoomX,
+    setZoomX,
+  ] = useState(0);
 
 
+  const [
+    zoomY,
+    setZoomY,
+  ] = useState(0);
 
-setLoaded(false);
 
+  /*
+   * =========================================================
+   * AUTO-SCROLL ACTIVE MOBILE THUMBNAIL
+   * =========================================================
+   */
 
+  useEffect(() => {
 
-setDirection(
+    const container =
+      mobileThumbnailRef.current;
 
-index > activeImage
 
-?
+    if (!container) {
 
-"next"
+      return;
 
-:
+    }
 
-"prev"
 
-);
+    const activeThumbnail =
+      container.children[
+        activeImage
+      ] as HTMLElement | undefined;
 
 
+    if (!activeThumbnail) {
 
-setTimeout(()=>{
+      return;
 
+    }
 
-setActiveImage(index);
 
+    activeThumbnail.scrollIntoView({
 
-setDirection(null);
+      behavior: "smooth",
 
+      block: "nearest",
 
-},120);
+      inline: "center",
 
+    });
 
+  }, [
+    activeImage,
+  ]);
 
-};
 
+  /*
+   * =========================================================
+   * LOCK BODY SCROLL WHEN ZOOM IS OPEN
+   * =========================================================
+   */
 
+  useEffect(() => {
 
+    if (!zoomOpen) {
 
+      return;
 
+    }
 
 
+    const previousOverflow =
+      document.body.style.overflow;
 
 
-const nextImage=()=>{
+    document.body.style.overflow =
+      "hidden";
 
 
-if(imageList.length<=1)
-return;
+    return () => {
 
+      document.body.style.overflow =
+        previousOverflow;
 
+    };
 
-changeImage(
+  }, [
+    zoomOpen,
+  ]);
 
-activeImage===imageList.length-1
 
-?
+  /*
+   * =========================================================
+   * RESET ZOOM
+   * =========================================================
+   */
 
-0
+  const resetZoom = () => {
 
-:
+    setZoomLevel(1);
 
-activeImage+1
+    setZoomX(0);
 
-);
+    setZoomY(0);
 
+  };
 
-};
 
+  /*
+   * =========================================================
+   * OPEN ZOOM
+   * =========================================================
+   */
 
+  const openZoom = () => {
 
+    resetZoom();
 
+    setZoomOpen(
+      true
+    );
 
+  };
 
 
+  /*
+   * =========================================================
+   * CLOSE ZOOM
+   * =========================================================
+   */
 
+  const closeZoom = () => {
 
-const previousImage=()=>{
+    resetZoom();
 
+    setZoomOpen(
+      false
+    );
 
-if(imageList.length<=1)
-return;
+  };
 
 
+  /*
+   * =========================================================
+   * ZOOM IN
+   * =========================================================
+   */
 
-changeImage(
+  const zoomIn = () => {
 
-activeImage===0
+    setZoomLevel(
+      (current) =>
+        Math.min(
+          current + 0.5,
+          3
+        )
+    );
 
-?
+  };
 
-imageList.length-1
 
-:
+  /*
+   * =========================================================
+   * ZOOM OUT
+   * =========================================================
+   */
 
-activeImage-1
+  const zoomOut = () => {
 
-);
+    setZoomLevel(
+      (current) => {
 
+        const next =
+          Math.max(
+            current - 0.5,
+            1
+          );
 
-};
 
+        if (
+          next === 1
+        ) {
 
+          setZoomX(0);
 
+          setZoomY(0);
 
+        }
 
 
+        return next;
 
+      }
+    );
 
+  };
 
-const handleTouchStart=(
 
-e:React.TouchEvent
+  /*
+   * =========================================================
+   * CHANGE IMAGE
+   * =========================================================
+   */
 
-)=>{
+  const changeImage = (
+    index: number
+  ) => {
 
+    if (
+      index === activeImage
+    ) {
 
-setTouchStart(
+      return;
 
-e.touches[0].clientX
+    }
 
-);
 
+    if (
+      index < 0 ||
+      index >= imageList.length
+    ) {
 
-};
+      return;
 
+    }
 
 
+    setLoaded(false);
 
 
+    setDirection(
 
+      index > activeImage
 
+        ? "next"
 
+        : "prev"
 
-const handleTouchEnd=(
+    );
 
-e:React.TouchEvent
 
-)=>{
+    setTimeout(() => {
 
+      setActiveImage(
+        index
+      );
 
-if(touchStart===null)
-return;
+      setDirection(
+        null
+      );
 
+    }, 120);
 
+  };
 
-const touchEnd=
 
-e.changedTouches[0].clientX;
+  /*
+   * =========================================================
+   * NEXT IMAGE
+   * =========================================================
+   */
 
+  const nextImage = () => {
 
+    if (
+      imageList.length <= 1
+    ) {
 
-const distance=
+      return;
 
-touchStart-touchEnd;
+    }
 
 
+    changeImage(
 
+      activeImage ===
+        imageList.length - 1
 
-if(Math.abs(distance)>50){
+        ? 0
 
+        : activeImage + 1
 
+    );
 
-if(distance>0){
+  };
 
-nextImage();
 
-}
-else{
+  /*
+   * =========================================================
+   * PREVIOUS IMAGE
+   * =========================================================
+   */
 
-previousImage();
+  const previousImage = () => {
 
-}
+    if (
+      imageList.length <= 1
+    ) {
 
+      return;
 
+    }
 
-}
 
+    changeImage(
 
+      activeImage === 0
 
-setTouchStart(null);
+        ? imageList.length - 1
 
+        : activeImage - 1
 
+    );
 
-};
+  };
 
 
-return (
+  /*
+   * =========================================================
+   * MAIN GALLERY TOUCH START
+   * =========================================================
+   */
 
-<section
+  const handleTouchStart = (
+    e: TouchEvent
+  ) => {
 
-className="
-w-full
+    if (
+      e.touches.length !== 1
+    ) {
 
-"
+      return;
 
->
+    }
 
 
+    setTouchStart(
+      e.touches[0].clientX
+    );
 
+  };
 
 
+  /*
+   * =========================================================
+   * MAIN GALLERY TOUCH END
+   * =========================================================
+   */
 
+  const handleTouchEnd = (
+    e: TouchEvent
+  ) => {
 
+    if (
+      touchStart === null
+    ) {
 
+      return;
 
-{/* Main Image */}
+    }
 
-<div
 
-onTouchStart={handleTouchStart}
+    const touchEnd =
+      e.changedTouches[0].clientX;
 
-onTouchEnd={handleTouchEnd}
 
+    const distance =
+      touchStart -
+      touchEnd;
 
-className="
 
-relative
+    if (
+      Math.abs(distance) > 50
+    ) {
 
-aspect-[4/5]
+      if (
+        distance > 0
+      ) {
 
-overflow-hidden
+        nextImage();
 
-rounded-3xl
+      } else {
 
-bg-neutral-900
+        previousImage();
 
+      }
 
-shadow-xl
+    }
 
 
-lg:h-[560px]
+    setTouchStart(
+      null
+    );
 
-lg:aspect-auto
+  };
 
-"
 
->
+  /*
+   * =========================================================
+   * PINCH DISTANCE
+   * =========================================================
+   */
 
+  const getTouchDistance = (
+    touches: TouchList
+  ) => {
 
+    if (
+      touches.length < 2
+    ) {
 
+      return 0;
 
+    }
 
 
+    const first =
+      touches[0];
 
 
-{
+    const second =
+      touches[1];
 
-imageList.length > 0 &&
 
-<img
+    const dx =
+      first.clientX -
+      second.clientX;
 
-src={imageList[activeImage].image_url}
 
-alt={productName}
+    const dy =
+      first.clientY -
+      second.clientY;
 
 
-onLoad={()=>setLoaded(true)}
+    return Math.sqrt(
+      dx * dx +
+      dy * dy
+    );
 
+  };
 
-className={`
 
-h-full
+  /*
+   * =========================================================
+   * ZOOM TOUCH START
+   * =========================================================
+   */
 
-w-full
+  const handleZoomTouchStart = (
+    e: TouchEvent
+  ) => {
 
-object-cover
+    if (
+      e.touches.length === 2
+    ) {
 
+      pinchStartDistance.current =
+        getTouchDistance(
+          e.touches
+        );
 
 
-transition-all
+      pinchStartZoom.current =
+        zoomLevel;
 
-duration-500
+    }
 
-ease-out
+  };
 
 
+  /*
+   * =========================================================
+   * ZOOM TOUCH MOVE
+   * =========================================================
+   */
 
-${
+  const handleZoomTouchMove = (
+    e: TouchEvent
+  ) => {
 
-loaded
+    if (
+      e.touches.length !== 2
+    ) {
 
-?
+      return;
 
-"opacity-100 scale-100"
+    }
 
-:
 
-"opacity-0 scale-105"
+    if (
+      pinchStartDistance.current ===
+      null
+    ) {
 
-}
+      return;
 
+    }
 
 
+    const currentDistance =
+      getTouchDistance(
+        e.touches
+      );
 
-${
 
-direction==="next"
+    const ratio =
+      currentDistance /
+      pinchStartDistance.current;
 
-?
 
-"translate-x-2"
+    const nextZoom =
+      Math.min(
 
-:
+        Math.max(
 
-direction==="prev"
+          pinchStartZoom.current *
+            ratio,
 
-?
+          1
 
-"-translate-x-2"
+        ),
 
-:
+        3
 
-""
+      );
 
-}
 
+    setZoomLevel(
+      nextZoom
+    );
 
-`}
+  };
 
-/>
 
-}
+  /*
+   * =========================================================
+   * ZOOM TOUCH END
+   * =========================================================
+   */
 
+  const handleZoomTouchEnd = () => {
 
+    pinchStartDistance.current =
+      null;
 
+  };
 
 
+  /*
+   * =========================================================
+   * ZOOM WHEEL
+   * =========================================================
+   */
 
+  const handleZoomWheel = (
+    e: WheelEvent
+  ) => {
 
+    e.preventDefault();
 
 
-{/* Image Counter Mobile */}
+    if (
+      e.deltaY < 0
+    ) {
 
-{
+      zoomIn();
 
-imageList.length > 1 &&
+    } else {
 
-<div
+      zoomOut();
 
-className="
+    }
 
-absolute
+  };
 
-bottom-4
 
-left-1/2
+  /*
+   * =========================================================
+   * KEYBOARD CONTROLS
+   * =========================================================
+   */
 
--translate-x-1/2
+  useEffect(() => {
 
+    if (!zoomOpen) {
 
-rounded-full
+      return;
 
-bg-black/60
+    }
 
 
-px-3
+    const handleKeyDown = (
+      event: KeyboardEvent
+    ) => {
 
-py-1
+      if (
+        event.key ===
+        "Escape"
+      ) {
 
+        closeZoom();
 
-text-xs
+        return;
 
-text-white
+      }
 
 
-backdrop-blur-md
+      if (
+        event.key ===
+        "ArrowRight"
+      ) {
 
+        nextImage();
 
-sm:hidden
+        resetZoom();
 
-"
+        return;
 
->
+      }
 
-{activeImage + 1}/{imageList.length}
 
-</div>
+      if (
+        event.key ===
+        "ArrowLeft"
+      ) {
 
-}
+        previousImage();
 
+        resetZoom();
 
+        return;
 
+      }
 
 
+      if (
+        event.key ===
+        "+" ||
+        event.key ===
+        "="
+      ) {
 
+        zoomIn();
 
+        return;
 
+      }
 
-{/* Wishlist */}
 
-<button
+      if (
+        event.key ===
+        "-"
+      ) {
 
-className="
+        zoomOut();
 
-absolute
+      }
 
-right-4
+    };
 
-top-4
 
+    window.addEventListener(
+      "keydown",
+      handleKeyDown
+    );
 
-flex
 
-h-11
+    return () => {
 
-w-11
+      window.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
 
-items-center
+    };
 
-justify-center
+  }, [
+    zoomOpen,
+    activeImage,
+  ]);
 
 
-rounded-full
+  /*
+   * =========================================================
+   * EMPTY IMAGE STATE
+   * =========================================================
+   */
 
+  if (
+    imageList.length === 0
+  ) {
 
-bg-black/40
+    return (
 
+      <section
+        className="
+          w-full
+        "
+      >
 
-text-white
+        <div
+          className="
+            flex
+            aspect-[4/5]
+            w-full
+            items-center
+            justify-center
+            overflow-hidden
+            rounded-3xl
+            bg-neutral-900
+            text-sm
+            text-neutral-500
+            shadow-xl
+          "
+        >
 
+          No image available
 
-backdrop-blur-md
+        </div>
 
+      </section>
 
-transition-all
+    );
 
-duration-300
+  }
 
 
-hover:scale-110
+  /*
+   * =========================================================
+   * RENDER
+   * =========================================================
+   */
 
+  return (
 
-hover:bg-[#D4AF37]
+    <section
+      className="
+        w-full
+      "
+    >
 
+      {/* =====================================================
+          MAIN 4:5 IMAGE
+      ====================================================== */}
 
-hover:text-black
+      <div
 
+        onTouchStart={
+          handleTouchStart
+        }
 
-active:scale-95
+        onTouchEnd={
+          handleTouchEnd
+        }
 
-"
+        onDoubleClick={
+          openZoom
+        }
 
->
+        className="
+          relative
+          w-full
+          aspect-[4/5]
+          overflow-hidden
+          rounded-3xl
+          bg-neutral-900
+          shadow-xl
+          lg:max-w-[600px]
+        "
 
-<Heart size={21}/>
+      >
 
-</button>
+        <img
 
+          src={
+            imageList[activeImage]
+              .image_url
+          }
 
+          alt={
+            productName
+          }
 
+          onLoad={() =>
+            setLoaded(true)
+          }
 
+          className={`
 
+            h-full
+            w-full
 
+            object-contain
 
+            transition-all
+            duration-500
+            ease-out
 
+            ${
+              loaded
+                ? "scale-100 opacity-100"
+                : "scale-[1.02] opacity-0"
+            }
 
-{/* Share */}
+            ${
+              direction === "next"
+                ? "translate-x-2"
+                : direction === "prev"
+                  ? "-translate-x-2"
+                  : ""
+            }
 
-<button
+          `}
 
-className="
+        />
 
-absolute
 
-bottom-4
+        {/* =================================================
+            WISHLIST
+        ================================================== */}
 
-right-4
+        <div
+          className="
+            absolute
+            right-4
+            top-4
+            z-30
+          "
+        >
 
+          <WishlistButton
 
-flex
+            productId={
+              productId
+            }
 
-h-11
+            iconSize={
+              21
+            }
 
-w-11
+            className="
+              flex
+              h-11
+              w-11
+              items-center
+              justify-center
+              rounded-full
+              border
+              border-white/20
+              bg-black/45
+              text-white
+              shadow-lg
+              backdrop-blur-md
+              transition-all
+              hover:border-[#D4AF37]
+              hover:bg-black/65
+              hover:text-[#D4AF37]
+              active:scale-95
+            "
 
-items-center
+          />
 
-justify-center
+        </div>
 
 
-rounded-full
+        {/* =================================================
+            ZOOM BUTTON
+        ================================================== */}
 
+        <button
 
-bg-black/40
+          type="button"
 
+          onClick={(
+            e
+          ) => {
 
-text-white
+            e.stopPropagation();
 
+            openZoom();
 
-backdrop-blur-md
+          }}
 
+          aria-label="
+            Zoom image
+          "
 
-transition-all
+          className="
+            absolute
+            bottom-4
+            left-4
+            z-30
+            flex
+            h-10
+            w-10
+            items-center
+            justify-center
+            rounded-full
+            bg-black/45
+            text-white
+            backdrop-blur-md
+            transition
+            hover:bg-[#D4AF37]
+            hover:text-black
+            active:scale-95
+          "
 
-duration-300
+        >
 
+          <ZoomIn
+            size={18}
+          />
 
-hover:scale-110
+        </button>
 
 
-hover:bg-[#D4AF37]
+        {/* =================================================
+            SHARE
+        ================================================== */}
 
+        <button
 
-hover:text-black
+          type="button"
 
+          onClick={(
+            e
+          ) =>
+            e.stopPropagation()
+          }
 
-active:scale-95
+          className="
+            absolute
+            bottom-4
+            right-4
+            z-30
+            flex
+            h-10
+            w-10
+            items-center
+            justify-center
+            rounded-full
+            bg-black/45
+            text-white
+            backdrop-blur-md
+            transition
+            hover:bg-[#D4AF37]
+            hover:text-black
+            active:scale-95
+          "
 
-"
+        >
 
->
+          <Share2
+            size={18}
+          />
 
-<Share2 size={19}/>
+        </button>
 
-</button>
 
+        {/* =================================================
+            PREVIOUS
+        ================================================== */}
 
+        {imageList.length > 1 && (
 
+          <button
 
+            type="button"
 
+            onClick={
+              previousImage
+            }
 
+            className="
+              absolute
+              left-4
+              top-1/2
+              z-30
+              hidden
+              h-10
+              w-10
+              -translate-y-1/2
+              items-center
+              justify-center
+              rounded-full
+              bg-black/50
+              text-white
+              backdrop-blur-md
+              transition
+              hover:bg-[#D4AF37]
+              hover:text-black
+              sm:flex
+            "
 
+          >
 
+            <ChevronLeft
+              size={20}
+            />
 
-{/* Desktop Navigation */}
+          </button>
 
-{
+        )}
 
-imageList.length > 1 &&
 
-<>
+        {/* =================================================
+            NEXT
+        ================================================== */}
 
-<button
+        {imageList.length > 1 && (
 
-onClick={previousImage}
+          <button
 
-className="
+            type="button"
 
-absolute
+            onClick={
+              nextImage
+            }
 
-left-4
+            className="
+              absolute
+              right-4
+              top-1/2
+              z-30
+              hidden
+              h-10
+              w-10
+              -translate-y-1/2
+              items-center
+              justify-center
+              rounded-full
+              bg-black/50
+              text-white
+              backdrop-blur-md
+              transition
+              hover:bg-[#D4AF37]
+              hover:text-black
+              sm:flex
+            "
 
-top-1/2
+          >
 
+            <ChevronRight
+              size={20}
+            />
 
-hidden
+          </button>
 
-h-10
+        )}
 
-w-10
+      </div>
 
 
--translate-y-1/2
+      {/* =====================================================
+          MOBILE THUMBNAILS
+      ====================================================== */}
 
+      {imageList.length > 1 && (
 
-items-center
+        <div
 
-justify-center
+          ref={
+            mobileThumbnailRef
+          }
 
+          className="
+            mt-4
+            flex
+            gap-2.5
+            overflow-x-auto
+            px-1
+            pb-1
+            sm:hidden
+            [scrollbar-width:none]
+            [&::-webkit-scrollbar]:hidden
+          "
 
-rounded-full
+        >
 
+          {imageList.map(
+            (
+              image,
+              index
+            ) => (
 
-bg-black/50
+              <button
 
+                key={
+                  `${image.image_url}-${index}`
+                }
 
-text-white
+                type="button"
 
+                onClick={() =>
+                  changeImage(
+                    index
+                  )
+                }
 
-backdrop-blur-md
+                aria-label={
+                  `View image ${index + 1}`
+                }
 
+                aria-current={
+                  activeImage === index
+                    ? "true"
+                    : undefined
+                }
 
-transition
+                className={`
 
+                  relative
+                  h-[68px]
+                  w-[58px]
+                  shrink-0
+                  overflow-hidden
+                  rounded-xl
+                  border-2
+                  bg-neutral-900
+                  transition-all
+                  duration-300
 
-hover:bg-[#D4AF37]
+                  ${
+                    activeImage === index
+                      ? "scale-[1.03] border-[#D4AF37] opacity-100"
+                      : "border-transparent opacity-65 hover:opacity-100"
+                  }
 
+                `}
 
-hover:text-black
+              >
 
+                <img
 
-sm:flex
+                  src={
+                    image.image_url
+                  }
 
-"
+                  alt={
+                    `${productName} thumbnail ${index + 1}`
+                  }
 
->
+                  className="
+                    h-full
+                    w-full
+                    object-cover
+                  "
 
-<ChevronLeft size={20}/>
+                />
 
-</button>
+              </button>
 
+            )
 
+          )}
 
+        </div>
 
+      )}
 
 
+      {/* =====================================================
+          DESKTOP THUMBNAILS
+      ====================================================== */}
 
+      {imageList.length > 1 && (
 
+        <div
 
-<button
+          className="
+            mt-5
+            hidden
+            gap-3
+            sm:flex
+          "
 
-onClick={nextImage}
+        >
 
-className="
+          {imageList.map(
+            (
+              image,
+              index
+            ) => (
 
-absolute
+              <button
 
-right-4
+                key={
+                  `${image.image_url}-${index}`
+                }
 
-top-1/2
+                type="button"
 
+                onClick={() =>
+                  changeImage(
+                    index
+                  )
+                }
 
-hidden
+                className={`
 
-h-10
+                  h-20
+                  w-20
+                  overflow-hidden
+                  rounded-xl
+                  border-2
+                  transition-all
 
-w-10
+                  ${
+                    activeImage === index
+                      ? "scale-105 border-[#D4AF37]"
+                      : "border-transparent opacity-70 hover:opacity-100"
+                  }
 
+                `}
 
--translate-y-1/2
+              >
 
+                <img
 
-items-center
+                  src={
+                    image.image_url
+                  }
 
-justify-center
+                  alt={
+                    `${productName} thumbnail ${index + 1}`
+                  }
 
+                  className="
+                    h-full
+                    w-full
+                    object-cover
+                  "
 
-rounded-full
+                />
 
+              </button>
 
-bg-black/50
+            )
 
+          )}
 
-text-white
+        </div>
 
+      )}
 
-backdrop-blur-md
 
+      {/* =====================================================
+          FULLSCREEN ZOOM VIEWER
+      ====================================================== */}
 
-transition
+      {zoomOpen && (
 
+        <div
 
-hover:bg-[#D4AF37]
+          className="
+            fixed
+            inset-0
+            z-[9999]
+            flex
+            items-center
+            justify-center
+            bg-black/95
+            backdrop-blur-sm
+          "
 
+          onClick={
+            closeZoom
+          }
 
-hover:text-black
+          onTouchStart={
+            handleZoomTouchStart
+          }
 
+          onTouchMove={
+            handleZoomTouchMove
+          }
 
-sm:flex
+          onTouchEnd={
+            handleZoomTouchEnd
+          }
 
-"
+          onWheel={
+            handleZoomWheel
+          }
 
->
+        >
 
-<ChevronRight size={20}/>
+          {/* =================================================
+              TOP CONTROLS
+          ================================================== */}
 
-</button>
+          <div
 
+            className="
+              absolute
+              left-0
+              right-0
+              top-0
+              z-20
+              flex
+              items-center
+              justify-between
+              px-4
+              py-4
+              sm:px-6
+            "
 
+          >
 
+            <div
+              className="
+                rounded-full
+                bg-white/10
+                px-3
+                py-1.5
+                text-xs
+                text-white
+                backdrop-blur-md
+              "
+            >
 
+              {activeImage + 1}
+              {" / "}
+              {imageList.length}
 
-</>
+            </div>
 
-}
 
+            <div
+              className="
+                flex
+                items-center
+                gap-2
+              "
+            >
 
+              <button
 
+                type="button"
 
+                onClick={(
+                  e
+                ) => {
 
-</div>
+                  e.stopPropagation();
 
+                  zoomOut();
 
+                }}
 
+                className="
+                  flex
+                  h-10
+                  w-10
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-white/10
+                  text-white
+                  backdrop-blur-md
+                  transition
+                  hover:bg-[#D4AF37]
+                  hover:text-black
+                "
 
+              >
 
+                <ZoomOut
+                  size={18}
+                />
 
+              </button>
 
 
+              <button
 
-{/* Mobile Pagination */}
+                type="button"
 
-{
+                onClick={(
+                  e
+                ) => {
 
-imageList.length > 1 &&
+                  e.stopPropagation();
 
-<div
+                  resetZoom();
 
-className="
+                }}
 
-mt-5
+                className="
+                  flex
+                  h-10
+                  w-10
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-white/10
+                  text-white
+                  backdrop-blur-md
+                  transition
+                  hover:bg-[#D4AF37]
+                  hover:text-black
+                "
 
-flex
+              >
 
-justify-center
+                <RotateCcw
+                  size={17}
+                />
 
-gap-2
+              </button>
 
 
-sm:hidden
+              <button
 
-"
+                type="button"
 
->
+                onClick={(
+                  e
+                ) => {
 
-{
+                  e.stopPropagation();
 
-imageList.map((_,index)=>(
+                  zoomIn();
 
+                }}
 
-<button
+                className="
+                  flex
+                  h-10
+                  w-10
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-white/10
+                  text-white
+                  backdrop-blur-md
+                  transition
+                  hover:bg-[#D4AF37]
+                  hover:text-black
+                "
 
-key={index}
+              >
 
-onClick={()=>changeImage(index)}
+                <ZoomIn
+                  size={18}
+                />
 
+              </button>
 
-className={`
 
-transition-all
+              <button
 
-duration-300
+                type="button"
 
+                onClick={(
+                  e
+                ) => {
 
-rounded-full
+                  e.stopPropagation();
 
+                  closeZoom();
 
+                }}
 
-${
+                className="
+                  ml-1
+                  flex
+                  h-10
+                  w-10
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-white/10
+                  text-white
+                  backdrop-blur-md
+                  transition
+                  hover:bg-[#D4AF37]
+                  hover:text-black
+                "
 
-activeImage===index
+              >
 
-?
+                <X
+                  size={20}
+                />
 
-"h-2.5 w-7 bg-[#D4AF37]"
+              </button>
 
-:
+            </div>
 
-"h-2.5 w-2.5 bg-neutral-600"
+          </div>
 
-}
 
-`}
+          {/* =================================================
+              ZOOMED IMAGE
+          ================================================== */}
 
-/>
+          <div
 
+            className="
+              flex
+              h-full
+              w-full
+              items-center
+              justify-center
+              overflow-hidden
+              px-4
+              py-20
+              sm:px-16
+            "
 
-))
+            onClick={(
+              e
+            ) =>
+              e.stopPropagation()
+            }
 
-}
+          >
 
-</div>
+            <img
 
-}
+              src={
+                imageList[activeImage]
+                  .image_url
+              }
 
+              alt={
+                productName
+              }
 
+              draggable={
+                false
+              }
 
+              className="
+                max-h-full
+                max-w-full
+                select-none
+                object-contain
+                transition-transform
+                duration-200
+                ease-out
+              "
 
+              style={{
+                transform: `
+                  translate(
+                    ${zoomX}px,
+                    ${zoomY}px
+                  )
+                  scale(
+                    ${zoomLevel}
+                  )
+                `,
+              }}
 
+            />
 
+          </div>
 
 
+          {/* =================================================
+              PREVIOUS
+          ================================================== */}
 
-{/* Desktop Thumbnails */}
+          {imageList.length > 1 && (
 
-{
+            <button
 
-imageList.length > 1 &&
+              type="button"
 
-<div
+              onClick={(
+                e
+              ) => {
 
-className="
+                e.stopPropagation();
 
-mt-5
+                previousImage();
 
-hidden
+                resetZoom();
 
-gap-3
+              }}
 
+              className="
+                absolute
+                left-3
+                top-1/2
+                z-20
+                flex
+                h-11
+                w-11
+                -translate-y-1/2
+                items-center
+                justify-center
+                rounded-full
+                bg-white/10
+                text-white
+                backdrop-blur-md
+                transition
+                hover:bg-[#D4AF37]
+                hover:text-black
+                sm:left-5
+              "
 
-sm:flex
+            >
 
-"
+              <ChevronLeft
+                size={22}
+              />
 
->
+            </button>
 
-{
+          )}
 
-imageList.map((image,index)=>(
 
+          {/* =================================================
+              NEXT
+          ================================================== */}
 
-<button
+          {imageList.length > 1 && (
 
-key={index}
+            <button
 
-onClick={()=>changeImage(index)}
+              type="button"
 
+              onClick={(
+                e
+              ) => {
 
-className={`
+                e.stopPropagation();
 
-h-20
+                nextImage();
 
-w-20
+                resetZoom();
 
+              }}
 
-overflow-hidden
+              className="
+                absolute
+                right-3
+                top-1/2
+                z-20
+                flex
+                h-11
+                w-11
+                -translate-y-1/2
+                items-center
+                justify-center
+                rounded-full
+                bg-white/10
+                text-white
+                backdrop-blur-md
+                transition
+                hover:bg-[#D4AF37]
+                hover:text-black
+                sm:right-5
+              "
 
+            >
 
-rounded-xl
+              <ChevronRight
+                size={22}
+              />
 
+            </button>
 
-border-2
+          )}
 
 
-transition-all
+          {/* =================================================
+              MOBILE HINT
+          ================================================== */}
 
+          <div
 
-${
+            className="
+              absolute
+              bottom-5
+              left-1/2
+              -translate-x-1/2
+              rounded-full
+              bg-black/50
+              px-4
+              py-2
+              text-[10px]
+              text-white/70
+              backdrop-blur-md
+              sm:hidden
+            "
 
-activeImage===index
+          >
 
-?
+            Pinch or use + / − to zoom
 
-"scale-105 border-[#D4AF37]"
+          </div>
 
-:
+        </div>
 
-"border-transparent opacity-70 hover:opacity-100"
+      )}
 
-}
+    </section>
 
-`
-
-}
-
->
-
-<img
-
-src={image.image_url}
-
-alt={productName}
-
-
-className="
-
-h-full
-
-w-full
-
-object-cover
-
-"
-
-/>
-
-</button>
-
-))
-
-}
-
-</div>
-
-}
-
-
-
-
-
-
-
-
-</section>
-
-);
+  );
 
 }

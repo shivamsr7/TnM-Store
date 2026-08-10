@@ -29,7 +29,7 @@ import OrderDetails from "@/features/orders/components/OrderDetails";
 
 import NotificationsPage from "@/features/notifications/pages/NotificationsPage";
 
-
+import Wishlist from "@/features/wishlist/pages/Wishlist";
 
 
 
@@ -142,7 +142,10 @@ element={<TermsConditions />}
 
 />
 
-
+<Route
+  path="/wishlist"
+  element={<Wishlist />}
+/>
 
 
 

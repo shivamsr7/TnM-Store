@@ -4,296 +4,227 @@ import AccountActions from "./AccountActions";
 import RecentNotifications from "./RecentNotifications";
 
 import EditProfileDialog from "@/components/account/EditProfileDialog";
-
 import SavedAddressesDialog from "./SavedAddressesDialog";
-
 
 import {
   useAuth,
 } from "@/features/Auth/context/AuthContext";
 
-
 import {
   useState,
 } from "react";
 
+import {
+  Link,
+} from "react-router-dom";
 
+import {
+  ArrowLeft,
+} from "lucide-react";
 
 
 
+export default function AccountDashboard() {
 
+  const {
+    customer,
+  } = useAuth();
 
-export default function AccountDashboard(){
 
 
+  const [
+    showAddresses,
+    setShowAddresses,
+  ] = useState(false);
 
-const {
-customer
-}=useAuth();
 
 
+  const [
+    showEditProfile,
+    setShowEditProfile,
+  ] = useState(false);
 
 
 
+  return (
 
-const [
+    <div
+      className="
+        min-h-screen
+        bg-black
+        px-4
+        py-5
+        text-white
+        sm:px-6
+        lg:px-8
+      "
+    >
 
-showAddresses,
+      <div
+        className="
+          mx-auto
+          max-w-5xl
+          space-y-5
+        "
+      >
 
-setShowAddresses
 
-]=useState(false);
 
+        {/* =================================================
+            Back to Home
+        ================================================== */}
 
+        <Link
+          to="/"
+          className="
+            inline-flex
+            items-center
+            gap-2
+            text-sm
+            text-neutral-400
+            transition
+            hover:text-[#C8A44D]
+          "
+        >
 
+          <ArrowLeft
+            size={17}
+            strokeWidth={1.8}
+          />
 
+          <span>
+            Back to T&M Jewels
+          </span>
 
+        </Link>
 
-const [
 
-showEditProfile,
 
-setShowEditProfile
+        {/* =================================================
+            Account Header
+        ================================================== */}
 
-]=useState(false);
+        <div
+          className="
+            space-y-1
+          "
+        >
 
+          <h1
+            className="
+              text-2xl
+              font-semibold
+              text-[#C8A44D]
+              sm:text-3xl
+            "
+          >
+            My Account ✨
+          </h1>
 
 
 
+          <p
+            className="
+              text-sm
+              text-neutral-400
+            "
+          >
+            Welcome back, {customer?.first_name}
+          </p>
 
+        </div>
 
 
 
+        {/* =================================================
+            Content
+        ================================================== */}
 
-return (
+        <div
+          className="
+            grid
+            gap-5
+            lg:grid-cols-[1fr_320px]
+          "
+        >
 
-<div
 
-className="
-min-h-screen
-bg-black
-px-4
-py-5
-text-white
-sm:px-6
-lg:px-8
-"
 
->
+          {/* =================================================
+              Main Content
+          ================================================== */}
 
+          <div
+            className="
+              space-y-5
+            "
+          >
 
+            <ProfileCard
+              onEditProfile={() =>
+                setShowEditProfile(true)
+              }
+            />
 
 
 
-<div
+            <RecentOrders />
 
-className="
-mx-auto
-max-w-5xl
-space-y-5
-"
 
->
 
+            <RecentNotifications />
 
+          </div>
 
 
 
+          {/* =================================================
+              Sidebar
+          ================================================== */}
 
+          <div
+            className="
+              lg:sticky
+              lg:top-5
+              lg:self-start
+            "
+          >
 
-{/* Header */}
+            <AccountActions
+              onOpenAddresses={() =>
+                setShowAddresses(true)
+              }
+            />
 
+          </div>
 
+        </div>
 
-<div
 
-className="
-space-y-1
-"
 
->
+        {/* =================================================
+            Dialogs
+        ================================================== */}
 
+        <SavedAddressesDialog
+          open={showAddresses}
+          onClose={() =>
+            setShowAddresses(false)
+          }
+        />
 
-<h1
 
-className="
-text-2xl
-font-semibold
-text-[#C8A44D]
-sm:text-3xl
-"
 
->
+        <EditProfileDialog
+          open={showEditProfile}
+          onClose={() =>
+            setShowEditProfile(false)
+          }
+        />
 
-My Account ✨
+      </div>
 
-</h1>
+    </div>
 
-
-
-<p
-
-className="
-text-sm
-text-neutral-400
-"
-
->
-
-Welcome back, {customer?.first_name}
-
-</p>
-
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* Content */}
-
-
-
-<div
-
-className="
-grid
-gap-5
-lg:grid-cols-[1fr_320px]
-"
-
->
-
-
-
-
-
-
-
-{/* Main Content */}
-
-
-
-<div
-
-className="
-space-y-5
-"
-
->
-
-
-<ProfileCard
-
-onEditProfile={()=>setShowEditProfile(true)}
-
-/>
-
-
-
-<RecentOrders />
-
-
-
-<RecentNotifications />
-
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* Sidebar */}
-
-
-
-<div
-
-className="
-lg:sticky
-lg:top-5
-lg:self-start
-"
-
->
-
-
-<AccountActions
-
-onOpenAddresses={()=>setShowAddresses(true)}
-
-/>
-
-
-
-</div>
-
-
-
-
-
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* Dialogs */}
-
-
-
-<SavedAddressesDialog
-
-open={showAddresses}
-
-onClose={()=>setShowAddresses(false)}
-
-/>
-
-
-
-
-
-
-
-<EditProfileDialog
-
-open={showEditProfile}
-
-onClose={()=>setShowEditProfile(false)}
-
-/>
-
-
-
-
-
-
-
-</div>
-
-
-
-</div>
-
-);
-
+  );
 }

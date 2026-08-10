@@ -1,401 +1,1037 @@
-import { Search } from "lucide-react";
+import {
+  Search,
+  SlidersHorizontal,
+  ChevronDown,
+  X,
+} from "lucide-react";
 
+type SortOption =
+  | "featured"
+  | "newest"
+  | "best-selling"
+  | "trending"
+  | "price-low"
+  | "price-high"
+  | "discount"
+  | "rating";
 
-interface Props{
+interface Props {
+  search: string;
+  setSearch: (value: string) => void;
 
-search:string;
+  productCount: number;
 
-setSearch:(value:string)=>void;
+  categories: string[];
+  activeCategory: string;
+  setCategory: (value: string) => void;
 
-productCount:number;
+  /*
+   * Parent category subcategories.
+   *
+   * Currently used for:
+   *
+   * Bracelets & Bangles
+   * ├── Bracelets
+   * └── Bangles
+   */
+  subcategories?: string[];
 
-categories:string[];
+  activeSubcategory?: string | null;
+  setSubcategory?: (value: string | null) => void;
 
-activeCategory:string;
+  sort: SortOption;
+  setSort: (value: SortOption) => void;
 
-setCategory:(value:string)=>void;
+  onFilterOpen: () => void;
 
+  filterCount?: number;
 }
-
-
-
 
 export default function ShopHeader({
-
-search,
-
-setSearch,
-
-productCount,
-
-categories,
-
-activeCategory,
-
-setCategory
-
-}:Props){
-
-
-
-return (
-
-<section className="mt-[-40px] mb-8 md:mt-0 md:mb-14">
-
-
-
-<div
-
-className="
-text-center
-"
-
->
-
-
-
-
-
-<h1
-
-className="
-mt-0
-
-text-3xl
-
-font-semibold
-
-bg-gradient-to-r
-
-from-[#B8862E]
-
-via-[#F7E3A3]
-
-to-[#B8862E]
-
-bg-clip-text
-
-text-transparent
-
-md:text-6xl
-
-"
-
->
-
-Shop Collection
-
-</h1>
-
-
-
-
-<p
-
-className="
-mx-auto
-
-mt-3
-
-max-w-2xl
-
-text-sm
-
-text-neutral-400
-
-md:mt-5
-
-md:text-base
-
-"
-
->
-
-Luxury inspired Jewellery you'll love to wear.
-Crafted for every occasion.
-
-</p>
-
-
-</div>
-
-
-
-
-
-
-
-
-{/* Categories */}
-
-<div
-
-className="
-mt-6
-
-flex
-
-gap-2
-
-overflow-x-auto
-
-pb-1
-
-scrollbar-hide
-
-"
-
->
-
-
-{
-
-categories.map((item)=>(
-
-
-<button
-
-key={item}
-
-onClick={()=>setCategory(item)}
-
-className={
-
-`
-
-whitespace-nowrap
-
-rounded-full
-
-px-4
-
-py-1.5
-
-text-xs
-
-transition-all
-
-duration-200
-
-
-md:px-6
-
-md:py-2
-
-md:text-sm
-
-
-${
-
-activeCategory===item
-
-?
-
-"bg-[#D4AF37] text-black"
-
-:
-
-"border border-[#D4AF37]/30 text-neutral-300"
-
-}
-
-`
-
-}
-
->
-
-{item}
-
-</button>
-
-
-))
-
-
-}
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* Search */}
-
-<div
-
-className="
-mx-auto
-
-mt-5
-
-max-w-xl
-
-md:mt-8
-
-"
-
->
-
-
-<div
-
-className="
-flex
-
-items-center
-
-gap-3
-
-rounded-full
-
-border
-
-border-[#D4AF37]/30
-
-bg-[#0d0d0d]
-
-px-4
-
-py-2.5
-
-md:px-5
-
-md:py-3
-
-"
-
->
-
-
-<Search
-
-size={18}
-
-className="text-[#D4AF37] md:size-5"
-
-/>
-
-
-
-<input
-
-value={search}
-
-onChange={(e)=>
-setSearch(e.target.value)
-}
-
-placeholder="Search jewellery..."
-
-className="
-w-full
-
-bg-transparent
-
-text-sm
-
-text-white
-
-outline-none
-
-placeholder:text-neutral-500
-
-"
-
-/>
-
-
-</div>
-
-</div>
-
-
-
-
-
-
-
-
-
-<div
-
-className="
-mt-5
-
-flex
-
-items-center
-
-justify-between
-
-text-xs
-
-text-neutral-400
-
-md:mt-8
-
-md:text-sm
-
-"
-
->
-
-
-<span>
-
-{productCount} pieces
-
-</span>
-
-
-
-<button
-
-className="
-rounded-full
-
-border
-
-border-[#D4AFG37]/30
-
-px-4
-
-py-1.5
-
-text-xs
-
-text-white
-
-md:px-5
-
-md:py-2
-
-md:text-sm
-
-"
-
->
-
-Sort
-
-</button>
-
-
-
-</div>
-
-
-
-
-</section>
-
-);
-
+  search,
+  setSearch,
+  productCount,
+  categories,
+  activeCategory,
+  setCategory,
+
+  subcategories = [],
+  activeSubcategory = null,
+  setSubcategory,
+
+  sort,
+  setSort,
+  onFilterOpen,
+  filterCount = 0,
+}: Props) {
+  return (
+    <section
+      className="
+        mb-3
+        sm:mb-4
+        md:mb-5
+      "
+    >
+
+      {/* =====================================================
+          HERO
+      ====================================================== */}
+
+      <div
+        className="
+          relative
+          mx-auto
+          max-w-3xl
+          text-center
+        "
+      >
+
+        <div
+          className="
+            pointer-events-none
+            absolute
+            left-1/2
+            top-1/2
+            h-28
+            w-56
+            -translate-x-1/2
+            -translate-y-1/2
+            rounded-full
+            bg-[#D4AF37]/[0.025]
+            blur-3xl
+          "
+        />
+
+        <div className="relative">
+
+          {/* Brand */}
+
+          <div
+            className="
+              mx-auto
+              mb-2
+              flex
+              w-fit
+              items-center
+              gap-2
+              rounded-full
+              border
+              border-[#D4AF37]/15
+              bg-[#D4AF37]/[0.035]
+              px-3
+              py-1.5
+            "
+          >
+
+            <span
+              className="
+                h-1.5
+                w-1.5
+                rounded-full
+                bg-[#D4AF37]
+                shadow-[0_0_8px_rgba(212,175,55,0.45)]
+              "
+            />
+
+            <span
+              className="
+                text-[8px]
+                font-semibold
+                uppercase
+                tracking-[0.28em]
+                text-[#C8A44D]
+                sm:text-[9px]
+              "
+            >
+              T&M Jewels
+            </span>
+
+          </div>
+
+
+          {/* Heading */}
+
+          <h1
+            className="
+              bg-gradient-to-r
+              from-[#B8862E]
+              via-[#F7E3A3]
+              to-[#B8862E]
+              bg-clip-text
+              text-3xl
+              font-semibold
+              tracking-[-0.03em]
+              text-transparent
+              sm:text-4xl
+              md:text-5xl
+              lg:text-6xl
+            "
+          >
+            Shop Collection
+          </h1>
+
+
+          {/* Description */}
+
+          <p
+            className="
+              mx-auto
+              mt-2
+              max-w-lg
+              text-[11px]
+              leading-5
+              text-neutral-500
+              sm:mt-2.5
+              sm:text-sm
+              sm:leading-6
+              md:text-base
+            "
+          >
+            Luxury inspired jewellery you'll love to wear.
+            Crafted for every occasion.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      {/* =====================================================
+          CATEGORY NAVIGATION
+      ====================================================== */}
+
+      <div
+        className="
+          mt-4
+          sm:mt-5
+        "
+      >
+
+        <div
+          className="
+            flex
+            gap-2
+            overflow-x-auto
+            px-0.5
+            pb-1
+            scrollbar-hide
+
+            sm:justify-center
+            sm:overflow-visible
+            sm:pb-0
+          "
+        >
+
+          {categories.map(
+            (item) => {
+
+              const isActive =
+                activeCategory === item;
+
+              return (
+
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() =>
+                    setCategory(item)
+                  }
+                  aria-pressed={isActive}
+
+                  className={`
+                    shrink-0
+                    rounded-full
+                    border
+                    px-4
+                    py-2
+                    text-[10px]
+                    font-medium
+                    transition-all
+                    duration-200
+                    active:scale-[0.97]
+
+                    sm:px-5
+                    sm:py-2.5
+                    sm:text-xs
+
+                    ${
+                      isActive
+                        ? `
+                          border-[#D4AF37]
+                          bg-[#D4AF37]
+                          text-black
+                          shadow-[0_5px_18px_rgba(212,175,55,0.12)]
+                        `
+                        : `
+                          border-white/[0.08]
+                          bg-white/[0.025]
+                          text-neutral-500
+                          hover:border-[#D4AF37]/35
+                          hover:bg-[#D4AF37]/[0.045]
+                          hover:text-[#F5E6B8]
+                        `
+                    }
+                  `}
+                >
+                  {item}
+                </button>
+
+              );
+
+            }
+          )}
+
+        </div>
+
+
+        {/* ===================================================
+            SUBCATEGORY NAVIGATION
+        ==================================================== */}
+
+        {activeCategory ===
+          "Bracelets & Bangles" &&
+          subcategories.length > 0 &&
+          setSubcategory && (
+
+          <div
+            className="
+              mt-3
+              flex
+              justify-center
+            "
+          >
+
+            <div
+              className="
+                flex
+                max-w-full
+                gap-2
+                overflow-x-auto
+                px-1
+                pb-1
+                scrollbar-hide
+              "
+            >
+
+              {/* All */}
+
+              <button
+                type="button"
+
+                onClick={() =>
+                  setSubcategory(
+                    null
+                  )
+                }
+
+                aria-pressed={
+                  activeSubcategory ===
+                  null
+                }
+
+                className={`
+                  shrink-0
+                  rounded-full
+                  border
+                  px-4
+                  py-1.5
+                  text-[10px]
+                  font-medium
+                  transition-all
+                  duration-200
+
+                  ${
+                    activeSubcategory ===
+                    null
+                      ? `
+                        border-[#D4AF37]/70
+                        bg-[#D4AF37]/10
+                        text-[#F7E3A3]
+                      `
+                      : `
+                        border-white/[0.07]
+                        bg-white/[0.02]
+                        text-neutral-500
+                        hover:border-[#D4AF37]/30
+                        hover:text-[#F5E6B8]
+                      `
+                  }
+                `}
+              >
+                All
+              </button>
+
+
+              {subcategories.map(
+                (subcategory) => {
+
+                  const isActive =
+                    activeSubcategory ===
+                    subcategory;
+
+                  return (
+
+                    <button
+                      key={
+                        subcategory
+                      }
+
+                      type="button"
+
+                      onClick={() =>
+                        setSubcategory(
+                          subcategory
+                        )
+                      }
+
+                      aria-pressed={
+                        isActive
+                      }
+
+                      className={`
+                        shrink-0
+                        rounded-full
+                        border
+                        px-4
+                        py-1.5
+                        text-[10px]
+                        font-medium
+                        transition-all
+                        duration-200
+
+                        ${
+                          isActive
+                            ? `
+                              border-[#D4AF37]
+                              bg-[#D4AF37]
+                              text-black
+                              shadow-[0_4px_14px_rgba(212,175,55,0.12)]
+                            `
+                            : `
+                              border-white/[0.07]
+                              bg-white/[0.02]
+                              text-neutral-500
+                              hover:border-[#D4AF37]/30
+                              hover:bg-[#D4AF37]/[0.04]
+                              hover:text-[#F5E6B8]
+                            `
+                        }
+                      `}
+                    >
+                      {subcategory}
+                    </button>
+
+                  );
+
+                }
+              )}
+
+            </div>
+
+          </div>
+
+        )}
+
+      </div>
+
+
+      {/* =====================================================
+          SEARCH
+      ====================================================== */}
+
+      <div
+        className="
+          mx-auto
+          mt-3
+          max-w-2xl
+          sm:mt-4
+        "
+      >
+
+        <div
+          className="
+            group
+            flex
+            h-11
+            items-center
+            gap-3
+            rounded-full
+            border
+            border-white/[0.08]
+            bg-white/[0.025]
+            px-4
+            transition-all
+            duration-200
+            focus-within:border-[#D4AF37]/40
+            focus-within:bg-white/[0.04]
+            focus-within:shadow-[0_8px_30px_rgba(212,175,55,0.05)]
+            sm:h-12
+            sm:px-5
+          "
+        >
+
+          <Search
+            size={17}
+            className="
+              shrink-0
+              text-[#D4AF37]
+              transition-transform
+              duration-200
+              group-focus-within:scale-105
+              sm:h-5
+              sm:w-5
+            "
+          />
+
+
+          <input
+            value={search}
+
+            onChange={(event) =>
+              setSearch(
+                event.target.value
+              )
+            }
+
+            placeholder="Search jewellery..."
+
+            aria-label="Search jewellery"
+
+            className="
+              min-w-0
+              flex-1
+              bg-transparent
+              text-xs
+              text-white
+              outline-none
+              placeholder:text-neutral-600
+              sm:text-sm
+            "
+          />
+
+
+          {search && (
+
+            <button
+              type="button"
+
+              onClick={() =>
+                setSearch("")
+              }
+
+              aria-label="Clear search"
+
+              className="
+                flex
+                h-7
+                w-7
+                shrink-0
+                items-center
+                justify-center
+                rounded-full
+                text-neutral-500
+                transition
+                hover:bg-white/[0.06]
+                hover:text-white
+                active:scale-95
+              "
+            >
+
+              <X size={14} />
+
+            </button>
+
+          )}
+
+        </div>
+
+      </div>
+
+
+      {/* =====================================================
+          RESULT CONTROLS
+      ====================================================== */}
+
+      <div
+        className="
+          mt-3
+          border-b
+          border-white/[0.06]
+          pb-3
+          sm:mt-4
+          sm:pb-4
+        "
+      >
+
+        <div
+          className="
+            flex
+            items-center
+            justify-between
+            gap-3
+          "
+        >
+
+          {/* Result count */}
+
+          <div
+            className="
+              flex
+              min-w-0
+              items-center
+              gap-2.5
+            "
+          >
+
+            <div
+              className="
+                flex
+                h-8
+                min-w-8
+                items-center
+                justify-center
+                rounded-full
+                border
+                border-[#D4AF37]/15
+                bg-[#D4AF37]/[0.04]
+                px-2
+              "
+            >
+
+              <span
+                className="
+                  text-[11px]
+                  font-semibold
+                  text-[#D4AF37]
+                "
+              >
+                {productCount}
+              </span>
+
+            </div>
+
+
+            <div
+              className="
+                flex
+                flex-col
+                leading-none
+              "
+            >
+
+              <span
+                className="
+                  text-[9px]
+                  font-medium
+                  uppercase
+                  tracking-[0.18em]
+                  text-neutral-600
+                "
+              >
+                Collection
+              </span>
+
+              <span
+                className="
+                  mt-1
+                  text-xs
+                  font-medium
+                  text-white
+                  sm:text-sm
+                "
+              >
+                {productCount === 1
+                  ? "1 piece"
+                  : `${productCount} pieces`}
+              </span>
+
+            </div>
+
+          </div>
+
+
+          {/* Controls */}
+
+          <div
+            className="
+              flex
+              shrink-0
+              items-center
+              gap-2
+            "
+          >
+
+            {/* Filter */}
+
+            <button
+              type="button"
+              onClick={
+                onFilterOpen
+              }
+
+              className="
+                inline-flex
+                h-9
+                items-center
+                gap-1.5
+                rounded-full
+                border
+                border-white/10
+                bg-white/[0.025]
+                px-3
+                text-[10px]
+                font-medium
+                text-neutral-300
+                transition
+                hover:border-[#D4AF37]/40
+                hover:bg-[#D4AF37]/[0.05]
+                hover:text-[#F5E6B8]
+                active:scale-[0.98]
+                sm:h-10
+                sm:gap-2
+                sm:px-4
+                sm:text-sm
+              "
+            >
+
+              <SlidersHorizontal
+                size={14}
+                className="text-[#D4AF37]"
+              />
+
+              <span>
+                Filter
+              </span>
+
+
+              {filterCount > 0 && (
+
+                <span
+                  className="
+                    flex
+                    h-5
+                    min-w-5
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-[#D4AF37]
+                    px-1.5
+                    text-[9px]
+                    font-bold
+                    text-black
+                  "
+                >
+                  {filterCount}
+                </span>
+
+              )}
+
+            </button>
+
+
+            {/* Sort */}
+
+            <div className="relative">
+
+              <select
+                value={sort}
+
+                onChange={(event) =>
+                  setSort(
+                    event.target
+                      .value as SortOption
+                  )
+                }
+
+                aria-label="Sort products"
+
+                className="
+                  h-9
+                  max-w-[112px]
+                  appearance-none
+                  rounded-full
+                  border
+                  border-white/10
+                  bg-white/[0.025]
+                  py-0
+                  pl-3
+                  pr-8
+                  text-[10px]
+                  font-medium
+                  text-neutral-300
+                  outline-none
+                  transition
+                  hover:border-[#D4AF37]/30
+                  focus:border-[#D4AF37]/40
+                  focus:bg-[#D4AF37]/[0.05]
+                  sm:h-10
+                  sm:max-w-none
+                  sm:pl-4
+                  sm:pr-9
+                  sm:text-sm
+                "
+              >
+
+                <option
+                  value="featured"
+                  className="bg-black"
+                >
+                  Featured
+                </option>
+
+                <option
+                  value="newest"
+                  className="bg-black"
+                >
+                  Newest
+                </option>
+
+                <option
+                  value="best-selling"
+                  className="bg-black"
+                >
+                  Best Selling
+                </option>
+
+                <option
+                  value="trending"
+                  className="bg-black"
+                >
+                  Trending
+                </option>
+
+                <option
+                  value="price-low"
+                  className="bg-black"
+                >
+                  Price: Low → High
+                </option>
+
+                <option
+                  value="price-high"
+                  className="bg-black"
+                >
+                  Price: High → Low
+                </option>
+
+                <option
+                  value="discount"
+                  className="bg-black"
+                >
+                  Biggest Discount
+                </option>
+
+                <option
+                  value="rating"
+                  className="bg-black"
+                >
+                  Top Rated
+                </option>
+
+              </select>
+
+
+              <ChevronDown
+                size={13}
+                className="
+                  pointer-events-none
+                  absolute
+                  right-3
+                  top-1/2
+                  -translate-y-1/2
+                  text-neutral-500
+                "
+              />
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        {/* Active context */}
+
+        {(activeCategory !== "All" ||
+          activeSubcategory ||
+          search.trim() ||
+          filterCount > 0) && (
+
+          <div
+            className="
+              mt-2.5
+              flex
+              items-center
+              gap-2
+              overflow-x-auto
+              scrollbar-hide
+            "
+          >
+
+            <span
+              className="
+                shrink-0
+                text-[8px]
+                font-medium
+                uppercase
+                tracking-[0.2em]
+                text-neutral-700
+              "
+            >
+              Showing
+            </span>
+
+
+            {activeCategory !==
+              "All" && (
+
+              <button
+                type="button"
+
+                onClick={() =>
+                  setCategory("All")
+                }
+
+                className="
+                  inline-flex
+                  shrink-0
+                  items-center
+                  gap-1.5
+                  rounded-full
+                  border
+                  border-[#D4AF37]/15
+                  bg-[#D4AF37]/[0.05]
+                  px-2.5
+                  py-1.5
+                  text-[10px]
+                  font-medium
+                  text-[#E6C96A]
+                "
+              >
+
+                {activeCategory}
+
+                <X size={11} />
+
+              </button>
+
+            )}
+
+
+            {activeSubcategory && (
+
+              <button
+                type="button"
+
+                onClick={() =>
+                  setSubcategory?.(
+                    null
+                  )
+                }
+
+                className="
+                  inline-flex
+                  shrink-0
+                  items-center
+                  gap-1.5
+                  rounded-full
+                  border
+                  border-[#D4AF37]/20
+                  bg-[#D4AF37]/[0.07]
+                  px-2.5
+                  py-1.5
+                  text-[10px]
+                  font-medium
+                  text-[#F7E3A3]
+                "
+              >
+
+                {activeSubcategory}
+
+                <X size={11} />
+
+              </button>
+
+            )}
+
+
+            {search.trim() && (
+
+              <button
+                type="button"
+
+                onClick={() =>
+                  setSearch("")
+                }
+
+                className="
+                  inline-flex
+                  max-w-[190px]
+                  shrink-0
+                  items-center
+                  gap-1.5
+                  rounded-full
+                  border
+                  border-white/[0.07]
+                  bg-white/[0.025]
+                  px-2.5
+                  py-1.5
+                  text-[10px]
+                  font-medium
+                  text-neutral-300
+                "
+              >
+
+                <span className="truncate">
+                  "{search.trim()}"
+                </span>
+
+                <X
+                  size={11}
+                  className="shrink-0"
+                />
+
+              </button>
+
+            )}
+
+
+            {filterCount > 0 && (
+
+              <span
+                className="
+                  inline-flex
+                  shrink-0
+                  items-center
+                  rounded-full
+                  border
+                  border-[#D4AF37]/15
+                  bg-[#D4AF37]/[0.05]
+                  px-2.5
+                  py-1.5
+                  text-[10px]
+                  font-medium
+                  text-[#D4AF37]
+                "
+              >
+
+                {filterCount}{" "}
+                filter
+                {filterCount === 1
+                  ? ""
+                  : "s"}{" "}
+                applied
+
+              </span>
+
+            )}
+
+          </div>
+
+        )}
+
+      </div>
+
+    </section>
+  );
 }

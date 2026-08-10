@@ -1,223 +1,273 @@
 import {
-useParams
+  useParams,
 } from "react-router-dom";
+
 import MobileStickyCart from "@/features/products/components/MobileStickyCart";
+
 import ProductGallery from "../components/ProductGallery";
+
 import {
-useProductDetails
+  useProductDetails,
 } from "../hooks/useProductDetails";
+
 import ProductInfo from "../components/ProductInfo";
-import ProductAccordion from "../components/ProductAccordion"
+
+import ProductAccordion from "../components/ProductAccordion";
+
 import ProductActions from "../components/ProductActions";
 
-export default function ProductDetails(){
 
+export default function ProductDetails() {
 
-const {
-slug
-}=useParams();
 
+  /*
+   * =========================================================
+   * PRODUCT SLUG
+   * =========================================================
+   */
 
-const {
+  const {
+    slug,
+  } = useParams();
 
-data:product,
 
-isLoading,
+  /*
+   * =========================================================
+   * PRODUCT DETAILS
+   * =========================================================
+   */
 
-isError
+  const {
+    data: product,
 
-}=useProductDetails(
-slug || ""
-);
+    isLoading,
 
+    isError,
 
+  } = useProductDetails(
+    slug || ""
+  );
 
 
-if(isLoading){
+  /*
+   * =========================================================
+   * LOADING
+   * =========================================================
+   */
 
-return(
+  if (
+    isLoading
+  ) {
 
-<div
+    return (
 
-className="
-min-h-screen
-bg-black
-flex
-items-center
-justify-center
-text-white
+      <div
 
-"
+        className="
+          flex
+          min-h-screen
+          items-center
+          justify-center
+          bg-black
+          text-white
+        "
 
->
+      >
 
-Loading product...
+        Loading product...
 
-</div>
+      </div>
 
-)
+    );
 
-}
+  }
 
 
+  /*
+   * =========================================================
+   * ERROR / NOT FOUND
+   * =========================================================
+   */
 
+  if (
+    isError ||
+    !product
+  ) {
 
+    return (
 
-if(isError || !product){
+      <div
 
-return(
+        className="
+          flex
+          min-h-screen
+          items-center
+          justify-center
+          bg-black
+          text-red-400
+        "
 
-<div
+      >
 
-className="
-min-h-screen
-bg-black
-flex
-items-center
-justify-center
-text-red-400
+        Product not found.
 
-"
+      </div>
 
->
+    );
 
-Product not found.
+  }
 
-</div>
 
-)
+  /*
+   * =========================================================
+   * PRODUCT DETAILS PAGE
+   * =========================================================
+   */
 
-}
+  return (
 
+    <main
 
+      className="
+        min-h-screen
+        bg-black
+        px-4
+        py-6
+        text-white
 
+        sm:px-6
+        sm:py-10
 
+        lg:px-8
+        lg:py-12
+      "
 
-return (
+    >
 
-<main
+      <div
 
-className="
-min-h-screen
+        className="
+          mx-auto
+          max-w-7xl
+        "
 
-bg-black
+      >
 
-text-white
+        <div
 
-px-5
+          className="
+            grid
+            grid-cols-1
+            gap-8
 
-py-10
+            lg:grid-cols-2
+            lg:gap-12
+          "
 
-"
+        >
 
->
+          {/* =================================================
+              PRODUCT GALLERY
+          ================================================== */}
 
+          <div
+            className="
+              min-w-0
+            "
+          >
 
-<div
+            <ProductGallery
 
-className="
-mx-auto
+              /*
+               * IMPORTANT:
+               *
+               * ProductGallery now needs productId
+               * so the existing WishlistButton can
+               * add/remove this exact product.
+               */
 
-max-w-7xl
+              productId={
+                product.id
+              }
 
-"
+              images={
+                product.product_images ||
+                []
+              }
 
->
+              productName={
+                product.name
+              }
 
+            />
 
-<div
+          </div>
 
-className="
-grid
 
-grid-cols-1
+          {/* =================================================
+              PRODUCT INFORMATION
+          ================================================== */}
 
-gap-10
+          <div
 
+            className="
+              flex
+              min-w-0
+              flex-col
+              gap-5
 
-lg:grid-cols-2
+              sm:gap-6
+            "
 
-"
+          >
 
->
+            <ProductInfo
 
+              product={
+                product
+              }
 
+            />
 
-{/* Product Gallery */}
 
-<div>
+            <ProductActions
 
-<ProductGallery
+              product={
+                product
+              }
 
-images={product.product_images || []}
+            />
 
-productName={product.name}
 
-/>
+            <ProductAccordion
 
-</div>
+              product={
+                product
+              }
 
+            />
 
+          </div>
 
+        </div>
 
+      </div>
 
 
+      {/* =====================================================
+          MOBILE STICKY CART
+      ====================================================== */}
 
-{/* Product Info Placeholder */}
+      <MobileStickyCart
 
-<div
+        product={
+          product
+        }
 
-className="
-flex
+      />
 
-flex-col
+    </main>
 
-gap-6
-
-"
-
->
-
-
-<ProductInfo
-
-product={product}
-
-/>
-
-
-<ProductActions
-
-product={product}
-
-/>
-
-<ProductAccordion
-
-product={product}
-
-/>
-
-
-</div>
-
-
-
-
-
-</div>
-
-
-</div>
-
-<MobileStickyCart
-
-product={product}
-
-/>
-</main>
-
-);
-
+  );
 
 }
