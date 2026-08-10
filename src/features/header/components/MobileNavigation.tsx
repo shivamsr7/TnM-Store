@@ -65,8 +65,6 @@ export default function MobileNavigation({
    * - active subcategories
    * - only subcategories with active products
    *
-   * This keeps mobile and desktop consistent.
-   *
    * =========================================================
    */
 
@@ -78,6 +76,10 @@ export default function MobileNavigation({
   /*
    * =========================================================
    * EXPANDED CATEGORY
+   * =========================================================
+   *
+   * Only one category stays open at a time.
+   *
    * =========================================================
    */
 
@@ -331,6 +333,7 @@ export default function MobileNavigation({
                   py-3
                   text-base
                   font-medium
+
                   ${
                     isActive
                       ? "text-[#C8A44D]"
@@ -346,6 +349,85 @@ export default function MobileNavigation({
 
           )
         )}
+
+      </div>
+
+
+      {/* =====================================================
+          FEATURED
+      ====================================================== */}
+
+      <div>
+
+        <p
+          className="
+            mb-4
+            text-xs
+            font-semibold
+            uppercase
+            tracking-[0.25em]
+            text-[#C8A44D]
+          "
+        >
+
+          Featured
+
+        </p>
+
+
+        <div
+          className="
+            overflow-hidden
+            rounded-xl
+            border
+            border-neutral-200
+            bg-white
+          "
+        >
+
+          <Link
+            to="/shop?newArrival=true"
+
+            onClick={
+              onClose
+            }
+
+            className="
+              flex
+              items-center
+              justify-between
+              px-4
+              py-4
+              text-sm
+              font-medium
+              text-neutral-900
+              transition
+              hover:bg-[#F8F6F1]
+              hover:text-[#C8A44D]
+            "
+          >
+
+            <span>
+
+              ✨ New Arrivals
+
+            </span>
+
+
+            <span
+              className="
+                text-xs
+                text-[#C8A44D]
+              "
+            >
+
+              Explore →
+
+            </span>
+
+          </Link>
+
+        </div>
 
       </div>
 
@@ -407,9 +489,9 @@ export default function MobileNavigation({
                   "
                 >
 
-                  {/* =================================================
+                  {/* =========================================
                       CATEGORY HEADER
-                  ================================================== */}
+                  ========================================== */}
 
                   <button
                     type="button"
@@ -466,9 +548,9 @@ export default function MobileNavigation({
                   </button>
 
 
-                  {/* =================================================
+                  {/* =========================================
                       CATEGORY CONTENT
-                  ================================================== */}
+                  ========================================== */}
 
                   <AnimatePresence>
 
@@ -505,9 +587,9 @@ export default function MobileNavigation({
                         "
                       >
 
-                        {/* =================================================
+                        {/* =================================
                             SHOP ALL
-                        ================================================== */}
+                        ================================== */}
 
                         <Link
                           to={`/shop?category=${category.slug}`}
@@ -534,9 +616,9 @@ export default function MobileNavigation({
                         </Link>
 
 
-                        {/* =================================================
+                        {/* =================================
                             SUBCATEGORIES
-                        ================================================== */}
+                        ================================== */}
 
                         {hasSubcategories && (
 
@@ -551,14 +633,10 @@ export default function MobileNavigation({
                               (subcategory) => {
 
                                 /*
-                                 * Prefer slug when available.
+                                 * Use slug when available.
                                  *
-                                 * If slug is null, use the
-                                 * database ID.
-                                 *
-                                 * This avoids ever generating
-                                 * a multiline URL and therefore
-                                 * prevents %20 from appearing.
+                                 * If slug is unavailable,
+                                 * use the database ID.
                                  */
 
                                 const subcategoryValue =
@@ -567,11 +645,9 @@ export default function MobileNavigation({
 
 
                                 /*
-                                 * IMPORTANT:
-                                 *
-                                 * Keep the entire URL on one
-                                 * line. Do NOT use a multiline
-                                 * template literal here.
+                                 * Keep URL as a single-line
+                                 * string so no whitespace
+                                 * becomes %20.
                                  */
 
                                 const subcategoryUrl =
