@@ -64,9 +64,6 @@ function slugify(
 }
 
 
-
-
-
 function getDiscount(
   product: ShopProduct
 ) {
@@ -95,7 +92,14 @@ function getDiscount(
 }
 
 
+/*
+ * =========================================================
+ * COMPONENT
+ * =========================================================
+ */
+
 export default function Shop() {
+
 
   /*
    * =========================================================
@@ -166,9 +170,10 @@ export default function Shop() {
    * DYNAMIC CATEGORY NAMES
    * =========================================================
    *
-   * "All" is a UI option, not a database category.
+   * "All" is a UI option.
    *
-   * Every other category comes from Supabase.
+   * All actual categories come from Supabase.
+   *
    * =========================================================
    */
 
@@ -176,11 +181,14 @@ export default function Shop() {
     useMemo(() => {
 
       return [
+
         "All",
+
         ...shopCategories.map(
           (category) =>
             category.name
         ),
+
       ];
 
     }, [
@@ -190,7 +198,7 @@ export default function Shop() {
 
   /*
    * =========================================================
-   * CATEGORY PARAM
+   * URL CATEGORY
    * =========================================================
    */
 
@@ -202,21 +210,38 @@ export default function Shop() {
 
   /*
    * =========================================================
-   * FIND CATEGORY / SUBCATEGORY FROM URL
+   * URL SUBCATEGORY
    * =========================================================
    *
-   * This is completely dynamic.
+   * IMPORTANT:
    *
-   * Example:
+   * Parent category:
    *
-   * /shop?category=bracelets-bangles
+   * /shop?category=watches
    *
-   * finds the category whose slug is
-   * "bracelets-bangles".
+   * Subcategory:
    *
-   * /shop?category=haath-phool
+   * /shop?category=watches&subcategory=women-watches
    *
-   * finds Haath Phool inside its parent category.
+   * =========================================================
+   */
+
+  const subcategoryParam =
+    searchParams.get(
+      "subcategory"
+    );
+
+
+  /*
+   * =========================================================
+   * ACTIVE SHOP CATEGORY
+   * =========================================================
+   *
+   * We ONLY use the category parameter to find the
+   * parent category.
+   *
+   * We no longer try to interpret the subcategory as
+   * the category parameter.
    * =========================================================
    */
 
@@ -240,50 +265,13 @@ export default function Shop() {
         );
 
 
-      /*
-       * First check main categories.
-       */
-
-      const mainCategory =
+      return (
         shopCategories.find(
           (category) =>
             slugify(
               category.slug
-            ) ===
-            value
-        );
-
-
-      if (
-        mainCategory
-      ) {
-
-        return mainCategory;
-
-      }
-
-
-      /*
-       * Then check all subcategories.
-       */
-
-      const parentCategory =
-        shopCategories.find(
-          (category) =>
-            category.subcategories.some(
-              (subcategory) =>
-                slugify(
-                  subcategory.slug ??
-                  subcategory.name
-                ) ===
-                value
-            )
-        );
-
-
-      return (
-        parentCategory ??
-        null
+            ) === value
+        ) ?? null
       );
 
     }, [
@@ -307,6 +295,10 @@ export default function Shop() {
    * =========================================================
    * ACTIVE SUBCATEGORY
    * =========================================================
+   *
+   * Looks up the subcategory from the separate
+   * `subcategory` URL parameter.
+   * =========================================================
    */
 
   const activeSubcategory =
@@ -314,7 +306,7 @@ export default function Shop() {
 
       if (
         !activeShopCategory ||
-        !categoryParam
+        !subcategoryParam
       ) {
 
         return null;
@@ -325,31 +317,10 @@ export default function Shop() {
       const value =
         slugify(
           decodeURIComponent(
-            categoryParam
+            subcategoryParam
           )
         );
 
-
-      /*
-       * If URL belongs to the parent category,
-       * there is no active subcategory.
-       */
-
-      if (
-        slugify(
-          activeShopCategory.slug
-        ) ===
-        value
-      ) {
-
-        return null;
-
-      }
-
-
-      /*
-       * Find matching subcategory.
-       */
 
       return (
         activeShopCategory
@@ -359,15 +330,13 @@ export default function Shop() {
               slugify(
                 subcategory.slug ??
                 subcategory.name
-              ) ===
-              value
-          ) ??
-        null
+              ) === value
+          ) ?? null
       );
 
     }, [
-      categoryParam,
       activeShopCategory,
+      subcategoryParam,
     ]);
 
 
@@ -376,7 +345,10 @@ export default function Shop() {
    * ACTIVE SUBCATEGORY NAMES
    * =========================================================
    *
-   * These come directly from the database.
+   * Only subcategories returned by shopService are shown.
+   *
+   * shopService already removes subcategories that have
+   * zero active products.
    * =========================================================
    */
 
@@ -626,7 +598,9 @@ export default function Shop() {
   ) {
 
     /*
-     * All
+     * -------------------------------------------------------
+     * ALL
+     * -------------------------------------------------------
      */
 
     if (
@@ -635,7 +609,11 @@ export default function Shop() {
 
       updateParams({
 
-        category: null,
+        category:
+          null,
+
+        subcategory:
+          null,
 
       });
 
@@ -645,7 +623,9 @@ export default function Shop() {
 
 
     /*
-     * Find category dynamically.
+     * -------------------------------------------------------
+     * FIND CATEGORY
+     * -------------------------------------------------------
      */
 
     const category =
@@ -665,10 +645,23 @@ export default function Shop() {
     }
 
 
+    /*
+     * -------------------------------------------------------
+     * CHANGE CATEGORY
+     *
+     * IMPORTANT:
+     *
+     * Remove previous subcategory.
+     * -------------------------------------------------------
+     */
+
     updateParams({
 
       category:
         category.slug,
+
+      subcategory:
+        null,
 
     });
 
@@ -686,26 +679,37 @@ export default function Shop() {
   ) {
 
     /*
-     * "All" inside a category.
+     * -------------------------------------------------------
+     * NO PARENT CATEGORY
+     * -------------------------------------------------------
+     */
+
+    if (
+      !activeShopCategory
+    ) {
+
+      return;
+
+    }
+
+
+    /*
+     * -------------------------------------------------------
+     * ALL SUBCATEGORIES
+     * -------------------------------------------------------
      */
 
     if (
       value === null
     ) {
 
-      if (
-        !activeShopCategory
-      ) {
-
-        return;
-
-      }
-
-
       updateParams({
 
         category:
           activeShopCategory.slug,
+
+        subcategory:
+          null,
 
       });
 
@@ -715,12 +719,14 @@ export default function Shop() {
 
 
     /*
-     * Find subcategory dynamically.
+     * -------------------------------------------------------
+     * FIND SUBCATEGORY
+     * -------------------------------------------------------
      */
 
     const subcategory =
       activeShopCategory
-        ?.subcategories
+        .subcategories
         .find(
           (item) =>
             item.name ===
@@ -738,10 +744,12 @@ export default function Shop() {
 
 
     /*
-     * Prefer database slug.
+     * -------------------------------------------------------
+     * DATABASE SLUG
      *
-     * Fallback to generated slug only
-     * if slug is null.
+     * Fallback to generated slug only when the
+     * database slug is null.
+     * -------------------------------------------------------
      */
 
     const slug =
@@ -751,9 +759,22 @@ export default function Shop() {
       );
 
 
+    /*
+     * -------------------------------------------------------
+     * IMPORTANT:
+     *
+     * Keep parent category in `category`.
+     *
+     * Put subcategory in `subcategory`.
+     * -------------------------------------------------------
+     */
+
     updateParams({
 
       category:
+        activeShopCategory.slug,
+
+      subcategory:
         slug,
 
     });
@@ -843,9 +864,11 @@ export default function Shop() {
 
       updateParams({
 
-        minPrice: null,
+        minPrice:
+          null,
 
-        maxPrice: null,
+        maxPrice:
+          null,
 
       });
 
@@ -856,7 +879,8 @@ export default function Shop() {
 
     updateParams({
 
-      [key]: null,
+      [key]:
+        null,
 
     });
 
@@ -884,7 +908,9 @@ export default function Shop() {
       value: boolean
     ) {
 
-      if (value) {
+      if (
+        value
+      ) {
 
         next.set(
           key,
@@ -1048,6 +1074,10 @@ export default function Shop() {
     );
 
 
+    /*
+     * Apply once
+     */
+
     setSearchParams(
       next
     );
@@ -1062,7 +1092,7 @@ export default function Shop() {
 
   /*
    * =========================================================
-   * SEARCH
+   * SEARCH VALUE
    * =========================================================
    */
 
@@ -1084,6 +1114,7 @@ export default function Shop() {
       let result =
         products.filter(
           (product) => {
+
 
             /*
              * -------------------------------------------------
@@ -1126,19 +1157,17 @@ export default function Shop() {
              * -------------------------------------------------
              * CATEGORY / SUBCATEGORY
              * -------------------------------------------------
-             *
-             * We now use the actual database IDs/relationships
-             * instead of category names being hardcoded.
-             * -------------------------------------------------
              */
 
             if (
               activeShopCategory
             ) {
 
+
               /*
-               * If a subcategory is selected,
-               * filter by that subcategory.
+               * ===============================================
+               * SUBCATEGORY SELECTED
+               * ===============================================
                */
 
               if (
@@ -1154,7 +1183,15 @@ export default function Shop() {
                 const productSubcategorySlug =
                   product
                     .subcategories
-                    ?.name
+                    ?.slug
+                    ? slugify(
+                        product
+                          .subcategories
+                          .slug
+                      )
+                    : product
+                        .subcategories
+                        ?.name
                     ? slugify(
                         product
                           .subcategories
@@ -1192,12 +1229,9 @@ export default function Shop() {
 
 
               /*
-               * If parent category is selected,
-               * show all products belonging to
-               * that category.
-               *
-               * When there is no subcategory selected,
-               * we only check the parent category.
+               * ===============================================
+               * PARENT CATEGORY SELECTED
+               * ===============================================
                */
 
               else {
@@ -1424,7 +1458,9 @@ export default function Shop() {
       ];
 
 
-      switch (sort) {
+      switch (
+        sort
+      ) {
 
         case "newest":
 
@@ -1493,8 +1529,12 @@ export default function Shop() {
 
           result.sort(
             (a, b) =>
-              getDiscount(b) -
-              getDiscount(a)
+              getDiscount(
+                b
+              ) -
+              getDiscount(
+                a
+              )
           );
 
           break;
@@ -1648,36 +1688,37 @@ export default function Shop() {
                 grid
                 grid-cols-2
                 gap-4
-                md:grid-cols-3
+                sm:grid-cols-3
                 lg:grid-cols-4
               "
             >
 
-              {[
-                1,
-                2,
-                3,
-                4,
-                5,
-                6,
-                7,
-                8,
-              ].map(
-                (item) => (
+              {Array.from({
+                length: 8,
+              }).map(
+                (
+                  _,
+                  index
+                ) => (
 
                   <div
-                    key={item}
+                    key={
+                      index
+                    }
+
                     className="
                       overflow-hidden
                       rounded-2xl
-                      bg-neutral-900
+                      border
+                      border-neutral-900
+                      bg-neutral-950
                     "
                   >
 
                     <div
                       className="
-                        aspect-[4/5]
-                        bg-neutral-800
+                        aspect-square
+                        bg-neutral-900
                       "
                     />
 
@@ -1817,10 +1858,6 @@ export default function Shop() {
           setCategory={
             handleCategoryChange
           }
-
-          /*
-           * Dynamic subcategories
-           */
 
           subcategories={
             activeSubcategoryNames
