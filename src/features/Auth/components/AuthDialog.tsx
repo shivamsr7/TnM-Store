@@ -37,7 +37,7 @@ import {
 
 import {
   createCustomer,
-  getCustomerByPhone,
+  
 } from "@/features/customers/services/customer.service";
 
 import {
@@ -590,7 +590,7 @@ export default function AuthDialog({
        */
 
       setLoginDebug(
-        (previous) => ({
+        () => ({
 
           rawPhone,
 
