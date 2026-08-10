@@ -43,10 +43,6 @@ import {
   useAuth,
 } from "@/features/Auth/context/AuthContext";
 
-import {
-  supabase,
-} from "@/shared/lib/supabase";
-
 
 interface Props {
 
@@ -63,33 +59,6 @@ type Step =
   | "phone"
   | "otp"
   | "profile";
-
-
-interface LoginDebugState {
-
-  rawPhone: string;
-
-  normalizedPhone: string;
-
-  supabaseUrl: string;
-
-  tableStatus: string;
-
-  rowCount: number | null;
-
-  customerStatus: string;
-
-  customerFound: boolean;
-
-  customerId: string;
-
-  customerPhone: string;
-
-  customerName: string;
-
-  error: string;
-
-}
 
 
 /*
@@ -189,20 +158,6 @@ export default function AuthDialog({
 
   /*
    * =========================================================
-   * VISUAL DEBUG STATE
-   * =========================================================
-   */
-
-  const [
-    loginDebug,
-    setLoginDebug,
-  ] = useState<
-    LoginDebugState | null
-  >(null);
-
-
-  /*
-   * =========================================================
    * OTP REFS
    * =========================================================
    */
@@ -216,6 +171,14 @@ export default function AuthDialog({
   /*
    * =========================================================
    * TEST OTP
+   * =========================================================
+   *
+   * When VITE_SKIP_OTP=true:
+   *
+   * - Real OTP is skipped
+   * - Any 6 digit OTP can be entered
+   * - AuthContext handles the customer login
+   *
    * =========================================================
    */
 
@@ -298,7 +261,7 @@ export default function AuthDialog({
 
   /*
    * =========================================================
-   * CLOSE
+   * CLOSE DIALOG
    * =========================================================
    */
 
@@ -308,9 +271,11 @@ export default function AuthDialog({
       "phone"
     );
 
+
     setPhone(
       ""
     );
+
 
     setOtp([
       "",
@@ -321,33 +286,36 @@ export default function AuthDialog({
       "",
     ]);
 
+
     setFullName(
       ""
     );
+
 
     setEmail(
       ""
     );
 
+
     setReferralCode(
       ""
     );
+
 
     setTimer(
       30
     );
 
+
     setAuthSuccess(
       false
     );
+
 
     setSuccessMessage(
       ""
     );
 
-    setLoginDebug(
-      null
-    );
 
     onOpenChange(
       false
@@ -368,9 +336,11 @@ export default function AuthDialog({
       "phone"
     );
 
+
     setTimer(
       30
     );
+
 
     setOtp([
       "",
@@ -380,150 +350,6 @@ export default function AuthDialog({
       "",
       "",
     ]);
-
-    setLoginDebug(
-      null
-    );
-
-  }
-
-
-  /*
-   * =========================================================
-   * DIRECT CUSTOMER DIAGNOSTIC
-   * =========================================================
-   *
-   * This checks the EXACT phone being tested.
-   *
-   * It does not merely check whether the customers table
-   * is accessible.
-   *
-   * It checks:
-   *
-   * phone = normalized phone
-   * deleted_at IS NULL
-   *
-   */
-
-  async function testCustomerTableAccess(
-    phoneNumber: string
-  ) {
-
-    try {
-
-      const normalizedPhone =
-        phoneNumber
-          .replace(
-            /\D/g,
-            ""
-          )
-          .slice(-10);
-
-
-      console.log(
-        "[T&M AUTH] DIRECT CUSTOMER TEST",
-      );
-
-
-      console.log(
-        "[T&M AUTH] Phone:",
-        normalizedPhone
-      );
-
-
-      const {
-        data,
-        error,
-      } =
-        await supabase
-          .from("customers")
-          .select(
-            "id, phone, first_name, last_name, deleted_at"
-          )
-          .eq(
-            "phone",
-            normalizedPhone
-          )
-          .is(
-            "deleted_at",
-            null
-          )
-          .limit(1);
-
-
-      console.log(
-        "[T&M AUTH] Direct customer data:",
-        data
-      );
-
-
-      console.log(
-        "[T&M AUTH] Direct customer error:",
-        error
-      );
-
-
-      if (
-        error
-      ) {
-
-        return {
-
-          status:
-            "ERROR ❌",
-
-          count:
-            null,
-
-          error:
-            `${error.code || ""} ${error.message || ""}`.trim(),
-
-          customer:
-            null,
-
-        };
-
-      }
-
-
-      return {
-
-        status:
-          "QUERY SUCCESS ✅",
-
-        count:
-          data?.length ?? 0,
-
-        error:
-          "",
-
-        customer:
-          data?.[0] ?? null,
-
-      };
-
-    } catch (
-      error: any
-    ) {
-
-      return {
-
-        status:
-          "ERROR ❌",
-
-        count:
-          null,
-
-        error:
-          error?.message ||
-          String(error),
-
-        customer:
-          null,
-
-      };
-
-    }
 
   }
 
@@ -536,78 +362,16 @@ export default function AuthDialog({
 
   async function handleVerifyOtp() {
 
-    /*
-     * Clear old diagnostic.
-     */
-
-    setLoginDebug(
-      null
-    );
-
-
-    /*
-     * -------------------------------------------------------
-     * Phone values
-     * -------------------------------------------------------
-     */
-
-    const rawPhone =
-      phone;
-
-
-    const normalizedPhone =
-      phone
-        .replace(
-          /\D/g,
-          ""
-        )
-        .slice(-10);
-
-
-    /*
-     * -------------------------------------------------------
-     * Initial diagnostic
-     * -------------------------------------------------------
-     */
-
-    setLoginDebug({
-
-      rawPhone,
-
-      normalizedPhone,
-
-      supabaseUrl:
-        import.meta.env.VITE_SUPABASE_URL ||
-        "NOT FOUND",
-
-      tableStatus:
-        "Testing...",
-
-      rowCount:
-        null,
-
-      customerStatus:
-        "Checking...",
-
-      customerFound:
-        false,
-
-      customerId:
-        "",
-
-      customerPhone:
-        "",
-
-      customerName:
-        "",
-
-      error:
-        "",
-
-    });
-
-
     try {
+
+      const normalizedPhone =
+        phone
+          .replace(
+            /\D/g,
+            ""
+          )
+          .slice(-10);
+
 
       /*
        * =====================================================
@@ -629,96 +393,16 @@ export default function AuthDialog({
 
       /*
        * =====================================================
-       * DIRECT CUSTOMER TEST
-       * =====================================================
-       */
-
-      const tableTest =
-        await testCustomerTableAccess(
-          normalizedPhone
-        );
-
-
-      /*
-       * Show the DIRECT result.
-       */
-
-      setLoginDebug({
-
-        rawPhone,
-
-        normalizedPhone,
-
-        supabaseUrl:
-          import.meta.env.VITE_SUPABASE_URL ||
-          "NOT FOUND",
-
-        tableStatus:
-          tableTest.status,
-
-        rowCount:
-          tableTest.count,
-
-        customerStatus:
-          tableTest.customer
-            ? "DIRECT CUSTOMER FOUND ✅"
-            : tableTest.error
-              ? "QUERY ERROR ❌"
-              : "DIRECT CUSTOMER NOT FOUND ❌",
-
-        customerFound:
-          !!tableTest.customer,
-
-        customerId:
-          tableTest.customer?.id ||
-          "",
-
-        customerPhone:
-          tableTest.customer?.phone ||
-          "",
-
-        customerName:
-          [
-            tableTest.customer?.first_name,
-            tableTest.customer?.last_name,
-          ]
-            .filter(Boolean)
-            .join(" "),
-
-        error:
-          tableTest.error,
-
-      });
-
-
-      /*
-       * -------------------------------------------------------
-       * Stop if direct query failed.
-       * -------------------------------------------------------
-       */
-
-      if (
-        tableTest.error
-      ) {
-
-        toast.error(
-          "Customers table query failed."
-        );
-
-        return;
-
-      }
-
-
-      /*
-       * =====================================================
-       * ACTUAL LOGIN
+       * LOGIN
        * =====================================================
        *
-       * This uses AuthContext.
+       * AuthContext handles:
        *
-       * AuthContext then calls getCustomerByPhone()
-       * and updates the global customer state.
+       * - Existing customer lookup
+       * - Global customer state
+       * - Test login persistence
+       * - Immediate UI update
+       *
        * =====================================================
        */
 
@@ -738,53 +422,6 @@ export default function AuthDialog({
         customer
       ) {
 
-        const customerName =
-          [
-            customer.first_name,
-            customer.last_name,
-          ]
-            .filter(Boolean)
-            .join(" ");
-
-
-        setLoginDebug({
-
-          rawPhone,
-
-          normalizedPhone,
-
-          supabaseUrl:
-            import.meta.env.VITE_SUPABASE_URL ||
-            "NOT FOUND",
-
-          tableStatus:
-            tableTest.status,
-
-          rowCount:
-            tableTest.count,
-
-          customerStatus:
-            "EXISTING CUSTOMER FOUND ✅",
-
-          customerFound:
-            true,
-
-          customerId:
-            customer.id ||
-            "",
-
-          customerPhone:
-            customer.phone ||
-            "",
-
-          customerName,
-
-          error:
-            "",
-
-        });
-
-
         setSuccessMessage(
           "Welcome back to T&M Family ✨"
         );
@@ -802,133 +439,35 @@ export default function AuthDialog({
 
       /*
        * =====================================================
-       * CUSTOMER NOT FOUND THROUGH AUTH CONTEXT
-       * =====================================================
-       *
-       * Notice:
-       *
-       * The direct query above may have found the customer,
-       * while AuthContext may still return null.
-       *
-       * This is exactly what we need to identify.
+       * NEW CUSTOMER
        * =====================================================
        */
 
-      setLoginDebug({
-
-        rawPhone,
-
-        normalizedPhone,
-
-        supabaseUrl:
-          import.meta.env.VITE_SUPABASE_URL ||
-          "NOT FOUND",
-
-        tableStatus:
-          tableTest.status,
-
-        rowCount:
-          tableTest.count,
-
-        customerStatus:
-          tableTest.customer
-            ? "DIRECT FOUND BUT AUTH LOOKUP RETURNED NULL ⚠️"
-            : "CUSTOMER NOT FOUND ❌",
-
-        customerFound:
-          !!tableTest.customer,
-
-        customerId:
-          tableTest.customer?.id ||
-          "",
-
-        customerPhone:
-          tableTest.customer?.phone ||
-          "",
-
-        customerName:
-          [
-            tableTest.customer?.first_name,
-            tableTest.customer?.last_name,
-          ]
-            .filter(Boolean)
-            .join(" "),
-
-        error:
-          "",
-
-      });
-
-
-      toast.error(
-        "Customer was not found."
+      toast.success(
+        "OTP verified successfully ✨"
       );
 
 
-      return;
+      setTimeout(() => {
+
+        setStep(
+          "profile"
+        );
+
+      }, 300);
 
     } catch (
-      error: any
+      error
     ) {
 
-      const errorMessage =
-        [
-          error?.code,
-          error?.message,
-          error?.details,
-          error?.hint,
-        ]
-          .filter(Boolean)
-          .join(" | ") ||
-        String(error) ||
-        "Unknown error";
-
-
-      setLoginDebug({
-
-        rawPhone,
-
-        normalizedPhone,
-
-        supabaseUrl:
-          import.meta.env.VITE_SUPABASE_URL ||
-          "NOT FOUND",
-
-        tableStatus:
-          "ERROR ❌",
-
-        rowCount:
-          null,
-
-        customerStatus:
-          "LOOKUP FAILED ❌",
-
-        customerFound:
-          false,
-
-        customerId:
-          "",
-
-        customerPhone:
-          "",
-
-        customerName:
-          "",
-
-        error:
-          errorMessage,
-
-      });
-
-
       console.error(
-        "[T&M AUTH] Login error:",
+        "OTP verification error:",
         error
       );
 
 
       toast.error(
-        "Login lookup failed."
+        "Invalid OTP. Please check and try again."
       );
 
     }
@@ -962,6 +501,12 @@ export default function AuthDialog({
           .join(" ");
 
 
+      /*
+       * -----------------------------------------------------
+       * CREATE CUSTOMER
+       * -----------------------------------------------------
+       */
+
       const createdCustomer =
         await createCustomer({
 
@@ -982,7 +527,9 @@ export default function AuthDialog({
 
 
       /*
-       * Referral
+       * -----------------------------------------------------
+       * REFERRAL
+       * -----------------------------------------------------
        */
 
       if (
@@ -1016,7 +563,9 @@ export default function AuthDialog({
 
 
       /*
-       * Login immediately.
+       * -----------------------------------------------------
+       * LOGIN IMMEDIATELY
+       * -----------------------------------------------------
        */
 
       const loggedInCustomer =
@@ -1045,7 +594,7 @@ export default function AuthDialog({
 
 
       /*
-       * Fallback.
+       * Fallback
        */
 
       setSuccessMessage(
@@ -1454,11 +1003,6 @@ export default function AuthDialog({
                         ]);
 
 
-                        setLoginDebug(
-                          null
-                        );
-
-
                         setTimer(
                           30
                         );
@@ -1851,437 +1395,6 @@ export default function AuthDialog({
 
                   </button>
 
-
-                  {/* =================================================
-                      VISUAL DIAGNOSTIC
-                  ================================================== */}
-
-                  {loginDebug && (
-
-                    <div
-                      className="
-                        mt-4
-                        rounded-2xl
-                        border
-                        border-yellow-500/50
-                        bg-yellow-500/10
-                        p-4
-                        text-left
-                      "
-                    >
-
-                      <div
-                        className="
-                          flex
-                          items-center
-                          justify-between
-                          gap-2
-                        "
-                      >
-
-                        <p
-                          className="
-                            text-sm
-                            font-semibold
-                            text-yellow-400
-                          "
-                        >
-
-                          🔧 Login Diagnostic
-
-                        </p>
-
-
-                        <span
-                          className="
-                            rounded-full
-                            bg-yellow-500/10
-                            px-2
-                            py-1
-                            text-[10px]
-                            text-yellow-300
-                          "
-                        >
-
-                          TEST
-
-                        </span>
-
-                      </div>
-
-
-                      <div
-                        className="
-                          mt-4
-                          space-y-2
-                          text-xs
-                        "
-                      >
-
-                        <div
-                          className="
-                            rounded-lg
-                            bg-black/30
-                            p-2
-                          "
-                        >
-
-                          <p
-                            className="
-                              text-neutral-500
-                            "
-                          >
-                            Raw phone
-                          </p>
-
-                          <p
-                            className="
-                              mt-0.5
-                              break-all
-                              text-white
-                            "
-                          >
-
-                            {
-                              loginDebug.rawPhone ||
-                              "—"
-                            }
-
-                          </p>
-
-                        </div>
-
-
-                        <div
-                          className="
-                            rounded-lg
-                            bg-black/30
-                            p-2
-                          "
-                        >
-
-                          <p
-                            className="
-                              text-neutral-500
-                            "
-                          >
-                            Normalized phone
-                          </p>
-
-                          <p
-                            className="
-                              mt-0.5
-                              text-white
-                            "
-                          >
-
-                            {
-                              loginDebug.normalizedPhone ||
-                              "—"
-                            }
-
-                          </p>
-
-                        </div>
-
-
-                        <div
-                          className="
-                            rounded-lg
-                            bg-black/30
-                            p-2
-                          "
-                        >
-
-                          <p
-                            className="
-                              text-neutral-500
-                            "
-                          >
-                            Supabase URL
-                          </p>
-
-                          <p
-                            className="
-                              mt-0.5
-                              break-all
-                              text-white
-                            "
-                          >
-
-                            {
-                              loginDebug.supabaseUrl
-                            }
-
-                          </p>
-
-                        </div>
-
-
-                        <div
-                          className="
-                            flex
-                            items-center
-                            justify-between
-                            gap-3
-                            rounded-lg
-                            bg-black/30
-                            p-2
-                          "
-                        >
-
-                          <div>
-
-                            <p
-                              className="
-                                text-neutral-500
-                              "
-                            >
-                              Customers table
-                            </p>
-
-                            <p
-                              className="
-                                mt-0.5
-                                text-white
-                              "
-                            >
-
-                              {
-                                loginDebug.tableStatus
-                              }
-
-                            </p>
-
-                          </div>
-
-
-                          <div
-                            className="
-                              text-right
-                            "
-                          >
-
-                            <p
-                              className="
-                                text-neutral-500
-                              "
-                            >
-                              Rows
-                            </p>
-
-                            <p
-                              className="
-                                mt-0.5
-                                font-semibold
-                                text-white
-                              "
-                            >
-
-                              {
-                                loginDebug.rowCount ??
-                                "—"
-                              }
-
-                            </p>
-
-                          </div>
-
-                        </div>
-
-
-                        <div
-                          className="
-                            rounded-lg
-                            bg-black/30
-                            p-2
-                          "
-                        >
-
-                          <p
-                            className="
-                              text-neutral-500
-                            "
-                          >
-                            Customer lookup
-                          </p>
-
-                          <p
-                            className={`
-                              mt-0.5
-                              font-semibold
-
-                              ${
-                                loginDebug.customerFound
-                                  ? "text-green-400"
-                                  : "text-red-400"
-                              }
-                            `}
-                          >
-
-                            {
-                              loginDebug.customerStatus
-                            }
-
-                          </p>
-
-                        </div>
-
-
-                        {loginDebug.customerId && (
-
-                          <div
-                            className="
-                              rounded-lg
-                              bg-black/30
-                              p-2
-                            "
-                          >
-
-                            <p
-                              className="
-                                text-neutral-500
-                              "
-                            >
-                              Customer ID
-                            </p>
-
-                            <p
-                              className="
-                                mt-0.5
-                                break-all
-                                text-white
-                              "
-                            >
-
-                              {
-                                loginDebug.customerId
-                              }
-
-                            </p>
-
-                          </div>
-
-                        )}
-
-
-                        {loginDebug.customerPhone && (
-
-                          <div
-                            className="
-                              rounded-lg
-                              bg-black/30
-                              p-2
-                            "
-                          >
-
-                            <p
-                              className="
-                                text-neutral-500
-                              "
-                            >
-                              Phone stored in DB
-                            </p>
-
-                            <p
-                              className="
-                                mt-0.5
-                                break-all
-                                text-white
-                              "
-                            >
-
-                              {
-                                loginDebug.customerPhone
-                              }
-
-                            </p>
-
-                          </div>
-
-                        )}
-
-
-                        {loginDebug.customerName && (
-
-                          <div
-                            className="
-                              rounded-lg
-                              bg-black/30
-                              p-2
-                            "
-                          >
-
-                            <p
-                              className="
-                                text-neutral-500
-                              "
-                            >
-                              Customer name
-                            </p>
-
-                            <p
-                              className="
-                                mt-0.5
-                                text-white
-                              "
-                            >
-
-                              {
-                                loginDebug.customerName
-                              }
-
-                            </p>
-
-                          </div>
-
-                        )}
-
-
-                        {loginDebug.error && (
-
-                          <div
-                            className="
-                              rounded-lg
-                              border
-                              border-red-500/30
-                              bg-red-500/10
-                              p-2
-                            "
-                          >
-
-                            <p
-                              className="
-                                text-neutral-500
-                              "
-                            >
-                              Error
-                            </p>
-
-                            <p
-                              className="
-                                mt-0.5
-                                break-words
-                                text-red-400
-                              "
-                            >
-
-                              {
-                                loginDebug.error
-                              }
-
-                            </p>
-
-                          </div>
-
-                        )}
-
-                      </div>
-
-                    </div>
-
-                  )}
-
                 </motion.div>
 
               )}
@@ -2443,8 +1556,7 @@ export default function AuthDialog({
 
                       onChange={(e) =>
                         setReferralCode(
-                          e.target.value
-                            .toUpperCase()
+                          e.target.value.toUpperCase()
                         )
                       }
 
