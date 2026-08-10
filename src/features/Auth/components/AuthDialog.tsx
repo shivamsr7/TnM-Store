@@ -61,6 +61,39 @@ type Step =
   | "profile";
 
 
+/*
+ * =========================================================
+ * DIAGNOSTIC TYPE
+ * =========================================================
+ */
+
+interface LoginDebugState {
+
+  rawPhone: string;
+
+  normalizedPhone: string;
+
+  status: string;
+
+  customerFound: boolean;
+
+  customerId: string;
+
+  customerPhone: string;
+
+  customerName: string;
+
+  error: string;
+
+}
+
+
+/*
+ * =========================================================
+ * COMPONENT
+ * =========================================================
+ */
+
 export default function AuthDialog({
 
   open,
@@ -152,6 +185,20 @@ export default function AuthDialog({
 
   /*
    * =========================================================
+   * TEMPORARY LOGIN DEBUG
+   * =========================================================
+   */
+
+  const [
+    loginDebug,
+    setLoginDebug,
+  ] = useState<
+    LoginDebugState | null
+  >(null);
+
+
+  /*
+   * =========================================================
    * OTP REFS
    * =========================================================
    */
@@ -165,14 +212,6 @@ export default function AuthDialog({
   /*
    * =========================================================
    * TEST OTP
-   * =========================================================
-   *
-   * When VITE_SKIP_OTP=true:
-   *
-   * - No real OTP is sent
-   * - Any 6 digit OTP is accepted
-   * - loginWithPhone() updates AuthContext immediately
-   *
    * =========================================================
    */
 
@@ -311,6 +350,16 @@ export default function AuthDialog({
     );
 
 
+    /*
+     * Clear temporary diagnostic information when the
+     * dialog is completely closed.
+     */
+
+    setLoginDebug(
+      null
+    );
+
+
     onOpenChange(
       false
     );
@@ -345,16 +394,30 @@ export default function AuthDialog({
       "",
     ]);
 
+
+    /*
+     * Keep diagnostic visible while testing.
+     */
+
   }
 
 
   /*
    * =========================================================
-   * CONTINUE WITH TEST / REAL OTP
+   * VERIFY OTP
    * =========================================================
    */
 
   async function handleVerifyOtp() {
+
+    /*
+     * Clear previous diagnostic result.
+     */
+
+    setLoginDebug(
+      null
+    );
+
 
     try {
 
@@ -363,9 +426,9 @@ export default function AuthDialog({
 
 
       /*
-       * -----------------------------------------------------
+       * =====================================================
        * REAL OTP
-       * -----------------------------------------------------
+       * =====================================================
        */
 
       if (
@@ -381,32 +444,176 @@ export default function AuthDialog({
 
 
       /*
-       * -----------------------------------------------------
-       * IMPORTANT:
+       * =====================================================
+       * RAW PHONE
+       * =====================================================
+       */
+
+      const rawPhone =
+        phone;
+
+
+      /*
+       * =====================================================
+       * NORMALIZE PHONE
+       * =====================================================
        *
-       * This is the missing part.
+       * Example:
        *
-       * It updates the global AuthContext immediately.
+       * 9876543210
+       * +91 9876543210
        *
-       * In test mode it also saves tnm_test_phone.
-       * -----------------------------------------------------
+       * both become:
+       *
+       * 9876543210
+       */
+
+      const normalizedPhone =
+        phone
+          .replace(
+            /\D/g,
+            ""
+          )
+          .slice(-10);
+
+
+      /*
+       * =====================================================
+       * INITIAL DEBUG STATE
+       * =====================================================
+       */
+
+      setLoginDebug({
+
+        rawPhone,
+
+        normalizedPhone,
+
+        status:
+          "Checking existing customer...",
+
+        customerFound:
+          false,
+
+        customerId:
+          "",
+
+        customerPhone:
+          "",
+
+        customerName:
+          "",
+
+        error:
+          "",
+
+      });
+
+
+      /*
+       * =====================================================
+       * CONSOLE DEBUG
+       * =====================================================
+       */
+
+      console.log(
+        "=========================================="
+      );
+
+
+      console.log(
+        "[AUTH TEST] AUTH DIALOG"
+      );
+
+
+      console.log(
+        "[AUTH TEST] Raw phone:",
+        rawPhone
+      );
+
+
+      console.log(
+        "[AUTH TEST] Normalized phone:",
+        normalizedPhone
+      );
+
+
+      console.log(
+        "[AUTH TEST] OTP mode:",
+        SKIP_OTP
+          ? "TEST"
+          : "REAL"
+      );
+
+
+      /*
+       * =====================================================
+       * LOGIN WITH PHONE
+       * =====================================================
        */
 
       const customer =
         await loginWithPhone(
-          phone
+          normalizedPhone
         );
 
 
       /*
-       * -----------------------------------------------------
-       * EXISTING CUSTOMER
-       * -----------------------------------------------------
+       * =====================================================
+       * CUSTOMER FOUND
+       * =====================================================
        */
 
       if (
         customer
       ) {
+
+        console.log(
+          "[AUTH TEST] EXISTING CUSTOMER FOUND ✅"
+        );
+
+
+        console.log(
+          "[AUTH TEST] Customer:",
+          customer
+        );
+
+
+        setLoginDebug({
+
+          rawPhone,
+
+          normalizedPhone,
+
+          status:
+            "Existing customer found",
+
+          customerFound:
+            true,
+
+          customerId:
+            customer.id || "",
+
+          customerPhone:
+            customer.phone || "",
+
+          customerName:
+            [
+              customer.first_name,
+              customer.last_name,
+            ]
+              .filter(Boolean)
+              .join(" "),
+
+          error:
+            "",
+
+        });
+
+
+        /*
+         * Existing customer.
+         */
 
         setSuccessMessage(
           "Welcome back to T&M Family ✨"
@@ -418,21 +625,67 @@ export default function AuthDialog({
         );
 
 
+        console.log(
+          "[AUTH TEST] Auth success state set"
+        );
+
+
+        console.log(
+          "=========================================="
+        );
+
+
         return;
 
       }
 
 
       /*
-       * -----------------------------------------------------
-       * NEW CUSTOMER
-       * -----------------------------------------------------
+       * =====================================================
+       * CUSTOMER NOT FOUND
+       * =====================================================
        */
 
-      toast.success(
-        "OTP verified successfully ✨"
+      console.warn(
+        "[AUTH TEST] CUSTOMER NOT FOUND ❌"
       );
 
+
+      setLoginDebug({
+
+        rawPhone,
+
+        normalizedPhone,
+
+        status:
+          "No existing customer found",
+
+        customerFound:
+          false,
+
+        customerId:
+          "",
+
+        customerPhone:
+          "",
+
+        customerName:
+          "",
+
+        error:
+          "",
+
+      });
+
+
+      toast.error(
+        "Customer was not found. Debug information is shown below."
+      );
+
+
+      /*
+       * Give the debug result enough time to be seen.
+       */
 
       setTimeout(() => {
 
@@ -440,20 +693,72 @@ export default function AuthDialog({
           "profile"
         );
 
-      }, 300);
+      }, 1500);
+
 
     } catch (
-      error
+      error: any
     ) {
 
       console.error(
-        "OTP verification error:",
+        "[AUTH TEST] LOGIN ERROR:",
         error
       );
 
 
+      const errorMessage =
+        error?.message ||
+        String(error) ||
+        "Unknown error";
+
+
+      setLoginDebug({
+
+        rawPhone:
+          phone,
+
+        normalizedPhone:
+          phone
+            .replace(
+              /\D/g,
+              ""
+            )
+            .slice(-10),
+
+        status:
+          "Login lookup failed",
+
+        customerFound:
+          false,
+
+        customerId:
+          "",
+
+        customerPhone:
+          "",
+
+        customerName:
+          "",
+
+        error:
+          errorMessage,
+
+      });
+
+
       toast.error(
-        "Invalid OTP. Please check and try again."
+        "Login lookup failed. Debug information is shown below."
+      );
+
+
+      console.error(
+        "[AUTH TEST] Error message:",
+        errorMessage
+      );
+
+
+      console.log(
+        "=========================================="
       );
 
     }
@@ -537,10 +842,6 @@ export default function AuthDialog({
             referralError
           );
 
-          /*
-           * Don't fail account creation just because
-           * referral processing failed.
-           */
 
           toast.error(
             "Account created, but referral code could not be applied."
@@ -553,12 +854,7 @@ export default function AuthDialog({
 
       /*
        * -----------------------------------------------------
-       * IMPORTANT:
-       *
-       * Update global AuthContext immediately after creating
-       * the customer.
-       *
-       * This prevents the need for a page refresh here too.
+       * LOGIN NEW CUSTOMER
        * -----------------------------------------------------
        */
 
@@ -588,10 +884,9 @@ export default function AuthDialog({
 
 
       /*
-       * Fallback:
-       *
-       * The account was created successfully even if the
-       * customer could not immediately be loaded.
+       * -----------------------------------------------------
+       * FALLBACK
+       * -----------------------------------------------------
        */
 
       setSuccessMessage(
@@ -849,7 +1144,6 @@ export default function AuthDialog({
             mode="wait"
           >
 
-
             {/* =================================================
                 PHONE STEP
             ================================================== */}
@@ -896,8 +1190,6 @@ export default function AuthDialog({
 
                   </p>
 
-
-                  {/* Phone */}
 
                   <div
                     className="
@@ -1003,6 +1295,11 @@ export default function AuthDialog({
                         ]);
 
 
+                        setLoginDebug(
+                          null
+                        );
+
+
                         setTimer(
                           30
                         );
@@ -1012,11 +1309,6 @@ export default function AuthDialog({
                           "otp"
                         );
 
-
-                        /*
-                         * Focus first OTP field
-                         * after it renders.
-                         */
 
                         setTimeout(() => {
 
@@ -1405,6 +1697,234 @@ export default function AuthDialog({
                     Verify & Continue
 
                   </button>
+
+
+                  {/* =================================================
+                      TEMPORARY LOGIN DIAGNOSTIC
+                  ================================================== */}
+
+                  {loginDebug && (
+
+                    <div
+                      className="
+                        mt-4
+                        rounded-xl
+                        border
+                        border-yellow-500/40
+                        bg-yellow-500/10
+                        p-4
+                        text-left
+                      "
+                    >
+
+                      <p
+                        className="
+                          text-sm
+                          font-semibold
+                          text-yellow-400
+                        "
+                      >
+
+                        🔧 Login Debug
+
+                      </p>
+
+
+                      <div
+                        className="
+                          mt-3
+                          space-y-2
+                          text-xs
+                          text-neutral-200
+                        "
+                      >
+
+                        <p>
+
+                          <span
+                            className="
+                              text-neutral-400
+                            "
+                          >
+                            Raw Phone:
+                          </span>{" "}
+
+                          {loginDebug.rawPhone}
+
+                        </p>
+
+
+                        <p>
+
+                          <span
+                            className="
+                              text-neutral-400
+                            "
+                          >
+                            Normalized:
+                          </span>{" "}
+
+                          {loginDebug.normalizedPhone}
+
+                        </p>
+
+
+                        <p>
+
+                          <span
+                            className="
+                              text-neutral-400
+                            "
+                          >
+                            Status:
+                          </span>{" "}
+
+                          {loginDebug.status}
+
+                        </p>
+
+
+                        <p>
+
+                          <span
+                            className="
+                              text-neutral-400
+                            "
+                          >
+                            Customer Found:
+                          </span>{" "}
+
+                          <span
+                            className={
+                              loginDebug.customerFound
+                                ? "text-green-400 font-semibold"
+                                : "text-red-400 font-semibold"
+                            }
+                          >
+
+                            {
+                              loginDebug.customerFound
+                                ? "YES ✅"
+                                : "NO ❌"
+                            }
+
+                          </span>
+
+                        </p>
+
+
+                        {loginDebug.customerId && (
+
+                          <p
+                            className="
+                              break-all
+                            "
+                          >
+
+                            <span
+                              className="
+                                text-neutral-400
+                              "
+                            >
+                              Customer ID:
+                            </span>{" "}
+
+                            {
+                              loginDebug.customerId
+                            }
+
+                          </p>
+
+                        )}
+
+
+                        {loginDebug.customerPhone && (
+
+                          <p
+                            className="
+                              break-all
+                            "
+                          >
+
+                            <span
+                              className="
+                                text-neutral-400
+                              "
+                            >
+                              DB Phone:
+                            </span>{" "}
+
+                            {
+                              loginDebug.customerPhone
+                            }
+
+                          </p>
+
+                        )}
+
+
+                        {loginDebug.customerName && (
+
+                          <p>
+
+                            <span
+                              className="
+                                text-neutral-400
+                              "
+                            >
+                              Customer:
+                            </span>{" "}
+
+                            {
+                              loginDebug.customerName
+                            }
+
+                          </p>
+
+                        )}
+
+
+                        {loginDebug.error && (
+
+                          <div
+                            className="
+                              mt-2
+                              rounded-lg
+                              bg-red-500/10
+                              p-2
+                            "
+                          >
+
+                            <p
+                              className="
+                                text-red-400
+                                break-words
+                              "
+                            >
+
+                              <span
+                                className="
+                                  text-neutral-400
+                                "
+                              >
+                                Error:
+                              </span>{" "}
+
+                              {
+                                loginDebug.error
+                              }
+
+                            </p>
+
+                          </div>
+
+                        )}
+
+                      </div>
+
+                    </div>
+
+                  )}
 
                 </motion.div>
 
