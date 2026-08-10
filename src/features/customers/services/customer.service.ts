@@ -79,7 +79,9 @@ export async function getCustomerByPhone(
 
 
   /*
-   * Normalize incoming phone.
+   * -------------------------------------------------------
+   * Normalize phone
+   * -------------------------------------------------------
    */
 
   const normalizedPhone =
@@ -93,6 +95,12 @@ export async function getCustomerByPhone(
     normalizedPhone
   );
 
+
+  /*
+   * -------------------------------------------------------
+   * Validate phone
+   * -------------------------------------------------------
+   */
 
   if (
     normalizedPhone.length !== 10
@@ -111,35 +119,20 @@ export async function getCustomerByPhone(
 
   /*
    * =======================================================
-   * ALL POSSIBLE DATABASE FORMATS
+   * DIRECT ACTIVE CUSTOMER LOOKUP
    * =======================================================
-   */
-
-  const phoneVariants = [
-
-    normalizedPhone,
-
-    `+91${normalizedPhone}`,
-
-    `91${normalizedPhone}`,
-
-  ];
-
-
-  console.log(
-    "[AUTH TEST] Phone variants:",
-    phoneVariants
-  );
-
-
-  /*
-   * =======================================================
-   * SUPABASE QUERY
+   *
+   * Active customer:
+   *
+   * phone = normalizedPhone
+   * deleted_at IS NULL
+   *
+   * Soft-deleted customers are ignored.
    * =======================================================
    */
 
   console.log(
-    "[AUTH TEST] Sending Supabase query..."
+    "[AUTH TEST] Searching active customer..."
   );
 
 
@@ -150,16 +143,21 @@ export async function getCustomerByPhone(
     await supabase
       .from("customers")
       .select("*")
+      .eq(
+        "phone",
+        normalizedPhone
+      )
       .is(
         "deleted_at",
         null
       )
-      .in(
-        "phone",
-        phoneVariants
+      .order(
+        "created_at",
+        {
+          ascending: true,
+        }
       )
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
 
 
   /*
@@ -173,7 +171,7 @@ export async function getCustomerByPhone(
   ) {
 
     console.error(
-      "[AUTH TEST] SUPABASE ERROR:",
+      "[AUTH TEST] CUSTOMER QUERY ERROR:",
       error
     );
 
@@ -202,11 +200,6 @@ export async function getCustomerByPhone(
     );
 
 
-    console.log(
-      "=========================================="
-    );
-
-
     throw error;
 
   }
@@ -214,50 +207,69 @@ export async function getCustomerByPhone(
 
   /*
    * =======================================================
-   * QUERY RESULT
+   * NO ACTIVE CUSTOMER
    * =======================================================
    */
 
+  if (
+    !data ||
+    data.length === 0
+  ) {
+
+    console.warn(
+      "[AUTH TEST] NO ACTIVE CUSTOMER FOUND ❌"
+    );
+
+
+    console.warn(
+      "[AUTH TEST] Searched phone:",
+      normalizedPhone
+    );
+
+
+    return null;
+
+  }
+
+
+  /*
+   * =======================================================
+   * ACTIVE CUSTOMER FOUND
+   * =======================================================
+   */
+
+  const customer =
+    data[0];
+
+
   console.log(
-    "[AUTH TEST] Supabase customer result:",
-    data
+    "[AUTH TEST] EXISTING CUSTOMER FOUND ✅"
   );
 
 
-  if (
-    data
-  ) {
-
-    console.log(
-      "[AUTH TEST] EXISTING CUSTOMER FOUND ✅"
-    );
+  console.log(
+    "[AUTH TEST] Customer ID:",
+    customer.id
+  );
 
 
-    console.log(
-      "[AUTH TEST] Customer ID:",
-      data.id
-    );
+  console.log(
+    "[AUTH TEST] Customer phone:",
+    customer.phone
+  );
 
 
-    console.log(
-      "[AUTH TEST] Customer phone stored in DB:",
-      data.phone
-    );
+  console.log(
+    "[AUTH TEST] Customer name:",
+    customer.first_name,
+    customer.last_name
+  );
 
 
-    console.log(
-      "[AUTH TEST] Customer name:",
-      data.first_name,
-      data.last_name
-    );
-
-  } else {
-
-    console.warn(
-      "[AUTH TEST] NO CUSTOMER FOUND ❌"
-    );
-
-  }
+  console.log(
+    "[AUTH TEST] Customer deleted_at:",
+    customer.deleted_at
+  );
 
 
   console.log(
@@ -270,7 +282,7 @@ export async function getCustomerByPhone(
   );
 
 
-  return data;
+  return customer;
 
 }
 
@@ -303,6 +315,12 @@ export async function createCustomer(
   );
 
 
+  /*
+   * -------------------------------------------------------
+   * Normalize phone
+   * -------------------------------------------------------
+   */
+
   const normalizedPhone =
     normalizePhone(
       customer.phone
@@ -315,6 +333,12 @@ export async function createCustomer(
   );
 
 
+  /*
+   * -------------------------------------------------------
+   * Validate phone
+   * -------------------------------------------------------
+   */
+
   if (
     normalizedPhone.length !== 10
   ) {
@@ -325,6 +349,12 @@ export async function createCustomer(
 
   }
 
+
+  /*
+   * =======================================================
+   * CREATE CUSTOMER
+   * =======================================================
+   */
 
   const {
     data,
@@ -359,6 +389,12 @@ export async function createCustomer(
       .single();
 
 
+  /*
+   * =======================================================
+   * INSERT ERROR
+   * =======================================================
+   */
+
   if (
     error
   ) {
@@ -373,6 +409,12 @@ export async function createCustomer(
 
   }
 
+
+  /*
+   * =======================================================
+   * CUSTOMER CREATED
+   * =======================================================
+   */
 
   console.log(
     "[AUTH TEST] Customer created:",

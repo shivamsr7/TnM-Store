@@ -86,6 +86,12 @@ const AuthContext =
  * =========================================================
  * TEST AUTH
  * =========================================================
+ *
+ * During development we are intentionally bypassing
+ * real OTP authentication.
+ *
+ * Production will use real Supabase authentication.
+ * =========================================================
  */
 
 const isTestAuthEnabled =
@@ -151,40 +157,42 @@ function getTestPhone() {
 
 async function fetchCustomer(
   phone: string
-) {
+): Promise<Customer | null> {
 
   const normalizedPhone =
     normalizePhone(
       phone
     );
 
-  if (!normalizedPhone) {
 
-    return null;
-
-  }
-
-  try {
-
-    const customer =
-      await getCustomerByPhone(
-        normalizedPhone
-      );
-
-    return customer;
-
-  } catch (
-    error
+  if (
+    !normalizedPhone
   ) {
 
-    console.error(
-      "Failed to fetch customer:",
-      error
-    );
-
     return null;
 
   }
+
+
+  /*
+   * IMPORTANT:
+   *
+   * Do NOT swallow errors here.
+   *
+   * Previously an error from getCustomerByPhone()
+   * was converted into null, which made a database
+   * error look exactly like:
+   *
+   * "Customer not found"
+   */
+
+  const customer =
+    await getCustomerByPhone(
+      normalizedPhone
+    );
+
+
+  return customer as Customer | null;
 
 }
 
@@ -223,16 +231,11 @@ export function AuthProvider({
    * =======================================================
    * TEST LOGIN
    * =======================================================
-   *
-   * THIS is what AuthDialog calls after the test OTP.
-   *
-   * It updates React state immediately.
-   * =======================================================
    */
 
   async function loginWithPhone(
     phone: string
-  ) {
+  ): Promise<Customer | null> {
 
     const normalizedPhone =
       normalizePhone(
@@ -240,19 +243,28 @@ export function AuthProvider({
       );
 
 
-    if (!normalizedPhone) {
+    if (
+      !normalizedPhone
+    ) {
 
       return null;
 
     }
 
 
+    /*
+     * =====================================================
+     * TEST AUTH
+     * =====================================================
+     */
+
     if (
       isTestAuthEnabled
     ) {
 
       /*
-       * Save test login.
+       * Save the phone so the login survives
+       * a page refresh during development.
        */
 
       localStorage.setItem(
@@ -262,7 +274,7 @@ export function AuthProvider({
 
 
       /*
-       * Fetch customer.
+       * Fetch the active customer.
        */
 
       const customerData =
@@ -270,6 +282,10 @@ export function AuthProvider({
           normalizedPhone
         );
 
+
+      /*
+       * Customer found.
+       */
 
       if (
         customerData
@@ -288,23 +304,48 @@ export function AuthProvider({
 
 
         /*
-         * MOST IMPORTANT:
+         * IMPORTANT:
          *
-         * This immediately updates every component
-         * using useAuth().
+         * Immediately update React state.
+         *
+         * This makes the header/account UI update
+         * without requiring a refresh.
          */
 
         setCustomer(
           customerData
         );
 
+
+        return customerData;
+
       }
 
 
-      return customerData;
+      /*
+       * Customer does not exist.
+       *
+       * Keep test phone stored because the profile
+       * creation flow may use it.
+       */
+
+      return null;
 
     }
 
+
+    /*
+     * =====================================================
+     * REAL AUTH
+     * =====================================================
+     *
+     * Real OTP/Supabase authentication will be handled
+     * through the Supabase session.
+     *
+     * This branch is intentionally not used while
+     * development test authentication is enabled.
+     * =====================================================
+     */
 
     return null;
 
@@ -339,29 +380,68 @@ export function AuthProvider({
           testPhone
         ) {
 
-          const customerData =
-            await fetchCustomer(
-              testPhone
-            );
+          try {
+
+            const customerData =
+              await fetchCustomer(
+                testPhone
+              );
 
 
-          if (
-            customerData
+            if (
+              customerData
+            ) {
+
+              localStorage.setItem(
+                "tnm_customer",
+                JSON.stringify(
+                  customerData
+                )
+              );
+
+
+              setCustomer(
+                customerData
+              );
+
+            } else {
+
+              /*
+               * The saved test phone no longer has
+               * an active customer.
+               */
+
+              setCustomer(
+                null
+              );
+
+
+              localStorage.removeItem(
+                "tnm_customer"
+              );
+
+            }
+
+          } catch (
+            error
           ) {
 
-            localStorage.setItem(
-              "tnm_customer",
-              JSON.stringify(
-                customerData
-              )
+            /*
+             * Keep the real error visible in development.
+             */
+
+            console.error(
+              "Failed to load test customer:",
+              error
             );
 
 
             setCustomer(
-              customerData
+              null
             );
 
           }
+
 
           return;
 
@@ -369,12 +449,13 @@ export function AuthProvider({
 
 
         /*
-         * No test phone = logged out.
+         * No test phone means logged out.
          */
 
         setCustomer(
           null
         );
+
 
         localStorage.removeItem(
           "tnm_customer"
@@ -483,7 +564,9 @@ export function AuthProvider({
     /*
      * Real Supabase auth listener.
      *
-     * Test mode deliberately ignores Supabase auth.
+     * Test mode deliberately ignores Supabase auth
+     * because the development login is controlled by
+     * loginWithPhone().
      */
 
     const {
@@ -508,9 +591,6 @@ export function AuthProvider({
 
           /*
            * TEST MODE
-           *
-           * The test login is controlled by
-           * loginWithPhone(), not Supabase.
            */
 
           if (
@@ -557,19 +637,43 @@ export function AuthProvider({
             phone
           ) {
 
-            const customerData =
-              await fetchCustomer(
-                phone
-              );
+            try {
+
+              const customerData =
+                await fetchCustomer(
+                  phone
+                );
 
 
-            if (
-              mounted
+              if (
+                mounted
+              ) {
+
+                setCustomer(
+                  customerData
+                );
+
+              }
+
+            } catch (
+              error
             ) {
 
-              setCustomer(
-                customerData
+              console.error(
+                "Failed to load authenticated customer:",
+                error
               );
+
+
+              if (
+                mounted
+              ) {
+
+                setCustomer(
+                  null
+                );
+
+              }
 
             }
 
@@ -599,7 +703,9 @@ export function AuthProvider({
   async function logout() {
 
     /*
-     * Clear test authentication.
+     * =====================================================
+     * TEST LOGOUT
+     * =====================================================
      */
 
     if (
@@ -622,7 +728,7 @@ export function AuthProvider({
 
 
       /*
-       * Also clear any old Supabase session.
+       * Also clear any existing Supabase session.
        */
 
       try {
@@ -647,7 +753,9 @@ export function AuthProvider({
 
 
     /*
-     * Real logout.
+     * =====================================================
+     * REAL LOGOUT
+     * =====================================================
      */
 
     try {
@@ -671,9 +779,9 @@ export function AuthProvider({
 
 
   /*
-   * =======================================================
+   * =========================================================
    * PROVIDER
-   * =======================================================
+   * =========================================================
    */
 
   return (
