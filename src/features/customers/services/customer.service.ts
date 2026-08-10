@@ -13,22 +13,9 @@ export function normalizePhone(
   phone?: string | null
 ) {
 
-  console.log(
-    "[AUTH TEST] normalizePhone input:",
-    phone
-  );
-
-
   if (!phone) {
-
-    console.log(
-      "[AUTH TEST] normalizePhone result: EMPTY"
-    );
-
     return "";
-
   }
-
 
   const digits =
     phone.replace(
@@ -36,21 +23,7 @@ export function normalizePhone(
       ""
     );
 
-
-  const normalized =
-    digits.length >= 10
-      ? digits.slice(-10)
-      : digits;
-
-
-  console.log(
-    "[AUTH TEST] normalizePhone result:",
-    normalized
-  );
-
-
-  return normalized;
-
+  return digits.slice(-10);
 }
 
 
@@ -64,53 +37,23 @@ export async function getCustomerByPhone(
   phone: string
 ) {
 
-  console.log(
-    "=========================================="
-  );
-
-  console.log(
-    "[AUTH TEST] getCustomerByPhone START"
-  );
-
-  console.log(
-    "[AUTH TEST] Raw phone:",
-    phone
-  );
-
-
-  /*
-   * -------------------------------------------------------
-   * Normalize phone
-   * -------------------------------------------------------
-   */
-
   const normalizedPhone =
-    normalizePhone(
-      phone
-    );
+    normalizePhone(phone);
 
 
   console.log(
-    "[AUTH TEST] Normalized phone:",
+    "[T&M AUTH] Phone:",
     normalizedPhone
   );
 
-
-  /*
-   * -------------------------------------------------------
-   * Validate phone
-   * -------------------------------------------------------
-   */
 
   if (
     normalizedPhone.length !== 10
   ) {
 
-    console.warn(
-      "[AUTH TEST] INVALID PHONE LENGTH:",
-      normalizedPhone
+    console.log(
+      "[T&M AUTH] Invalid phone"
     );
-
 
     return null;
 
@@ -118,23 +61,10 @@ export async function getCustomerByPhone(
 
 
   /*
-   * =======================================================
-   * DIRECT ACTIVE CUSTOMER LOOKUP
-   * =======================================================
-   *
-   * Active customer:
-   *
-   * phone = normalizedPhone
-   * deleted_at IS NULL
-   *
-   * Soft-deleted customers are ignored.
-   * =======================================================
+   * ---------------------------------------------------------
+   * DIRECT ACTIVE CUSTOMER QUERY
+   * ---------------------------------------------------------
    */
-
-  console.log(
-    "[AUTH TEST] Searching active customer..."
-  );
-
 
   const {
     data,
@@ -161,9 +91,9 @@ export async function getCustomerByPhone(
 
 
   /*
-   * =======================================================
-   * QUERY ERROR
-   * =======================================================
+   * ---------------------------------------------------------
+   * REAL DATABASE ERROR
+   * ---------------------------------------------------------
    */
 
   if (
@@ -171,34 +101,9 @@ export async function getCustomerByPhone(
   ) {
 
     console.error(
-      "[AUTH TEST] CUSTOMER QUERY ERROR:",
+      "[T&M AUTH] Customer query error:",
       error
     );
-
-
-    console.error(
-      "[AUTH TEST] Error code:",
-      error.code
-    );
-
-
-    console.error(
-      "[AUTH TEST] Error message:",
-      error.message
-    );
-
-
-    console.error(
-      "[AUTH TEST] Error details:",
-      error.details
-    );
-
-
-    console.error(
-      "[AUTH TEST] Error hint:",
-      error.hint
-    );
-
 
     throw error;
 
@@ -206,9 +111,9 @@ export async function getCustomerByPhone(
 
 
   /*
-   * =======================================================
-   * NO ACTIVE CUSTOMER
-   * =======================================================
+   * ---------------------------------------------------------
+   * CUSTOMER NOT FOUND
+   * ---------------------------------------------------------
    */
 
   if (
@@ -216,16 +121,9 @@ export async function getCustomerByPhone(
     data.length === 0
   ) {
 
-    console.warn(
-      "[AUTH TEST] NO ACTIVE CUSTOMER FOUND ❌"
+    console.log(
+      "[T&M AUTH] No active customer found"
     );
-
-
-    console.warn(
-      "[AUTH TEST] Searched phone:",
-      normalizedPhone
-    );
-
 
     return null;
 
@@ -233,9 +131,9 @@ export async function getCustomerByPhone(
 
 
   /*
-   * =======================================================
-   * ACTIVE CUSTOMER FOUND
-   * =======================================================
+   * ---------------------------------------------------------
+   * CUSTOMER FOUND
+   * ---------------------------------------------------------
    */
 
   const customer =
@@ -243,42 +141,20 @@ export async function getCustomerByPhone(
 
 
   console.log(
-    "[AUTH TEST] EXISTING CUSTOMER FOUND ✅"
-  );
-
-
-  console.log(
-    "[AUTH TEST] Customer ID:",
+    "[T&M AUTH] Customer found:",
     customer.id
   );
 
 
   console.log(
-    "[AUTH TEST] Customer phone:",
+    "[T&M AUTH] Customer phone:",
     customer.phone
   );
 
 
   console.log(
-    "[AUTH TEST] Customer name:",
-    customer.first_name,
-    customer.last_name
-  );
-
-
-  console.log(
-    "[AUTH TEST] Customer deleted_at:",
+    "[T&M AUTH] Deleted at:",
     customer.deleted_at
-  );
-
-
-  console.log(
-    "[AUTH TEST] getCustomerByPhone END"
-  );
-
-
-  console.log(
-    "=========================================="
   );
 
 
@@ -294,50 +170,19 @@ export async function getCustomerByPhone(
  */
 
 export async function createCustomer(
-
   customer: {
-
     first_name: string;
-
     last_name?: string;
-
     email?: string;
-
     phone: string;
-
   }
-
 ) {
-
-  console.log(
-    "[AUTH TEST] createCustomer input:",
-    customer
-  );
-
-
-  /*
-   * -------------------------------------------------------
-   * Normalize phone
-   * -------------------------------------------------------
-   */
 
   const normalizedPhone =
     normalizePhone(
       customer.phone
     );
 
-
-  console.log(
-    "[AUTH TEST] createCustomer normalized phone:",
-    normalizedPhone
-  );
-
-
-  /*
-   * -------------------------------------------------------
-   * Validate phone
-   * -------------------------------------------------------
-   */
 
   if (
     normalizedPhone.length !== 10
@@ -351,9 +196,26 @@ export async function createCustomer(
 
 
   /*
-   * =======================================================
-   * CREATE CUSTOMER
-   * =======================================================
+   * Check whether an active customer already exists.
+   */
+
+  const existingCustomer =
+    await getCustomerByPhone(
+      normalizedPhone
+    );
+
+
+  if (
+    existingCustomer
+  ) {
+
+    return existingCustomer;
+
+  }
+
+
+  /*
+   * Create new customer.
    */
 
   const {
@@ -389,37 +251,18 @@ export async function createCustomer(
       .single();
 
 
-  /*
-   * =======================================================
-   * INSERT ERROR
-   * =======================================================
-   */
-
   if (
     error
   ) {
 
     console.error(
-      "[AUTH TEST] createCustomer error:",
+      "[T&M AUTH] Create customer error:",
       error
     );
-
 
     throw error;
 
   }
-
-
-  /*
-   * =======================================================
-   * CUSTOMER CREATED
-   * =======================================================
-   */
-
-  console.log(
-    "[AUTH TEST] Customer created:",
-    data
-  );
 
 
   return data;
