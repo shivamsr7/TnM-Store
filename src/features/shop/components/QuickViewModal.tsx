@@ -93,14 +93,6 @@ export default function QuickViewModal({
   /*
    * =========================================================
    * Mobile drag refs
-   *
-   * IMPORTANT:
-   *
-   * These are refs instead of React state.
-   *
-   * Touchmove can fire many times per second.
-   * Updating React state on every event was causing
-   * unnecessary renders on mobile.
    * =========================================================
    */
 
@@ -129,9 +121,6 @@ export default function QuickViewModal({
   /*
    * =========================================================
    * Images
-   *
-   * useMemo prevents sorting/mapping the product images
-   * again on every render.
    * =========================================================
    */
 
@@ -205,10 +194,6 @@ export default function QuickViewModal({
 
   useEffect(() => {
 
-    /*
-     * Clear any pending close timer.
-     */
-
     if (
       closeTimerRef.current !==
       null
@@ -226,10 +211,6 @@ export default function QuickViewModal({
 
     if (open) {
 
-      /*
-       * Lock page scrolling.
-       */
-
       const previousOverflow =
         document.body.style.overflow;
 
@@ -238,19 +219,12 @@ export default function QuickViewModal({
         "hidden";
 
 
-      /*
-       * Reset image.
-       */
-
       setActiveImage(0);
 
 
-      /*
-       * Reset mobile drag.
-       */
-
       dragStartRef.current =
         null;
+
 
       dragYRef.current =
         0;
@@ -263,15 +237,11 @@ export default function QuickViewModal({
         sheetRef.current.style.transform =
           "";
 
+        sheetRef.current.style.transition =
+          "";
+
       }
 
-
-      /*
-       * Start opening animation on next frame.
-       *
-       * This is only one render and is kept because
-       * the CSS transition needs an initial state.
-       */
 
       requestAnimationFrame(() => {
 
@@ -290,15 +260,12 @@ export default function QuickViewModal({
     }
 
 
-    /*
-     * Closing.
-     */
-
     setShow(false);
 
 
     dragStartRef.current =
       null;
+
 
     dragYRef.current =
       0;
@@ -341,6 +308,7 @@ export default function QuickViewModal({
 
       }
 
+
       document.body.style.overflow =
         "";
 
@@ -376,11 +344,6 @@ export default function QuickViewModal({
   /*
    * =========================================================
    * Image change
-   *
-   * NO artificial timeout.
-   *
-   * The old version waited 130ms before changing the image,
-   * which made taps/swipes feel delayed on mobile.
    * =========================================================
    */
 
@@ -467,7 +430,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Mobile drag helpers
+   * Mobile drag transform
    * =========================================================
    */
 
@@ -504,10 +467,6 @@ export default function QuickViewModal({
     e: React.TouchEvent
   ) => {
 
-    /*
-     * Only use sheet-drag behaviour on mobile.
-     */
-
     if (
       window.innerWidth >= 640
     ) {
@@ -516,11 +475,6 @@ export default function QuickViewModal({
 
     }
 
-
-    /*
-     * Don't start a sheet drag when touching
-     * interactive controls.
-     */
 
     const target =
       e.target as HTMLElement;
@@ -551,6 +505,7 @@ export default function QuickViewModal({
     dragStartRef.current =
       touch.clientY;
 
+
     dragYRef.current =
       0;
 
@@ -572,14 +527,6 @@ export default function QuickViewModal({
   /*
    * =========================================================
    * Mobile swipe move
-   *
-   * IMPORTANT:
-   *
-   * No React state update here.
-   *
-   * Direct DOM transform keeps this interaction on the
-   * browser's rendering path instead of causing React
-   * re-renders on every touch event.
    * =========================================================
    */
 
@@ -678,10 +625,6 @@ export default function QuickViewModal({
       null;
 
 
-    /*
-     * Close if dragged far enough.
-     */
-
     if (
       finalDrag > 90
     ) {
@@ -714,10 +657,6 @@ export default function QuickViewModal({
     }
 
 
-    /*
-     * Otherwise spring back.
-     */
-
     const sheet =
       sheetRef.current;
 
@@ -741,7 +680,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Prevent background click when interacting with sheet
+   * Sheet click
    * =========================================================
    */
 
@@ -771,7 +710,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Modal content
+   * Modal
    * =========================================================
    */
 
@@ -789,15 +728,6 @@ export default function QuickViewModal({
         p-0
         sm:items-center
         sm:p-5
-
-        /*
-         * Avoid backdrop blur on mobile.
-         *
-         * This is considerably cheaper for mobile GPUs.
-         */
-        backdrop-blur-0
-
-        sm:backdrop-blur-md
       "
 
       onClick={
@@ -1064,12 +994,9 @@ export default function QuickViewModal({
                     rounded-full
                     bg-black/50
                     text-white
-
                     transition
-
                     hover:bg-[#D4AF37]
                     hover:text-black
-
                     sm:flex
                   "
                 >
@@ -1103,12 +1030,9 @@ export default function QuickViewModal({
                     rounded-full
                     bg-black/50
                     text-white
-
                     transition
-
                     hover:bg-[#D4AF37]
                     hover:text-black
-
                     sm:flex
                   "
                 >
@@ -1124,7 +1048,7 @@ export default function QuickViewModal({
             )}
 
 
-            {/* Mobile image counter */}
+            {/* Mobile counter */}
 
             {images.length > 1 && (
 
@@ -1170,7 +1094,6 @@ export default function QuickViewModal({
                 px-3
                 py-3
                 scrollbar-hide
-
                 sm:hidden
               "
             >
@@ -1380,14 +1303,11 @@ export default function QuickViewModal({
             px-5
             pb-28
             pt-1
-
             sm:px-7
             sm:py-7
             sm:pb-7
           "
         >
-
-          {/* Product name */}
 
           <h2
             className="
@@ -1396,7 +1316,6 @@ export default function QuickViewModal({
               font-semibold
               leading-tight
               text-[#F7E3A3]
-
               sm:text-3xl
             "
           >
@@ -1429,7 +1348,6 @@ export default function QuickViewModal({
               <span>
                 {product.rating}
               </span>
-
 
               {product.review_count >
                 0 && (
@@ -1520,7 +1438,7 @@ export default function QuickViewModal({
           </div>
 
 
-          {/* Reward section */}
+          {/* Rewards */}
 
           <div
             className="
@@ -1584,7 +1502,7 @@ export default function QuickViewModal({
           </div>
 
 
-          {/* Short description */}
+          {/* Description */}
 
           {product.short_description && (
 
@@ -1750,7 +1668,7 @@ export default function QuickViewModal({
           )}
 
 
-          {/* Desktop Actions */}
+          {/* Desktop actions */}
 
           <div
             className="
@@ -1850,11 +1768,10 @@ export default function QuickViewModal({
             z-30
             border-t
             border-white/[0.07]
-            bg-[#090909]/95
+            bg-[#090909]
             px-4
             pb-[calc(12px+env(safe-area-inset-bottom))]
             pt-3
-            backdrop-blur-xl
             sm:hidden
           "
         >
