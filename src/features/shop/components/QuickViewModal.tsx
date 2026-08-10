@@ -63,7 +63,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Cart
+   * CART
    * =========================================================
    */
 
@@ -74,7 +74,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * State
+   * STATE
    * =========================================================
    */
 
@@ -92,7 +92,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Mobile drag refs
+   * MOBILE DRAG REFS
    * =========================================================
    */
 
@@ -120,7 +120,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Images
+   * IMAGES
    * =========================================================
    */
 
@@ -147,7 +147,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Discount
+   * DISCOUNT
    * =========================================================
    */
 
@@ -173,7 +173,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Stock
+   * STOCK
    * =========================================================
    */
 
@@ -188,7 +188,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Modal lifecycle
+   * MODAL LIFECYCLE
    * =========================================================
    */
 
@@ -289,7 +289,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Cleanup
+   * CLEANUP
    * =========================================================
    */
 
@@ -319,7 +319,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Add To Cart
+   * ADD TO CART
    * =========================================================
    */
 
@@ -343,7 +343,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Image change
+   * IMAGE CHANGE
    * =========================================================
    */
 
@@ -371,7 +371,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Next image
+   * NEXT IMAGE
    * =========================================================
    */
 
@@ -401,7 +401,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Previous image
+   * PREVIOUS IMAGE
    * =========================================================
    */
 
@@ -430,7 +430,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Mobile drag transform
+   * MOBILE DRAG TRANSFORM
    * =========================================================
    */
 
@@ -459,7 +459,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Mobile swipe start
+   * MOBILE SWIPE START
    * =========================================================
    */
 
@@ -526,7 +526,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Mobile swipe move
+   * MOBILE SWIPE MOVE
    * =========================================================
    */
 
@@ -601,7 +601,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Mobile swipe end
+   * MOBILE SWIPE END
    * =========================================================
    */
 
@@ -680,7 +680,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Sheet click
+   * SHEET CLICK
    * =========================================================
    */
 
@@ -695,7 +695,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Don't render when closed
+   * DON'T RENDER WHEN CLOSED
    * =========================================================
    */
 
@@ -710,7 +710,7 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * Modal
+   * MODAL CONTENT
    * =========================================================
    */
 
@@ -726,9 +726,14 @@ export default function QuickViewModal({
         justify-center
         bg-black/75
         p-0
+
         sm:items-center
         sm:p-5
       "
+
+      style={{
+        height: "100dvh",
+      }}
 
       onClick={
         onClose
@@ -772,9 +777,6 @@ export default function QuickViewModal({
           willChange:
             "transform",
 
-          transform:
-            undefined,
-
           transition:
             "transform 300ms ease-out",
         }}
@@ -783,12 +785,17 @@ export default function QuickViewModal({
           relative
           flex
           w-full
-          max-h-[94vh]
+
+          max-h-[calc(100dvh-8px)]
+
           flex-col
           overflow-hidden
+
           rounded-t-[28px]
+
           border
           border-white/[0.07]
+
           bg-[#090909]
 
           shadow-[0_-20px_80px_rgba(0,0,0,0.55)]
@@ -804,6 +811,7 @@ export default function QuickViewModal({
           }
 
           sm:h-[650px]
+          sm:max-h-none
           sm:max-w-5xl
           sm:flex-row
           sm:items-stretch
@@ -833,7 +841,7 @@ export default function QuickViewModal({
 
 
         {/* =================================================
-            CLOSE
+            CLOSE BUTTON
         ================================================== */}
 
         <button
@@ -850,16 +858,22 @@ export default function QuickViewModal({
             right-3
             top-3
             z-40
+
             flex
             h-9
             w-9
             items-center
             justify-center
+
             rounded-full
+
             border
             border-white/10
+
             bg-black/60
+
             text-white
+
             shadow-lg
 
             transition-all
@@ -905,11 +919,16 @@ export default function QuickViewModal({
               relative
               aspect-[4/5]
               w-full
+
+              max-h-[48dvh]
+
               overflow-hidden
+
               bg-neutral-900
 
               sm:aspect-auto
               sm:h-full
+              sm:max-h-none
               sm:rounded-2xl
             "
           >
@@ -985,18 +1004,28 @@ export default function QuickViewModal({
                     absolute
                     left-3
                     top-1/2
+
                     hidden
+
                     h-10
                     w-10
+
                     -translate-y-1/2
+
                     items-center
                     justify-center
+
                     rounded-full
+
                     bg-black/50
+
                     text-white
+
                     transition
+
                     hover:bg-[#D4AF37]
                     hover:text-black
+
                     sm:flex
                   "
                 >
@@ -1021,18 +1050,28 @@ export default function QuickViewModal({
                     absolute
                     right-3
                     top-1/2
+
                     hidden
+
                     h-10
                     w-10
+
                     -translate-y-1/2
+
                     items-center
                     justify-center
+
                     rounded-full
+
                     bg-black/50
+
                     text-white
+
                     transition
+
                     hover:bg-[#D4AF37]
                     hover:text-black
+
                     sm:flex
                   "
                 >
@@ -1048,7 +1087,7 @@ export default function QuickViewModal({
             )}
 
 
-            {/* Mobile counter */}
+            {/* Mobile image counter */}
 
             {images.length > 1 && (
 
@@ -1057,14 +1096,21 @@ export default function QuickViewModal({
                   absolute
                   bottom-3
                   left-1/2
+
                   -translate-x-1/2
+
                   rounded-full
+
                   bg-black/55
+
                   px-2.5
                   py-1
+
                   text-[9px]
                   font-medium
+
                   text-white
+
                   sm:hidden
                 "
               >
@@ -1090,10 +1136,14 @@ export default function QuickViewModal({
               className="
                 flex
                 gap-2
+
                 overflow-x-auto
+
                 px-3
                 py-3
+
                 scrollbar-hide
+
                 sm:hidden
               "
             >
@@ -1130,10 +1180,15 @@ export default function QuickViewModal({
                       h-14
                       w-14
                       shrink-0
+
                       overflow-hidden
+
                       rounded-lg
+
                       border
+
                       bg-neutral-900
+
                       transition
 
                       ${
@@ -1198,10 +1253,15 @@ export default function QuickViewModal({
             <div
               className="
                 mt-3
+
                 hidden
+
                 gap-2
+
                 overflow-x-auto
+
                 scrollbar-hide
+
                 sm:flex
               "
             >
@@ -1233,9 +1293,13 @@ export default function QuickViewModal({
                       h-16
                       w-16
                       shrink-0
+
                       overflow-hidden
+
                       rounded-lg
+
                       border-2
+
                       transition
 
                       ${
@@ -1298,24 +1362,35 @@ export default function QuickViewModal({
           className="
             min-h-0
             flex-1
+
             overflow-y-auto
+
             overscroll-contain
+
             px-5
-            pb-28
+
+            pb-[calc(100px+env(safe-area-inset-bottom))]
+
             pt-1
+
             sm:px-7
             sm:py-7
             sm:pb-7
           "
         >
 
+          {/* Product name */}
+
           <h2
             className="
               pr-10
+
               text-2xl
               font-semibold
               leading-tight
+
               text-[#F7E3A3]
+
               sm:text-3xl
             "
           >
@@ -1332,10 +1407,13 @@ export default function QuickViewModal({
             <div
               className="
                 mt-3
+
                 flex
                 items-center
                 gap-2
+
                 text-sm
+
                 text-[#D4AF37]
               "
             >
@@ -1349,6 +1427,7 @@ export default function QuickViewModal({
                 {product.rating}
               </span>
 
+
               {product.review_count >
                 0 && (
 
@@ -1357,11 +1436,13 @@ export default function QuickViewModal({
                     text-neutral-400
                   "
                 >
+
                   (
                   {
                     product.review_count
                   }
                   )
+
                 </span>
 
               )}
@@ -1376,6 +1457,7 @@ export default function QuickViewModal({
           <div
             className="
               mt-4
+
               flex
               flex-wrap
               items-center
@@ -1420,11 +1502,15 @@ export default function QuickViewModal({
               <span
                 className="
                   rounded-full
+
                   bg-[#D4AF37]/10
+
                   px-2.5
                   py-1
+
                   text-xs
                   font-medium
+
                   text-[#D4AF37]
                 "
               >
@@ -1438,21 +1524,28 @@ export default function QuickViewModal({
           </div>
 
 
-          {/* Rewards */}
+          {/* Reward section */}
 
           <div
             className="
               mt-4
+
               flex
               items-center
               gap-2
+
               rounded-xl
+
               border
               border-[#D4AF37]/15
+
               bg-[#D4AF37]/[0.035]
+
               px-3
               py-3
+
               text-sm
+
               text-yellow-400
             "
           >
@@ -1478,21 +1571,27 @@ export default function QuickViewModal({
               <p
                 className="
                   mt-1
+
                   text-[11px]
                   leading-5
+
                   text-neutral-500
                 "
               >
 
                 Earn{" "}
+
                 <span
                   className="
                     font-medium
                     text-[#D4AF37]
                   "
                 >
+
                   +{product.price}
+
                 </span>{" "}
+
                 reward points on this purchase.
 
               </p>
@@ -1502,7 +1601,7 @@ export default function QuickViewModal({
           </div>
 
 
-          {/* Description */}
+          {/* Short description */}
 
           {product.short_description && (
 
@@ -1536,6 +1635,7 @@ export default function QuickViewModal({
           <div
             className="
               mt-5
+
               grid
               grid-cols-2
               gap-2
@@ -1547,10 +1647,14 @@ export default function QuickViewModal({
                 flex
                 items-center
                 gap-2.5
+
                 rounded-xl
+
                 border
                 border-white/[0.06]
+
                 bg-white/[0.025]
+
                 px-3
                 py-3
               "
@@ -1585,10 +1689,14 @@ export default function QuickViewModal({
                 flex
                 items-center
                 gap-2.5
+
                 rounded-xl
+
                 border
                 border-white/[0.06]
+
                 bg-white/[0.025]
+
                 px-3
                 py-3
               "
@@ -1620,17 +1728,21 @@ export default function QuickViewModal({
           </div>
 
 
-          {/* Care Instructions */}
+          {/* Care instructions */}
 
           {product.care_instructions && (
 
             <div
               className="
                 mt-5
+
                 rounded-2xl
+
                 border
                 border-white/[0.06]
+
                 bg-white/[0.02]
+
                 p-4
               "
             >
@@ -1651,8 +1763,10 @@ export default function QuickViewModal({
               <p
                 className="
                   mt-2
+
                   text-xs
                   leading-5
+
                   text-neutral-500
                 "
               >
@@ -1668,12 +1782,14 @@ export default function QuickViewModal({
           )}
 
 
-          {/* Desktop actions */}
+          {/* Desktop Actions */}
 
           <div
             className="
               mt-6
+
               hidden
+
               sm:block
             "
           >
@@ -1692,20 +1808,32 @@ export default function QuickViewModal({
               className="
                 flex
                 w-full
+
                 items-center
                 justify-center
                 gap-2
+
                 rounded-full
+
                 bg-[#D4AF37]
+
                 py-3.5
+
                 text-sm
                 font-semibold
+
                 text-black
+
                 shadow-[0_8px_25px_rgba(212,175,55,0.10)]
+
                 transition-all
+
                 hover:bg-[#E3C45F]
+
                 hover:shadow-[0_10px_30px_rgba(212,175,55,0.16)]
+
                 active:scale-[0.99]
+
                 disabled:cursor-not-allowed
                 disabled:bg-neutral-800
                 disabled:text-neutral-500
@@ -1737,12 +1865,18 @@ export default function QuickViewModal({
 
               className="
                 mt-3
+
                 block
+
                 text-center
+
                 text-xs
                 font-medium
+
                 text-[#D4AF37]
+
                 transition
+
                 hover:text-[#F7E3A3]
               "
             >
@@ -1766,12 +1900,18 @@ export default function QuickViewModal({
             inset-x-0
             bottom-0
             z-30
+
             border-t
             border-white/[0.07]
+
             bg-[#090909]
+
             px-4
+
             pb-[calc(12px+env(safe-area-inset-bottom))]
+
             pt-3
+
             sm:hidden
           "
         >
@@ -1794,7 +1934,9 @@ export default function QuickViewModal({
               <p
                 className="
                   truncate
+
                   text-[10px]
+
                   text-neutral-500
                 "
               >
@@ -1807,8 +1949,10 @@ export default function QuickViewModal({
               <p
                 className="
                   mt-0.5
+
                   text-lg
                   font-semibold
+
                   text-white
                 "
               >
@@ -1833,19 +1977,29 @@ export default function QuickViewModal({
 
               className="
                 flex
+
                 min-h-11
                 min-w-[150px]
+
                 items-center
                 justify-center
                 gap-2
+
                 rounded-full
+
                 bg-[#D4AF37]
+
                 px-5
+
                 text-xs
                 font-semibold
+
                 text-black
+
                 transition
+
                 active:scale-[0.98]
+
                 disabled:cursor-not-allowed
                 disabled:bg-neutral-800
                 disabled:text-neutral-500
