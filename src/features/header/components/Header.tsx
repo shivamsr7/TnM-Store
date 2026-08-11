@@ -2,48 +2,47 @@ import {
   useState,
 } from "react";
 
-import AnnouncementBar from "@/features/home/components/AnnouncementBar/AnnouncementBar";
+import {
+  useNavigate,
+} from "react-router-dom";
 
-import TopSection from "./TopSection";
-import Navigation from "./Navigation";
-import MobileHeader from "./MobileHeader";
-import MobileDrawer from "./MobileDrawer";
-import MobileNavigation from "./MobileNavigation";
+
+import AnnouncementBar
+  from "@/features/home/components/AnnouncementBar/AnnouncementBar";
+
+
+import TopSection
+  from "./TopSection";
+
+import Navigation
+  from "./Navigation";
+
+import MobileHeader
+  from "./MobileHeader";
+
+import MobileDrawer
+  from "./MobileDrawer";
+
+import MobileNavigation
+  from "./MobileNavigation";
+
 
 import {
   useAuth,
 } from "@/features/Auth/context/AuthContext";
+
 
 import {
   useWishlist,
 } from "@/features/wishlist/hooks/useWishlist";
 
 
-interface HeaderProps {
-
-  mobileOpen: boolean;
-
-  onMobileMenuOpen: () => void;
-
-  onMobileMenuClose: () => void;
-
-}
-
-
-export default function Header({
-
-  mobileOpen,
-
-  onMobileMenuOpen,
-
-  onMobileMenuClose,
-
-}: HeaderProps) {
+export default function Header() {
 
 
   /*
    * =========================================================
-   * SEARCH
+   * STATE
    * =========================================================
    */
 
@@ -51,6 +50,22 @@ export default function Header({
     search,
     setSearch,
   ] = useState("");
+
+
+  const [
+    mobileOpen,
+    setMobileOpen,
+  ] = useState(false);
+
+
+  /*
+   * =========================================================
+   * NAVIGATION
+   * =========================================================
+   */
+
+  const navigate =
+    useNavigate();
 
 
   /*
@@ -98,6 +113,51 @@ export default function Header({
 
   /*
    * =========================================================
+   * LOGOUT
+   * =========================================================
+   *
+   * IMPORTANT:
+   *
+   * After logout we must leave /account.
+   *
+   * Otherwise AccountPage remains visible with an empty
+   * customer state.
+   *
+   * =========================================================
+   */
+
+  const handleLogout = async () => {
+
+    try {
+
+      await logout();
+
+    } finally {
+
+      /*
+       * Close the drawer first.
+       */
+
+      setMobileOpen(
+        false
+      );
+
+
+      /*
+       * Redirect to homepage.
+       */
+
+      navigate(
+        "/"
+      );
+
+    }
+
+  };
+
+
+  /*
+   * =========================================================
    * RENDER
    * =========================================================
    */
@@ -113,16 +173,17 @@ export default function Header({
       "
     >
 
-      {/* ===================================================
+
+      {/* =====================================================
           ANNOUNCEMENT BAR
-      ==================================================== */}
+      ====================================================== */}
 
       <AnnouncementBar />
 
 
-      {/* ===================================================
+      {/* =====================================================
           DESKTOP HEADER
-      ==================================================== */}
+      ====================================================== */}
 
       <div
         className="
@@ -161,9 +222,9 @@ export default function Header({
       </div>
 
 
-      {/* ===================================================
+      {/* =====================================================
           MOBILE HEADER
-      ==================================================== */}
+      ====================================================== */}
 
       <div
         className="
@@ -173,8 +234,10 @@ export default function Header({
 
         <MobileHeader
 
-          onMenuOpen={
-            onMobileMenuOpen
+          onMenuOpen={() =>
+            setMobileOpen(
+              true
+            )
           }
 
           search={
@@ -206,16 +269,20 @@ export default function Header({
             mobileOpen
           }
 
-          onClose={
-            onMobileMenuClose
+          onClose={() =>
+            setMobileOpen(
+              false
+            )
           }
 
         >
 
           <MobileNavigation
 
-            onClose={
-              onMobileMenuClose
+            onClose={() =>
+              setMobileOpen(
+                false
+              )
             }
 
             customer={
@@ -223,7 +290,7 @@ export default function Header({
             }
 
             onLogout={
-              logout
+              handleLogout
             }
 
           />

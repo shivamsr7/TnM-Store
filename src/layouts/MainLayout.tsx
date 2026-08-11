@@ -3,34 +3,28 @@ import {
   useNavigate,
 } from "react-router-dom";
 
-import {
-  useState,
-} from "react";
 
-import Header from "@/features/header/components/Header";
+import Header
+  from "@/features/header/components/Header";
 
-import Footer from "@/shared/components/footer/Footer";
 
-import ScrollToTopButton from "@/shared/components/ScrollToTopButton";
+import Footer
+  from "@/shared/components/footer/Footer";
 
-import CartDrawer from "@/features/cart/components/CartDrawer";
 
-import MobileBottomNav from "@/features/header/components/MobileBottomNav";
+import ScrollToTopButton
+  from "@/shared/components/ScrollToTopButton";
+
+
+import CartDrawer
+  from "@/features/cart/components/CartDrawer";
+
+
+import MobileBottomNav
+  from "@/features/header/components/MobileBottomNav";
 
 
 export default function MainLayout() {
-
-
-  /*
-   * =========================================================
-   * MOBILE DRAWER STATE
-   * =========================================================
-   */
-
-  const [
-    mobileOpen,
-    setMobileOpen,
-  ] = useState(false);
 
 
   /*
@@ -43,39 +37,21 @@ export default function MainLayout() {
     useNavigate();
 
 
-  function openMobileMenu() {
-
-    setMobileOpen(
-      true
-    );
-
-  }
-
-
-  function closeMobileMenu() {
-
-    setMobileOpen(
-      false
-    );
-
-  }
-
-
   /*
    * =========================================================
-   * ACCOUNT NAVIGATION
+   * ACCOUNT
    * =========================================================
    *
    * IMPORTANT:
    *
-   * Account button should navigate to the Account page.
+   * Bottom Account button should go directly to /account.
    *
    * It must NOT open MobileDrawer.
    *
    * =========================================================
    */
 
-  function openAccountPage() {
+  function handleAccountClick() {
 
     navigate(
       "/account"
@@ -99,25 +75,11 @@ export default function MainLayout() {
           HEADER
       ====================================================== */}
 
-      <Header
-
-        mobileOpen={
-          mobileOpen
-        }
-
-        onMobileMenuOpen={
-          openMobileMenu
-        }
-
-        onMobileMenuClose={
-          closeMobileMenu
-        }
-
-      />
+      <Header />
 
 
       {/* =====================================================
-          MAIN CUSTOMER CONTENT
+          MAIN CONTENT
       ====================================================== */}
 
       <div
@@ -148,7 +110,7 @@ export default function MainLayout() {
       <MobileBottomNav
 
         onAccountClick={
-          openAccountPage
+          handleAccountClick
         }
 
       />
