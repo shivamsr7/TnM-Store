@@ -1,6 +1,7 @@
 import {
   Link,
   NavLink,
+  useNavigate,
 } from "react-router-dom";
 
 import {
@@ -54,16 +55,23 @@ export default function MobileNavigation({
 
   /*
    * =========================================================
+   * NAVIGATION
+   * =========================================================
+   */
+
+  const navigate =
+    useNavigate();
+
+
+  /*
+   * =========================================================
    * SHOP CATEGORIES
    * =========================================================
    *
    * Uses the same shop category source as desktop.
    *
-   * shopService.getCategories() returns:
-   *
-   * - active parent categories
-   * - active subcategories
-   * - only subcategories with active products
+   * Only active categories and subcategories with products
+   * are returned by the shop category hook.
    *
    * =========================================================
    */
@@ -100,6 +108,49 @@ export default function MobileNavigation({
   const {
     openAuth,
   } = useAuthDialog();
+
+
+  /*
+   * =========================================================
+   * LOGOUT
+   * =========================================================
+   *
+   * IMPORTANT:
+   *
+   * 1. Run the existing logout function.
+   * 2. Close the mobile drawer.
+   * 3. Navigate away from /account.
+   *
+   * This prevents the logged-out customer from remaining
+   * on the Account page with an empty customer state.
+   *
+   * =========================================================
+   */
+
+  async function handleLogout() {
+
+    try {
+
+      await onLogout();
+
+    } finally {
+
+      /*
+       * Close the drawer.
+       */
+
+      onClose();
+
+
+      /*
+       * Always return to the homepage after logout.
+       */
+
+      navigate("/");
+
+    }
+
+  }
 
 
   /*
@@ -188,6 +239,10 @@ export default function MobileNavigation({
               "
             >
 
+              {/* =================================================
+                  MY ACCOUNT
+              ================================================== */}
+
               <Link
                 to="/account"
 
@@ -212,11 +267,15 @@ export default function MobileNavigation({
               </Link>
 
 
+              {/* =================================================
+                  LOGOUT
+              ================================================== */}
+
               <button
                 type="button"
 
                 onClick={
-                  onLogout
+                  handleLogout
                 }
 
                 className="
