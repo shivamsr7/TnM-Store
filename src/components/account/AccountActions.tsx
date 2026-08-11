@@ -9,490 +9,511 @@ import {
 
 import NotificationsDialog from "./NotificationsDialog";
 import ContactSupportDialog from "./ContactSupportDialog";
+import LogoutConfirmDialog from "./LogoutConfirmDialog";
+
 import {
   useNavigate,
 } from "react-router-dom";
 
-
 import {
   useState,
 } from "react";
-
 
 import {
   useAuth,
 } from "@/features/Auth/context/AuthContext";
 
 
-import LogoutConfirmDialog from "./LogoutConfirmDialog";
-
-
-
-
-
-
 interface Props {
 
-onOpenAddresses:()=>void;
+  onOpenAddresses: () => void;
 
 }
-
-
-
-
-
 
 
 export default function AccountActions({
 
-onOpenAddresses,
+  onOpenAddresses,
 
-}:Props){
+}: Props) {
 
 
+  /*
+   * =========================================================
+   * NAVIGATION
+   * =========================================================
+   */
 
-const navigate =
-useNavigate();
+  const navigate =
+    useNavigate();
 
 
+  /*
+   * =========================================================
+   * AUTH
+   * =========================================================
+   */
 
+  const {
+    logout,
+  } = useAuth();
 
-const {
-logout
-}=useAuth();
 
+  /*
+   * =========================================================
+   * STATE
+   * =========================================================
+   */
 
+  const [
+    showLogout,
+    setShowLogout,
+  ] = useState(false);
 
 
+  const [
+    loggingOut,
+    setLoggingOut,
+  ] = useState(false);
 
 
+  const [
+    showNotifications,
+    setShowNotifications,
+  ] = useState(false);
 
-const [
 
-showLogout,
+  const [
+    showSupport,
+    setShowSupport,
+  ] = useState(false);
 
-setShowLogout
 
-]=useState(false);
+  /*
+   * =========================================================
+   * ACCOUNT ACTIONS
+   * =========================================================
+   */
 
+  const actions = [
 
+    {
+      title: "My Orders",
 
+      description:
+        "Track and manage your orders",
 
+      icon: Package,
 
+      action: () =>
+        navigate(
+          "/account/orders"
+        ),
 
-const [
+    },
 
-loggingOut,
 
-setLoggingOut
+    {
+      title: "Saved Addresses",
 
-]=useState(false);
+      description:
+        "Manage delivery addresses",
 
+      icon: MapPin,
 
-const [
-showNotifications,
-setShowNotifications
-]=useState(false);
+      action:
+        onOpenAddresses,
 
+    },
 
-const [
-showSupport,
-setShowSupport
-]=useState(false);
 
+    {
+      title: "Notifications",
 
+      description:
+        "View your updates",
 
+      icon: Bell,
 
+      action: () =>
+        setShowNotifications(
+          true
+        ),
 
+    },
 
-const actions=[
 
+    {
+      title: "Contact Support",
 
-{
+      description:
+        "Need help? Contact us",
 
-title:"My Orders",
+      icon: Headphones,
 
-description:"Track and manage your orders",
+      action: () =>
+        setShowSupport(
+          true
+        ),
 
-icon:Package,
+    },
 
-action:()=>navigate("/account/orders"),
+  ];
 
-},
 
+  /*
+   * =========================================================
+   * LOGOUT
+   * =========================================================
+   *
+   * This is the important fix.
+   *
+   * AccountActions is used directly on the Account page.
+   * After logout succeeds, we explicitly leave /account.
+   *
+   * =========================================================
+   */
 
+  async function handleLogout() {
 
+    try {
 
+      setLoggingOut(
+        true
+      );
 
-{
 
-title:"Saved Addresses",
+      await logout();
 
-description:"Manage delivery addresses",
 
-icon:MapPin,
+      /*
+       * Close confirmation dialog.
+       */
 
-action:onOpenAddresses,
+      setShowLogout(
+        false
+      );
 
-},
 
+      /*
+       * IMPORTANT:
+       *
+       * Leave the Account page after logout.
+       *
+       * replace() prevents the logged-out Account page
+       * from remaining as the previous authenticated page.
+       */
 
+      navigate(
+        "/",
+        {
+          replace: true,
+        }
+      );
 
+    } catch (
+      error
+    ) {
 
-{
-title:"Notifications",
-description:"View your updates",
-icon:Bell,
-action:()=>setShowNotifications(true),
-},
+      console.error(
+        "Logout failed:",
+        error
+      );
 
+    } finally {
 
-{
-title:"Contact Support",
-description:"Need help? Contact us",
-icon:Headphones,
-action:()=>setShowSupport(true),
-},
+      setLoggingOut(
+        false
+      );
 
+    }
 
+  }
 
-];
 
+  /*
+   * =========================================================
+   * RENDER
+   * =========================================================
+   */
+
+  return (
+
+    <>
+
+      {/* =====================================================
+          ACCOUNT ACTIONS
+      ====================================================== */}
+
+      <div
+        className="
+          rounded-2xl
+          border
+          border-neutral-800
+          bg-neutral-950
+          p-5
+          lg:sticky
+          lg:top-5
+        "
+      >
+
+        <h2
+          className="
+            mb-5
+            text-lg
+            font-semibold
+            text-white
+          "
+        >
 
+          Account
 
+        </h2>
 
 
+        {/* =================================================
+            ACTION LIST
+        ================================================== */}
 
+        <div
+          className="
+            space-y-3
+          "
+        >
 
+          {actions.map(
+            (item) => {
 
+              const Icon =
+                item.icon;
 
-async function handleLogout(){
 
+              return (
 
-try{
+                <button
+                  key={
+                    item.title
+                  }
 
+                  type="button"
 
-setLoggingOut(true);
+                  onClick={
+                    item.action
+                  }
 
+                  className="
+                    group
+                    flex
+                    min-h-[70px]
+                    w-full
+                    items-center
+                    justify-between
+                    rounded-xl
+                    border
+                    border-neutral-800
+                    p-4
+                    text-left
+                    transition
+                    hover:border-[#C8A44D]/50
+                    hover:bg-neutral-900
+                  "
+                >
 
-await logout();
+                  <div
+                    className="
+                      flex
+                      items-center
+                      gap-4
+                    "
+                  >
 
+                    <div
+                      className="
+                        flex
+                        h-11
+                        w-11
+                        items-center
+                        justify-center
+                        rounded-full
+                        bg-[#C8A44D]/20
+                        text-[#C8A44D]
+                      "
+                    >
 
-setShowLogout(false);
+                      <Icon
+                        size={20}
+                      />
 
+                    </div>
 
 
-}
+                    <div>
 
-finally{
+                      <p
+                        className="
+                          text-sm
+                          font-medium
+                          text-white
+                        "
+                      >
 
+                        {item.title}
 
-setLoggingOut(false);
+                      </p>
 
 
-}
+                      <p
+                        className="
+                          mt-1
+                          text-xs
+                          text-neutral-400
+                        "
+                      >
 
+                        {item.description}
 
+                      </p>
 
-}
+                    </div>
 
+                  </div>
 
 
+                  <ChevronRight
+                    size={18}
+                    className="
+                      text-neutral-500
+                      transition
+                      group-hover:text-[#C8A44D]
+                    "
+                  />
 
+                </button>
 
+              );
 
+            }
+          )}
 
+        </div>
 
-return (
 
-<>
+        {/* =================================================
+            LOGOUT BUTTON
+        ================================================== */}
 
-<div
+        <button
+          type="button"
 
-className="
-rounded-2xl
-border
-border-neutral-800
-bg-neutral-950
-p-5
-lg:sticky
-lg:top-5
-"
+          onClick={() =>
+            setShowLogout(
+              true
+            )
+          }
 
->
+          disabled={
+            loggingOut
+          }
 
+          className="
+            mt-5
+            flex
+            min-h-[50px]
+            w-full
+            items-center
+            justify-center
+            gap-2
+            rounded-xl
+            border
+            border-red-500/30
+            text-sm
+            text-red-400
+            transition
+            hover:bg-red-500/10
+            disabled:cursor-not-allowed
+            disabled:opacity-50
+          "
+        >
 
+          <LogOut
+            size={18}
+          />
 
+          {loggingOut
+            ? "Logging out..."
+            : "Logout"}
 
+        </button>
 
+      </div>
 
 
-<h2
+      {/* =====================================================
+          LOGOUT CONFIRMATION
+      ====================================================== */}
 
-className="
-mb-5
-text-lg
-font-semibold
-text-white
-"
+      <LogoutConfirmDialog
 
->
+        open={
+          showLogout
+        }
 
-Account
+        loading={
+          loggingOut
+        }
 
-</h2>
+        onClose={() =>
+          setShowLogout(
+            false
+          )
+        }
 
+        onConfirm={
+          handleLogout
+        }
 
+      />
 
 
+      {/* =====================================================
+          NOTIFICATIONS
+      ====================================================== */}
 
+      <NotificationsDialog
 
+        open={
+          showNotifications
+        }
 
+        onClose={() =>
+          setShowNotifications(
+            false
+          )
+        }
 
-<div
+      />
 
-className="
-space-y-3
-"
 
->
+      {/* =====================================================
+          SUPPORT
+      ====================================================== */}
 
-{
+      <ContactSupportDialog
 
-actions.map((item)=>{
+        open={
+          showSupport
+        }
 
+        onClose={() =>
+          setShowSupport(
+            false
+          )
+        }
 
-const Icon=item.icon;
+      />
 
+    </>
 
-
-return (
-
-<button
-
-key={item.title}
-
-onClick={item.action}
-
-className="
-group
-flex
-min-h-[70px]
-w-full
-items-center
-justify-between
-rounded-xl
-border
-border-neutral-800
-p-4
-text-left
-transition
-hover:border-[#C8A44D]/50
-hover:bg-neutral-900
-"
-
->
-
-
-
-
-
-
-<div
-
-className="
-flex
-items-center
-gap-4
-"
-
->
-
-
-<div
-
-className="
-flex
-h-11
-w-11
-items-center
-justify-center
-rounded-full
-bg-[#C8A44D]/20
-text-[#C8A44D]
-"
-
->
-
-<Icon size={20}/>
-
-</div>
-
-
-
-
-
-
-<div>
-
-<p
-
-className="
-text-sm
-font-medium
-text-white
-"
-
->
-
-{item.title}
-
-</p>
-
-
-<p
-
-className="
-mt-1
-text-xs
-text-neutral-400
-"
-
->
-
-{item.description}
-
-</p>
-
-
-</div>
-
-
-
-</div>
-
-
-
-
-
-
-<ChevronRight
-
-size={18}
-
-className="
-text-neutral-500
-transition
-group-hover:text-[#C8A44D]
-"
-
-/>
-
-
-
-
-
-</button>
-
-)
-
-
-})
-
-}
-
-
-
-</div>
-
-
-
-
-
-
-
-
-
-<button
-
-onClick={()=>setShowLogout(true)}
-
-className="
-mt-5
-flex
-min-h-[50px]
-w-full
-items-center
-justify-center
-gap-2
-rounded-xl
-border
-border-red-500/30
-text-sm
-text-red-400
-transition
-hover:bg-red-500/10
-"
-
->
-
-<LogOut size={18}/>
-
-Logout
-
-</button>
-
-
-
-
-
-
-
-</div>
-
-
-
-
-
-
-
-
-
-<LogoutConfirmDialog
-
-open={showLogout}
-
-loading={loggingOut}
-
-onClose={()=>setShowLogout(false)}
-
-onConfirm={handleLogout}
-
-/>
-<NotificationsDialog
-
-open={showNotifications}
-
-onClose={()=>setShowNotifications(false)}
-
-/>
-
-
-
-<ContactSupportDialog
-
-open={showSupport}
-
-onClose={()=>setShowSupport(false)}
-
-/>
-
-
-
-
-
-</>
-
-);
+  );
 
 }
