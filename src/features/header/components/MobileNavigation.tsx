@@ -1,7 +1,6 @@
 import {
   Link,
   NavLink,
-  useNavigate,
 } from "react-router-dom";
 
 import {
@@ -55,23 +54,13 @@ export default function MobileNavigation({
 
   /*
    * =========================================================
-   * NAVIGATION
-   * =========================================================
-   */
-
-  const navigate =
-    useNavigate();
-
-
-  /*
-   * =========================================================
    * SHOP CATEGORIES
    * =========================================================
    *
    * Uses the same shop category source as desktop.
    *
-   * Only active categories and subcategories with products
-   * are returned by the shop category hook.
+   * Only active categories and subcategories with active
+   * products are returned.
    *
    * =========================================================
    */
@@ -85,10 +74,6 @@ export default function MobileNavigation({
    * =========================================================
    * EXPANDED CATEGORY
    * =========================================================
-   *
-   * Only one category stays open at a time.
-   *
-   * =========================================================
    */
 
   const [
@@ -101,7 +86,7 @@ export default function MobileNavigation({
 
   /*
    * =========================================================
-   * AUTH
+   * AUTH DIALOG
    * =========================================================
    */
 
@@ -117,12 +102,14 @@ export default function MobileNavigation({
    *
    * IMPORTANT:
    *
-   * 1. Run the existing logout function.
-   * 2. Close the mobile drawer.
-   * 3. Navigate away from /account.
+   * We deliberately use window.location.replace("/")
+   * after logout.
    *
-   * This prevents the logged-out customer from remaining
-   * on the Account page with an empty customer state.
+   * This guarantees that the current /account page is
+   * completely replaced by the homepage.
+   *
+   * It also prevents the logged-out AccountPage from
+   * remaining mounted with an empty customer state.
    *
    * =========================================================
    */
@@ -133,20 +120,33 @@ export default function MobileNavigation({
 
       await onLogout();
 
+    } catch (error) {
+
+      console.error(
+        "Logout error:",
+        error
+      );
+
     } finally {
 
       /*
-       * Close the drawer.
+       * Close the mobile drawer.
        */
 
       onClose();
 
 
       /*
-       * Always return to the homepage after logout.
+       * Leave the Account page completely.
+       *
+       * replace() prevents the logged-out /account page
+       * from remaining in browser history as the current
+       * page.
        */
 
-      navigate("/");
+      window.location.replace(
+        "/"
+      );
 
     }
 
@@ -287,6 +287,9 @@ export default function MobileNavigation({
                   text-sm
                   font-medium
                   text-black
+                  transition
+                  hover:bg-black
+                  hover:text-white
                 "
               >
 
@@ -693,9 +696,7 @@ export default function MobileNavigation({
 
                                 /*
                                  * Use slug when available.
-                                 *
-                                 * If slug is unavailable,
-                                 * use the database ID.
+                                 * Otherwise use database ID.
                                  */
 
                                 const subcategoryValue =
@@ -705,8 +706,8 @@ export default function MobileNavigation({
 
                                 /*
                                  * Keep URL as a single-line
-                                 * string so no whitespace
-                                 * becomes %20.
+                                 * string so spaces/newlines
+                                 * never become %20.
                                  */
 
                                 const subcategoryUrl =
