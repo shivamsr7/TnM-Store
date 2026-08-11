@@ -4,351 +4,301 @@ import { motion } from "framer-motion";
 import { useCategories } from "../hooks/useCategories";
 
 
-export default function HangingCategories(){
+export default function HangingCategories() {
 
+  const {
+    data: categories,
+    isLoading,
+  } = useCategories();
 
-const {
-  data:categories,
-  isLoading,
-}=useCategories();
 
+  /*
+   * =========================================================
+   * LOADING / EMPTY STATE
+   * =========================================================
+   */
 
+  if (
+    isLoading ||
+    !categories?.length
+  ) {
 
-if(isLoading || !categories?.length){
+    return null;
 
-return null;
+  }
 
-}
 
+  /*
+   * =========================================================
+   * DISPLAY CATEGORIES
+   * =========================================================
+   *
+   * Keep the existing limit of 6 categories.
+   *
+   * =========================================================
+   */
 
+  const displayCategories =
+    categories.slice(0, 6);
 
-const displayCategories =
-categories.slice(0,6);
 
+  /*
+   * =========================================================
+   * RENDER
+   * =========================================================
+   */
 
+  return (
 
+    <section
+      className="
+        bg-black
+        px-5
+        pb-16
+        pt-16
 
+        md:px-10
+      "
+    >
 
-return (
+      {/* =====================================================
+          HEADING
+      ====================================================== */}
 
-<section
+      <div
+        className="
+          mb-12
+          text-center
+        "
+      >
 
-className="
-bg-black
+        <h2
+          className="
+            bg-gradient-to-r
+            from-[#b8860b]
+            via-[#f5d77a]
+            to-[#b8860b]
 
-px-5
-pb-16
-pt-16
+            bg-clip-text
 
-md:px-10
-"
+            text-3xl
+            font-semibold
+            tracking-wide
+            text-transparent
 
->
+            md:text-5xl
+          "
+        >
 
+          Explore Our Collection
 
+        </h2>
 
 
+        <p
+          className="
+            mt-3
+            text-neutral-400
 
-{/* Heading */}
+            md:text-base
+          "
+        >
 
-<div
+          Discover jewellery crafted to make every moment special
+
+        </p>
+
+      </div>
+
+
+      {/* =====================================================
+          CATEGORY CIRCLES
+      ====================================================== */}
+
+      <div
+        className="
+          mx-auto
+          grid
+          w-full
+          max-w-7xl
+
+          grid-cols-3
+
+          gap-x-4
+          gap-y-10
+
+          md:flex
+          md:justify-between
+          md:gap-3
+        "
+      >
 
-className="
-mb-12
-text-center
-"
+        {displayCategories.map(
+          (
+            category,
+            index
+          ) => (
 
->
+            <motion.div
+              key={
+                category.id
+              }
+
+              animate={{
+                y:
+                  typeof window !== "undefined" &&
+                  window.innerWidth < 768
 
+                    ? [0, -8, 0]
+
+                    : 0,
+              }}
+
+              transition={{
+                duration: 4,
 
-<h2
+                repeat:
+                  typeof window !== "undefined" &&
+                  window.innerWidth < 768
 
-className="
-text-3xl
-font-semibold
-tracking-wide
+                    ? Infinity
 
-md:text-5xl
+                    : 0,
 
-bg-gradient-to-r
-from-[#b8860b]
-via-[#f5d77a]
-to-[#b8860b]
+                ease: "easeInOut",
 
-bg-clip-text
-text-transparent
+                delay:
+                  index * 0.3,
+              }}
 
-"
+              className="
+                flex
+                flex-col
+                items-center
+              "
+            >
+
+              {/* =================================================
+                  CATEGORY LINK
+              ================================================== */}
+
+              <Link
 
->
+                /*
+                 * IMPORTANT:
+                 *
+                 * Categories now open directly on the Shop page.
+                 *
+                 * Example:
+                 *
+                 * /shop?category=rings
+                 *
+                 * This allows the Shop page to automatically apply
+                 * the category filter and show only that category's
+                 * products.
+                 */
 
-Explore Our Collection
+                to={
+                  `/shop?category=${category.slug}`
+                }
 
-</h2>
+                className="
+                  group
+                  flex
+                  flex-col
+                  items-center
+                "
+              >
 
+                {/* =============================================
+                    CATEGORY IMAGE
+                ============================================== */}
 
+                <div
+                  className="
+                    relative
 
+                    h-28
+                    w-28
 
-<p
+                    overflow-hidden
+                    rounded-full
 
-className="
-mt-3
-text-neutral-400
+                    border
+                    border-[#C8A44D]/60
 
-md:text-base
+                    transition-all
+                    duration-500
 
-"
+                    group-hover:scale-105
+                    group-hover:border-[#C8A44D]
 
->
+                    md:h-[clamp(80px,12vw,150px)]
+                    md:w-[clamp(80px,12vw,150px)]
+                  "
+                >
 
-Discover jewellery crafted to make every moment special
+                  <img
+                    src={
+                      category.image_url ??
+                      "/placeholder-category.png"
+                    }
 
-</p>
+                    alt={
+                      category.name
+                    }
 
+                    className="
+                      h-full
+                      w-full
+                      object-cover
 
+                      transition-transform
+                      duration-500
 
-</div>
+                      group-hover:scale-110
+                    "
+                  />
 
+                </div>
 
 
+                {/* =============================================
+                    CATEGORY NAME
+                ============================================== */}
 
+                <p
+                  className="
+                    mt-4
 
+                    text-center
+                    text-xs
+                    font-medium
+                    uppercase
+                    tracking-wider
+                    text-white
 
+                    md:text-sm
+                  "
+                >
 
-{/* Category Circles */}
+                  {
+                    category.name
+                  }
 
-<div
+                </p>
 
-className="
-mx-auto
+              </Link>
 
-grid
+            </motion.div>
 
-w-full
+          )
+        )}
 
-max-w-7xl
+      </div>
 
-grid-cols-3
+    </section>
 
-gap-x-4
-
-gap-y-10
-
-
-md:flex
-
-md:justify-between
-
-md:gap-3
-
-"
-
->
-
-
-{
-
-displayCategories.map(
-
-(category,index)=>(
-
-
-<motion.div
-
-key={category.id}
-
-animate={{
-
-y:
-
-typeof window !== "undefined" && window.innerWidth < 768
-
-?
-
-[0,-8,0]
-
-:
-
-0
-
-}}
-
-transition={{
-
-duration:4,
-
-repeat:
-
-typeof window !== "undefined" && window.innerWidth < 768
-
-?
-
-Infinity
-
-:
-
-0,
-
-ease:"easeInOut",
-
-delay:index * 0.3
-
-}}
-
-className="
-flex
-
-flex-col
-
-items-center
-
-"
-
->
-
-
-<Link
-
-to={`/category/${category.slug}`}
-
-className="
-group
-
-flex
-
-flex-col
-
-items-center
-
-"
-
->
-
-
-
-<div
-
-className="
-relative
-
-h-28
-
-w-28
-
-overflow-hidden
-
-rounded-full
-
-border
-
-border-[#C8A44D]/60
-
-transition-all
-
-duration-500
-
-group-hover:scale-105
-
-group-hover:border-[#C8A44D]
-
-
-md:h-[clamp(80px,12vw,150px)]
-
-md:w-[clamp(80px,12vw,150px)]
-
-"
-
->
-
-
-<img
-
-src={
-category.image_url ??
-"/placeholder-category.png"
-}
-
-alt={category.name}
-
-className="
-h-full
-
-w-full
-
-object-cover
-
-transition-transform
-
-duration-500
-
-group-hover:scale-110
-
-"
-
-/>
-
-
-
-</div>
-
-
-
-
-
-
-
-<p
-
-className="
-mt-4
-
-text-center
-
-text-xs
-
-font-medium
-
-uppercase
-
-tracking-wider
-
-text-white
-
-
-md:text-sm
-
-"
-
->
-
-{category.name}
-
-</p>
-
-
-
-</Link>
-
-
-</motion.div>
-
-
-))
-
-}
-
-
-
-</div>
-
-
-
-
-
-
-
-</section>
-
-);
+  );
 
 }
