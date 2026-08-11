@@ -5,9 +5,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+
 import AddAddressDialog from "./AddAddressDialog";
 import EditAddressDialog from "./EditAddressDialog";
 import DeleteAddressDialog from "./DeleteAddressDialog";
+
 
 import {
   X,
@@ -18,21 +20,26 @@ import {
   MapPin,
 } from "lucide-react";
 
+
 import {
   useState,
 } from "react";
 
+
 import {
-  useCurrentCustomer,
-} from "@/features/customers/hooks/useCurrentCustomer";
+  useAuth,
+} from "@/features/Auth/context/AuthContext";
+
 
 import {
   useCustomerAddresses,
 } from "@/features/customers/hooks/useCustomerAddresses";
 
+
 import {
   useCustomerAddressMutations,
 } from "@/features/customers/hooks/useCustomerAddressMutations";
+
 
 import {
   toast,
@@ -59,36 +66,37 @@ export default function SavedAddressesDialog({
 
   /*
    * =========================================================
-   * CURRENT CUSTOMER
+   * AUTH CUSTOMER
+   * =========================================================
+   *
+   * IMPORTANT:
+   *
+   * AccountDashboard already uses AuthContext.
+   *
+   * We use the SAME customer source here so desktop and
+   * mobile always use the same customer ID.
+   *
    * =========================================================
    */
 
   const {
-    data: customer,
-  } = useCurrentCustomer();
+    customer,
+  } = useAuth();
 
 
   /*
    * =========================================================
    * CUSTOMER ID
    * =========================================================
-   *
-   * Keep the ID in one place.
-   *
-   * When Zustand hydration finishes and the customer becomes
-   * available, React Query receives the ID and automatically
-   * fetches the addresses.
-   *
-   * =========================================================
    */
 
   const customerId =
-    customer?.id ?? null;
+    customer?.id ?? undefined;
 
 
   /*
    * =========================================================
-   * ADDRESSES
+   * SAVED ADDRESSES
    * =========================================================
    */
 
@@ -98,7 +106,7 @@ export default function SavedAddressesDialog({
     isFetching,
     refetch,
   } = useCustomerAddresses(
-    customerId ?? undefined
+    customerId
   );
 
 
@@ -113,7 +121,7 @@ export default function SavedAddressesDialog({
     defaultMutation,
   } =
     useCustomerAddressMutations(
-      customerId ?? undefined
+      customerId
     );
 
 
@@ -155,7 +163,7 @@ export default function SavedAddressesDialog({
 
   /*
    * =========================================================
-   * DEFAULT ADDRESS
+   * SET DEFAULT
    * =========================================================
    */
 
@@ -166,7 +174,7 @@ export default function SavedAddressesDialog({
     if (!customerId) {
 
       toast.error(
-        "Customer information is not available yet."
+        "Customer information is not available."
       );
 
       return;
@@ -188,11 +196,6 @@ export default function SavedAddressesDialog({
             "Default address updated"
           );
 
-
-          /*
-           * Refresh addresses immediately so the
-           * new default state is visible.
-           */
 
           await refetch();
 
@@ -221,7 +224,9 @@ export default function SavedAddressesDialog({
 
   function handleDelete() {
 
-    if (!deleteAddressId) {
+    if (
+      !deleteAddressId
+    ) {
 
       return;
 
@@ -231,7 +236,7 @@ export default function SavedAddressesDialog({
     if (!customerId) {
 
       toast.error(
-        "Customer information is not available yet."
+        "Customer information is not available."
       );
 
       return;
@@ -261,10 +266,6 @@ export default function SavedAddressesDialog({
           );
 
 
-          /*
-           * Refresh the address list.
-           */
-
           await refetch();
 
         },
@@ -286,7 +287,7 @@ export default function SavedAddressesDialog({
 
   /*
    * =========================================================
-   * ADD ADDRESS SUCCESS
+   * ADD SUCCESS
    * =========================================================
    */
 
@@ -302,10 +303,6 @@ export default function SavedAddressesDialog({
     );
 
 
-    /*
-     * Fetch the newly added address.
-     */
-
     refetch();
 
   }
@@ -313,7 +310,7 @@ export default function SavedAddressesDialog({
 
   /*
    * =========================================================
-   * UPDATE ADDRESS SUCCESS
+   * EDIT SUCCESS
    * =========================================================
    */
 
@@ -332,10 +329,6 @@ export default function SavedAddressesDialog({
       null
     );
 
-
-    /*
-     * Refresh the list.
-     */
 
     refetch();
 
@@ -380,23 +373,20 @@ export default function SavedAddressesDialog({
   }
 
 
-  /*
-   * =========================================================
-   * RENDER
-   * =========================================================
-   */
-
   return (
 
     <>
 
+
       {/* =====================================================
-          SAVED ADDRESSES
+          SAVED ADDRESSES DIALOG
       ====================================================== */}
 
       <Dialog
 
-        open={open}
+        open={
+          open
+        }
 
         onOpenChange={(value) => {
 
@@ -428,6 +418,7 @@ export default function SavedAddressesDialog({
           "
 
         >
+
 
           {/* =================================================
               HEADER
@@ -512,8 +503,9 @@ export default function SavedAddressesDialog({
 
           >
 
+
             {/* =================================================
-                CUSTOMER NOT READY
+                CUSTOMER LOADING
             ================================================== */}
 
             {!customerId && (
@@ -574,7 +566,7 @@ export default function SavedAddressesDialog({
 
 
             {/* =================================================
-                LOADING
+                ADDRESS LOADING
             ================================================== */}
 
             {customerId &&
@@ -600,7 +592,7 @@ export default function SavedAddressesDialog({
 
 
             {/* =================================================
-                EMPTY
+                NO ADDRESSES
             ================================================== */}
 
             {customerId &&
@@ -664,7 +656,7 @@ export default function SavedAddressesDialog({
 
 
             {/* =================================================
-                ADDRESS LIST
+                ADDRESSES
             ================================================== */}
 
             {customerId &&
@@ -697,8 +689,9 @@ export default function SavedAddressesDialog({
 
                     >
 
+
                       {/* =======================================
-                          ADDRESS HEADER
+                          ADDRESS INFO
                       ======================================== */}
 
                       <div
@@ -729,7 +722,6 @@ export default function SavedAddressesDialog({
                               className="
                                 font-semibold
                                 capitalize
-                                text-neutral-900
                               "
 
                             >
@@ -770,16 +762,11 @@ export default function SavedAddressesDialog({
                           </div>
 
 
-                          {/* =================================
-                              NAME
-                          ================================== */}
-
                           <p
 
                             className="
                               mt-3
                               font-medium
-                              text-neutral-900
                             "
 
                           >
@@ -788,10 +775,6 @@ export default function SavedAddressesDialog({
 
                           </p>
 
-
-                          {/* =================================
-                              PHONE
-                          ================================== */}
 
                           <p
 
@@ -807,10 +790,6 @@ export default function SavedAddressesDialog({
 
                           </p>
 
-
-                          {/* =================================
-                              ADDRESS
-                          ================================== */}
 
                           <p
 
@@ -839,15 +818,12 @@ export default function SavedAddressesDialog({
 
                             )}
 
-
                             {address.city},{" "}
-
                             {address.state}
 
                             <br />
 
                             {address.postal_code},{" "}
-
                             {address.country}
 
                           </p>
@@ -881,8 +857,6 @@ export default function SavedAddressesDialog({
                             gap-4
                           "
                         >
-
-                          {/* Edit */}
 
                           <button
 
@@ -919,8 +893,6 @@ export default function SavedAddressesDialog({
 
                           </button>
 
-
-                          {/* Delete */}
 
                           <button
 
@@ -960,8 +932,6 @@ export default function SavedAddressesDialog({
                         </div>
 
 
-                        {/* Set Default */}
-
                         {!address.is_default && (
 
                           <button
@@ -982,7 +952,6 @@ export default function SavedAddressesDialog({
                               text-sm
                               text-[#9A7A22]
                               hover:underline
-                              disabled:cursor-not-allowed
                               disabled:opacity-50
                             "
 
@@ -1053,7 +1022,7 @@ export default function SavedAddressesDialog({
 
 
       {/* =====================================================
-          ADD ADDRESS DIALOG
+          ADD ADDRESS
       ====================================================== */}
 
       <AddAddressDialog
@@ -1076,7 +1045,7 @@ export default function SavedAddressesDialog({
 
 
       {/* =====================================================
-          EDIT ADDRESS DIALOG
+          EDIT ADDRESS
       ====================================================== */}
 
       <EditAddressDialog
@@ -1101,7 +1070,7 @@ export default function SavedAddressesDialog({
 
 
       {/* =====================================================
-          DELETE ADDRESS DIALOG
+          DELETE ADDRESS
       ====================================================== */}
 
       <DeleteAddressDialog
