@@ -19,12 +19,31 @@ import {
 } from "@/features/wishlist/hooks/useWishlist";
 
 
-export default function Header() {
+interface HeaderProps {
+
+  mobileOpen: boolean;
+
+  onMobileMenuOpen: () => void;
+
+  onMobileMenuClose: () => void;
+
+}
+
+
+export default function Header({
+
+  mobileOpen,
+
+  onMobileMenuOpen,
+
+  onMobileMenuClose,
+
+}: HeaderProps) {
 
 
   /*
    * =========================================================
-   * State
+   * SEARCH
    * =========================================================
    */
 
@@ -34,15 +53,9 @@ export default function Header() {
   ] = useState("");
 
 
-  const [
-    mobileOpen,
-    setMobileOpen,
-  ] = useState(false);
-
-
   /*
    * =========================================================
-   * Auth
+   * AUTH
    * =========================================================
    */
 
@@ -54,14 +67,7 @@ export default function Header() {
 
   /*
    * =========================================================
-   * Wishlist
-   * =========================================================
-   *
-   * We use the SAME wishlist query used by Wishlist.tsx.
-   *
-   * React Query keeps this data in sync when the wishlist
-   * mutation invalidates/refetches the wishlist query.
-   *
+   * WISHLIST
    * =========================================================
    */
 
@@ -76,7 +82,7 @@ export default function Header() {
 
   /*
    * =========================================================
-   * Search
+   * SEARCH
    * =========================================================
    */
 
@@ -87,15 +93,12 @@ export default function Header() {
       search
     );
 
-    // Later:
-    // navigate(`/shop?search=${search}`);
-
   };
 
 
   /*
    * =========================================================
-   * Header
+   * RENDER
    * =========================================================
    */
 
@@ -111,14 +114,14 @@ export default function Header() {
     >
 
       {/* ===================================================
-          Announcement Bar
+          ANNOUNCEMENT BAR
       ==================================================== */}
 
       <AnnouncementBar />
 
 
       {/* ===================================================
-          Desktop Header
+          DESKTOP HEADER
       ==================================================== */}
 
       <div
@@ -159,7 +162,7 @@ export default function Header() {
 
 
       {/* ===================================================
-          Mobile Header
+          MOBILE HEADER
       ==================================================== */}
 
       <div
@@ -170,10 +173,8 @@ export default function Header() {
 
         <MobileHeader
 
-          onMenuOpen={() =>
-            setMobileOpen(
-              true
-            )
+          onMenuOpen={
+            onMobileMenuOpen
           }
 
           search={
@@ -196,7 +197,7 @@ export default function Header() {
 
 
         {/* =================================================
-            Mobile Drawer
+            MOBILE DRAWER
         ================================================== */}
 
         <MobileDrawer
@@ -205,20 +206,16 @@ export default function Header() {
             mobileOpen
           }
 
-          onClose={() =>
-            setMobileOpen(
-              false
-            )
+          onClose={
+            onMobileMenuClose
           }
 
         >
 
           <MobileNavigation
 
-            onClose={() =>
-              setMobileOpen(
-                false
-              )
+            onClose={
+              onMobileMenuClose
             }
 
             customer={
@@ -238,4 +235,5 @@ export default function Header() {
     </header>
 
   );
+
 }

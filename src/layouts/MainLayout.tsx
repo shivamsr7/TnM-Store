@@ -2,6 +2,10 @@ import {
   Outlet,
 } from "react-router-dom";
 
+import {
+  useState,
+} from "react";
+
 import Header from "@/features/header/components/Header";
 
 import Footer from "@/shared/components/footer/Footer";
@@ -15,21 +19,76 @@ import MobileBottomNav from "@/features/header/components/MobileBottomNav";
 
 export default function MainLayout() {
 
+
+  /*
+   * =========================================================
+   * MOBILE DRAWER STATE
+   * =========================================================
+   *
+   * Shared by:
+   *
+   * • Hamburger menu
+   * • Bottom Account button
+   *
+   * Both open the SAME MobileDrawer.
+   *
+   * =========================================================
+   */
+
+  const [
+    mobileOpen,
+    setMobileOpen,
+  ] = useState(false);
+
+
+  function openMobileMenu() {
+
+    setMobileOpen(
+      true
+    );
+
+  }
+
+
+  function closeMobileMenu() {
+
+    setMobileOpen(
+      false
+    );
+
+  }
+
+
   return (
 
     <>
 
       <CartDrawer />
 
-      <Header />
+
+      {/* =================================================
+          HEADER
+      ================================================== */}
+
+      <Header
+
+        mobileOpen={
+          mobileOpen
+        }
+
+        onMobileMenuOpen={
+          openMobileMenu
+        }
+
+        onMobileMenuClose={
+          closeMobileMenu
+        }
+
+      />
 
 
       {/* =================================================
           MAIN CUSTOMER CONTENT
-          
-          Extra bottom padding is only for mobile so the
-          fixed MobileBottomNav does not cover the last
-          part of the page.
       ================================================== */}
 
       <div
@@ -46,17 +105,24 @@ export default function MainLayout() {
       </div>
 
 
+      {/* =================================================
+          SCROLL TO TOP
+      ================================================== */}
+
       <ScrollToTopButton />
 
 
       {/* =================================================
           MOBILE BOTTOM NAVIGATION
-          
-          Component itself is hidden on desktop using
-          lg:hidden.
       ================================================== */}
 
-      <MobileBottomNav />
+      <MobileBottomNav
+
+        onAccountClick={
+          openMobileMenu
+        }
+
+      />
 
     </>
 
