@@ -3,7 +3,6 @@ import {
   Route,
 } from "react-router-dom";
 
-
 import App from "@/App";
 
 import ScrollToTop from "@/shared/components/ScrollToTop";
@@ -32,205 +31,126 @@ import NotificationsPage from "@/features/notifications/pages/NotificationsPage"
 import Wishlist from "@/features/wishlist/pages/Wishlist";
 
 
+export default function AppRouter() {
 
-export default function AppRouter(){
+  return (
 
+    <>
 
-return (
+      <ScrollToTop />
 
-<>
 
-<ScrollToTop />
+      <Routes>
 
+        {/* =====================================================
+            MAIN WEBSITE LAYOUT
+        ====================================================== */}
 
-<Routes>
+        <Route element={<MainLayout />}>
 
+          {/* Home */}
 
+          <Route
+            path="/"
+            element={<App />}
+          />
 
 
+          {/* Static Pages */}
 
-{/* Main Website Layout */}
+          <Route
+            path="/about-us"
+            element={<AboutUs />}
+          />
 
-<Route element={<MainLayout />}>
+          <Route
+            path="/contact-us"
+            element={<ContactUs />}
+          />
 
+          <Route
+            path="/faq"
+            element={<FAQ />}
+          />
 
+          <Route
+            path="/jewellery-care"
+            element={<JewelleryCare />}
+          />
 
-{/* Home */}
+          <Route
+            path="/shipping"
+            element={<ShippingDelivery />}
+          />
 
-<Route
+          <Route
+            path="/returns"
+            element={<ReturnsExchange />}
+          />
 
-path="/"
+          <Route
+            path="/privacy-policy"
+            element={<PrivacyPolicy />}
+          />
 
-element={<App />}
+          <Route
+            path="/terms"
+            element={<TermsConditions />}
+          />
 
-/>
 
+          {/* Wishlist */}
 
+          <Route
+            path="/wishlist"
+            element={<Wishlist />}
+          />
 
 
+          {/* Shop */}
 
-{/* Static Pages */}
+          <Route
+            path="/shop"
+            element={<Shop />}
+          />
 
-<Route
 
-path="/about-us"
+          <Route
+            path="/product/:slug"
+            element={<ProductDetails />}
+          />
 
-element={<AboutUs />}
 
-/>
+          {/* =================================================
+              ACCOUNT
+          ================================================== */}
 
+          <Route
+            path="/account"
+            element={<AccountPage />}
+          />
 
-<Route
+          <Route
+            path="/account/orders"
+            element={<MyOrders />}
+          />
 
-path="/contact-us"
+          <Route
+            path="/account/orders/:id"
+            element={<OrderDetails />}
+          />
 
-element={<ContactUs />}
+          <Route
+            path="/account/notifications"
+            element={<NotificationsPage />}
+          />
 
-/>
+        </Route>
 
+      </Routes>
 
-<Route
+    </>
 
-path="/faq"
-
-element={<FAQ />}
-
-/>
-
-
-<Route
-
-path="/jewellery-care"
-
-element={<JewelleryCare />}
-
-/>
-
-
-<Route
-
-path="/shipping"
-
-element={<ShippingDelivery />}
-
-/>
-
-
-<Route
-
-path="/returns"
-
-element={<ReturnsExchange />}
-
-/>
-
-
-<Route
-
-path="/privacy-policy"
-
-element={<PrivacyPolicy />}
-
-/>
-
-
-<Route
-
-path="/terms"
-
-element={<TermsConditions />}
-
-/>
-
-<Route
-  path="/wishlist"
-  element={<Wishlist />}
-/>
-
-
-
-{/* Shop */}
-
-<Route
-
-path="/shop"
-
-element={<Shop />}
-
-/>
-
-
-<Route
-
-path="/product/:slug"
-
-element={<ProductDetails />}
-
-/>
-
-
-
-</Route>
-
-
-
-
-
-
-
-
-
-{/* Account */}
-
-<Route
-
-path="/account"
-
-element={<AccountPage />}
-
-/>
-
-
-
-
-
-<Route
-
-path="/account/orders"
-
-element={<MyOrders />}
-
-/>
-
-
-<Route
-
-path="/account/orders/:id"
-
-element={<OrderDetails />}
-
-/>
-
-
-<Route
-
-path="/account/notifications"
-
-element={<NotificationsPage />}
-
-/>
-
-
-
-
-
-
-
-</Routes>
-
-
-</>
-
-);
+  );
 
 }
