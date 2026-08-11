@@ -13,9 +13,16 @@ import {
   useCartStore,
 } from "@/features/cart/store/cart.store";
 
+import {
+  useAuth,
+} from "@/features/Auth/context/AuthContext";
+
+import {
+  useAuthDialog,
+} from "@/features/Auth/context/AuthDialogContext";
+
 
 export default function MobileBottomNav() {
-
 
   /*
    * =========================================================
@@ -25,6 +32,22 @@ export default function MobileBottomNav() {
 
   const navigate =
     useNavigate();
+
+
+  /*
+   * =========================================================
+   * AUTH
+   * =========================================================
+   */
+
+  const {
+    customer,
+  } = useAuth();
+
+
+  const {
+    openAuth,
+  } = useAuthDialog();
 
 
   /*
@@ -44,18 +67,36 @@ export default function MobileBottomNav() {
    * ACCOUNT
    * =========================================================
    *
-   * Account opens the actual Account page.
+   * Logged in:
+   *     /account
    *
-   * It does NOT open MobileDrawer.
+   * Logged out:
+   *     Login / Register dialog
    *
    * =========================================================
    */
 
   function handleAccountClick() {
 
-    navigate(
-      "/account"
-    );
+    if (customer) {
+
+      navigate(
+        "/account"
+      );
+
+      return;
+
+    }
+
+
+    /*
+     * Customer is logged out.
+     *
+     * Do NOT navigate to /account.
+     * Open the existing authentication dialog.
+     */
+
+    openAuth();
 
   }
 
@@ -133,7 +174,6 @@ export default function MobileBottomNav() {
 
               <Home
                 size={21}
-
                 strokeWidth={
                   isActive
                     ? 2.2
@@ -185,7 +225,6 @@ export default function MobileBottomNav() {
 
               <ShoppingBag
                 size={21}
-
                 strokeWidth={
                   isActive
                     ? 2.2
@@ -215,7 +254,7 @@ export default function MobileBottomNav() {
             handleAccountClick
           }
 
-          aria-label="Open account page"
+          aria-label="Account"
 
           className="
             flex
@@ -226,11 +265,8 @@ export default function MobileBottomNav() {
 
             text-[10px]
             font-medium
-            text-neutral-400
 
             transition-colors
-
-            hover:text-[#C8A44D]
 
             active:scale-95
           "
@@ -238,11 +274,30 @@ export default function MobileBottomNav() {
 
           <UserRound
             size={21}
-            strokeWidth={1.8}
+
+            strokeWidth={
+              customer
+                ? 2
+                : 1.8
+            }
+
+            className={
+              customer
+                ? "text-[#C8A44D]"
+                : "text-neutral-400"
+            }
           />
 
-          <span>
+          <span
+            className={
+              customer
+                ? "text-[#C8A44D]"
+                : "text-neutral-400"
+            }
+          >
+
             Account
+
           </span>
 
         </button>
@@ -259,7 +314,7 @@ export default function MobileBottomNav() {
             openCart
           }
 
-          aria-label="Open cart"
+          aria-label="Cart"
 
           className="
             relative
