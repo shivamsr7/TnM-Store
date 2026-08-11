@@ -622,50 +622,25 @@ export default function DeliveryChecker({
 
 
               <input
-
-                value={
-                  pincode
-                }
-
-                onChange={(
-                  e
-                ) => {
-
-                  setPincode(
-
-                    e.target.value.replace(
-                      /\D/g,
-                      ""
-                    )
-
-                  );
-
-                }}
-
-                placeholder="
-                  Enter pincode
-                "
-
-                maxLength={
-                  6
-                }
-
-                inputMode="
-                  numeric
-                "
-
-                className="
-                  w-full
-                  bg-transparent
-                  py-4
-                  text-sm
-                  text-white
-                  outline-none
-                  placeholder:text-neutral-500
-                "
-
-              />
-
+  value={pincode}
+  onChange={(e) => {
+    setPincode(
+      e.target.value.replace(/\D/g, "")
+    );
+  }}
+  placeholder="Enter pincode"
+  maxLength={6}
+  inputMode="numeric"
+  className="
+    w-full
+    bg-transparent
+    py-4
+    text-sm
+    text-white
+    outline-none
+    placeholder:text-neutral-500
+  "
+/>
             </div>
 
 
