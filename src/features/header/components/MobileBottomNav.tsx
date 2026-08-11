@@ -6,115 +6,27 @@ import {
 
 import {
   NavLink,
-  useNavigate,
 } from "react-router-dom";
-
-import {
-  useAuth,
-} from "@/features/Auth/context/AuthContext";
-
-import {
-  useAuthDialog,
-} from "@/features/Auth/context/AuthDialogContext";
 
 import {
   useCartStore,
 } from "@/features/cart/store/cart.store";
 
 
-export default function MobileBottomNav() {
-
-  /*
-   * =========================================================
-   * NAVIGATION
-   * =========================================================
-   */
-
-  const navigate =
-    useNavigate();
+interface MobileBottomNavProps {
+  onAccountClick: () => void;
+}
 
 
-  /*
-   * =========================================================
-   * AUTH
-   * =========================================================
-   */
-
-  const {
-    customer,
-  } = useAuth();
-
-
-  const {
-    openAuth,
-  } = useAuthDialog();
-
-
-  /*
-   * =========================================================
-   * CART
-   * =========================================================
-   */
+export default function MobileBottomNav({
+  onAccountClick,
+}: MobileBottomNavProps) {
 
   const {
     openCart,
     getCartCount,
   } = useCartStore();
 
-
-  /*
-   * =========================================================
-   * ACCOUNT
-   * =========================================================
-   */
-
-  function handleAccountClick() {
-
-    /*
-     * Logged-in customer
-     * → Open existing Account page
-     * → Same browser tab
-     * → No full page reload
-     */
-
-    if (
-      customer
-    ) {
-
-      navigate(
-        "/account"
-      );
-
-      return;
-
-    }
-
-
-    /*
-     * Logged-out customer
-     * → Open existing login dialog
-     */
-
-    openAuth();
-
-  }
-
-
-  /*
-   * =========================================================
-   * CART COUNT
-   * =========================================================
-   */
-
-  const cartCount =
-    getCartCount();
-
-
-  /*
-   * =========================================================
-   * RENDER
-   * =========================================================
-   */
 
   return (
 
@@ -124,7 +36,7 @@ export default function MobileBottomNav() {
         bottom-0
         left-0
         right-0
-        z-[60]
+        z-50
 
         border-t
         border-neutral-200
@@ -142,7 +54,7 @@ export default function MobileBottomNav() {
       <div
         className="
           grid
-          h-16
+          min-h-16
           grid-cols-4
           items-stretch
         "
@@ -155,9 +67,7 @@ export default function MobileBottomNav() {
         <NavLink
           to="/"
 
-          className={({
-            isActive,
-          }) => `
+          className={({ isActive }) => `
             flex
             flex-col
             items-center
@@ -177,9 +87,7 @@ export default function MobileBottomNav() {
           `}
         >
 
-          {({
-            isActive,
-          }) => (
+          {({ isActive }) => (
 
             <>
 
@@ -210,9 +118,7 @@ export default function MobileBottomNav() {
         <NavLink
           to="/shop"
 
-          className={({
-            isActive,
-          }) => `
+          className={({ isActive }) => `
             flex
             flex-col
             items-center
@@ -232,9 +138,7 @@ export default function MobileBottomNav() {
           `}
         >
 
-          {({
-            isActive,
-          }) => (
+          {({ isActive }) => (
 
             <>
 
@@ -266,8 +170,10 @@ export default function MobileBottomNav() {
           type="button"
 
           onClick={
-            handleAccountClick
+            onAccountClick
           }
+
+          aria-label="Open account menu"
 
           className="
             flex
@@ -282,6 +188,7 @@ export default function MobileBottomNav() {
 
             transition-colors
             hover:text-[#C8A44D]
+            active:scale-95
           "
         >
 
@@ -308,6 +215,8 @@ export default function MobileBottomNav() {
             openCart
           }
 
+          aria-label="Open cart"
+
           className="
             relative
             flex
@@ -322,6 +231,7 @@ export default function MobileBottomNav() {
 
             transition-colors
             hover:text-[#C8A44D]
+            active:scale-95
           "
         >
 
@@ -337,7 +247,7 @@ export default function MobileBottomNav() {
             />
 
 
-            {cartCount > 0 && (
+            {getCartCount() > 0 && (
 
               <span
                 className="
@@ -364,9 +274,9 @@ export default function MobileBottomNav() {
               >
 
                 {
-                  cartCount > 99
+                  getCartCount() > 99
                     ? "99+"
-                    : cartCount
+                    : getCartCount()
                 }
 
               </span>
