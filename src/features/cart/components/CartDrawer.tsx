@@ -5,2636 +5,2188 @@ import {
   Plus,
 } from "lucide-react";
 
-
 import {
   useEffect,
-  useState
+  useState,
 } from "react";
 
-
 import {
-  validateCoupon
+  validateCoupon,
 } from "@/features/coupons/services/coupon.service";
 
-
 import {
-  useCartStore
+  useCartStore,
 } from "../store/cart.store";
-
 
 import CouponModal from "@/features/coupons/components/CouponModal";
 
-
 import {
-  useBestCoupon
+  useBestCoupon,
 } from "@/features/coupons/hooks/useBestCoupon";
 
-
 import {
-  useUnlockCoupon
+  useUnlockCoupon,
 } from "@/features/coupons/hooks/useUnlockCoupon";
-
 
 import CheckoutDialog from "@/features/checkout/components/CheckoutDialog";
 
 
+/*
+ * =========================================================
+ * CART OFFER THRESHOLDS
+ * =========================================================
+ */
 
 const FREE_GIFT_AMOUNT = 1000;
 
+const FREE_SHIPPING_AMOUNT = 2000;
 
 
+export default function CartDrawer() {
 
 
-export default function CartDrawer(){
+  /*
+   * =========================================================
+   * CART STORE
+   * =========================================================
+   */
 
+  const {
 
+    items,
 
-const {
+    isCartOpen,
 
-items,
+    closeCart,
 
-isCartOpen,
+    removeItem,
 
-closeCart,
+    updateQuantity,
 
-removeItem,
+    getTotal,
 
-updateQuantity,
+    applyCoupon,
 
-getTotal,
+    removeCoupon,
 
-applyCoupon,
+    appliedCoupon,
 
-removeCoupon,
+    discount,
 
-appliedCoupon,
+    getFinalTotal,
 
-discount,
+  } = useCartStore();
 
-getFinalTotal,
 
-}=useCartStore();
+  /*
+   * =========================================================
+   * TOTALS
+   * =========================================================
+   */
 
+  const total =
+    getTotal();
 
+  const finalTotal =
+    getFinalTotal();
 
 
+  /*
+   * =========================================================
+   * MOBILE BODY SCROLL LOCK
+   * =========================================================
+   */
 
-const total=getTotal();
+  useEffect(() => {
 
-const finalTotal=getFinalTotal();
+    if (isCartOpen) {
 
+      document.body.style.overflow =
+        "hidden";
 
+      document.body.style.position =
+        "fixed";
 
+      document.body.style.width =
+        "100%";
 
+    }
 
+    else {
 
+      document.body.style.overflow =
+        "";
 
-/*
- Mobile body scroll lock
-*/
+      document.body.style.position =
+        "";
 
-useEffect(()=>{
+      document.body.style.width =
+        "";
 
+    }
 
-if(isCartOpen){
 
+    return () => {
 
-document.body.style.overflow="hidden";
+      document.body.style.overflow =
+        "";
 
-document.body.style.position="fixed";
+      document.body.style.position =
+        "";
 
-document.body.style.width="100%";
+      document.body.style.width =
+        "";
 
+    };
 
-}
+  }, [
+    isCartOpen,
+  ]);
 
-else{
 
+  /*
+   * =========================================================
+   * BEST COUPON
+   * =========================================================
+   */
 
-document.body.style.overflow="";
+  const {
+    bestCoupon,
+  } = useBestCoupon(
+    total
+  );
 
-document.body.style.position="";
 
-document.body.style.width="";
+  /*
+   * =========================================================
+   * COUPON ERROR
+   * =========================================================
+   */
 
+  const {
+    couponErrorMessage,
+  } = useCartStore();
 
-}
 
+  /*
+   * =========================================================
+   * UNLOCK COUPON
+   * =========================================================
+   */
 
+  const {
 
-return ()=>{
+    unlockCoupon,
 
+    remainingAmount,
 
-document.body.style.overflow="";
+  } = useUnlockCoupon(
+    total
+  );
 
-document.body.style.position="";
 
-document.body.style.width="";
+  /*
+   * =========================================================
+   * LOCAL STATE
+   * =========================================================
+   */
 
+  const [
+    couponCode,
+    setCouponCode,
+  ] = useState("");
 
-};
 
+  const [
+    couponLoading,
+    setCouponLoading,
+  ] = useState(false);
 
-},[isCartOpen]);
 
+  const [
+    couponMessage,
+    setCouponMessage,
+  ] = useState("");
 
 
+  const [
+    couponError,
+    setCouponError,
+  ] = useState("");
 
 
+  const [
+    showCoupons,
+    setShowCoupons,
+  ] = useState(false);
 
 
-const {
-bestCoupon
-}=useBestCoupon(total);
+  const [
+    checkoutOpen,
+    setCheckoutOpen,
+  ] = useState(false);
 
 
+  /*
+   * =========================================================
+   * FREE GIFT PROGRESS
+   * =========================================================
+   */
 
+  const remaining =
+    Math.max(
+      FREE_GIFT_AMOUNT - total,
+      0
+    );
 
 
+  const progress =
+    Math.min(
+      (
+        total /
+        FREE_GIFT_AMOUNT
+      ) * 100,
+      100
+    );
 
-const {
 
-couponErrorMessage
+  /*
+   * =========================================================
+   * FREE SHIPPING PROGRESS
+   * =========================================================
+   */
 
-}=useCartStore();
+  const shippingRemaining =
+    Math.max(
+      FREE_SHIPPING_AMOUNT - total,
+      0
+    );
 
 
+  const shippingProgress =
+    Math.min(
+      (
+        total /
+        FREE_SHIPPING_AMOUNT
+      ) * 100,
+      100
+    );
 
 
+  const freeShippingUnlocked =
+    total >=
+    FREE_SHIPPING_AMOUNT;
 
 
-const {
+  /*
+   * =========================================================
+   * COUPON APPLY
+   * =========================================================
+   */
 
-unlockCoupon,
+  const handleApplyCoupon =
+    async () => {
 
-remainingAmount
+      if (
+        !couponCode.trim()
+      ) {
 
-}=useUnlockCoupon(total);
+        return;
 
+      }
 
 
+      try {
 
+        setCouponLoading(
+          true
+        );
 
+        setCouponError(
+          ""
+        );
 
+        setCouponMessage(
+          ""
+        );
 
-const [
 
-couponCode,
+        const result =
+          await validateCoupon(
+            couponCode,
+            total
+          );
 
-setCouponCode
 
-]=useState("");
+        applyCoupon({
 
+          id:
+            result.coupon.id,
 
+          code:
+            result.coupon.code,
 
+          title:
+            result.coupon.title,
 
+          discount:
+            result.discount,
 
-const [
+          freeShipping:
+            result.freeShipping,
 
-couponLoading,
+          freeGift:
+            result.freeGift,
 
-setCouponLoading
+          minimumOrderAmount:
+            result.coupon
+              .minimum_order_amount,
 
-]=useState(false);
+        });
 
 
+        setCouponMessage(
 
+          result.freeShipping
 
+            ? "🎉 Free shipping coupon applied!"
 
-const [
+            : result.freeGift
 
-couponMessage,
+              ? "🎁 Free gift coupon applied!"
 
-setCouponMessage
+              : `Coupon applied! You saved ₹${result.discount}`
 
-]=useState("");
+        );
 
+      }
 
+      catch (
+        error: any
+      ) {
 
+        setCouponError(
+          error.message ||
+          "Invalid coupon"
+        );
 
+      }
 
-const [
+      finally {
 
-couponError,
+        setCouponLoading(
+          false
+        );
 
-setCouponError
+      }
 
-]=useState("");
+    };
 
 
+  /*
+   * =========================================================
+   * RENDER
+   * =========================================================
+   */
 
+  return (
 
+    <>
 
-const [
 
-showCoupons,
+      {/* =====================================================
+          OVERLAY
+      ====================================================== */}
 
-setShowCoupons
+      <div
 
-]=useState(false);
+        onClick={
+          closeCart
+        }
 
+        className={`
 
+          fixed
+          inset-0
+          z-[999]
 
+          bg-black/40
 
+          transition-opacity
+          duration-300
 
-const [
+          ${
+            isCartOpen
+              ? "opacity-100"
+              : "pointer-events-none opacity-0"
+          }
 
-checkoutOpen,
+        `}
 
-setCheckoutOpen
+      />
 
-]=useState(false);
 
+      {/* =====================================================
+          DRAWER
+      ====================================================== */}
 
+      <div
 
+        className={`
 
+          fixed
+          right-0
+          top-0
+          z-[1000]
 
+          flex
+          h-[100dvh]
+          w-full
+          max-w-md
+          flex-col
 
+          bg-white
+          text-black
 
-const remaining=Math.max(
+          shadow-2xl
 
-FREE_GIFT_AMOUNT-total,
+          transition-transform
+          duration-300
+          ease-in-out
 
-0
+          ${
+            isCartOpen
+              ? "translate-x-0"
+              : "translate-x-full"
+          }
 
-);
+        `}
 
+      >
 
 
+        {/* ===================================================
+            HEADER
+        ==================================================== */}
 
+        <div
 
+          className="
 
+            flex
+            h-[76px]
+            shrink-0
 
-const progress=Math.min(
+            items-center
+            justify-between
 
-(total/FREE_GIFT_AMOUNT)*100,
+            border-b
+            bg-white
 
-100
+            px-4
 
-);
+            pt-[env(safe-area-inset-top)]
 
+          "
 
-const handleApplyCoupon = async()=>{
+        >
 
+          <h2
 
-if(!couponCode.trim())
+            className="
+              text-lg
+              font-semibold
+            "
 
-return;
+          >
 
+            Your Cart (
+            {items.length}
+            )
 
+          </h2>
 
-try{
 
+          <button
 
-setCouponLoading(true);
+            onClick={
+              closeCart
+            }
 
-setCouponError("");
+            className="
 
-setCouponMessage("");
+              flex
+              h-10
+              w-10
 
+              items-center
+              justify-center
 
+              rounded-full
 
+              transition
+              hover:bg-neutral-100
 
-const result = await validateCoupon(
+            "
 
-couponCode,
+          >
 
-total
+            <X
+              size={22}
+            />
 
-);
+          </button>
 
+        </div>
 
 
+        {/* ===================================================
+            SCROLL CONTENT
+        ==================================================== */}
 
+        <div
 
-applyCoupon({
+          className="
 
-id:result.coupon.id,
+            flex-1
 
-code:result.coupon.code,
+            overflow-y-auto
+            overscroll-contain
 
-title:result.coupon.title,
+            px-4
+            pb-5
+            pt-5
 
-discount:result.discount,
+          "
 
-freeShipping:result.freeShipping,
+        >
 
-freeGift:result.freeGift,
 
-minimumOrderAmount:
-result.coupon.minimum_order_amount
+          {/* =================================================
+              CART OFFERS
+          ================================================== */}
 
-});
+          {
+            items.length > 0 && (
 
+              <>
 
+                {/* ===========================================
+                    OFFER BANNER
+                ============================================ */}
 
+                <div
 
+                  className="
 
+                    rounded-2xl
 
+                    bg-black
 
-setCouponMessage(
+                    px-4
+                    py-4
 
-result.freeShipping
+                    text-center
+                    text-sm
+                    font-semibold
+                    text-white
 
-?
+                  "
 
-"🎉 Free shipping coupon applied!"
+                >
 
-:
+                  ✨ Buy 4 at ₹2999 | Use Code : MONSOON4
 
-result.freeGift
+                </div>
 
-?
 
-"🎁 Free gift coupon applied!"
+                {/* ===========================================
+                    FREE GIFT PROGRESS
+                ============================================ */}
 
-:
+                <div
+                  className="
+                    mt-6
+                  "
+                >
 
-`Coupon applied! You saved ₹${result.discount}`
+                  <p
+                    className="
+                      text-sm
+                      font-medium
+                    "
+                  >
 
-);
+                    {
+                      remaining > 0
 
+                        ? `Add ₹${remaining} more to unlock Free Gift`
 
+                        : "🎁 Free Gift unlocked"
+                    }
 
-}
+                  </p>
 
-catch(error:any){
 
+                  {
+                    remaining > 0 && (
 
-setCouponError(
+                      <div
 
-error.message || "Invalid coupon"
+                        className="
+                          mt-3
+                          h-2
+                          overflow-hidden
+                          rounded-full
+                          bg-neutral-200
+                        "
 
-);
+                      >
 
+                        <div
 
-}
+                          className="
+                            h-full
+                            bg-black
+                            transition-all
+                            duration-300
+                          "
 
-finally{
+                          style={{
+                            width:
+                              `${progress}%`,
+                          }}
 
+                        />
 
-setCouponLoading(false);
+                      </div>
 
+                    )
+                  }
 
-}
+                </div>
 
 
-};
+                {/* ===========================================
+                    FREE SHIPPING PROGRESS
+                ============================================ */}
 
+                <div
+                  className="
+                    mt-5
+                  "
+                >
 
+                  <p
+                    className="
+                      text-sm
+                      font-medium
+                    "
+                  >
 
+                    {
+                      freeShippingUnlocked
 
+                        ? "🚚 Free Shipping Unlocked"
 
+                        : `Add ₹${shippingRemaining} more to unlock Free Shipping`
+                    }
 
+                  </p>
 
 
+                  {
+                    !freeShippingUnlocked && (
 
-return (
+                      <div
 
-<>
+                        className="
+                          mt-3
+                          h-2
+                          overflow-hidden
+                          rounded-full
+                          bg-neutral-200
+                        "
 
+                      >
 
+                        <div
 
+                          className="
+                            h-full
+                            bg-black
+                            transition-all
+                            duration-300
+                          "
 
+                          style={{
+                            width:
+                              `${shippingProgress}%`,
+                          }}
 
-{/* Overlay */}
+                        />
 
-<div
+                      </div>
 
-onClick={closeCart}
+                    )
+                  }
 
-className={`
+                </div>
 
-fixed
+              </>
 
-inset-0
+            )
+          }
 
-z-[999]
 
-bg-black/40
+          {/* =================================================
+              EMPTY CART
+          ================================================== */}
 
-transition-opacity
+          {
+            items.length === 0
 
-duration-300
+              ? (
 
+                <div
 
-${
+                  className="
 
-isCartOpen
+                    mt-10
 
-?
+                    rounded-3xl
 
-"opacity-100"
+                    border
+                    border-neutral-200
 
-:
+                    bg-neutral-50
 
-"pointer-events-none opacity-0"
+                    px-5
+                    py-10
 
-}
+                    text-center
 
-`}
+                  "
 
-/>
+                >
 
+                  <div
 
+                    className="
 
+                      mx-auto
 
+                      flex
+                      h-16
+                      w-16
 
+                      items-center
+                      justify-center
 
+                      rounded-full
 
+                      bg-white
 
+                      text-3xl
 
-{/* Drawer */}
+                      shadow-sm
 
-<div
+                    "
 
-className={`
+                  >
 
-fixed
+                    🛍️
 
-right-0
+                  </div>
 
-top-0
 
-z-[1000]
+                  <h3
 
-flex
+                    className="
+                      mt-5
+                      text-lg
+                      font-semibold
+                    "
 
-h-[100dvh]
+                  >
 
-w-full
+                    Your cart is empty
 
-max-w-md
+                  </h3>
 
-flex-col
 
-bg-white
+                  <p
 
-text-black
+                    className="
+                      mt-2
+                      text-sm
+                      leading-relaxed
+                      text-neutral-500
+                    "
 
-shadow-2xl
+                  >
 
+                    Looks like you haven't added
+                    anything yet. Explore our
+                    jewellery collection and find
+                    your perfect piece.
 
-transition-transform
+                  </p>
 
-duration-300
 
-ease-in-out
+                  <button
 
+                    onClick={
+                      closeCart
+                    }
 
-${
+                    className="
 
-isCartOpen
+                      mt-5
 
-?
+                      rounded-xl
 
-"translate-x-0"
+                      bg-black
 
-:
+                      px-6
+                      py-3
 
-"translate-x-full"
+                      text-sm
+                      font-medium
+                      text-white
 
-}
+                    "
 
-`}
+                  >
 
->
+                    Continue Shopping
 
+                  </button>
 
+                </div>
 
+              )
 
+              : (
 
+                <div
 
+                  className="
+                    mt-6
+                    space-y-3
+                  "
 
+                >
 
+                  {
+                    items.map(
+                      item => (
 
-{/* Header */}
+                        <div
 
-<div
+                          key={
+                            item.id
+                          }
 
-className="
+                          className="
 
-flex
+                            rounded-2xl
 
-h-[76px]
+                            border
+                            border-neutral-200
 
-shrink-0
+                            p-3
 
-items-center
+                            sm:p-4
 
-justify-between
+                          "
 
-border-b
+                        >
 
-bg-white
+                          <div
 
-px-4
+                            className="
+                              flex
+                              gap-3
+                            "
 
-pt-[env(safe-area-inset-top)]
+                          >
 
-"
+                            <img
 
->
+                              src={
+                                item.image
+                              }
 
+                              alt={
+                                item.name
+                              }
 
+                              className="
 
+                                h-20
+                                w-20
 
+                                shrink-0
 
-<h2
+                                rounded-xl
 
-className="
+                                object-cover
 
-text-lg
+                                sm:h-24
+                                sm:w-24
 
-font-semibold
+                              "
 
-"
+                            />
 
->
 
-Your Cart ({items.length})
+                            <div
 
-</h2>
+                              className="
+                                min-w-0
+                                flex-1
+                              "
 
+                            >
 
+                              <div
 
+                                className="
+                                  flex
+                                  justify-between
+                                  gap-2
+                                "
 
+                              >
 
+                                <p
 
+                                  className="
 
-<button
+                                    line-clamp-2
 
-onClick={closeCart}
+                                    text-sm
+                                    font-medium
+                                    leading-tight
 
-className="
+                                  "
 
-flex
+                                >
 
-h-10
+                                  {
+                                    item.name
+                                  }
 
-w-10
+                                </p>
 
-items-center
 
-justify-center
+                                <span
 
-rounded-full
+                                  className="
+                                    shrink-0
+                                    text-sm
+                                    font-semibold
+                                  "
 
-transition
+                                >
 
-hover:bg-neutral-100
+                                  ₹
+                                  {
+                                    item.price
+                                  }
 
-"
+                                </span>
 
->
+                              </div>
 
-<X size={22}/>
 
-</button>
+                              <div
 
+                                className="
 
+                                  mt-4
 
+                                  flex
+                                  items-center
+                                  gap-2
 
+                                "
 
+                              >
 
+                                <button
 
-</div>
+                                  disabled={
+                                    item.quantity === 1
+                                  }
 
+                                  onClick={() =>
+                                    updateQuantity(
+                                      item.id,
+                                      item.quantity - 1
+                                    )
+                                  }
 
+                                  className={`
 
+                                    flex
+                                    h-8
+                                    w-8
 
+                                    items-center
+                                    justify-center
 
+                                    rounded-lg
+                                    border
 
+                                    ${
+                                      item.quantity === 1
+                                        ? "cursor-not-allowed opacity-40"
+                                        : "hover:bg-neutral-100"
+                                    }
 
+                                  `}
 
+                                >
 
-{/* Scroll Content */}
+                                  <Minus
+                                    size={14}
+                                  />
 
-<div
+                                </button>
 
-className="
 
-flex-1
+                                <span
 
-overflow-y-auto
+                                  className="
+                                    min-w-5
+                                    text-center
+                                    text-sm
+                                  "
 
-overscroll-contain
+                                >
 
-px-4
+                                  {
+                                    item.quantity
+                                  }
 
-pb-5
+                                </span>
 
-pt-5
 
-"
+                                <button
 
->
+                                  onClick={() =>
+                                    updateQuantity(
+                                      item.id,
+                                      item.quantity + 1
+                                    )
+                                  }
 
+                                  className="
 
+                                    flex
+                                    h-8
+                                    w-8
 
+                                    items-center
+                                    justify-center
 
+                                    rounded-lg
+                                    border
 
+                                    hover:bg-neutral-100
 
+                                  "
 
+                                >
 
+                                  <Plus
+                                    size={14}
+                                  />
 
+                                </button>
 
-{
 
-items.length > 0 && (
+                                <button
 
-<>
+                                  onClick={() =>
+                                    removeItem(
+                                      item.id
+                                    )
+                                  }
 
-{/* Offer Banner */}
+                                  className="
 
-<div
+                                    ml-auto
 
-className="
+                                    rounded-lg
+                                    p-1
 
-rounded-2xl
+                                    text-red-500
 
-bg-black
+                                    hover:bg-red-50
 
-px-4
+                                  "
 
-py-4
+                                >
 
-text-center
+                                  <Trash2
+                                    size={17}
+                                  />
 
-text-sm
+                                </button>
 
-font-semibold
+                              </div>
 
-text-white
+                            </div>
 
-"
+                          </div>
 
->
+                        </div>
 
-✨ Buy 4 at ₹2999 | Use Code : MONSOON4
+                      )
+                    )
+                  }
 
-</div>
+                </div>
 
+              )
+          }
 
 
+          {/* =================================================
+              BEST COUPON
+          ================================================== */}
 
+          {
+            items.length > 0 &&
+            bestCoupon &&
+            !appliedCoupon && (
 
+              <div
 
+                className="
 
+                  mt-6
 
+                  rounded-2xl
 
-{/* Free Gift Progress */}
+                  bg-green-50
 
-<div
+                  p-4
 
-className="
+                "
 
-mt-6
+              >
 
-"
+                <p
+                  className="
+                    font-medium
+                  "
+                >
 
->
+                  🎉 Best offer available
 
+                </p>
 
-<p
 
-className="
+                <p
 
-text-sm
+                  className="
 
-font-medium
+                    mt-1
 
-"
+                    text-sm
+                    text-neutral-600
 
->
+                  "
 
-{
+                >
 
-remaining > 0
+                  Use {
+                    bestCoupon.code
+                  }
 
-?
+                  {" "}
 
-`Add ₹${remaining} more to unlock Free Gift`
+                  and save ₹
+                  {
+                    bestCoupon.estimatedSaving
+                  }
 
-:
+                </p>
 
-"🎁 Free Gift unlocked"
 
-}
+                <button
 
-</p>
+                  onClick={
+                    async () => {
 
+                      const result =
+                        await validateCoupon(
+                          bestCoupon.code,
+                          total
+                        );
 
 
+                      applyCoupon({
 
+                        id:
+                          result.coupon.id,
 
+                        code:
+                          result.coupon.code,
 
+                        title:
+                          result.coupon.title,
 
-{
+                        discount:
+                          result.discount,
 
-remaining > 0 &&
+                        freeShipping:
+                          result.freeShipping,
 
-<div
+                        freeGift:
+                          result.freeGift,
 
-className="
+                        minimumOrderAmount:
+                          result.coupon
+                            .minimum_order_amount,
 
-mt-3
+                      });
 
-h-2
+                    }
+                  }
 
-overflow-hidden
+                  className="
 
-rounded-full
+                    mt-3
 
-bg-neutral-200
+                    rounded-xl
 
-"
+                    bg-black
 
->
+                    px-4
+                    py-2
 
-<div
+                    text-sm
+                    text-white
 
-className="
+                  "
 
-h-full
+                >
 
-bg-black
+                  Apply
 
-transition-all
+                </button>
 
-"
+              </div>
 
-style={{
+            )
+          }
 
-width:`${progress}%`
 
-}}
+          {/* =================================================
+              UNLOCK COUPON
+          ================================================== */}
 
-/>
+          {
+            items.length > 0 &&
+            unlockCoupon &&
+            !appliedCoupon && (
 
-</div>
+              <div
 
-}
+                className="
 
+                  mt-5
 
+                  rounded-2xl
 
-</div>
+                  bg-yellow-50
 
+                  p-4
 
+                "
 
+              >
 
+                <p
+                  className="
+                    font-medium
+                  "
+                >
 
+                  🎁 Unlock {
+                    unlockCoupon.code
+                  }
 
-</>
+                </p>
 
-)
 
-}
+                <p
 
+                  className="
 
+                    mt-1
 
+                    text-sm
+                    text-neutral-700
 
+                  "
 
+                >
 
+                  Add ₹
+                  {
+                    remainingAmount
+                  }
 
+                  {" "}
 
+                  more to get this offer
 
-{/* Empty Cart */}
+                </p>
 
-{
 
-items.length===0
+                <button
 
-?
+                  onClick={() =>
+                    setShowCoupons(
+                      true
+                    )
+                  }
 
-<div
+                  className="
 
-className="
+                    mt-3
 
-mt-10
+                    text-sm
+                    font-semibold
 
-rounded-3xl
+                  "
 
-border
+                >
 
-border-neutral-200
+                  View Offer →
 
-bg-neutral-50
+                </button>
 
-px-5
+              </div>
 
-py-10
+            )
+          }
 
-text-center
 
-"
+          {/* =================================================
+              COUPON BOX
+          ================================================== */}
 
->
+          {
+            items.length > 0 && (
 
+              <div
 
-<div
+                className="
 
-className="
+                  mt-6
 
-mx-auto
+                  rounded-2xl
 
-flex
+                  border
+                  border-neutral-200
 
-h-16
+                  p-4
 
-w-16
+                "
 
-items-center
+              >
 
-justify-center
+                {
+                  appliedCoupon
 
-rounded-full
+                    ? (
 
-bg-white
+                      <div
 
-text-3xl
+                        className="
 
-shadow-sm
+                          flex
+                          items-start
+                          justify-between
+                          gap-3
 
-"
+                          rounded-xl
 
->
+                          border
+                          border-green-200
 
-🛍️
+                          bg-green-50
 
-</div>
+                          p-3
 
+                        "
 
+                      >
 
+                        <div>
 
+                          <p
+                            className="
+                              font-medium
+                            "
+                          >
 
+                            ✓ {
+                              appliedCoupon.code
+                            }
 
+                          </p>
 
-<h3
 
-className="
+                          <p
 
-mt-5
+                            className="
 
-text-lg
+                              mt-1
 
-font-semibold
+                              text-sm
+                              text-green-700
 
-"
+                            "
 
->
+                          >
 
-Your cart is empty
+                            {
+                              appliedCoupon.freeShipping
 
-</h3>
+                                ? "🎉 Free shipping unlocked"
 
+                                : appliedCoupon.freeGift
 
+                                  ? "🎁 Free gift unlocked"
 
+                                  : `You saved ₹${discount}`
+                            }
 
+                          </p>
 
+                        </div>
 
 
-<p
+                        <button
 
-className="
+                          onClick={() => {
 
-mt-2
+                            removeCoupon();
 
-text-sm
+                            setCouponCode(
+                              ""
+                            );
 
-leading-relaxed
+                            setCouponMessage(
+                              ""
+                            );
 
-text-neutral-500
+                            setCouponError(
+                              ""
+                            );
 
-"
+                          }}
 
->
+                          className="
+                            text-sm
+                            text-red-500
+                          "
 
-Looks like you haven't added anything yet.
+                        >
 
-Explore our jewellery collection and find your perfect piece.
+                          Remove
 
-</p>
+                        </button>
 
+                      </div>
 
+                    )
 
+                    : (
 
+                      <>
 
+                        <div
+                          className="
+                            flex
+                            gap-2
+                          "
+                        >
 
+                          <input
 
-<button
+                            value={
+                              couponCode
+                            }
 
-onClick={closeCart}
+                            onChange={(
+                              e
+                            ) =>
+                              setCouponCode(
+                                e.target.value
+                              )
+                            }
 
-className="
+                            placeholder="
+                              Enter Coupon Code
+                            "
 
-mt-5
+                            className="
 
-rounded-xl
+                              min-w-0
+                              flex-1
 
-bg-black
+                              rounded-xl
 
-px-6
+                              border
 
-py-3
+                              px-3
+                              py-3
 
-text-sm
+                              text-sm
 
-font-medium
+                              outline-none
 
-text-white
+                              focus:border-black
 
-"
+                            "
 
->
+                          />
 
-Continue Shopping
 
-</button>
+                          <button
 
+                            onClick={
+                              handleApplyCoupon
+                            }
 
+                            disabled={
+                              couponLoading
+                            }
 
+                            className="
 
+                              rounded-xl
 
+                              bg-black
 
+                              px-4
 
-</div>
+                              text-sm
+                              text-white
 
+                              disabled:opacity-50
 
+                            "
 
+                          >
 
+                            {
+                              couponLoading
+                                ? "..."
+                                : "Apply"
+                            }
 
-:
+                          </button>
 
-<div
+                        </div>
 
-className="
 
-mt-6
+                        <button
 
-space-y-3
+                          onClick={() =>
+                            setShowCoupons(
+                              true
+                            )
+                          }
 
-"
+                          className="
 
->
+                            mt-4
 
+                            w-full
 
+                            text-sm
+                            font-medium
 
+                          "
 
+                        >
 
+                          View All Offers →
 
+                        </button>
 
+                      </>
 
+                    )
+                }
 
-{
 
-items.map(item=>(
+                {
+                  couponMessage && (
 
+                    <p
 
-<div
+                      className="
 
-key={item.id}
+                        mt-3
 
-className="
+                        text-sm
+                        text-green-600
 
-rounded-2xl
+                      "
 
-border
+                    >
 
-border-neutral-200
+                      {
+                        couponMessage
+                      }
 
-p-3
+                    </p>
 
-sm:p-4
+                  )
+                }
 
-"
 
->
+                {
+                  couponErrorMessage && (
 
+                    <p
 
+                      className="
 
+                        mt-3
 
+                        text-sm
+                        text-red-500
 
+                      "
 
+                    >
 
-<div
+                      {
+                        couponErrorMessage
+                      }
 
-className="
+                    </p>
 
-flex
+                  )
+                }
 
-gap-3
 
-"
+                {
+                  couponError && (
 
->
+                    <p
 
+                      className="
 
+                        mt-3
 
+                        text-sm
+                        text-red-500
 
+                      "
 
+                    >
 
-<img
+                      {
+                        couponError
+                      }
 
-src={item.image}
+                    </p>
 
-alt={item.name}
+                  )
+                }
 
-className="
+              </div>
 
-h-20
+            )
+          }
 
-w-20
+        </div>
 
-shrink-0
 
-rounded-xl
+        {/* ===================================================
+            FIXED FOOTER
+        ==================================================== */}
 
-object-cover
+        <div
 
-sm:h-24
+          className="
 
-sm:w-24
+            shrink-0
 
-"
+            border-t
 
-/>
+            bg-white
 
+            px-4
 
+            pb-[env(safe-area-inset-bottom)]
 
+            pt-4
 
+          "
 
+        >
 
+          {
+            items.length > 0
 
+              ? (
 
-<div
+                <>
 
-className="
+                  <div
 
-min-w-0
+                    className="
+                      space-y-3
+                      text-sm
+                    "
 
-flex-1
+                  >
 
-"
+                    {/* =======================================
+                        SUBTOTAL
+                    ======================================== */}
 
->
+                    <div
 
+                      className="
+                        flex
+                        justify-between
+                      "
 
+                    >
 
+                      <span>
+                        Subtotal
+                      </span>
 
 
-<div
+                      <span>
 
-className="
+                        ₹
+                        {
+                          total.toFixed(2)
+                        }
 
-flex
+                      </span>
 
-justify-between
+                    </div>
 
-gap-2
 
-"
+                    {/* =======================================
+                        COUPON
+                    ======================================== */}
 
->
+                    {
+                      appliedCoupon && (
 
+                        <div
 
-<p
+                          className="
 
-className="
+                            flex
+                            justify-between
 
-line-clamp-2
+                            text-green-600
 
-text-sm
+                          "
 
-font-medium
+                        >
 
-leading-tight
+                          <span>
 
-"
+                            Coupon (
+                            {
+                              appliedCoupon.code
+                            }
+                            )
 
->
+                          </span>
 
-{item.name}
 
-</p>
+                          <span>
 
+                            -₹
+                            {
+                              discount.toFixed(2)
+                            }
 
+                          </span>
 
+                        </div>
 
+                      )
+                    }
 
 
-<span
+                    {/* =======================================
+                        SHIPPING
+                    ======================================== */}
 
-className="
+                    <div
 
-shrink-0
+                      className="
 
-text-sm
+                        flex
+                        justify-between
 
-font-semibold
+                        text-neutral-600
 
-"
+                      "
 
->
+                    >
 
-₹{item.price}
+                      <span>
+                        Shipping
+                      </span>
 
-</span>
 
+                      <span>
 
+                        {
+                          freeShippingUnlocked ||
+                          appliedCoupon?.freeShipping
 
-</div>
+                            ? "FREE"
 
+                            : "Calculated at checkout"
+                        }
 
+                      </span>
 
+                    </div>
 
 
+                    {/* =======================================
+                        TOTAL
+                    ======================================== */}
 
+                    <div
 
+                      className="
 
+                        flex
+                        justify-between
 
-<div
+                        border-t
 
-className="
+                        pt-3
 
-mt-4
+                        text-lg
+                        font-bold
 
-flex
+                      "
 
-items-center
+                    >
 
-gap-2
+                      <span>
+                        Estimated Total
+                      </span>
 
-"
 
->
+                      <span>
 
+                        ₹
+                        {
+                          finalTotal.toFixed(2)
+                        }
 
+                      </span>
 
+                    </div>
 
+                  </div>
 
-<button
 
-disabled={item.quantity===1}
+                  {/* =========================================
+                      CHECKOUT BUTTON
+                  ========================================== */}
 
-onClick={()=>updateQuantity(
+                  <button
 
-item.id,
+                    onClick={() =>
+                      setCheckoutOpen(
+                        true
+                      )
+                    }
 
-item.quantity-1
+                    className="
 
-)}
+                      mt-4
 
-className={`
+                      flex
+                      w-full
 
-flex
+                      items-center
+                      justify-center
 
-h-8
+                      rounded-xl
 
-w-8
+                      bg-black
 
-items-center
+                      py-3.5
 
-justify-center
+                      text-sm
+                      font-semibold
+                      text-white
 
-rounded-lg
+                      transition
 
-border
+                      active:scale-[0.98]
 
+                      hover:bg-neutral-800
 
-${
+                    "
 
-item.quantity===1
+                  >
 
-?
+                    Continue To Checkout
 
-"cursor-not-allowed opacity-40"
+                  </button>
 
-:
 
-"hover:bg-neutral-100"
+                  <p
 
-}
+                    className="
 
-`}
+                      mt-2
 
->
+                      text-center
 
-<Minus size={14}/>
+                      text-xs
+                      text-neutral-500
 
-</button>
+                    "
 
+                  >
 
+                    ⚡ Dispatched in 1 day
 
+                  </p>
 
+                </>
 
+              )
 
+              : (
 
-<span
+                <div
+                  className="
+                    text-center
+                  "
+                >
 
-className="
+                  <p
 
-min-w-5
+                    className="
+                      text-sm
+                      text-neutral-500
+                    "
 
-text-center
+                  >
 
-text-sm
+                    Add jewellery pieces to continue shopping
 
-font-medium
+                  </p>
 
-"
 
->
+                  <button
 
-{item.quantity}
+                    onClick={
+                      closeCart
+                    }
 
-</span>
+                    className="
 
+                      mt-4
 
+                      w-full
 
+                      rounded-xl
 
+                      bg-black
 
+                      py-3.5
 
+                      text-sm
+                      font-semibold
+                      text-white
 
-<button
+                    "
 
-onClick={()=>updateQuantity(
+                  >
 
-item.id,
+                    Start Shopping
 
-item.quantity+1
+                  </button>
 
-)}
+                </div>
 
-className="
+              )
+          }
 
-flex
+        </div>
 
-h-8
+      </div>
 
-w-8
 
-items-center
+      {/* =====================================================
+          COUPON MODAL
+      ====================================================== */}
 
-justify-center
+      <CouponModal
 
-rounded-lg
+        open={
+          showCoupons
+        }
 
-border
+        onClose={() =>
+          setShowCoupons(
+            false
+          )
+        }
 
-hover:bg-neutral-100
+        cartTotal={
+          total
+        }
 
-"
+        appliedCoupon={
+          appliedCoupon
+        }
 
->
+        onApply={
+          async (
+            coupon
+          ) => {
 
-<Plus size={14}/>
+            try {
 
-</button>
+              setCouponLoading(
+                true
+              );
 
+              setCouponError(
+                ""
+              );
 
+              setCouponMessage(
+                ""
+              );
 
 
+              const result =
+                await validateCoupon(
+                  coupon.code,
+                  total
+                );
 
 
+              applyCoupon({
 
-<button
+                id:
+                  result.coupon.id,
 
-onClick={()=>removeItem(item.id)}
+                code:
+                  result.coupon.code,
 
-className="
+                title:
+                  result.coupon.title,
 
-ml-auto
+                discount:
+                  result.discount,
 
-rounded-lg
+                freeShipping:
+                  result.freeShipping,
 
-p-1
+                freeGift:
+                  result.freeGift,
 
-text-red-500
+                minimumOrderAmount:
+                  result.coupon
+                    .minimum_order_amount,
 
-hover:bg-red-50
+              });
 
-"
 
->
+              setCouponMessage(
 
-<Trash2 size={17}/>
+                result.freeShipping
 
-</button>
+                  ? "🎉 Free shipping coupon applied!"
 
+                  : result.freeGift
 
+                    ? "🎁 Free gift coupon applied!"
 
+                    : `Coupon applied! You saved ₹${result.discount}`
 
+              );
 
 
-</div>
+              setShowCoupons(
+                false
+              );
 
+            }
 
+            catch (
+              error: any
+            ) {
 
+              setCouponError(
+                error.message ||
+                "Invalid coupon"
+              );
 
+            }
 
+            finally {
 
+              setCouponLoading(
+                false
+              );
 
-</div>
+            }
 
+          }
+        }
 
+      />
 
 
+      {/* =====================================================
+          CHECKOUT
+      ====================================================== */}
 
+      <CheckoutDialog
 
+        open={
+          checkoutOpen
+        }
 
-</div>
+        onClose={() =>
+          setCheckoutOpen(
+            false
+          )
+        }
 
+      />
 
+    </>
 
-
-
-
-
-</div>
-
-
-
-
-
-))
-
-}
-
-
-
-
-
-
-
-</div>
-
-}
-
-
-
-
-
-
-
-
-
-{
-
-items.length > 0 &&
-
-<>
-
-{/* Best Coupon */}
-
-{
-
-bestCoupon && !appliedCoupon &&
-
-<div
-
-className="
-
-mt-6
-
-rounded-2xl
-
-bg-green-50
-
-p-4
-
-"
-
->
-
-
-<p
-
-className="
-
-font-medium
-
-"
-
->
-
-🎉 Best offer available
-
-</p>
-
-
-
-
-
-
-<p
-
-className="
-
-mt-1
-
-text-sm
-
-text-neutral-600
-
-"
-
->
-
-Use {bestCoupon.code}
-
-and save ₹{bestCoupon.estimatedSaving}
-
-</p>
-
-
-
-
-
-
-
-<button
-
-onClick={async()=>{
-
-
-const result = await validateCoupon(
-
-bestCoupon.code,
-
-total
-
-);
-
-
-
-applyCoupon({
-
-id:result.coupon.id,
-
-code:result.coupon.code,
-
-title:result.coupon.title,
-
-discount:result.discount,
-
-freeShipping:result.freeShipping,
-
-freeGift:result.freeGift,
-
-minimumOrderAmount:
-result.coupon.minimum_order_amount
-
-});
-
-
-}}
-
-className="
-
-mt-3
-
-rounded-xl
-
-bg-black
-
-px-4
-
-py-2
-
-text-sm
-
-text-white
-
-"
-
->
-
-Apply
-
-</button>
-
-
-
-
-
-
-</div>
-
-}
-
-
-
-
-
-
-
-
-
-{
-
-unlockCoupon && !appliedCoupon &&
-
-<div
-
-className="
-
-mt-5
-
-rounded-2xl
-
-bg-yellow-50
-
-p-4
-
-"
-
->
-
-
-<p
-
-className="
-
-font-medium
-
-"
-
->
-
-🎁 Unlock {unlockCoupon.code}
-
-</p>
-
-
-
-
-
-
-<p
-
-className="
-
-mt-1
-
-text-sm
-
-text-neutral-700
-
-"
-
->
-
-Add ₹{remainingAmount} more to get this offer
-
-</p>
-
-
-
-
-
-
-
-<button
-
-onClick={()=>setShowCoupons(true)}
-
-className="
-
-mt-3
-
-text-sm
-
-font-semibold
-
-"
-
->
-
-View Offer →
-
-</button>
-
-
-
-
-
-
-
-</div>
-
-}
-
-
-
-
-
-
-
-
-
-
-{/* Coupon Box */}
-
-<div
-
-className="
-
-mt-6
-
-rounded-2xl
-
-border
-
-border-neutral-200
-
-p-4
-
-"
-
->
-
-
-
-
-
-{
-
-appliedCoupon
-
-?
-
-<div
-
-className="
-
-flex
-
-items-start
-
-justify-between
-
-gap-3
-
-rounded-xl
-
-border
-
-border-green-200
-
-bg-green-50
-
-p-3
-
-"
-
->
-
-
-<div>
-
-
-<p
-
-className="
-
-font-medium
-
-"
-
->
-
-✓ {appliedCoupon.code}
-
-</p>
-
-
-
-
-
-
-<p
-
-className="
-
-mt-1
-
-text-sm
-
-text-green-700
-
-"
-
->
-
-{
-
-appliedCoupon.freeShipping
-
-?
-
-"🎉 Free shipping unlocked"
-
-:
-
-appliedCoupon.freeGift
-
-?
-
-"🎁 Free gift unlocked"
-
-:
-
-`You saved ₹${discount}`
-
-}
-
-</p>
-
-
-
-
-
-
-
-</div>
-
-
-
-
-
-
-
-<button
-
-onClick={()=>{
-
-removeCoupon();
-
-setCouponCode("");
-
-setCouponMessage("");
-
-setCouponError("");
-
-}}
-
-className="
-
-text-sm
-
-text-red-500
-
-"
-
->
-
-Remove
-
-</button>
-
-
-
-
-
-
-
-
-</div>
-
-
-
-
-
-
-
-:
-
-<>
-
-<div
-
-className="
-
-flex
-
-gap-2
-
-"
-
->
-
-
-<input
-
-value={couponCode}
-
-onChange={(e)=>setCouponCode(e.target.value)}
-
-placeholder="Enter Coupon Code"
-
-className="
-
-min-w-0
-
-flex-1
-
-rounded-xl
-
-border
-
-px-3
-
-py-3
-
-text-sm
-
-outline-none
-
-focus:border-black
-
-"
-
-/>
-
-
-
-
-
-
-
-<button
-
-onClick={handleApplyCoupon}
-
-disabled={couponLoading}
-
-className="
-
-rounded-xl
-
-bg-black
-
-px-4
-
-text-sm
-
-text-white
-
-disabled:opacity-50
-
-"
-
->
-
-{
-
-couponLoading
-
-?
-
-"..."
-
-:
-
-"Apply"
-
-}
-
-</button>
-
-
-
-
-
-
-
-</div>
-
-
-
-
-
-
-
-<button
-
-onClick={()=>setShowCoupons(true)}
-
-className="
-
-mt-4
-
-w-full
-
-text-sm
-
-font-medium
-
-"
-
->
-
-View All Offers →
-
-</button>
-
-
-
-
-
-</>
-
-}
-
-
-
-
-
-
-
-
-
-{
-
-couponMessage &&
-
-<p
-
-className="
-
-mt-3
-
-text-sm
-
-text-green-600
-
-"
-
->
-
-{couponMessage}
-
-</p>
-
-}
-
-
-
-
-
-
-
-{
-
-couponErrorMessage &&
-
-<p
-
-className="
-
-mt-3
-
-text-sm
-
-text-red-500
-
-"
-
->
-
-{couponErrorMessage}
-
-</p>
-
-}
-
-
-
-
-
-
-
-{
-
-couponError &&
-
-<p
-
-className="
-
-mt-3
-
-text-sm
-
-text-red-500
-
-"
-
->
-
-{couponError}
-
-</p>
-
-}
-
-
-
-
-
-</div>
-
-
-
-
-
-
-
-
-
-</>
-
-}
-
-
-
-
-
-
-
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* Fixed Footer */}
-
-<div
-
-className="
-
-shrink-0
-
-border-t
-
-bg-white
-
-px-4
-
-pb-[env(safe-area-inset-bottom)]
-
-pt-4
-
-"
-
->
-
-
-
-
-
-
-
-
-{
-
-items.length > 0
-
-?
-
-<>
-
-<div
-
-className="
-
-space-y-3
-
-text-sm
-
-"
-
->
-
-
-
-
-
-<div
-
-className="
-
-flex
-
-justify-between
-
-"
-
->
-
-<span>
-
-Subtotal
-
-</span>
-
-
-
-<span>
-
-₹{total.toFixed(2)}
-
-</span>
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{
-
-appliedCoupon &&
-
-<div
-
-className="
-
-flex
-
-justify-between
-
-text-green-600
-
-"
-
->
-
-
-<span>
-
-Coupon ({appliedCoupon.code})
-
-</span>
-
-
-
-
-
-<span>
-
--₹{discount.toFixed(2)}
-
-</span>
-
-
-
-
-</div>
-
-}
-
-
-
-
-
-
-
-<div
-
-className="
-
-flex
-
-justify-between
-
-text-neutral-600
-
-"
-
->
-
-
-<span>
-
-Shipping
-
-</span>
-
-
-
-
-<span>
-
-{
-
-appliedCoupon?.freeShipping
-
-?
-
-"FREE"
-
-:
-
-"Calculated at checkout"
-
-}
-
-</span>
-
-
-
-</div>
-
-
-
-
-
-
-
-
-
-<div
-
-className="
-
-border-t
-
-pt-3
-
-flex
-
-justify-between
-
-text-lg
-
-font-bold
-
-"
-
->
-
-<span>
-
-Estimated Total
-
-</span>
-
-
-
-
-<span>
-
-₹{finalTotal.toFixed(2)}
-
-</span>
-
-
-
-
-</div>
-
-
-
-
-
-</div>
-
-
-
-
-
-
-
-
-
-<button
-
-onClick={()=>setCheckoutOpen(true)}
-
-className="
-
-mt-4
-
-flex
-
-w-full
-
-items-center
-
-justify-center
-
-rounded-xl
-
-bg-black
-
-py-3.5
-
-text-sm
-
-font-semibold
-
-text-white
-
-transition
-
-active:scale-[0.98]
-
-hover:bg-neutral-800
-
-"
-
->
-
-Continue To Checkout
-
-</button>
-
-
-
-
-
-
-
-<p
-
-className="
-
-mt-2
-
-text-center
-
-text-xs
-
-text-neutral-500
-
-"
-
->
-
-⚡ Dispatched in 1 day
-
-</p>
-
-
-
-
-
-</>
-
-
-
-:
-
-<div
-
-className="
-
-text-center
-
-"
-
->
-
-<p
-
-className="
-
-text-sm
-
-text-neutral-500
-
-"
-
->
-
-Add jewellery pieces to continue shopping
-
-</p>
-
-
-
-
-
-
-
-<button
-
-onClick={closeCart}
-
-className="
-
-mt-4
-
-w-full
-
-rounded-xl
-
-bg-black
-
-py-3.5
-
-text-sm
-
-font-semibold
-
-text-white
-
-"
-
->
-
-Start Shopping
-
-</button>
-
-
-
-
-
-</div>
-
-}
-
-
-
-
-
-
-
-</div>
-
-
-</div>
-
-
-
-
-
-
-<CouponModal
-
-open={showCoupons}
-
-onClose={()=>setShowCoupons(false)}
-
-cartTotal={total}
-
-appliedCoupon={appliedCoupon}
-
-onApply={async(coupon)=>{
-
-
-try{
-
-
-setCouponLoading(true);
-
-setCouponError("");
-
-setCouponMessage("");
-
-
-
-
-
-
-const result = await validateCoupon(
-
-coupon.code,
-
-total
-
-);
-
-
-
-
-
-
-
-applyCoupon({
-
-id:result.coupon.id,
-
-code:result.coupon.code,
-
-title:result.coupon.title,
-
-discount:result.discount,
-
-freeShipping:result.freeShipping,
-
-freeGift:result.freeGift,
-
-minimumOrderAmount:
-result.coupon.minimum_order_amount
-
-});
-
-
-
-
-
-
-
-setCouponMessage(
-
-result.freeShipping
-
-?
-
-"🎉 Free shipping coupon applied!"
-
-:
-
-result.freeGift
-
-?
-
-"🎁 Free gift coupon applied!"
-
-:
-
-`Coupon applied! You saved ₹${result.discount}`
-
-);
-
-
-
-
-
-
-setShowCoupons(false);
-
-
-
-}
-
-catch(error:any){
-
-
-setCouponError(
-
-error.message || "Invalid coupon"
-
-);
-
-
-
-}
-
-finally{
-
-
-setCouponLoading(false);
-
-
-}
-
-
-
-}}
-
-/>
-
-
-
-
-
-
-
-
-
-<CheckoutDialog
-
-open={checkoutOpen}
-
-onClose={()=>setCheckoutOpen(false)}
-
-/>
-
-
-
-
-
-
-
-</>
-
-);
+  );
 
 }

@@ -4,1468 +4,2071 @@ import {
   UserRound,
   MapPin,
   CreditCard,
+  Loader2,
 } from "lucide-react";
 
 import {
-  useAuth
+  useAuth,
 } from "@/features/Auth/context/AuthContext";
-import {
-  useState
-} from "react";
 
+import {
+  useState,
+  useEffect,
+} from "react";
 
 import OrderSuccess from "./OrderSuccess";
 import PaymentStep from "./PaymentStep";
 import LoginStep from "./LoginStep";
 import AddressStep from "./AddressStep";
 
-
 import {
-useCustomerStore
+  useCustomerStore,
 } from "@/features/customers/store/customer.store";
-
 
 import {
   getCustomerByPhone,
-  createCustomer
+  createCustomer,
 } from "@/features/customers/services/customer.service";
 
-
 import {
-  createOrder
+  createOrder,
 } from "@/features/orders/services/order.service";
 
-
 import {
-  useCartStore
+  useCartStore,
 } from "@/features/cart/store/cart.store";
 
-
-
-
 import {
-useEffect
-} from "react";
+  useDeliveryCheck,
+} from "@/features/shipping/hooks/useDeliveryCheck";
 
 
 interface Props {
-
-open:boolean;
-
-onClose:()=>void;
-
+  open: boolean;
+  onClose: () => void;
 }
-
-
-
-
-
 
 
 const STEPS = [
-
-{
-key:"login",
-label:"Login",
-icon:UserRound
-},
-
-{
-key:"address",
-label:"Address",
-icon:MapPin
-},
-
-{
-key:"payment",
-label:"Payment",
-icon:CreditCard
-}
-
+  {
+    key: "login",
+    label: "Login",
+    icon: UserRound,
+  },
+  {
+    key: "address",
+    label: "Address",
+    icon: MapPin,
+  },
+  {
+    key: "payment",
+    label: "Payment",
+    icon: CreditCard,
+  },
 ];
 
 
+const FREE_GIFT_AMOUNT = 1000;
 
-
-
-
+const FREE_SHIPPING_AMOUNT = 2000;
 
 
 export default function CheckoutDialog({
+  open,
+  onClose,
+}: Props) {
 
-open,
+  /*
+   * =========================================================
+   * AUTH
+   * =========================================================
+   */
 
-onClose
+  const {
+    customer: authCustomer,
+  } = useAuth();
 
-}:Props){
 
+  /*
+   * =========================================================
+   * STEP
+   * =========================================================
+   */
 
-const {
-customer:authCustomer
-}=useAuth();
+  const [
+    step,
+    setStep,
+  ] = useState<
+    "login" | "address" | "payment"
+  >("login");
 
 
+  /*
+   * =========================================================
+   * CUSTOMER
+   * =========================================================
+   */
 
-const [step,setStep]=useState<
-"login" | "address" | "payment"
->("login");
+  const [
+    customer,
+    setCustomer,
+  ] = useState<any>(null);
 
 
-const [customer,setCustomer]=useState<any>(null);
+  /*
+   * =========================================================
+   * SELECTED ADDRESS
+   * =========================================================
+   */
+
+  const [
+    selectedAddress,
+    setSelectedAddress,
+  ] = useState<any>(null);
 
 
+  /*
+   * =========================================================
+   * ORDER SUCCESS
+   * =========================================================
+   */
 
+  const [
+    orderSuccess,
+    setOrderSuccess,
+  ] = useState(false);
 
 
+  const [
+    orderNumber,
+    setOrderNumber,
+  ] = useState("");
 
-const [selectedAddress,setSelectedAddress]=useState<any>(null);
 
+  /*
+   * =========================================================
+   * SHIPPING
+   * =========================================================
+   */
 
-const [orderSuccess,setOrderSuccess]=useState(false);
+  const [
+    shippingCharge,
+    setShippingCharge,
+  ] = useState(0);
 
 
-const [orderNumber,setOrderNumber]=useState("");
+  const [
+    calculatingShipping,
+    setCalculatingShipping,
+  ] = useState(false);
 
 
+  const [
+    shippingError,
+    setShippingError,
+  ] = useState("");
 
 
+  /*
+   * =========================================================
+   * SHIPROCKET
+   * =========================================================
+   */
 
-const {
+  const {
+    mutate: checkDelivery,
+  } = useDeliveryCheck();
 
-items,
 
-getTotal,
+  /*
+   * =========================================================
+   * CART
+   * =========================================================
+   */
 
-discount,
+  const {
+    items,
+    getTotal,
+    discount,
+    appliedCoupon,
+    clearCart,
+  } = useCartStore();
 
-appliedCoupon,
 
-clearCart
+  const subtotal =
+    getTotal();
 
-}=useCartStore();
 
+  /*
+   * =========================================================
+   * FREE GIFT PROGRESS
+   * =========================================================
+   */
 
+  const giftRemaining =
+    Math.max(
+      FREE_GIFT_AMOUNT - subtotal,
+      0
+    );
 
 
+  const giftProgress =
+    Math.min(
+      (
+        subtotal /
+        FREE_GIFT_AMOUNT
+      ) * 100,
+      100
+    );
 
-const subtotal=getTotal();
 
+  const giftUnlocked =
+    subtotal >=
+    FREE_GIFT_AMOUNT;
 
-const finalAmount =
-Math.max(
-subtotal - discount,
-0
-);
 
+  /*
+   * =========================================================
+   * FREE SHIPPING PROGRESS
+   * =========================================================
+   */
 
-useEffect(()=>{
+  const shippingRemaining =
+    Math.max(
+      FREE_SHIPPING_AMOUNT - subtotal,
+      0
+    );
 
 
-if(authCustomer){
+  const shippingProgress =
+    Math.min(
+      (
+        subtotal /
+        FREE_SHIPPING_AMOUNT
+      ) * 100,
+      100
+    );
 
-setCustomer(authCustomer);
 
-setStep("address");
+  const freeShippingByAmount =
+    subtotal >=
+    FREE_SHIPPING_AMOUNT;
 
-}
 
+  const freeShippingByCoupon =
+    Boolean(
+      appliedCoupon?.freeShipping
+    );
 
-},[authCustomer]);
 
-useEffect(()=>{
-  
-if(open){
+  const freeShippingUnlocked =
+    freeShippingByAmount ||
+    freeShippingByCoupon;
 
-setOrderSuccess(false);
 
-setOrderNumber("");
+  /*
+   * =========================================================
+   * FINAL SHIPPING
+   * =========================================================
+   */
 
-setStep(
-authCustomer
-?
-"address"
-:
-"login"
-);
+  const finalShippingCharge =
+    freeShippingUnlocked
+      ? 0
+      : shippingCharge;
 
-}
 
-},[open]);
+  /*
+   * =========================================================
+   * FINAL TOTAL
+   * =========================================================
+   */
 
+  const finalAmount =
+    Math.max(
+      subtotal - discount,
+      0
+    ) +
+    finalShippingCharge;
 
-if(!open)
 
-return null;
+  /*
+   * =========================================================
+   * AUTH CUSTOMER EFFECT
+   * =========================================================
+   */
 
+  useEffect(() => {
 
+    if (authCustomer) {
 
-async function handleLoginSuccess(
+      setCustomer(
+        authCustomer
+      );
 
-data:{
-phone:string;
-}
+      setStep(
+        "address"
+      );
 
-){
+    }
 
+  }, [
+    authCustomer,
+  ]);
 
-try{
 
+  /*
+   * =========================================================
+   * RESET WHEN CHECKOUT OPENS
+   * =========================================================
+   */
 
-const existingCustomer =
+  useEffect(() => {
 
-await getCustomerByPhone(
+    if (!open) {
+      return;
+    }
 
-data.phone
 
-);
+    setOrderSuccess(
+      false
+    );
 
+    setOrderNumber(
+      ""
+    );
 
+    setSelectedAddress(
+      null
+    );
 
+    setShippingCharge(
+      0
+    );
 
+    setShippingError(
+      ""
+    );
 
-if(existingCustomer){
+    setCalculatingShipping(
+      false
+    );
 
 
-setCustomer(existingCustomer);
+    setStep(
+      authCustomer
+        ? "address"
+        : "login"
+    );
 
+  }, [
+    open,
+    authCustomer,
+  ]);
 
-useCustomerStore
-.getState()
-.setCustomer(existingCustomer);
 
+  /*
+   * =========================================================
+   * LOGIN SUCCESS
+   * =========================================================
+   */
 
+  async function handleLoginSuccess(
+    data: {
+      phone: string;
+    }
+  ) {
 
-setStep("address");
+    try {
 
-return;
+      const existingCustomer =
+        await getCustomerByPhone(
+          data.phone
+        );
 
 
-}
+      if (existingCustomer) {
 
+        setCustomer(
+          existingCustomer
+        );
 
 
+        useCustomerStore
+          .getState()
+          .setCustomer(
+            existingCustomer
+          );
 
 
+        setStep(
+          "address"
+        );
 
 
-const newCustomer = await createCustomer({
+        return;
 
-first_name:"Customer",
+      }
 
-phone:data.phone
 
-});
+      const newCustomer =
+        await createCustomer({
 
+          first_name:
+            "Customer",
 
+          phone:
+            data.phone,
 
+        });
 
 
-setCustomer(newCustomer);
+      setCustomer(
+        newCustomer
+      );
 
 
-useCustomerStore
-.getState()
-.setCustomer(newCustomer);
+      useCustomerStore
+        .getState()
+        .setCustomer(
+          newCustomer
+        );
 
 
+      setStep(
+        "address"
+      );
 
-setStep("address");
+    }
 
+    catch (error) {
 
+      console.error(
+        "Customer login failed",
+        error
+      );
 
-}
+    }
 
-catch(error){
+  }
 
-console.error(
-"Customer login failed",
-error
-);
 
-}
+  /*
+   * =========================================================
+   * ADDRESS → PAYMENT
+   * =========================================================
+   */
 
+  function handleAddressContinue(
+    address: any
+  ) {
 
-}
+    setShippingError(
+      ""
+    );
 
 
+    setSelectedAddress(
+      address
+    );
 
 
+    /*
+     * =======================================================
+     * FREE SHIPPING
+     * =======================================================
+     *
+     * ₹2,000+ = FREE
+     *
+     * Free shipping coupon = FREE
+     *
+     * No Shiprocket calculation needed.
+     * =======================================================
+     */
 
+    if (
+      freeShippingByAmount ||
+      freeShippingByCoupon
+    ) {
 
+      setShippingCharge(
+        0
+      );
 
+      setCalculatingShipping(
+        false
+      );
 
+      setStep(
+        "payment"
+      );
 
-async function handlePaymentSuccess(
+      return;
 
-payment:any
+    }
 
-){
 
+    /*
+     * =======================================================
+     * PINCODE
+     * =======================================================
+     */
 
-try{
+    const pincode =
+      String(
+        address?.postal_code ??
+        ""
+      ).trim();
 
 
-const result = await createOrder({
+    if (
+      !/^\d{6}$/.test(
+        pincode
+      )
+    ) {
 
-customerId:
-customer?.id ?? null,
+      setShippingError(
+        "Please select a valid delivery address with a 6-digit pincode."
+      );
 
-customer:{
+      return;
 
+    }
 
-name:
-`${customer.first_name ?? ""} ${customer.last_name ?? ""}`,
 
+    /*
+     * =======================================================
+     * START SHIPPING CALCULATION
+     * =======================================================
+     */
 
+    setCalculatingShipping(
+      true
+    );
 
-email:
-customer.email ?? null,
 
+    setShippingCharge(
+      0
+    );
 
 
-phone:
-customer.phone
+    /*
+     * =======================================================
+     * SHIPROCKET
+     * =======================================================
+     *
+     * Same hook used by DeliveryChecker.
+     *
+     * Current cart does not carry product weight,
+     * so 0.500kg fallback is used.
+     * =======================================================
+     */
 
+    checkDelivery(
 
-},
+      {
+        pincode,
 
+        weight:
+          0.500,
+      },
 
+      {
 
+        onSuccess: (
+          data
+        ) => {
 
+          const courier =
+            data
+              ?.data
+              ?.available_courier_companies
+              ?.[0];
 
-shipping:{
 
+          /*
+           * No courier available
+           */
 
-fullName:
-selectedAddress.full_name,
+          if (!courier) {
 
+            setCalculatingShipping(
+              false
+            );
 
-phone:
-selectedAddress.phone,
+            setShippingCharge(
+              0
+            );
 
+            setShippingError(
+              "Sorry, delivery is not available for this pincode."
+            );
 
-address:
-`${selectedAddress.address_line_1} ${selectedAddress.address_line_2 ?? ""}`,
+            return;
 
+          }
 
 
-city:
-selectedAddress.city,
+          /*
+           * =================================================
+           * ACTUAL SHIPROCKET RATE
+           * =================================================
+           */
 
+          const shiprocketRate =
+            Number(
+              courier?.rate || 0
+            );
 
-state:
-selectedAddress.state,
 
+          /*
+           * =================================================
+           * CUSTOMER SHIPPING RULE
+           * =================================================
+           *
+           * Shiprocket <= ₹100 → ₹59
+           *
+           * Shiprocket > ₹100 → ₹79
+           * =================================================
+           */
 
-pincode:
-selectedAddress.postal_code,
+          const customerShipping =
+            shiprocketRate <= 100
+              ? 59
+              : 79;
 
 
-landmark:null
+          setShippingCharge(
+            customerShipping
+          );
 
 
-},
+          /*
+           * Save delivery information.
+           */
 
+          const deliveryInfo = {
 
+            pincode,
 
+            shippingCharge:
+              shiprocketRate,
 
+            customerShippingCharge:
+              customerShipping,
 
-items:
+            courier:
+              courier?.courier_name ||
+              "",
 
-items.map(item=>(
+          };
 
 
-{
+          localStorage.setItem(
+            "tnm_delivery_info",
+            JSON.stringify(
+              deliveryInfo
+            )
+          );
 
-productId:
-item.productId,
 
+          setShippingError(
+            ""
+          );
 
-productName:
-item.name,
 
+          setCalculatingShipping(
+            false
+          );
 
-productImage:
-item.image ?? null,
 
+          /*
+           * Only after successful calculation
+           * move to Payment.
+           */
 
-price:
-item.price,
+          setStep(
+            "payment"
+          );
 
+        },
 
-quantity:
-item.quantity,
 
+        onError: (
+          error
+        ) => {
 
-total:
-item.price * item.quantity
+          console.error(
+            "Shipping calculation failed:",
+            error
+          );
 
 
-}
+          setCalculatingShipping(
+            false
+          );
 
-)),
 
+          setShippingCharge(
+            0
+          );
 
 
+          setShippingError(
+            "Sorry, delivery is not available for this pincode."
+          );
 
+        },
 
-subtotal,
+      }
 
+    );
 
-discount,
+  }
 
 
-shippingCharge:0,
+  /*
+   * =========================================================
+   * PAYMENT SUCCESS
+   * =========================================================
+   */
 
+  async function handlePaymentSuccess(
+    payment: any
+  ) {
 
-tax:0,
+    try {
 
+      const result =
+        await createOrder({
 
-totalAmount:
-finalAmount,
+          customerId:
+            customer?.id ??
+            null,
 
 
+          customer: {
 
+            name:
+              `${customer?.first_name ?? ""} ${customer?.last_name ?? ""}`,
 
+            email:
+              customer?.email ??
+              null,
 
-advanceAmount:
-finalAmount,
+            phone:
+              customer?.phone,
 
+          },
 
 
-paymentMethod:
-"prepaid",
+          shipping: {
 
+            fullName:
+              selectedAddress.full_name,
 
+            phone:
+              selectedAddress.phone,
 
-paymentTransactionId:
-payment.razorpay_payment_id,
+            address:
+              `${selectedAddress.address_line_1} ${selectedAddress.address_line_2 ?? ""}`,
 
+            city:
+              selectedAddress.city,
 
+            state:
+              selectedAddress.state,
 
-coupon:
+            pincode:
+              selectedAddress.postal_code,
 
-appliedCoupon
+            landmark:
+              null,
 
-?
+          },
 
-{
 
-id:
-appliedCoupon.id,
+          items:
 
+            items.map(
+              item => ({
 
-code:
-appliedCoupon.code,
+                productId:
+                  item.productId,
 
+                productName:
+                  item.name,
 
-discount:
-appliedCoupon.discount
+                productImage:
+                  item.image ??
+                  null,
 
+                price:
+                  item.price,
 
-}
+                quantity:
+                  item.quantity,
 
-:
+                total:
+                  item.price *
+                  item.quantity,
 
-null
+              })
+            ),
 
 
+          subtotal,
 
-});
 
+          discount,
 
 
+          /*
+           * FINAL CUSTOMER SHIPPING CHARGE
+           */
 
+          shippingCharge:
+            finalShippingCharge,
 
 
-setOrderNumber(
+          tax:
+            0,
 
-result.orderNumber
 
-);
+          totalAmount:
+            finalAmount,
 
 
+          advanceAmount:
+            finalAmount,
 
-clearCart();
 
+          paymentMethod:
+            "prepaid",
 
 
-setOrderSuccess(true);
+          paymentTransactionId:
+            payment.razorpay_payment_id,
 
 
+          coupon:
 
-}
+            appliedCoupon
 
-catch(error){
+              ? {
 
-console.error(
+                  id:
+                    appliedCoupon.id,
 
-"Order creation failed",
+                  code:
+                    appliedCoupon.code,
 
-error
+                  discount:
+                    appliedCoupon.discount,
 
-);
+                }
 
-}
+              : null,
 
+        });
 
-}
 
+      setOrderNumber(
+        result.orderNumber
+      );
 
 
+      clearCart();
 
 
+      setOrderSuccess(
+        true
+      );
 
+    }
 
+    catch (error) {
 
+      console.error(
+        "Order creation failed",
+        error
+      );
 
-const currentStepIndex =
+    }
 
-STEPS.findIndex(
+  }
 
-item=>item.key===step
 
-);
+  /*
+   * =========================================================
+   * CURRENT STEP INDEX
+   * =========================================================
+   */
 
+  const currentStepIndex =
+    STEPS.findIndex(
+      item =>
+        item.key === step
+    );
 
 
+  /*
+   * =========================================================
+   * CLOSED
+   * =========================================================
+   */
 
+  if (!open) {
+    return null;
+  }
 
 
+  /*
+   * =========================================================
+   * RENDER
+   * =========================================================
+   */
 
+  return (
 
+    <>
 
-return (
+      {/* =====================================================
+          BACKDROP
+      ====================================================== */}
 
-<>
+      <div
 
+        className="
+          fixed
+          inset-0
+          z-[1000]
+          bg-black/50
+          backdrop-blur-md
+        "
 
+        onClick={
+          onClose
+        }
 
+      />
 
 
-<div
+      {/* =====================================================
+          CHECKOUT MODAL
+      ====================================================== */}
 
-className="
-fixed
-inset-0
-z-[1000]
-bg-black/50
-backdrop-blur-md
-"
+      <div
 
-onClick={onClose}
+        className="
+          fixed
+          left-1/2
+          top-1/2
+          z-[1100]
 
-/>
+          flex
+          max-h-[90vh]
 
+          w-[calc(100%-32px)]
+          max-w-[560px]
 
+          -translate-x-1/2
+          -translate-y-1/2
 
+          flex-col
 
+          overflow-hidden
 
-<div
+          rounded-3xl
 
-className="
-fixed
-left-1/2
-top-1/2
-z-[1100]
+          bg-white
 
-flex
-max-h-[90vh]
-w-[calc(100%-32px)]
-max-w-[560px]
--translate-x-1/2
--translate-y-1/2
-flex-col
+          shadow-2xl
+        "
 
-overflow-hidden
+      >
 
-rounded-3xl
+        {/* ===================================================
+            HEADER
+        ==================================================== */}
 
-bg-white
+        <div
 
-shadow-2xl
-"
+          className="
+            shrink-0
+            border-b
+            bg-white
+            px-6
+            py-5
+          "
 
->
+        >
 
+          <div
 
+            className="
+              flex
+              items-center
+              justify-between
+            "
 
+          >
 
+            <h2
 
+              className="
+                text-2xl
+                font-semibold
+              "
 
+            >
 
+              {
+                orderSuccess
+                  ? "Order Confirmed"
+                  : "Checkout"
+              }
 
+            </h2>
 
-{/* Header */}
 
-<div
+            <button
 
-className="
-shrink-0
-border-b
-bg-white
-px-6
-py-5
-"
+              onClick={
+                onClose
+              }
 
->
+              className="
+                rounded-full
+                p-2
+                transition
+                hover:bg-neutral-100
+              "
 
+            >
 
-<div
+              <X
+                size={20}
+              />
 
-className="
-flex
-items-center
-justify-between
-"
+            </button>
 
->
+          </div>
 
 
-<h2
+          {/* =================================================
+              CHECKOUT STEPS
+          ================================================== */}
 
-className="
-text-2xl
-font-semibold
-"
+          {
+            !orderSuccess && (
 
->
+              <div
 
-{
-orderSuccess
+                className="
+                  mt-6
+                  flex
+                  items-center
+                  justify-between
+                "
 
-?
+              >
 
-"Order Confirmed"
+                {
+                  STEPS.map(
+                    (
+                      item,
+                      index
+                    ) => {
 
-:
+                      const Icon =
+                        item.icon;
 
-"Checkout"
 
-}
+                      const active =
+                        index <=
+                        currentStepIndex;
 
-</h2>
 
+                      return (
 
+                        <div
 
+                          key={
+                            item.key
+                          }
 
+                          className="
+                            flex
+                            flex-1
+                            items-center
+                          "
 
+                        >
 
+                          <div
 
-<button
+                            className="
+                              flex
+                              flex-col
+                              items-center
+                            "
 
-onClick={onClose}
+                          >
 
-className="
-rounded-full
-p-2
-transition
-hover:bg-neutral-100
-"
+                            <button
 
->
+                              type="button"
 
-<X size={20}/>
+                              disabled={
+                                index >
+                                currentStepIndex
+                              }
 
-</button>
+                              onClick={() => {
 
+                                if (
+                                  index <
+                                  currentStepIndex
+                                ) {
 
+                                  if (
+                                    item.key ===
+                                    "address"
+                                  ) {
 
+                                    setShippingError(
+                                      ""
+                                    );
 
+                                    setStep(
+                                      "address"
+                                    );
 
+                                  }
 
-</div>
 
+                                  if (
+                                    item.key ===
+                                      "login" &&
+                                    !authCustomer
+                                  ) {
 
+                                    setStep(
+                                      "login"
+                                    );
 
+                                  }
 
+                                }
 
+                              }}
 
+                              className={`
 
-{/* Progress */}
+                                flex
+                                h-9
+                                w-9
+                                items-center
+                                justify-center
 
-{
+                                rounded-full
 
-!orderSuccess && (
+                                transition
 
-<div
+                                ${
+                                  active
+                                    ? "bg-[#C8A44D] text-black"
+                                    : "bg-neutral-200 text-neutral-500"
+                                }
 
-className="
-mt-6
-flex
-items-center
-justify-between
-"
+                                ${
+                                  index <
+                                  currentStepIndex
+                                    ? "cursor-pointer hover:scale-105"
+                                    : "cursor-default"
+                                }
 
->
+                              `}
 
+                            >
 
-{
+                              <Icon
+                                size={17}
+                              />
 
-STEPS.map((item,index)=>{
+                            </button>
 
 
-const Icon =
-item.icon;
+                            <p
 
+                              className={`
 
-const active =
-index <= currentStepIndex;
+                                mt-2
+                                text-xs
 
+                                ${
+                                  active
+                                    ? "font-medium text-black"
+                                    : "text-neutral-400"
+                                }
 
+                              `}
 
+                            >
 
+                              {
+                                item.label
+                              }
 
-return (
+                            </p>
 
-<div
+                          </div>
 
-key={item.key}
 
-className="
-flex
-flex-1
-items-center
-"
+                          {
+                            index !==
+                            STEPS.length - 1 && (
 
->
+                              <div
 
+                                className={`
 
+                                  mx-2
+                                  h-px
+                                  flex-1
 
+                                  ${
+                                    index <
+                                    currentStepIndex
+                                      ? "bg-[#C8A44D]"
+                                      : "bg-neutral-200"
+                                  }
 
+                                `}
 
-<div
+                              />
 
-className="
-flex
-flex-col
-items-center
-"
+                            )
+                          }
 
->
-<button
+                        </div>
 
-type="button"
+                      );
 
-disabled={
-  index > currentStepIndex ||
-  (!!authCustomer && item.key==="login")
-}
+                    }
+                  )
+                }
 
-onClick={()=>{
+              </div>
 
+            )
+          }
 
-if(index < currentStepIndex){
+        </div>
 
 
-if(item.key==="address"){
+        {/* ===================================================
+            CONTENT
+        ==================================================== */}
 
-setStep("address");
+        <div
 
-}
+          className="
+            flex-1
+            overflow-y-auto
+            px-6
+            py-7
+          "
 
+        >
 
-if(item.key==="login" && !authCustomer){
+          {/* =================================================
+              ORDER SUMMARY
+          ================================================== */}
 
-setStep("login");
+          {
+            !orderSuccess && (
 
-}
+              <div
 
+                className="
+                  mb-6
+                  rounded-2xl
+                  border
+                  border-neutral-200
+                  bg-neutral-50
+                  p-4
+                "
 
-}
+              >
 
+                <h3
 
-}}
+                  className="
+                    mb-3
+                    text-sm
+                    font-semibold
+                  "
 
-className={`
+                >
 
-flex
+                  Order Summary
 
-h-9
+                </h3>
 
-w-9
 
-items-center
+                <div
 
-justify-center
+                  className="
+                    space-y-2
+                    text-sm
+                  "
 
-rounded-full
+                >
 
-transition
+                  <div
+                    className="
+                      flex
+                      justify-between
+                    "
+                  >
 
+                    <span
+                      className="
+                        text-neutral-500
+                      "
+                    >
+                      Items
+                    </span>
 
-${
-active
+                    <span>
+                      {
+                        items.length
+                      }
+                    </span>
 
-?
+                  </div>
 
-"bg-[#C8A44D] text-black"
 
-:
+                  <div
+                    className="
+                      flex
+                      justify-between
+                    "
+                  >
 
-"bg-neutral-200 text-neutral-500"
+                    <span
+                      className="
+                        text-neutral-500
+                      "
+                    >
+                      Subtotal
+                    </span>
 
-}
+                    <span>
+                      ₹
+                      {
+                        subtotal.toFixed(2)
+                      }
+                    </span>
 
+                  </div>
 
-${
-index < currentStepIndex && !(authCustomer && item.key==="login")
 
-?
+                  {
+                    discount > 0 && (
 
-"cursor-pointer hover:scale-105"
+                      <div
 
-:
+                        className="
+                          flex
+                          justify-between
+                          text-green-600
+                        "
 
-"cursor-default"
+                      >
 
-}
+                        <span>
+                          Discount
+                        </span>
 
-`}
+                        <span>
+                          - ₹
+                          {
+                            discount.toFixed(2)
+                          }
+                        </span>
 
->
-<Icon size={17}/>
-</button>
+                      </div>
 
+                    )
+                  }
 
 
+                  {
+                    appliedCoupon && (
 
+                      <div
 
+                        className="
+                          rounded-xl
+                          bg-green-100
+                          px-3
+                          py-2
+                          text-xs
+                          text-green-700
+                        "
 
-<p
+                      >
 
-className={`
+                        Coupon Applied:
 
-mt-2
+                        {" "}
 
-text-xs
+                        <strong>
+                          {
+                            appliedCoupon.code
+                          }
+                        </strong>
 
-${
-authCustomer && item.key==="login"
+                      </div>
 
-?
+                    )
+                  }
 
-"text-neutral-400"
 
-:
+                  <div
 
-active
+                    className="
+                      flex
+                      justify-between
+                    "
 
-?
+                  >
 
-"font-medium text-black"
+                    <span
+                      className="
+                        text-neutral-500
+                      "
+                    >
 
-:
+                      Shipping
 
-"text-neutral-400"
+                    </span>
 
-}
 
-`}
+                    <span>
 
->
+                      {
+                        freeShippingUnlocked
 
-{item.label}
+                          ? "FREE"
 
-</p>
+                          : step === "payment"
 
+                            ? `₹${finalShippingCharge.toFixed(2)}`
 
+                            : "Calculated at next step"
+                      }
 
+                    </span>
 
+                  </div>
 
 
-</div>
+                  <div
 
+                    className="
+                      flex
+                      justify-between
+                      border-t
+                      pt-3
+                      font-semibold
+                    "
 
+                  >
 
+                    <span>
+                      Total
+                    </span>
 
 
+                    <span
 
+                      className="
+                        text-[#9A7A22]
+                      "
 
+                    >
 
-{
+                      ₹
+                      {
+                        finalAmount.toFixed(2)
+                      }
 
-index !== STEPS.length-1 && (
+                    </span>
 
-<div
+                  </div>
 
-className={`
+                </div>
 
-mx-2
+              </div>
 
-h-px
+            )
+          }
 
-flex-1
 
+          {/* =================================================
+              SHIPPING ERROR
+          ================================================== */}
 
-${
+          {
+            shippingError && (
 
-index < currentStepIndex
+              <div
 
-?
+                className="
+                  mb-5
+                  rounded-xl
+                  bg-red-50
+                  px-4
+                  py-3
+                  text-sm
+                  text-red-600
+                "
 
-"bg-[#C8A44D]"
+              >
 
-:
+                {
+                  shippingError
+                }
 
-"bg-neutral-200"
+              </div>
 
-}
+            )
+          }
 
-`}
 
-/>
+          {/* =================================================
+              SHIPPING LOADING
+          ================================================== */}
 
-)
+          {
+            calculatingShipping && (
 
-}
+              <div
 
+                className="
+                  mb-5
+                  flex
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-xl
+                  bg-neutral-50
+                  px-4
+                  py-3
+                  text-sm
+                  text-neutral-600
+                "
 
+              >
 
+                <Loader2
 
+                  size={17}
 
-</div>
+                  className="
+                    animate-spin
+                  "
 
-)
+                />
 
-})
+                Calculating shipping charges...
 
-}
+              </div>
 
+            )
+          }
 
 
+          {/* =================================================
+              ORDER SUCCESS
+          ================================================== */}
 
+          {
+            orderSuccess && (
 
+              <OrderSuccess
 
+                orderNumber={
+                  orderNumber
+                }
 
-</div>
+                onClose={
+                  onClose
+                }
 
-)
+              />
 
-}
+            )
+          }
 
 
+          {/* =================================================
+              LOGIN
+          ================================================== */}
 
-</div>
+          {
+            !orderSuccess &&
+            step === "login" && (
 
+              <>
 
+                <div
 
+                  className="
+                    flex
+                    justify-center
+                  "
 
+                >
 
+                  <div
 
-<div
+                    className="
+                      flex
+                      h-20
+                      w-20
+                      items-center
+                      justify-center
+                      rounded-full
+                      bg-neutral-100
+                    "
 
-className="
-flex-1
-overflow-y-auto
-px-6
-py-7
-"
+                  >
 
->
+                    <UserRound
+                      size={38}
+                    />
 
+                  </div>
 
+                </div>
 
 
+                <h3
 
+                  className="
+                    mt-6
+                    text-center
+                    text-2xl
+                    font-semibold
+                  "
 
-{
+                >
 
-!orderSuccess &&
+                  Login to continue
 
-<div
+                </h3>
 
-className="
-mb-6
-rounded-2xl
-border
-border-neutral-200
-bg-neutral-50
-p-4
-"
 
->
+                <LoginStep
 
+                  onSuccess={
+                    handleLoginSuccess
+                  }
 
-<h3
+                />
 
-className="
-mb-3
-text-sm
-font-semibold
-"
+              </>
 
->
+            )
+          }
 
-Order Summary
 
-</h3>
+          {/* =================================================
+              ADDRESS
+          ================================================== */}
 
+          {
+            !orderSuccess &&
+            step === "address" && (
 
+              <AddressStep
 
+                customer={
+                  customer
+                }
 
+                onContinue={
+                  handleAddressContinue
+                }
 
+              />
 
+            )
+          }
 
-<div
 
-className="
-space-y-2
-text-sm
-"
+          {/* =================================================
+              PAYMENT
+          ================================================== */}
 
->
+          {
+            !orderSuccess &&
+            step === "payment" && (
 
+              <>
 
+                {/* =============================================
+                    PAYMENT PAGE OFFER PROGRESS
+                ============================================== */}
 
+                <div
+                  className="
+                    mb-6
+                    space-y-5
+                  "
+                >
 
+                  {/* =========================================
+                      FREE GIFT
+                  ========================================== */}
 
-<div
+                  <div>
 
-className="
-flex
-justify-between
-"
+                    <div
 
->
+                      className="
+                        flex
+                        items-center
+                        gap-2
 
-<span
+                        text-sm
+                        font-medium
+                      "
 
-className="
-text-neutral-500
-"
+                    >
 
->
+                      <span>
+                        🎁
+                      </span>
 
-Items
 
-</span>
+                      {
+                        giftUnlocked ? (
 
+                          <>
 
-<span>
+                            <span>
+                              Free Gift Unlocked
+                            </span>
 
-{items.length}
 
-</span>
+                            <span
 
+                              className="
+                                ml-1
 
-</div>
+                                flex
+                                h-5
+                                w-5
 
+                                items-center
+                                justify-center
 
+                                rounded-full
 
+                                bg-green-100
 
+                                text-green-600
 
+                                font-bold
 
+                                text-xs
+                              "
 
-<div
+                            >
 
-className="
-flex
-justify-between
-"
+                              ✓
 
->
+                            </span>
 
-<span
+                          </>
 
-className="
-text-neutral-500
-"
+                        ) : (
 
->
+                          <span>
 
-Subtotal
+                            Add ₹
+                            {
+                              giftRemaining
+                            }
+                            {" "}
+                            more to unlock Free Gift
 
-</span>
+                          </span>
 
+                        )
+                      }
 
-<span>
+                    </div>
 
-₹{subtotal.toFixed(2)}
 
-</span>
+                    {
+                      !giftUnlocked && (
 
+                        <div
 
-</div>
+                          className="
+                            mt-2
 
+                            h-2
 
+                            overflow-hidden
 
+                            rounded-full
 
+                            bg-neutral-200
+                          "
 
+                        >
 
+                          <div
 
-{
+                            className="
+                              h-full
 
-discount > 0 &&
+                              rounded-full
 
-<div
+                              bg-black
 
-className="
-flex
-justify-between
-text-green-600
-"
+                              transition-all
+                              duration-300
+                            "
 
->
+                            style={{
+                              width:
+                                `${giftProgress}%`,
+                            }}
 
+                          />
 
-<span>
+                        </div>
 
-Discount
+                      )
+                    }
 
-</span>
+                  </div>
 
 
-<span>
+                  {/* =========================================
+                      FREE SHIPPING
+                  ========================================== */}
 
-- ₹{discount.toFixed(2)}
+                  <div>
 
-</span>
+                    <div
 
+                      className="
+                        flex
+                        items-center
+                        gap-2
 
-</div>
+                        text-sm
+                        font-medium
+                      "
 
-}
+                    >
 
+                      <span>
+                        🚚
+                      </span>
 
 
+                      {
+                        freeShippingUnlocked ? (
 
+                          <>
 
+                            <span>
+                              Free Shipping Unlocked
+                            </span>
 
 
-{
+                            <span
 
-appliedCoupon &&
+                              className="
+                                ml-1
 
-<div
+                                flex
+                                h-5
+                                w-5
 
-className="
-rounded-xl
-bg-green-100
-px-3
-py-2
-text-xs
-text-green-700
-"
+                                items-center
+                                justify-center
 
->
+                                rounded-full
 
-Coupon Applied:
+                                bg-green-100
 
-{" "}
+                                text-green-600
 
-<strong>
+                                font-bold
 
-{appliedCoupon.code}
+                                text-xs
+                              "
 
-</strong>
+                            >
 
-</div>
+                              ✓
 
-}
+                            </span>
 
+                          </>
 
+                        ) : (
 
+                          <span>
 
+                            Add ₹
+                            {
+                              shippingRemaining
+                            }
+                            {" "}
+                            more to unlock Free Shipping
 
+                          </span>
 
+                        )
+                      }
 
-<div
+                    </div>
 
-className="
-border-t
-pt-3
-flex
-justify-between
-font-semibold
-"
 
->
+                    {
+                      !freeShippingUnlocked && (
 
-<span>
+                        <div
 
-Total
+                          className="
+                            mt-2
 
-</span>
+                            h-2
 
+                            overflow-hidden
 
-<span
+                            rounded-full
 
-className="
-text-[#9A7A22]
-"
+                            bg-neutral-200
+                          "
 
->
+                        >
 
-₹{finalAmount.toFixed(2)}
+                          <div
 
-</span>
+                            className="
+                              h-full
 
+                              rounded-full
 
-</div>
+                              bg-black
 
+                              transition-all
+                              duration-300
+                            "
 
+                            style={{
+                              width:
+                                `${shippingProgress}%`,
+                            }}
 
+                          />
 
+                        </div>
 
+                      )
+                    }
 
-</div>
+                  </div>
 
+                </div>
 
 
+                {/* =============================================
+                    PAYMENT COMPONENT
+                ============================================== */}
 
+                <PaymentStep
 
+                  totalAmount={
+                    finalAmount
+                  }
 
+                  onSuccess={
+                    handlePaymentSuccess
+                  }
 
-</div>
+                />
 
-}
+              </>
 
+            )
+          }
 
+        </div>
 
 
+        {/* ===================================================
+            SECURITY FOOTER
+        ==================================================== */}
 
+        {
+          !orderSuccess && (
 
+            <div
 
+              className="
+                shrink-0
+                border-t
+                bg-neutral-50
+                px-6
+                py-4
+              "
 
+            >
 
-{
+              <div
 
-orderSuccess &&
+                className="
+                  flex
+                  items-center
+                  justify-center
+                  gap-2
+                  text-sm
+                  text-neutral-600
+                "
 
-<OrderSuccess
+              >
 
-orderNumber={orderNumber}
+                <ShieldCheck
+                  size={18}
+                />
 
-onClose={onClose}
+                Your data is safe and secure with us
 
-/>
+              </div>
 
-}
+            </div>
 
+          )
+        }
 
+      </div>
 
+    </>
 
-
-
-
-
-
-{
-
-!orderSuccess && step==="login" &&
-
-<>
-
-
-<div
-
-className="
-flex
-justify-center
-"
-
->
-
-
-<div
-
-className="
-flex
-h-20
-w-20
-items-center
-justify-center
-rounded-full
-bg-neutral-100
-"
-
->
-
-
-<UserRound size={38}/>
-
-
-</div>
-
-
-</div>
-
-
-
-
-
-
-
-<h3
-
-className="
-mt-6
-text-center
-text-2xl
-font-semibold
-"
-
->
-
-Login to continue
-
-</h3>
-
-
-
-
-
-
-
-<LoginStep
-
-onSuccess={handleLoginSuccess}
-
-/>
-
-
-</>
-
-}
-
-
-
-
-
-
-
-
-
-{
-
-!orderSuccess && step==="address" &&
-
-<AddressStep
-
-customer={customer}
-
-onContinue={(address)=>{
-
-
-setSelectedAddress(address);
-
-
-setStep("payment");
-
-
-}}
-
-/>
-
-}
-
-
-
-
-
-
-
-
-
-{
-
-!orderSuccess && step==="payment" &&
-
-<PaymentStep
-
-totalAmount={finalAmount}
-
-onSuccess={handlePaymentSuccess}
-
-/>
-
-}
-
-
-
-
-
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* Security Footer */}
-
-{
-
-!orderSuccess &&
-
-<div
-
-className="
-shrink-0
-border-t
-bg-neutral-50
-px-6
-py-4
-"
-
->
-
-
-<div
-
-className="
-flex
-items-center
-justify-center
-gap-2
-text-sm
-text-neutral-600
-"
-
->
-
-
-<ShieldCheck size={18}/>
-
-
-Your data is safe and secure with us
-
-
-
-</div>
-
-
-
-
-
-</div>
-
-}
-
-
-
-
-
-
-
-
-
-</div>
-
-
-
-
-
-
-
-</>
-
-);
-
+  );
 }
