@@ -5,9 +5,11 @@ import {
   useState,
 } from "react";
 
+
 import {
   supabase,
 } from "@/shared/lib/supabase";
+
 
 import {
   getCustomerByPhone,
@@ -87,24 +89,16 @@ const AuthContext =
  * TEST AUTH
  * =========================================================
  *
- * TEMPORARY
+ * During development we intentionally use the test
+ * phone-based login flow.
  *
- * Real OTP authentication is intentionally disabled
- * while we are testing the customer login flow.
- *
- * IMPORTANT:
- *
- * We are NOT using import.meta.env.DEV here because
- * the mobile browser may be accessing a production build
- * or another environment where DEV = false.
- *
- * Once testing is complete, change this back to false
- * and implement real OTP authentication.
+ * Production will use Supabase authentication.
  *
  * =========================================================
  */
 
-const isTestAuthEnabled = true;
+const isTestAuthEnabled =
+  import.meta.env.DEV;
 
 
 /*
@@ -122,7 +116,6 @@ function normalizePhone(
     return "";
 
   }
-
 
   return phone
     .replace(
@@ -149,7 +142,6 @@ function getTestPhone() {
     return "";
 
   }
-
 
   return normalizePhone(
     localStorage.getItem(
@@ -186,11 +178,7 @@ async function fetchCustomer(
 
 
   /*
-   * IMPORTANT:
-   *
-   * This directly calls the customer service.
-   *
-   * We do NOT swallow errors here.
+   * Do not hide service errors as "customer not found".
    */
 
   const customer =
@@ -221,12 +209,6 @@ export function AuthProvider({
 }) {
 
 
-  /*
-   * =======================================================
-   * STATE
-   * =======================================================
-   */
-
   const [
     customer,
     setCustomer,
@@ -243,7 +225,7 @@ export function AuthProvider({
 
   /*
    * =======================================================
-   * LOGIN WITH PHONE
+   * TEST LOGIN
    * =======================================================
    */
 
@@ -257,10 +239,6 @@ export function AuthProvider({
       );
 
 
-    /*
-     * Invalid phone
-     */
-
     if (
       !normalizedPhone
     ) {
@@ -272,14 +250,7 @@ export function AuthProvider({
 
     /*
      * =====================================================
-     * TEST LOGIN
-     * =====================================================
-     *
-     * TEMPORARY:
-     *
-     * No real OTP authentication.
-     *
-     * We directly look up the customer.
+     * TEST AUTH
      * =====================================================
      */
 
@@ -287,170 +258,17 @@ export function AuthProvider({
       isTestAuthEnabled
     ) {
 
-      console.log(
-        "[T&M AUTH] TEST LOGIN"
-      );
-
-
-      console.log(
-        "[T&M AUTH] Phone:",
-        normalizedPhone
-      );
-
-
-      /*
-       * Save test login.
-       */
-
       localStorage.setItem(
         "tnm_test_phone",
         normalizedPhone
       );
 
 
-      /*
-       * Fetch active customer.
-       */
-
-      const customerData =
-        await fetchCustomer(
-          normalizedPhone
-        );
-
-
-      /*
-       * Existing customer found.
-       */
-
-      if (
-        customerData
-      ) {
-
-        console.log(
-          "[T&M AUTH] CUSTOMER FOUND ✅"
-        );
-
-
-        console.log(
-          "[T&M AUTH] Customer ID:",
-          customerData.id
-        );
-
-
-        /*
-         * Persist customer.
-         */
-
-        localStorage.setItem(
-          "tnm_customer",
-          JSON.stringify(
-            customerData
-          )
-        );
-
-
-        /*
-         * IMPORTANT:
-         *
-         * Immediately update global React state.
-         *
-         * This makes the header/account UI update
-         * without refreshing the page.
-         */
-
-        setCustomer(
-          customerData
-        );
-
-
-        return customerData;
-
-      }
-
-
-      /*
-       * No customer found.
-       */
-
-      console.log(
-        "[T&M AUTH] CUSTOMER NOT FOUND ❌"
-      );
-
-
-      return null;
-
-    }
-
-
-    /*
-     * =====================================================
-     * REAL AUTH
-     * =====================================================
-     *
-     * This will be implemented when real OTP
-     * authentication is enabled.
-     * =====================================================
-     */
-
-    return null;
-
-  }
-
-
-  /*
-   * =======================================================
-   * LOAD SESSION
-   * =======================================================
-   */
-
-  async function loadSession() {
-
-    try {
-
-      /*
-       * =====================================================
-       * TEST AUTH
-       * =====================================================
-       */
-
-      if (
-        isTestAuthEnabled
-      ) {
-
-        const testPhone =
-          getTestPhone();
-
-
-        /*
-         * No saved test login.
-         */
-
-        if (
-          !testPhone
-        ) {
-
-          setCustomer(
-            null
-          );
-
-
-          localStorage.removeItem(
-            "tnm_customer"
-          );
-
-
-          return;
-
-        }
-
-
-        /*
-         * Fetch existing customer.
-         */
+      try {
 
         const customerData =
           await fetchCustomer(
-            testPhone
+            normalizedPhone
           );
 
 
@@ -470,23 +288,146 @@ export function AuthProvider({
             customerData
           );
 
-        } else {
 
-          /*
-           * Saved phone no longer has
-           * an active customer.
-           */
-
-          setCustomer(
-            null
-          );
-
-
-          localStorage.removeItem(
-            "tnm_customer"
-          );
+          return customerData;
 
         }
+
+
+        return null;
+
+      } catch (
+        error
+      ) {
+
+        console.error(
+          "Test customer login failed:",
+          error
+        );
+
+
+        return null;
+
+      }
+
+    }
+
+
+    /*
+     * =====================================================
+     * REAL AUTH
+     * =====================================================
+     */
+
+    return null;
+
+  }
+
+
+  /*
+   * =======================================================
+   * LOAD SESSION
+   * =======================================================
+   */
+
+  async function loadSession() {
+
+    try {
+
+      /*
+       * ---------------------------------------------------
+       * TEST MODE
+       * ---------------------------------------------------
+       */
+
+      if (
+        isTestAuthEnabled
+      ) {
+
+        const testPhone =
+          getTestPhone();
+
+
+        if (
+          testPhone
+        ) {
+
+          try {
+
+            const customerData =
+              await fetchCustomer(
+                testPhone
+              );
+
+
+            if (
+              customerData
+            ) {
+
+              localStorage.setItem(
+                "tnm_customer",
+                JSON.stringify(
+                  customerData
+                )
+              );
+
+
+              setCustomer(
+                customerData
+              );
+
+            } else {
+
+              /*
+               * Saved test phone no longer has
+               * an active customer.
+               */
+
+              setCustomer(
+                null
+              );
+
+
+              localStorage.removeItem(
+                "tnm_customer"
+              );
+
+            }
+
+          } catch (
+            error
+          ) {
+
+            console.error(
+              "Failed to load test customer:",
+              error
+            );
+
+
+            setCustomer(
+              null
+            );
+
+          }
+
+
+          return;
+
+        }
+
+
+        /*
+         * No test phone means logged out.
+         */
+
+        setCustomer(
+          null
+        );
+
+
+        localStorage.removeItem(
+          "tnm_customer"
+        );
 
 
         return;
@@ -495,9 +436,9 @@ export function AuthProvider({
 
 
       /*
-       * =====================================================
+       * ---------------------------------------------------
        * REAL SUPABASE AUTH
-       * =====================================================
+       * ---------------------------------------------------
        */
 
       const {
@@ -515,7 +456,6 @@ export function AuthProvider({
         setCustomer(
           null
         );
-
 
         return;
 
@@ -592,7 +532,8 @@ export function AuthProvider({
     /*
      * Supabase auth listener.
      *
-     * Test authentication does NOT depend on this.
+     * Test mode deliberately ignores Supabase auth
+     * because loginWithPhone() controls development login.
      */
 
     const {
@@ -616,9 +557,7 @@ export function AuthProvider({
 
 
           /*
-           * TEST AUTH
-           *
-           * Ignore Supabase auth events.
+           * TEST MODE
            */
 
           if (
@@ -631,14 +570,11 @@ export function AuthProvider({
 
 
           /*
-           * =================================================
            * REAL AUTH
-           * =================================================
            */
 
           if (
-            event ===
-              "SIGNED_OUT" ||
+            event === "SIGNED_OUT" ||
             !session
           ) {
 
@@ -717,7 +653,6 @@ export function AuthProvider({
 
       mounted = false;
 
-
       subscription.unsubscribe();
 
     };
@@ -729,75 +664,75 @@ export function AuthProvider({
    * =======================================================
    * LOGOUT
    * =======================================================
+   *
+   * IMPORTANT:
+   *
+   * Logout is now responsible for leaving /account.
+   *
+   * This means every logout source gets the same behavior.
+   *
+   * =======================================================
    */
 
   async function logout() {
 
-    /*
-     * =====================================================
-     * TEST LOGOUT
-     * =====================================================
-     */
-
-    if (
-      isTestAuthEnabled
-    ) {
+    try {
 
       /*
-       * Remove test login.
+       * ---------------------------------------------------
+       * TEST AUTH
+       * ---------------------------------------------------
        */
 
-      localStorage.removeItem(
-        "tnm_test_phone"
-      );
-
-
-      localStorage.removeItem(
-        "tnm_customer"
-      );
-
-
-      /*
-       * Immediately clear React state.
-       */
-
-      setCustomer(
-        null
-      );
-
-
-      /*
-       * Clear any accidental Supabase session too.
-       */
-
-      try {
-
-        await supabase.auth.signOut();
-
-      } catch (
-        error
+      if (
+        isTestAuthEnabled
       ) {
 
-        console.error(
-          "Supabase logout error:",
-          error
+        localStorage.removeItem(
+          "tnm_test_phone"
         );
+
+
+        localStorage.removeItem(
+          "tnm_customer"
+        );
+
+
+        setCustomer(
+          null
+        );
+
+
+        /*
+         * Clear any old Supabase session as well.
+         */
+
+        try {
+
+          await supabase.auth.signOut();
+
+        } catch (
+          error
+        ) {
+
+          console.error(
+            "Supabase logout error:",
+            error
+          );
+
+        }
+
+
+        return;
 
       }
 
 
-      return;
-
-    }
-
-
-    /*
-     * =====================================================
-     * REAL LOGOUT
-     * =====================================================
-     */
-
-    try {
+      /*
+       * ---------------------------------------------------
+       * REAL AUTH
+       * ---------------------------------------------------
+       */
 
       await supabase.auth.signOut();
 
@@ -805,6 +740,11 @@ export function AuthProvider({
 
       localStorage.removeItem(
         "tnm_customer"
+      );
+
+
+      localStorage.removeItem(
+        "tnm_test_phone"
       );
 
 
@@ -862,7 +802,9 @@ export function useAuth() {
     );
 
 
-  if (!context) {
+  if (
+    !context
+  ) {
 
     throw new Error(
       "useAuth must be used inside AuthProvider"

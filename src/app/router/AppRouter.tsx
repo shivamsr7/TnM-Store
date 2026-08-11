@@ -3,32 +3,68 @@ import {
   Route,
 } from "react-router-dom";
 
-import App from "@/App";
 
-import ScrollToTop from "@/shared/components/ScrollToTop";
+import App
+  from "@/App";
 
-import AccountPage from "@/features/customers/pages/AccountPage";
 
-import AboutUs from "@/pages/static/AboutUs";
-import ContactUs from "@/pages/static/ContactUs";
-import FAQ from "@/pages/static/FAQ";
-import JewelleryCare from "@/pages/static/JewelleryCare";
-import ShippingDelivery from "@/pages/static/ShippingDelivery";
-import ReturnsExchange from "@/pages/static/ReturnsExchange";
-import PrivacyPolicy from "@/pages/static/PrivacyPolicy";
-import TermsConditions from "@/pages/static/TermsConditions";
+import ScrollToTop
+  from "@/shared/components/ScrollToTop";
 
-import MainLayout from "@/layouts/MainLayout";
 
-import Shop from "@/features/shop/pages/Shop";
-import ProductDetails from "@/features/shop/pages/ProductDetails";
+import AccountPage
+  from "@/features/customers/pages/AccountPage";
 
-import MyOrders from "@/features/orders/components/MyOrders";
-import OrderDetails from "@/features/orders/components/OrderDetails";
 
-import NotificationsPage from "@/features/notifications/pages/NotificationsPage";
+import AboutUs
+  from "@/pages/static/AboutUs";
 
-import Wishlist from "@/features/wishlist/pages/Wishlist";
+import ContactUs
+  from "@/pages/static/ContactUs";
+
+import FAQ
+  from "@/pages/static/FAQ";
+
+import JewelleryCare
+  from "@/pages/static/JewelleryCare";
+
+import ShippingDelivery
+  from "@/pages/static/ShippingDelivery";
+
+import ReturnsExchange
+  from "@/pages/static/ReturnsExchange";
+
+import PrivacyPolicy
+  from "@/pages/static/PrivacyPolicy";
+
+import TermsConditions
+  from "@/pages/static/TermsConditions";
+
+
+import MainLayout
+  from "@/layouts/MainLayout";
+
+
+import Shop
+  from "@/features/shop/pages/Shop";
+
+import ProductDetails
+  from "@/features/shop/pages/ProductDetails";
+
+
+import MyOrders
+  from "@/features/orders/components/MyOrders";
+
+import OrderDetails
+  from "@/features/orders/components/OrderDetails";
+
+
+import NotificationsPage
+  from "@/features/notifications/pages/NotificationsPage";
+
+
+import Wishlist
+  from "@/features/wishlist/pages/Wishlist";
 
 
 export default function AppRouter() {
@@ -42,11 +78,17 @@ export default function AppRouter() {
 
       <Routes>
 
-        {/* =====================================================
-            MAIN WEBSITE LAYOUT
-        ====================================================== */}
 
-        <Route element={<MainLayout />}>
+        {/* ===================================================
+            MAIN WEBSITE LAYOUT
+        ==================================================== */}
+
+        <Route
+          element={
+            <MainLayout />
+          }
+        >
+
 
           {/* =================================================
               HOME
@@ -54,7 +96,9 @@ export default function AppRouter() {
 
           <Route
             path="/"
-            element={<App />}
+            element={
+              <App />
+            }
           />
 
 
@@ -64,42 +108,65 @@ export default function AppRouter() {
 
           <Route
             path="/about-us"
-            element={<AboutUs />}
+            element={
+              <AboutUs />
+            }
           />
+
 
           <Route
             path="/contact-us"
-            element={<ContactUs />}
+            element={
+              <ContactUs />
+            }
           />
+
 
           <Route
             path="/faq"
-            element={<FAQ />}
+            element={
+              <FAQ />
+            }
           />
+
 
           <Route
             path="/jewellery-care"
-            element={<JewelleryCare />}
+            element={
+              <JewelleryCare />
+            }
           />
+
 
           <Route
             path="/shipping"
-            element={<ShippingDelivery />}
+            element={
+              <ShippingDelivery />
+            }
           />
+
 
           <Route
             path="/returns"
-            element={<ReturnsExchange />}
+            element={
+              <ReturnsExchange />
+            }
           />
+
 
           <Route
             path="/privacy-policy"
-            element={<PrivacyPolicy />}
+            element={
+              <PrivacyPolicy />
+            }
           />
+
 
           <Route
             path="/terms"
-            element={<TermsConditions />}
+            element={
+              <TermsConditions />
+            }
           />
 
 
@@ -109,7 +176,9 @@ export default function AppRouter() {
 
           <Route
             path="/wishlist"
-            element={<Wishlist />}
+            element={
+              <Wishlist />
+            }
           />
 
 
@@ -119,17 +188,21 @@ export default function AppRouter() {
 
           <Route
             path="/shop"
-            element={<Shop />}
+            element={
+              <Shop />
+            }
           />
 
 
           {/* =================================================
-              PRODUCT DETAILS
+              PRODUCT
           ================================================== */}
 
           <Route
             path="/product/:slug"
-            element={<ProductDetails />}
+            element={
+              <ProductDetails />
+            }
           />
 
 
@@ -139,25 +212,41 @@ export default function AppRouter() {
 
           <Route
             path="/account"
-            element={<AccountPage />}
+            element={
+              <AccountPage />
+            }
           />
 
 
+          {/* =================================================
+              ORDERS
+          ================================================== */}
+
           <Route
             path="/account/orders"
-            element={<MyOrders />}
+            element={
+              <MyOrders />
+            }
           />
 
 
           <Route
             path="/account/orders/:id"
-            element={<OrderDetails />}
+            element={
+              <OrderDetails />
+            }
           />
 
 
+          {/* =================================================
+              NOTIFICATIONS
+          ================================================== */}
+
           <Route
             path="/account/notifications"
-            element={<NotificationsPage />}
+            element={
+              <NotificationsPage />
+            }
           />
 
         </Route>

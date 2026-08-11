@@ -1,29 +1,36 @@
 import {
   Link,
   NavLink,
+  useNavigate,
 } from "react-router-dom";
+
 
 import {
   useState,
 } from "react";
+
 
 import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
 
+
 import {
   AnimatePresence,
   motion,
 } from "framer-motion";
 
+
 import {
   useAuthDialog,
 } from "@/features/Auth/context/AuthDialogContext";
 
+
 import {
   navigationItems,
 } from "../constants/navigation";
+
 
 import {
   useShopCategories,
@@ -54,13 +61,23 @@ export default function MobileNavigation({
 
   /*
    * =========================================================
+   * NAVIGATION
+   * =========================================================
+   */
+
+  const navigate =
+    useNavigate();
+
+
+  /*
+   * =========================================================
    * SHOP CATEGORIES
    * =========================================================
    *
    * Uses the same shop category source as desktop.
    *
-   * Only active categories and subcategories with active
-   * products are returned.
+   * Active categories/subcategories are supplied by
+   * useShopCategories().
    *
    * =========================================================
    */
@@ -86,71 +103,13 @@ export default function MobileNavigation({
 
   /*
    * =========================================================
-   * AUTH DIALOG
+   * AUTH
    * =========================================================
    */
 
   const {
     openAuth,
   } = useAuthDialog();
-
-
-  /*
-   * =========================================================
-   * LOGOUT
-   * =========================================================
-   *
-   * IMPORTANT:
-   *
-   * We deliberately use window.location.replace("/")
-   * after logout.
-   *
-   * This guarantees that the current /account page is
-   * completely replaced by the homepage.
-   *
-   * It also prevents the logged-out AccountPage from
-   * remaining mounted with an empty customer state.
-   *
-   * =========================================================
-   */
-
-  async function handleLogout() {
-
-    try {
-
-      await onLogout();
-
-    } catch (error) {
-
-      console.error(
-        "Logout error:",
-        error
-      );
-
-    } finally {
-
-      /*
-       * Close the mobile drawer.
-       */
-
-      onClose();
-
-
-      /*
-       * Leave the Account page completely.
-       *
-       * replace() prevents the logged-out /account page
-       * from remaining in browser history as the current
-       * page.
-       */
-
-      window.location.replace(
-        "/"
-      );
-
-    }
-
-  }
 
 
   /*
@@ -169,6 +128,59 @@ export default function MobileNavigation({
           ? null
           : categoryId
     );
+
+  }
+
+
+  /*
+   * =========================================================
+   * LOGOUT
+   * =========================================================
+   *
+   * AuthContext also clears the authentication state.
+   *
+   * This navigation guarantees that the drawer cannot leave
+   * the user sitting on /account after logout.
+   *
+   * =========================================================
+   */
+
+  async function handleLogout() {
+
+    try {
+
+      await onLogout();
+
+    } catch (
+      error
+    ) {
+
+      console.error(
+        "Logout error:",
+        error
+      );
+
+    } finally {
+
+      /*
+       * Close drawer.
+       */
+
+      onClose();
+
+
+      /*
+       * Leave Account page.
+       */
+
+      navigate(
+        "/",
+        {
+          replace: true,
+        }
+      );
+
+    }
 
   }
 
@@ -287,9 +299,13 @@ export default function MobileNavigation({
                   text-sm
                   font-medium
                   text-black
+
                   transition
+
                   hover:bg-black
                   hover:text-white
+
+                  disabled:cursor-not-allowed
                 "
               >
 
@@ -463,7 +479,9 @@ export default function MobileNavigation({
               text-sm
               font-medium
               text-neutral-900
+
               transition
+
               hover:bg-[#F8F6F1]
               hover:text-[#C8A44D]
             "
@@ -667,7 +685,9 @@ export default function MobileNavigation({
                             text-sm
                             font-medium
                             text-black
+
                             transition
+
                             hover:text-[#C8A44D]
                           "
                         >
@@ -694,20 +714,19 @@ export default function MobileNavigation({
                             {category.subcategories.map(
                               (subcategory) => {
 
-                                /*
-                                 * Use slug when available.
-                                 * Otherwise use database ID.
-                                 */
-
                                 const subcategoryValue =
                                   subcategory.slug ||
                                   subcategory.id;
 
 
                                 /*
-                                 * Keep URL as a single-line
-                                 * string so spaces/newlines
-                                 * never become %20.
+                                 * IMPORTANT:
+                                 *
+                                 * Keep this URL as a single
+                                 * clean string.
+                                 *
+                                 * No accidental whitespace,
+                                 * therefore no %20.
                                  */
 
                                 const subcategoryUrl =
@@ -736,13 +755,17 @@ export default function MobileNavigation({
                                       pl-2
                                       text-sm
                                       text-neutral-700
+
                                       transition
+
                                       hover:bg-white
                                       hover:text-[#C8A44D]
                                     "
                                   >
 
-                                    {subcategory.name}
+                                    {
+                                      subcategory.name
+                                    }
 
                                   </Link>
 

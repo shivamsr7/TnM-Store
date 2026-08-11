@@ -1,6 +1,5 @@
 import {
   Outlet,
-  useNavigate,
 } from "react-router-dom";
 
 
@@ -25,40 +24,6 @@ import MobileBottomNav
 
 
 export default function MainLayout() {
-
-
-  /*
-   * =========================================================
-   * NAVIGATION
-   * =========================================================
-   */
-
-  const navigate =
-    useNavigate();
-
-
-  /*
-   * =========================================================
-   * ACCOUNT
-   * =========================================================
-   *
-   * IMPORTANT:
-   *
-   * Bottom Account button should go directly to /account.
-   *
-   * It must NOT open MobileDrawer.
-   *
-   * =========================================================
-   */
-
-  function handleAccountClick() {
-
-    navigate(
-      "/account"
-    );
-
-  }
-
 
   return (
 
@@ -107,13 +72,7 @@ export default function MainLayout() {
           MOBILE BOTTOM NAVIGATION
       ====================================================== */}
 
-      <MobileBottomNav
-
-        onAccountClick={
-          handleAccountClick
-        }
-
-      />
+      <MobileBottomNav />
 
     </>
 

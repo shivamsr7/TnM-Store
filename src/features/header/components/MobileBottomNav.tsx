@@ -6,6 +6,7 @@ import {
 
 import {
   NavLink,
+  useNavigate,
 } from "react-router-dom";
 
 import {
@@ -13,20 +14,57 @@ import {
 } from "@/features/cart/store/cart.store";
 
 
-interface MobileBottomNavProps {
-  onAccountClick: () => void;
-}
+export default function MobileBottomNav() {
 
 
-export default function MobileBottomNav({
-  onAccountClick,
-}: MobileBottomNavProps) {
+  /*
+   * =========================================================
+   * NAVIGATION
+   * =========================================================
+   */
+
+  const navigate =
+    useNavigate();
+
+
+  /*
+   * =========================================================
+   * CART
+   * =========================================================
+   */
 
   const {
     openCart,
     getCartCount,
   } = useCartStore();
 
+
+  /*
+   * =========================================================
+   * ACCOUNT
+   * =========================================================
+   *
+   * Account opens the actual Account page.
+   *
+   * It does NOT open MobileDrawer.
+   *
+   * =========================================================
+   */
+
+  function handleAccountClick() {
+
+    navigate(
+      "/account"
+    );
+
+  }
+
+
+  /*
+   * =========================================================
+   * RENDER
+   * =========================================================
+   */
 
   return (
 
@@ -67,6 +105,8 @@ export default function MobileBottomNav({
         <NavLink
           to="/"
 
+          end
+
           className={({ isActive }) => `
             flex
             flex-col
@@ -93,6 +133,7 @@ export default function MobileBottomNav({
 
               <Home
                 size={21}
+
                 strokeWidth={
                   isActive
                     ? 2.2
@@ -144,6 +185,7 @@ export default function MobileBottomNav({
 
               <ShoppingBag
                 size={21}
+
                 strokeWidth={
                   isActive
                     ? 2.2
@@ -170,10 +212,10 @@ export default function MobileBottomNav({
           type="button"
 
           onClick={
-            onAccountClick
+            handleAccountClick
           }
 
-          aria-label="Open account menu"
+          aria-label="Open account page"
 
           className="
             flex
@@ -187,7 +229,9 @@ export default function MobileBottomNav({
             text-neutral-400
 
             transition-colors
+
             hover:text-[#C8A44D]
+
             active:scale-95
           "
         >
@@ -219,6 +263,7 @@ export default function MobileBottomNav({
 
           className="
             relative
+
             flex
             flex-col
             items-center
@@ -230,7 +275,9 @@ export default function MobileBottomNav({
             text-neutral-400
 
             transition-colors
+
             hover:text-[#C8A44D]
+
             active:scale-95
           "
         >
@@ -258,6 +305,7 @@ export default function MobileBottomNav({
                   flex
                   h-4
                   min-w-4
+
                   items-center
                   justify-center
 
@@ -269,6 +317,7 @@ export default function MobileBottomNav({
 
                   text-[8px]
                   font-bold
+                  leading-none
                   text-black
                 "
               >
