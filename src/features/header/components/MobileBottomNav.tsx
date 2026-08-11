@@ -6,6 +6,7 @@ import {
 
 import {
   NavLink,
+  useNavigate,
 } from "react-router-dom";
 
 import {
@@ -22,6 +23,16 @@ import {
 
 
 export default function MobileBottomNav() {
+
+  /*
+   * =========================================================
+   * NAVIGATION
+   * =========================================================
+   */
+
+  const navigate =
+    useNavigate();
+
 
   /*
    * =========================================================
@@ -59,26 +70,51 @@ export default function MobileBottomNav() {
 
   function handleAccountClick() {
 
+    /*
+     * Logged-in customer
+     * → Open existing Account page
+     * → Same browser tab
+     * → No full page reload
+     */
+
     if (
       customer
     ) {
 
-      window.location.href =
-        "/account";
+      navigate(
+        "/account"
+      );
 
       return;
 
     }
 
 
+    /*
+     * Logged-out customer
+     * → Open existing login dialog
+     */
+
     openAuth();
 
   }
 
 
+  /*
+   * =========================================================
+   * CART COUNT
+   * =========================================================
+   */
+
   const cartCount =
     getCartCount();
 
+
+  /*
+   * =========================================================
+   * RENDER
+   * =========================================================
+   */
 
   return (
 
