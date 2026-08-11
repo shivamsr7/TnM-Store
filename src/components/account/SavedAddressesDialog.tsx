@@ -5,11 +5,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-
 import AddAddressDialog from "./AddAddressDialog";
 import EditAddressDialog from "./EditAddressDialog";
 import DeleteAddressDialog from "./DeleteAddressDialog";
-
 
 import {
   X,
@@ -20,1002 +18,1110 @@ import {
   MapPin,
 } from "lucide-react";
 
-
 import {
   useState,
 } from "react";
-
 
 import {
   useCurrentCustomer,
 } from "@/features/customers/hooks/useCurrentCustomer";
 
-
 import {
   useCustomerAddresses,
 } from "@/features/customers/hooks/useCustomerAddresses";
 
-
 import {
   useCustomerAddressMutations,
 } from "@/features/customers/hooks/useCustomerAddressMutations";
-
 
 import {
   toast,
 } from "sonner";
 
 
-
-
-
-
-
-
 interface Props {
 
-open:boolean;
+  open: boolean;
 
-onClose:()=>void;
+  onClose: () => void;
 
 }
-
-
-
-
-
-
-
 
 
 export default function SavedAddressesDialog({
 
-open,
+  open,
+
+  onClose,
 
-onClose,
+}: Props) {
 
-}:Props){
 
+  /*
+   * =========================================================
+   * CURRENT CUSTOMER
+   * =========================================================
+   */
 
+  const {
+    data: customer,
+  } = useCurrentCustomer();
 
-const {
-data:customer
 
-}=useCurrentCustomer();
+  /*
+   * =========================================================
+   * CUSTOMER ID
+   * =========================================================
+   *
+   * Keep the ID in one place.
+   *
+   * When Zustand hydration finishes and the customer becomes
+   * available, React Query receives the ID and automatically
+   * fetches the addresses.
+   *
+   * =========================================================
+   */
 
+  const customerId =
+    customer?.id ?? null;
 
 
+  /*
+   * =========================================================
+   * ADDRESSES
+   * =========================================================
+   */
 
+  const {
+    data: addresses = [],
+    isLoading: loading,
+    isFetching,
+    refetch,
+  } = useCustomerAddresses(
+    customerId ?? undefined
+  );
 
 
+  /*
+   * =========================================================
+   * ADDRESS MUTATIONS
+   * =========================================================
+   */
 
-const {
+  const {
+    deleteMutation,
+    defaultMutation,
+  } =
+    useCustomerAddressMutations(
+      customerId ?? undefined
+    );
 
-data:addresses=[],
 
-isLoading:loading
+  /*
+   * =========================================================
+   * DIALOG STATE
+   * =========================================================
+   */
 
-}=useCustomerAddresses(
+  const [
+    showAddAddress,
+    setShowAddAddress,
+  ] = useState(false);
 
-customer?.id
 
-);
+  const [
+    showEditAddress,
+    setShowEditAddress,
+  ] = useState(false);
 
 
+  const [
+    selectedAddress,
+    setSelectedAddress,
+  ] = useState<any>(null);
 
 
+  const [
+    showDeleteDialog,
+    setShowDeleteDialog,
+  ] = useState(false);
 
 
+  const [
+    deleteAddressId,
+    setDeleteAddressId,
+  ] = useState<string | null>(null);
 
 
-const {
+  /*
+   * =========================================================
+   * DEFAULT ADDRESS
+   * =========================================================
+   */
 
-deleteMutation,
+  function handleDefault(
+    id: string
+  ) {
 
-defaultMutation,
+    if (!customerId) {
 
-}=useCustomerAddressMutations(
+      toast.error(
+        "Customer information is not available yet."
+      );
 
-customer?.id!
+      return;
 
-);
+    }
 
 
+    defaultMutation.mutate(
 
+      {
+        addressId: id,
+      },
 
+      {
 
+        onSuccess: async () => {
 
+          toast.success(
+            "Default address updated"
+          );
 
 
+          /*
+           * Refresh addresses immediately so the
+           * new default state is visible.
+           */
 
-const [
+          await refetch();
 
-showAddAddress,
+        },
 
-setShowAddAddress
+        onError: () => {
 
-]=useState(false);
+          toast.error(
+            "Unable to update default address"
+          );
 
+        },
 
+      }
 
+    );
 
+  }
 
 
-const [
+  /*
+   * =========================================================
+   * DELETE ADDRESS
+   * =========================================================
+   */
 
-showEditAddress,
+  function handleDelete() {
 
-setShowEditAddress
+    if (!deleteAddressId) {
 
-]=useState(false);
+      return;
 
+    }
 
 
+    if (!customerId) {
 
+      toast.error(
+        "Customer information is not available yet."
+      );
 
+      return;
 
-const [
+    }
 
-selectedAddress,
 
-setSelectedAddress
+    deleteMutation.mutate(
 
-]=useState<any>(null);
+      deleteAddressId,
 
+      {
 
+        onSuccess: async () => {
 
+          toast.success(
+            "Address deleted successfully"
+          );
 
 
+          setShowDeleteDialog(
+            false
+          );
 
-const [
+          setDeleteAddressId(
+            null
+          );
 
-showDeleteDialog,
 
-setShowDeleteDialog
+          /*
+           * Refresh the address list.
+           */
 
-]=useState(false);
+          await refetch();
 
+        },
 
+        onError: () => {
 
+          toast.error(
+            "Unable to delete address"
+          );
 
+        },
 
+      }
 
-const [
+    );
 
-deleteAddressId,
+  }
 
-setDeleteAddressId
 
-]=useState<string|null>(null);
+  /*
+   * =========================================================
+   * ADD ADDRESS SUCCESS
+   * =========================================================
+   */
 
+  function handleAddressAdded() {
 
+    toast.success(
+      "Address added successfully"
+    );
 
 
+    setShowAddAddress(
+      false
+    );
 
 
+    /*
+     * Fetch the newly added address.
+     */
 
-function handleDefault(
+    refetch();
 
-id:string
+  }
 
-){
 
+  /*
+   * =========================================================
+   * UPDATE ADDRESS SUCCESS
+   * =========================================================
+   */
 
+  function handleAddressUpdated() {
 
-defaultMutation.mutate(
+    toast.success(
+      "Address updated successfully"
+    );
 
-{
 
-addressId:id
+    setShowEditAddress(
+      false
+    );
 
-},
+    setSelectedAddress(
+      null
+    );
 
-{
 
-onSuccess:()=>{
+    /*
+     * Refresh the list.
+     */
 
+    refetch();
 
-toast.success(
+  }
 
-"Default address updated"
 
-);
+  /*
+   * =========================================================
+   * CLOSE EDIT
+   * =========================================================
+   */
 
+  function handleCloseEdit() {
 
-}
+    setShowEditAddress(
+      false
+    );
 
+    setSelectedAddress(
+      null
+    );
 
-}
+  }
 
-);
 
+  /*
+   * =========================================================
+   * CLOSE DELETE
+   * =========================================================
+   */
 
-}
-return (
+  function handleCloseDelete() {
 
-<>
+    setShowDeleteDialog(
+      false
+    );
 
-<Dialog
+    setDeleteAddressId(
+      null
+    );
 
-open={open}
+  }
 
-onOpenChange={(value)=>{
 
-if(!value)
+  /*
+   * =========================================================
+   * RENDER
+   * =========================================================
+   */
 
-onClose();
+  return (
 
-}}
+    <>
 
->
+      {/* =====================================================
+          SAVED ADDRESSES
+      ====================================================== */}
 
+      <Dialog
 
+        open={open}
 
+        onOpenChange={(value) => {
 
+          if (!value) {
 
-<DialogContent
+            onClose();
 
-className="
-max-h-[90vh]
-w-[95vw]
-overflow-y-auto
-rounded-3xl
-border-neutral-200
-bg-white
-p-0
-text-black
-shadow-xl
-sm:max-w-xl
+          }
 
-[&>button]:hidden
-"
+        }}
 
->
+      >
 
+        <DialogContent
 
+          className="
+            max-h-[90vh]
+            w-[95vw]
+            overflow-y-auto
+            rounded-3xl
+            border-neutral-200
+            bg-white
+            p-0
+            text-black
+            shadow-xl
+            sm:max-w-xl
 
+            [&>button]:hidden
+          "
 
+        >
 
+          {/* =================================================
+              HEADER
+          ================================================== */}
 
-<div
+          <div
 
-className="
-flex
-items-center
-justify-between
-border-b
-border-neutral-200
-px-6
-py-5
-"
+            className="
+              flex
+              items-center
+              justify-between
+              border-b
+              border-neutral-200
+              px-6
+              py-5
+            "
 
->
+          >
 
+            <DialogHeader>
 
-<DialogHeader>
+              <DialogTitle
 
+                className="
+                  text-xl
+                  font-semibold
+                "
 
-<DialogTitle
+              >
 
-className="
-text-xl
-font-semibold
-"
+                Saved Addresses
 
->
+              </DialogTitle>
 
-Saved Addresses
+            </DialogHeader>
 
-</DialogTitle>
 
+            <button
 
-</DialogHeader>
+              type="button"
 
+              onClick={
+                onClose
+              }
 
+              aria-label="Close saved addresses"
 
+              className="
+                flex
+                h-9
+                w-9
+                items-center
+                justify-center
+                rounded-full
+                border
+                border-neutral-300
+                transition
+                hover:bg-neutral-100
+              "
 
+            >
 
-<button
+              <X
+                size={18}
+              />
 
-onClick={onClose}
+            </button>
 
-className="
-flex
-h-9
-w-9
-items-center
-justify-center
-rounded-full
-border
-border-neutral-300
-transition
-hover:bg-neutral-100
-"
+          </div>
 
->
 
-<X size={18}/>
+          {/* =================================================
+              CONTENT
+          ================================================== */}
 
-</button>
+          <div
 
+            className="
+              space-y-4
+              p-6
+            "
 
+          >
 
-</div>
+            {/* =================================================
+                CUSTOMER NOT READY
+            ================================================== */}
 
+            {!customerId && (
 
+              <div
 
+                className="
+                  rounded-2xl
+                  border
+                  border-neutral-200
+                  bg-neutral-50
+                  p-8
+                  text-center
+                "
 
+              >
 
+                <MapPin
 
+                  size={38}
 
+                  className="
+                    mx-auto
+                    mb-3
+                    text-[#C8A44D]
+                  "
 
-<div
+                />
 
-className="
-space-y-4
-p-6
-"
 
->
+                <p
+                  className="
+                    font-medium
+                    text-neutral-900
+                  "
+                >
 
+                  Loading your account...
 
+                </p>
 
 
+                <p
+                  className="
+                    mt-1
+                    text-sm
+                    text-neutral-500
+                  "
+                >
 
+                  Please wait while we load your saved addresses.
 
+                </p>
 
+              </div>
 
-{
+            )}
 
-loading && (
 
-<p
+            {/* =================================================
+                LOADING
+            ================================================== */}
 
-className="
-text-center
-text-sm
-text-neutral-500
-"
+            {customerId &&
+              (loading ||
+                isFetching) && (
 
->
+              <p
 
-Loading addresses...
+                className="
+                  py-6
+                  text-center
+                  text-sm
+                  text-neutral-500
+                "
 
-</p>
+              >
 
-)
+                Loading addresses...
 
-}
+              </p>
 
+            )}
 
 
+            {/* =================================================
+                EMPTY
+            ================================================== */}
 
+            {customerId &&
+              !loading &&
+              !isFetching &&
+              addresses.length === 0 && (
 
+              <div
 
+                className="
+                  rounded-2xl
+                  border
+                  border-dashed
+                  border-neutral-300
+                  p-8
+                  text-center
+                "
 
+              >
 
+                <MapPin
 
-{
+                  size={38}
 
-!loading && addresses.length===0 && (
+                  className="
+                    mx-auto
+                    mb-3
+                    text-[#C8A44D]
+                  "
 
-<div
+                />
 
-className="
-rounded-2xl
-border
-border-dashed
-border-neutral-300
-p-8
-text-center
-"
 
->
+                <p
+                  className="
+                    font-medium
+                    text-neutral-900
+                  "
+                >
 
+                  No saved addresses
 
-<MapPin
+                </p>
 
-size={38}
 
-className="
-mx-auto
-mb-3
-text-[#C8A44D]
-"
+                <p
+                  className="
+                    mt-1
+                    text-sm
+                    text-neutral-500
+                  "
+                >
 
-/>
+                  Save your address for faster checkout
 
+                </p>
 
+              </div>
 
+            )}
 
-<p
 
-className="
-font-medium
-"
+            {/* =================================================
+                ADDRESS LIST
+            ================================================== */}
 
->
+            {customerId &&
+              !loading &&
+              addresses.length > 0 && (
 
-No saved addresses
+              <div
+                className="
+                  space-y-4
+                "
+              >
 
-</p>
+                {addresses.map(
+                  (address: any) => (
 
+                    <div
 
+                      key={
+                        address.id
+                      }
 
-<p
+                      className="
+                        rounded-2xl
+                        border
+                        border-neutral-200
+                        bg-white
+                        p-5
+                        shadow-sm
+                      "
 
-className="
-mt-1
-text-sm
-text-neutral-500
-"
+                    >
 
->
+                      {/* =======================================
+                          ADDRESS HEADER
+                      ======================================== */}
 
-Save your address for faster checkout
+                      <div
 
-</p>
+                        className="
+                          flex
+                          items-start
+                          justify-between
+                          gap-3
+                        "
 
+                      >
 
+                        <div>
 
-</div>
+                          <div
 
-)
+                            className="
+                              flex
+                              items-center
+                              gap-2
+                            "
 
-}
+                          >
 
+                            <h3
 
+                              className="
+                                font-semibold
+                                capitalize
+                                text-neutral-900
+                              "
 
+                            >
 
+                              {address.type}
 
+                            </h3>
 
 
+                            {address.is_default && (
 
+                              <span
 
-{
+                                className="
+                                  flex
+                                  items-center
+                                  gap-1
+                                  rounded-full
+                                  bg-[#C8A44D]/10
+                                  px-2.5
+                                  py-1
+                                  text-xs
+                                  text-[#9A7A22]
+                                "
 
-addresses.map((address:any)=>(
+                              >
 
+                                <Star
+                                  size={12}
+                                />
 
-<div
+                                Default
 
-key={address.id}
+                              </span>
 
-className="
-rounded-2xl
-border
-border-neutral-200
-bg-white
-p-5
-shadow-sm
-"
+                            )}
 
->
+                          </div>
 
 
+                          {/* =================================
+                              NAME
+                          ================================== */}
 
+                          <p
 
+                            className="
+                              mt-3
+                              font-medium
+                              text-neutral-900
+                            "
 
+                          >
 
+                            {address.full_name}
 
+                          </p>
 
-<div
 
-className="
-flex
-items-start
-justify-between
-gap-3
-"
+                          {/* =================================
+                              PHONE
+                          ================================== */}
 
->
+                          <p
 
+                            className="
+                              mt-1
+                              text-sm
+                              text-neutral-600
+                            "
 
+                          >
 
+                            {address.phone}
 
+                          </p>
 
-<div>
 
+                          {/* =================================
+                              ADDRESS
+                          ================================== */}
 
-<div
+                          <p
 
-className="
-flex
-items-center
-gap-2
-"
+                            className="
+                              mt-3
+                              text-sm
+                              leading-relaxed
+                              text-neutral-600
+                            "
 
->
+                          >
 
+                            {address.address_line_1}
 
-<h3
+                            <br />
 
-className="
-font-semibold
-capitalize
-"
+                            {address.address_line_2 && (
 
->
+                              <>
 
-{address.type}
+                                {address.address_line_2}
 
-</h3>
+                                <br />
 
+                              </>
 
+                            )}
 
 
+                            {address.city},{" "}
 
+                            {address.state}
 
+                            <br />
 
-{
+                            {address.postal_code},{" "}
 
-address.is_default && (
+                            {address.country}
 
-<span
+                          </p>
 
-className="
-flex
-items-center
-gap-1
-rounded-full
-bg-[#C8A44D]/10
-px-2.5
-py-1
-text-xs
-text-[#9A7A22]
-"
+                        </div>
 
->
+                      </div>
 
-<Star size={12}/>
 
-Default
+                      {/* =======================================
+                          ACTIONS
+                      ======================================== */}
 
-</span>
+                      <div
 
-)
+                        className="
+                          mt-5
+                          flex
+                          items-center
+                          justify-between
+                          border-t
+                          border-neutral-200
+                          pt-4
+                        "
 
-}
+                      >
 
+                        <div
+                          className="
+                            flex
+                            gap-4
+                          "
+                        >
 
+                          {/* Edit */}
 
-</div>
+                          <button
 
+                            type="button"
 
+                            onClick={() => {
 
+                              setSelectedAddress(
+                                address
+                              );
 
+                              setShowEditAddress(
+                                true
+                              );
 
+                            }}
 
+                            className="
+                              flex
+                              items-center
+                              gap-1
+                              text-sm
+                              text-neutral-600
+                              hover:text-black
+                            "
 
+                          >
 
-<p
+                            <Pencil
+                              size={15}
+                            />
 
-className="
-mt-3
-font-medium
-"
+                            Edit
 
->
+                          </button>
 
-{address.full_name}
 
-</p>
+                          {/* Delete */}
 
+                          <button
 
+                            type="button"
 
+                            onClick={() => {
 
+                              setDeleteAddressId(
+                                address.id
+                              );
 
+                              setShowDeleteDialog(
+                                true
+                              );
 
+                            }}
 
+                            className="
+                              flex
+                              items-center
+                              gap-1
+                              text-sm
+                              text-red-500
+                              hover:text-red-700
+                            "
 
-<p
+                          >
 
-className="
-mt-1
-text-sm
-text-neutral-600
-"
+                            <Trash2
+                              size={15}
+                            />
 
->
+                            Delete
 
-{address.phone}
+                          </button>
 
-</p>
+                        </div>
 
 
+                        {/* Set Default */}
 
+                        {!address.is_default && (
 
+                          <button
 
+                            type="button"
 
+                            onClick={() =>
+                              handleDefault(
+                                address.id
+                              )
+                            }
 
+                            disabled={
+                              defaultMutation.isPending
+                            }
 
+                            className="
+                              text-sm
+                              text-[#9A7A22]
+                              hover:underline
+                              disabled:cursor-not-allowed
+                              disabled:opacity-50
+                            "
 
-<p
+                          >
 
-className="
-mt-3
-text-sm
-leading-relaxed
-text-neutral-600
-"
+                            Set Default
 
->
+                          </button>
 
-{address.address_line_1}
+                        )}
 
-<br/>
+                      </div>
 
-{
+                    </div>
 
-address.address_line_2 && (
+                  )
+                )}
 
-<>
+              </div>
 
-{address.address_line_2}
+            )}
 
-<br/>
 
-</>
+            {/* =================================================
+                ADD ADDRESS
+            ================================================== */}
 
-)
+            <button
 
-}
+              type="button"
 
+              onClick={() =>
+                setShowAddAddress(
+                  true
+                )
+              }
 
+              className="
+                flex
+                w-full
+                items-center
+                justify-center
+                gap-2
+                rounded-xl
+                bg-[#C8A44D]
+                py-3.5
+                font-semibold
+                text-black
+                transition
+                hover:bg-[#b8943f]
+              "
 
-{address.city}, {address.state}
+            >
 
-<br/>
+              <Plus
+                size={18}
+              />
 
-{address.postal_code}, {address.country}
+              Add New Address
 
-</p>
+            </button>
 
+          </div>
 
+        </DialogContent>
 
+      </Dialog>
 
 
+      {/* =====================================================
+          ADD ADDRESS DIALOG
+      ====================================================== */}
 
+      <AddAddressDialog
 
-</div>
+        open={
+          showAddAddress
+        }
 
+        onClose={() =>
+          setShowAddAddress(
+            false
+          )
+        }
 
+        onSuccess={
+          handleAddressAdded
+        }
 
+      />
 
 
+      {/* =====================================================
+          EDIT ADDRESS DIALOG
+      ====================================================== */}
 
-</div>
+      <EditAddressDialog
 
+        open={
+          showEditAddress
+        }
 
+        address={
+          selectedAddress
+        }
 
+        onClose={
+          handleCloseEdit
+        }
 
+        onSuccess={
+          handleAddressUpdated
+        }
 
+      />
 
 
+      {/* =====================================================
+          DELETE ADDRESS DIALOG
+      ====================================================== */}
 
+      <DeleteAddressDialog
 
-<div
+        open={
+          showDeleteDialog
+        }
 
-className="
-mt-5
-flex
-items-center
-justify-between
-border-t
-border-neutral-200
-pt-4
-"
+        onClose={
+          handleCloseDelete
+        }
 
->
+        onConfirm={
+          handleDelete
+        }
 
+      />
 
+    </>
 
-<div
-
-className="
-flex
-gap-4
-"
-
->
-
-
-
-
-<button
-
-onClick={()=>{
-
-setSelectedAddress(address);
-
-setShowEditAddress(true);
-
-}}
-
-className="
-flex
-items-center
-gap-1
-text-sm
-text-neutral-600
-hover:text-black
-"
-
->
-
-<Pencil size={15}/>
-
-Edit
-
-</button>
-
-
-
-
-
-
-
-
-
-<button
-
-onClick={()=>{
-
-setDeleteAddressId(address.id);
-
-setShowDeleteDialog(true);
-
-}}
-
-className="
-flex
-items-center
-gap-1
-text-sm
-text-red-500
-hover:text-red-700
-"
-
->
-
-<Trash2 size={15}/>
-
-Delete
-
-</button>
-
-
-
-
-
-
-
-</div>
-
-
-
-
-
-
-
-
-{
-
-!address.is_default && (
-
-<button
-
-onClick={()=>handleDefault(address.id)}
-
-className="
-text-sm
-text-[#9A7A22]
-hover:underline
-"
-
->
-
-Set Default
-
-</button>
-
-)
-
-}
-
-
-
-</div>
-
-
-
-
-
-
-
-
-</div>
-
-
-))
-
-}
-
-
-
-
-
-
-
-
-
-<button
-
-onClick={()=>setShowAddAddress(true)}
-
-className="
-flex
-w-full
-items-center
-justify-center
-gap-2
-rounded-xl
-bg-[#C8A44D]
-py-3.5
-font-semibold
-text-black
-transition
-hover:bg-[#b8943f]
-"
-
->
-
-<Plus size={18}/>
-
-Add New Address
-
-</button>
-
-
-
-
-
-
-
-
-</div>
-
-
-
-
-
-
-
-</DialogContent>
-
-
-
-
-
-
-
-</Dialog>
-<AddAddressDialog
-
-open={showAddAddress}
-
-onClose={()=>setShowAddAddress(false)}
-
-onSuccess={()=>{
-
-toast.success(
-"Address added successfully"
-);
-
-}}
-
-/>
-
-
-
-
-
-
-
-<EditAddressDialog
-
-open={showEditAddress}
-
-address={selectedAddress}
-
-onClose={()=>{
-
-setShowEditAddress(false);
-
-setSelectedAddress(null);
-
-}}
-
-onSuccess={()=>{
-
-toast.success(
-"Address updated successfully"
-);
-
-}}
-
-/>
-
-
-
-
-
-
-
-<DeleteAddressDialog
-
-open={showDeleteDialog}
-
-onClose={()=>{
-
-setShowDeleteDialog(false);
-
-setDeleteAddressId(null);
-
-}}
-
-onConfirm={()=>{
-
-
-if(!deleteAddressId)
-
-return;
-
-
-
-
-deleteMutation.mutate(
-
-deleteAddressId,
-
-{
-
-onSuccess:()=>{
-
-
-toast.success(
-"Address deleted successfully"
-);
-
-
-
-setShowDeleteDialog(false);
-
-
-setDeleteAddressId(null);
-
-
-}
-
-
-}
-
-);
-
-
-
-}}
-
-/>
-
-
-
-
-
-
-
-</>
-
-);
+  );
 
 }
