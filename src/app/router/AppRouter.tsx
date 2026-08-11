@@ -48,7 +48,9 @@ export default function AppRouter() {
 
         <Route element={<MainLayout />}>
 
-          {/* Home */}
+          {/* =================================================
+              HOME
+          ================================================== */}
 
           <Route
             path="/"
@@ -56,7 +58,9 @@ export default function AppRouter() {
           />
 
 
-          {/* Static Pages */}
+          {/* =================================================
+              STATIC PAGES
+          ================================================== */}
 
           <Route
             path="/about-us"
@@ -99,7 +103,9 @@ export default function AppRouter() {
           />
 
 
-          {/* Wishlist */}
+          {/* =================================================
+              WISHLIST
+          ================================================== */}
 
           <Route
             path="/wishlist"
@@ -107,13 +113,19 @@ export default function AppRouter() {
           />
 
 
-          {/* Shop */}
+          {/* =================================================
+              SHOP
+          ================================================== */}
 
           <Route
             path="/shop"
             element={<Shop />}
           />
 
+
+          {/* =================================================
+              PRODUCT DETAILS
+          ================================================== */}
 
           <Route
             path="/product/:slug"
@@ -130,15 +142,18 @@ export default function AppRouter() {
             element={<AccountPage />}
           />
 
+
           <Route
             path="/account/orders"
             element={<MyOrders />}
           />
 
+
           <Route
             path="/account/orders/:id"
             element={<OrderDetails />}
           />
+
 
           <Route
             path="/account/notifications"
