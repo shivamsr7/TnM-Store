@@ -44,7 +44,6 @@ const FREE_SHIPPING_AMOUNT = 2000;
 
 export default function CartDrawer() {
 
-
   /*
    * =========================================================
    * CART STORE
@@ -52,29 +51,17 @@ export default function CartDrawer() {
    */
 
   const {
-
     items,
-
     isCartOpen,
-
     closeCart,
-
     removeItem,
-
     updateQuantity,
-
     getTotal,
-
     applyCoupon,
-
     removeCoupon,
-
     appliedCoupon,
-
     discount,
-
     getFinalTotal,
-
   } = useCartStore();
 
 
@@ -110,9 +97,7 @@ export default function CartDrawer() {
       document.body.style.width =
         "100%";
 
-    }
-
-    else {
+    } else {
 
       document.body.style.overflow =
         "";
@@ -124,7 +109,6 @@ export default function CartDrawer() {
         "";
 
     }
-
 
     return () => {
 
@@ -175,11 +159,8 @@ export default function CartDrawer() {
    */
 
   const {
-
     unlockCoupon,
-
     remainingAmount,
-
   } = useUnlockCoupon(
     total
   );
@@ -229,41 +210,39 @@ export default function CartDrawer() {
 
   /*
    * =========================================================
-   * FREE GIFT PROGRESS
+   * COMBINED OFFER PROGRESS
    * =========================================================
    */
 
-  const remaining =
+  const freeGiftUnlocked =
+    total >= FREE_GIFT_AMOUNT;
+
+
+  const freeShippingUnlocked =
+    total >= FREE_SHIPPING_AMOUNT;
+
+
+  const amountToFreeGift =
     Math.max(
       FREE_GIFT_AMOUNT - total,
       0
     );
 
 
-  const progress =
-    Math.min(
-      (
-        total /
-        FREE_GIFT_AMOUNT
-      ) * 100,
-      100
-    );
-
-
-  /*
-   * =========================================================
-   * FREE SHIPPING PROGRESS
-   * =========================================================
-   */
-
-  const shippingRemaining =
+  const amountToFreeShipping =
     Math.max(
       FREE_SHIPPING_AMOUNT - total,
       0
     );
 
 
-  const shippingProgress =
+  /*
+   * Progress:
+   *
+   * ₹0 ---------------- ₹1000 ---------------- ₹2000
+   */
+
+  const combinedProgress =
     Math.min(
       (
         total /
@@ -271,11 +250,6 @@ export default function CartDrawer() {
       ) * 100,
       100
     );
-
-
-  const freeShippingUnlocked =
-    total >=
-    FREE_SHIPPING_AMOUNT;
 
 
   /*
@@ -393,7 +367,6 @@ export default function CartDrawer() {
 
     <>
 
-
       {/* =====================================================
           OVERLAY
       ====================================================== */}
@@ -427,7 +400,7 @@ export default function CartDrawer() {
 
 
       {/* =====================================================
-          DRAWER
+          CART DRAWER
       ====================================================== */}
 
       <div
@@ -464,7 +437,6 @@ export default function CartDrawer() {
 
       >
 
-
         {/* ===================================================
             HEADER
         ==================================================== */}
@@ -492,12 +464,10 @@ export default function CartDrawer() {
         >
 
           <h2
-
             className="
               text-lg
               font-semibold
             "
-
           >
 
             Your Cart (
@@ -528,6 +498,8 @@ export default function CartDrawer() {
               hover:bg-neutral-100
 
             "
+
+            aria-label="Close cart"
 
           >
 
@@ -561,7 +533,6 @@ export default function CartDrawer() {
 
         >
 
-
           {/* =================================================
               CART OFFERS
           ================================================== */}
@@ -571,9 +542,7 @@ export default function CartDrawer() {
 
               <>
 
-                {/* ===========================================
-                    OFFER BANNER
-                ============================================ */}
+                {/* OFFER BANNER */}
 
                 <div
 
@@ -600,9 +569,9 @@ export default function CartDrawer() {
                 </div>
 
 
-                {/* ===========================================
-                    FREE GIFT PROGRESS
-                ============================================ */}
+                {/* =================================================
+                    COMBINED FREE GIFT + FREE SHIPPING
+                ================================================== */}
 
                 <div
                   className="
@@ -610,72 +579,7 @@ export default function CartDrawer() {
                   "
                 >
 
-                  <p
-                    className="
-                      text-sm
-                      font-medium
-                    "
-                  >
-
-                    {
-                      remaining > 0
-
-                        ? `Add ₹${remaining} more to unlock Free Gift`
-
-                        : "🎁 Free Gift unlocked"
-                    }
-
-                  </p>
-
-
-                  {
-                    remaining > 0 && (
-
-                      <div
-
-                        className="
-                          mt-3
-                          h-2
-                          overflow-hidden
-                          rounded-full
-                          bg-neutral-200
-                        "
-
-                      >
-
-                        <div
-
-                          className="
-                            h-full
-                            bg-black
-                            transition-all
-                            duration-300
-                          "
-
-                          style={{
-                            width:
-                              `${progress}%`,
-                          }}
-
-                        />
-
-                      </div>
-
-                    )
-                  }
-
-                </div>
-
-
-                {/* ===========================================
-                    FREE SHIPPING PROGRESS
-                ============================================ */}
-
-                <div
-                  className="
-                    mt-5
-                  "
-                >
+                  {/* STATUS */}
 
                   <p
                     className="
@@ -685,51 +589,410 @@ export default function CartDrawer() {
                   >
 
                     {
-                      freeShippingUnlocked
+                      freeShippingUnlocked ? (
 
-                        ? "🚚 Free Shipping Unlocked"
+                        <span
+                          className="
+                            text-green-600
+                          "
+                        >
 
-                        : `Add ₹${shippingRemaining} more to unlock Free Shipping`
+                          ✓ Free Gift Unlocked
+
+                          <span
+                            className="
+                              text-neutral-400
+                            "
+                          >
+                            {" • "}
+                          </span>
+
+                          ✓ Free Shipping Unlocked
+
+                        </span>
+
+                      ) : freeGiftUnlocked ? (
+
+                        <>
+
+                          <span
+                            className="
+                              text-green-600
+                            "
+                          >
+
+                            ✓ Free Gift Unlocked
+
+                          </span>
+
+
+                          <span
+                            className="
+                              text-neutral-500
+                            "
+                          >
+
+                            {" • "}
+                            Add ₹
+                            {
+                              amountToFreeShipping
+                            }
+                            {" "}
+                            more for Free Shipping
+
+                          </span>
+
+                        </>
+
+                      ) : (
+
+                        <span>
+
+                          Add ₹
+                          {
+                            amountToFreeGift
+                          }
+                          {" "}
+                          more to unlock Free Gift
+
+                        </span>
+
+                      )
                     }
 
                   </p>
 
 
-                  {
-                    !freeShippingUnlocked && (
+                  {/* =================================================
+                      PROGRESS AREA
+                  ================================================== */}
+
+                  <div
+
+                    className="
+
+                      relative
+                      mt-5
+                      w-full
+                      pb-9
+
+                    "
+
+                  >
+
+                    {/* PROGRESS BAR */}
+
+                    <div
+
+                      className="
+
+                        relative
+                        h-2
+                        w-full
+                        rounded-full
+                        bg-neutral-200
+
+                      "
+
+                    >
+
+                      {/* FILLED */}
 
                       <div
 
                         className="
-                          mt-3
-                          h-2
-                          overflow-hidden
+
+                          absolute
+                          left-0
+                          top-0
+
+                          h-full
+
                           rounded-full
-                          bg-neutral-200
+
+                          bg-black
+
+                          transition-all
+                          duration-500
+
+                        "
+
+                        style={{
+                          width:
+                            `${combinedProgress}%`,
+                        }}
+
+                      />
+
+
+                      {/* =================================================
+                          ₹1000 MILESTONE
+                      ================================================== */}
+
+                      <div
+
+                        className="
+
+                          absolute
+                          left-1/2
+                          top-1/2
+                          z-20
+
+                          -translate-x-1/2
+                          -translate-y-1/2
+
                         "
 
                       >
 
                         <div
 
-                          className="
-                            h-full
-                            bg-black
-                            transition-all
-                            duration-300
-                          "
+                          className={`
 
-                          style={{
-                            width:
-                              `${shippingProgress}%`,
-                          }}
+                            flex
+                            h-6
+                            w-6
 
-                        />
+                            items-center
+                            justify-center
+
+                            rounded-full
+
+                            border-2
+                            border-white
+
+                            text-[11px]
+                            font-bold
+
+                            shadow-sm
+
+                            ${
+                              freeGiftUnlocked
+
+                                ? "bg-green-500 text-white"
+
+                                : "bg-neutral-300 text-neutral-600"
+                            }
+
+                          `}
+
+                        >
+
+                          {
+                            freeGiftUnlocked
+                              ? "✓"
+                              : ""
+                          }
+
+                        </div>
 
                       </div>
 
-                    )
-                  }
+
+                      {/* =================================================
+                          ₹2000 MILESTONE
+                      ================================================== */}
+
+                      <div
+
+                        className="
+
+                          absolute
+                          right-0
+                          top-1/2
+                          z-20
+
+                          -translate-y-1/2
+
+                        "
+
+                      >
+
+                        <div
+
+                          className={`
+
+                            flex
+                            h-6
+                            w-6
+
+                            items-center
+                            justify-center
+
+                            rounded-full
+
+                            border-2
+                            border-white
+
+                            text-[11px]
+                            font-bold
+
+                            shadow-sm
+
+                            ${
+                              freeShippingUnlocked
+
+                                ? "bg-green-500 text-white"
+
+                                : "bg-neutral-300 text-neutral-600"
+                            }
+
+                          `}
+
+                        >
+
+                          {
+                            freeShippingUnlocked
+                              ? "✓"
+                              : ""
+                          }
+
+                        </div>
+
+                      </div>
+
+                    </div>
+
+
+                    {/* =================================================
+                        LABEL ROW
+                    ================================================== */}
+
+                    <div
+
+                      className="
+
+                        pointer-events-none
+
+                        absolute
+
+                        left-0
+                        right-0
+
+                        top-5
+
+                        h-10
+
+                      "
+
+                    >
+
+                      {/* ₹1000 LABEL */}
+
+                      <div
+
+                        className="
+
+                          absolute
+
+                          left-1/2
+
+                          -translate-x-1/2
+
+                          whitespace-nowrap
+
+                          text-center
+
+                        "
+
+                      >
+
+                        <p
+
+                          className="
+
+                            text-[11px]
+                            font-medium
+                            leading-4
+                            text-black
+
+                          "
+
+                        >
+
+                          ₹1000
+
+                        </p>
+
+
+                        <p
+
+                          className="
+
+                            text-[11px]
+                            leading-4
+                            text-neutral-500
+
+                          "
+
+                        >
+
+                          Free Gift
+
+                        </p>
+
+                      </div>
+
+
+                      {/* ₹2000 LABEL */}
+
+                      <div
+
+                        className="
+
+                          absolute
+
+                          right-0
+
+                          w-[82px]
+
+                          whitespace-nowrap
+
+                          text-center
+
+                        "
+
+                      >
+
+                        <p
+
+                          className="
+
+                            text-[11px]
+                            font-medium
+                            leading-4
+                            text-black
+
+                          "
+
+                        >
+
+                          ₹2000
+
+                        </p>
+
+
+                        <p
+
+                          className="
+
+                            text-[11px]
+                            leading-4
+                            text-neutral-500
+
+                          "
+
+                        >
+
+                          Free Shipping
+
+                        </p>
+
+                      </div>
+
+                    </div>
+
+                  </div>
 
                 </div>
 
@@ -740,7 +1003,7 @@ export default function CartDrawer() {
 
 
           {/* =================================================
-              EMPTY CART
+              EMPTY CART / CART ITEMS
           ================================================== */}
 
           {
@@ -818,10 +1081,13 @@ export default function CartDrawer() {
                   <p
 
                     className="
+
                       mt-2
+
                       text-sm
                       leading-relaxed
                       text-neutral-500
+
                     "
 
                   >
@@ -1042,7 +1308,9 @@ export default function CartDrawer() {
 
                                     ${
                                       item.quantity === 1
+
                                         ? "cursor-not-allowed opacity-40"
+
                                         : "hover:bg-neutral-100"
                                     }
 
@@ -1129,6 +1397,8 @@ export default function CartDrawer() {
 
                                   "
 
+                                  aria-label="Remove item"
+
                                 >
 
                                   <Trash2
@@ -1209,7 +1479,6 @@ export default function CartDrawer() {
                   }
 
                   {" "}
-
                   and save ₹
                   {
                     bestCoupon.estimatedSaving
@@ -1342,9 +1611,7 @@ export default function CartDrawer() {
                   {
                     remainingAmount
                   }
-
                   {" "}
-
                   more to get this offer
 
                 </p>
@@ -1514,9 +1781,14 @@ export default function CartDrawer() {
 
                       <>
 
+                        {/* =================================================
+                            COUPON INPUT
+                        ================================================== */}
+
                         <div
                           className="
                             flex
+                            items-center
                             gap-2
                           "
                         >
@@ -1535,9 +1807,7 @@ export default function CartDrawer() {
                               )
                             }
 
-                            placeholder="
-                              Enter Coupon Code
-                            "
+                            placeholder="Enter Coupon Code"
 
                             className="
 
@@ -1548,10 +1818,14 @@ export default function CartDrawer() {
 
                               border
 
-                              px-3
+                              px-4
                               py-3
 
+                              text-left
                               text-sm
+
+                              placeholder:text-sm
+                              placeholder:text-neutral-500
 
                               outline-none
 
@@ -1574,13 +1848,18 @@ export default function CartDrawer() {
 
                             className="
 
+                              shrink-0
+
                               rounded-xl
 
                               bg-black
 
                               px-4
 
+                              py-3
+
                               text-sm
+                              font-medium
                               text-white
 
                               disabled:opacity-50
@@ -1756,9 +2035,7 @@ export default function CartDrawer() {
 
                   >
 
-                    {/* =======================================
-                        SUBTOTAL
-                    ======================================== */}
+                    {/* SUBTOTAL */}
 
                     <div
 
@@ -1786,9 +2063,7 @@ export default function CartDrawer() {
                     </div>
 
 
-                    {/* =======================================
-                        COUPON
-                    ======================================== */}
+                    {/* COUPON */}
 
                     {
                       appliedCoupon && (
@@ -1832,9 +2107,7 @@ export default function CartDrawer() {
                     }
 
 
-                    {/* =======================================
-                        SHIPPING
-                    ======================================== */}
+                    {/* SHIPPING */}
 
                     <div
 
@@ -1870,9 +2143,7 @@ export default function CartDrawer() {
                     </div>
 
 
-                    {/* =======================================
-                        TOTAL
-                    ======================================== */}
+                    {/* TOTAL */}
 
                     <div
 
@@ -1911,9 +2182,7 @@ export default function CartDrawer() {
                   </div>
 
 
-                  {/* =========================================
-                      CHECKOUT BUTTON
-                  ========================================== */}
+                  {/* CHECKOUT */}
 
                   <button
 
@@ -2168,7 +2437,7 @@ export default function CartDrawer() {
 
 
       {/* =====================================================
-          CHECKOUT
+          CHECKOUT DIALOG
       ====================================================== */}
 
       <CheckoutDialog

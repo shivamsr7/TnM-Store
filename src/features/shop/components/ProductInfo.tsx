@@ -1,620 +1,547 @@
-import { Star, Coins, Zap } from "lucide-react";
+import {
+  Star,
+  Zap,
+} from "lucide-react";
 
 
 interface ProductInfoProps {
 
-product:any;
+  product: any;
 
 }
-
 
 
 export default function ProductInfo({
 
-product
+  product,
 
-}:ProductInfoProps){
+}: ProductInfoProps) {
 
 
+  const discount =
 
-const discount =
+    product.compare_price
 
-product.compare_price
+      ?
 
-?
+        Math.round(
 
-Math.round(
+          (
 
-(
+            (
+              product.compare_price -
+              product.price
+            )
 
-(product.compare_price - product.price)
+            /
 
-/
+            product.compare_price
 
-product.compare_price
+          ) * 100
 
-)
+        )
 
-*100
+      :
 
-)
+        0;
 
-:
 
-0;
+  return (
 
+    <div
 
+      className="
+        w-full
+      "
 
+    >
 
 
-return (
+      {/* =====================================================
+          PRODUCT NAME
+      ====================================================== */}
 
-<div
+      <h1
 
-className="
-w-full
+        className="
 
-"
+          font-serif
 
->
+          text-2xl
 
+          font-medium
 
+          leading-snug
 
+          tracking-wide
 
+          text-[#F5E6B8]
 
-{/* Product Name */}
+          sm:text-3xl
 
-<h1
+          lg:text-4xl
 
-className="
-font-serif
+        "
 
-text-2xl
+      >
 
-font-medium
+        {
+          product.name
+        }
 
-leading-snug
+      </h1>
 
-tracking-wide
 
-text-[#F5E6B8]
+      {/* =====================================================
+          RATING
+      ====================================================== */}
 
-sm:text-3xl
+      {
+        product.rating > 0 && (
 
-lg:text-4xl
+          <div
 
-"
+            className="
 
->
+              mt-4
 
-{product.name}
+              flex
+              items-center
+              gap-2
 
-</h1>
+              text-sm
 
+            "
 
+          >
 
+            <div
 
+              className="
 
+                flex
+                items-center
+                gap-1
 
+                rounded-full
 
-{/* Rating */}
+                bg-[#D4AF37]/10
 
-{
+                px-3
+                py-1
 
-product.rating > 0 &&
+                text-[#D4AF37]
 
-<div
+              "
 
-className="
-mt-4
+            >
 
-flex
+              <Star
 
-items-center
+                size={15}
 
-gap-2
+                fill="currentColor"
 
-text-sm
+              />
 
-"
+              <span>
 
->
+                {
+                  product.rating
+                }
 
-<div
+              </span>
 
-className="
-flex
+            </div>
 
-items-center
 
-gap-1
+            {
+              product.review_count > 0 && (
 
-rounded-full
+                <span
 
-bg-[#D4AF37]/10
+                  className="
+                    text-neutral-400
+                  "
 
-px-3
+                >
 
-py-1
+                  (
+                  {
+                    product.review_count
+                  }
+                  {" "}
+                  Reviews)
 
-text-[#D4AF37]
+                </span>
 
-"
+              )
+            }
 
->
+          </div>
 
-<Star
+        )
+      }
 
-size={15}
 
-fill="currentColor"
+      {/* =====================================================
+          PRICE
+      ====================================================== */}
 
-/>
+      <div
 
-<span>
+        className="
+          mt-6
+        "
 
-{product.rating}
+      >
 
-</span>
+        <div
 
-</div>
+          className="
 
+            flex
+            items-center
+            gap-3
 
+          "
 
-{
+        >
 
-product.review_count > 0 &&
+          <span
 
-<span
+            className="
 
-className="
-text-neutral-400
+              text-4xl
 
-"
+              font-semibold
 
->
+              tracking-tight
 
-({product.review_count} Reviews)
+              text-white
 
-</span>
+            "
 
-}
+          >
 
+            ₹
+            {
+              product.price
+            }
 
+          </span>
 
-</div>
 
-}
+          {
+            product.compare_price && (
 
+              <span
 
+                className="
 
+                  text-base
 
+                  text-neutral-500
 
+                  line-through
 
+                "
 
-{/* Price */}
+              >
 
-<div
+                ₹
+                {
+                  product.compare_price
+                }
 
-className="
-mt-6
+              </span>
 
-"
+            )
+          }
 
->
 
+          {
+            discount > 0 && (
 
-<div
+              <span
 
-className="
-flex
+                className="
 
-items-center
+                  rounded-full
 
-gap-3
+                  bg-[#D4AF37]/15
 
-"
+                  px-3
+                  py-1
 
->
+                  text-xs
 
+                  font-medium
 
-<span
+                  text-[#D4AF37]
 
-className="
-text-4xl
+                "
 
-font-semibold
+              >
 
-tracking-tight
+                {
+                  discount
+                }% OFF
 
-text-white
+              </span>
 
-"
+            )
+          }
 
->
+        </div>
 
-₹{product.price}
 
-</span>
+        <p
 
+          className="
 
+            mt-2
 
+            text-sm
 
+            text-neutral-400
 
+          "
 
-{
+        >
 
-product.compare_price &&
+          Inclusive of all taxes
 
-<span
+        </p>
 
-className="
-text-base
+      </div>
 
-text-neutral-500
 
-line-through
+      {/* =====================================================
+          FEATURE CHIPS
+      ====================================================== */}
 
-"
+      <div
 
->
+        className="
 
-₹{product.compare_price}
+          mt-6
 
-</span>
+          flex
 
-}
+          gap-3
 
+          overflow-x-auto
 
+          pb-2
 
+        "
 
+      >
 
-{
+        {
+          [
+            "Anti Tarnish",
+            "Premium Quality",
+            "Gift Ready Packaging",
+          ].map(
+            (
+              item
+            ) => (
 
-discount > 0 &&
+              <span
 
-<span
+                key={
+                  item
+                }
 
-className="
-rounded-full
+                className="
 
-bg-[#D4AF37]/15
+                  whitespace-nowrap
 
-px-3
+                  rounded-full
 
-py-1
+                  border
 
-text-xs
+                  border-[#D4AF37]/30
 
-font-medium
+                  px-4
+                  py-2
 
-text-[#D4AF37]
+                  text-xs
 
-"
+                  text-[#D4AF37]
 
->
+                "
 
-{discount}% OFF
+              >
 
-</span>
+                {
+                  item
+                }
 
-}
+              </span>
 
+            )
+          )
+        }
 
-</div>
+      </div>
 
 
+      {/* =====================================================
+          SALES COUNT
+      ====================================================== */}
 
+      {
+        product.sales_count > 0 && (
 
+          <div
 
-<p
+            className="
 
-className="
-mt-2
+              mt-5
 
-text-sm
+              flex
+              items-center
+              gap-2
 
-text-neutral-400
+              text-sm
 
-"
+              text-neutral-300
 
->
+            "
 
-Inclusive of all taxes
+          >
 
-</p>
+            <Zap
 
+              size={16}
 
+              className="
+                text-[#D4AF37]
+              "
 
-</div>
+            />
 
 
+            {
+              product.sales_count
+            }+ people bought this
 
+          </div>
 
+        )
+      }
 
 
+      {/* =====================================================
+          SKU
+      ====================================================== */}
 
+      {
+        product.sku && (
 
-{/* Feature Chips */}
+          <div
 
-<div
+            className="
 
-className="
-mt-6
+              mt-4
 
-flex
+              text-sm
 
-gap-3
+              text-neutral-400
 
-overflow-x-auto
+            "
 
-pb-2
+          >
 
-"
+            SKU:
 
->
+            <span
+              className="
+                text-white
+              "
+            >
 
+              {" "}
+              {
+                product.sku
+              }
 
-{
+            </span>
 
-[
+          </div>
 
-"Anti Tarnish",
+        )
+      }
 
-"Premium Quality",
 
-"Gift Ready Packaging"
+      {/* =====================================================
+          DEALS
+      ====================================================== */}
 
-]
+      <div
 
-.map((item)=>(
+        className="
 
+          mt-6
 
-<span
+          rounded-xl
 
-key={item}
+          border
 
-className="
-whitespace-nowrap
+          border-[#D4AF37]/20
 
-rounded-full
+          bg-[#D4AF37]/5
 
-border
+          p-4
 
-border-[#D4AF37]/30
+        "
 
-px-4
+      >
 
-py-2
+        <h3
 
-text-xs
+          className="
 
-text-[#D4AF37]
+            text-sm
 
-"
+            font-medium
 
->
+            text-[#D4AF37]
 
-{item}
+          "
 
-</span>
+        >
 
+          🏷 Deals
 
-))
+        </h3>
 
-}
 
+        <p
 
-</div>
+          className="
 
+            mt-2
 
+            text-sm
 
+            text-neutral-300
 
+          "
 
+        >
 
+          Special offers available at checkout
 
+        </p>
 
+      </div>
 
-{/* Sales Count */}
+    </div>
 
-{
-
-product.sales_count > 0 &&
-
-<div
-
-className="
-mt-5
-
-flex
-
-items-center
-
-gap-2
-
-text-sm
-
-text-neutral-300
-
-"
-
->
-
-<Zap
-
-size={16}
-
-className="
-text-[#D4AF37]
-
-"
-
-/>
-
-
-{product.sales_count}+ people bought this
-
-</div>
-
-}
-
-
-
-
-
-
-
-
-
-{/* SKU */}
-
-{
-
-product.sku &&
-
-<div
-
-className="
-mt-4
-
-text-sm
-
-text-neutral-400
-
-"
-
->
-
-SKU:
-
-<span className="text-white">
-
-{" "}
-
-{product.sku}
-
-</span>
-
-</div>
-
-}
-
-
-
-
-
-
-
-
-
-{/* Rewards */}
-
-<div
-
-className="
-mt-5
-
-flex
-
-items-center
-
-gap-2
-
-text-sm
-
-text-yellow-400
-
-"
-
->
-
-<Coins size={17}/>
-
-<span>
-
-Earn {product.price} Reward Points
-
-</span>
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{/* Deals */}
-
-<div
-
-className="
-mt-6
-
-rounded-xl
-
-border
-
-border-[#D4AF37]/20
-
-bg-[#D4AF37]/5
-
-p-4
-
-"
-
->
-
-
-<h3
-
-className="
-text-sm
-
-font-medium
-
-text-[#D4AF37]
-
-"
-
->
-
-🏷 Deals
-
-</h3>
-
-
-<p
-
-className="
-mt-2
-
-text-sm
-
-text-neutral-300
-
-"
-
->
-
-Special offers available at checkout
-
-</p>
-
-
-</div>
-
-
-
-
-
-
-
-</div>
-
-);
+  );
 
 }

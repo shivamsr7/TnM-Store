@@ -10,404 +10,789 @@ import {
 
 interface ProductAccordionProps {
 
-  product:any;
+  product: any;
 
 }
-
-
 
 
 export default function ProductAccordion({
 
-product
+  product,
+
+}: ProductAccordionProps) {
 
-}:ProductAccordionProps){
 
+  const [
+    open,
+    setOpen,
+  ] = useState<string | null>(
+    null
+  );
 
-const [open,setOpen] = useState<string | null>(null);
 
+  /*
+   * =========================================================
+   * FORMAT SPECIFICATION LABEL
+   * =========================================================
+   *
+   * Example:
+   *
+   * base_metal
+   *      ↓
+   * Base Metal
+   *
+   * bracelet_type
+   *      ↓
+   * Bracelet Type
+   */
 
+  const formatSpecificationLabel = (
+    key: string
+  ) => {
 
+    return key
 
-const sections = useMemo(()=>[
+      .replace(
+        /_/g,
+        " "
+      )
 
+      .replace(
+        /\b\w/g,
+        char =>
+          char.toUpperCase()
+      );
 
-{
-id:"description",
+  };
 
-title:"Description",
 
-content:
+  /*
+   * =========================================================
+   * SPECIFICATIONS
+   * =========================================================
+   */
 
-product.description ||
+  const specifications =
+    useMemo(() => {
 
-"Premium jewellery crafted with attention to detail and designed to elevate your everyday style."
+      if (
+        !product?.specifications ||
+        typeof product.specifications !==
+          "object" ||
+        Array.isArray(
+          product.specifications
+        )
+      ) {
 
-},
+        return [];
 
+      }
 
 
+      return Object.entries(
+        product.specifications
+      )
 
-{
-id:"details",
+        .filter(
+          ([, value]) =>
+            value !== null &&
+            value !== undefined &&
+            String(value).trim() !== ""
+        )
 
-title:"Product Details",
+        .map(
+          ([key, value]) => ({
 
-content:(
+            label:
+              formatSpecificationLabel(
+                key
+              ),
 
-<div
+            value:
+              String(value),
 
-className="
-space-y-3
+          })
+        );
 
-"
+    }, [
+      product?.specifications,
+    ]);
 
->
 
+  /*
+   * =========================================================
+   * PRODUCT DETAILS
+   * =========================================================
+   */
 
-{
-product.category?.name &&
+  const productDetails =
+    useMemo(() => {
 
-<div className="flex justify-between">
+      const details: {
+        label: string;
+        value: string;
+      }[] = [];
 
-<span className="text-neutral-500">
-Category
-</span>
 
-<span className="text-white">
-{product.category.name}
-</span>
+      /*
+       * Category
+       */
 
-</div>
+      if (
+        product?.category?.name
+      ) {
 
-}
+        details.push({
 
+          label:
+            "Category",
 
+          value:
+            product.category.name,
 
+        });
 
-<div className="flex justify-between">
+      }
 
-<span className="text-neutral-500">
-Material
-</span>
 
-<span className="text-white">
-{product.material || "Premium Alloy"}
-</span>
+      /*
+       * Specifications
+       */
 
-</div>
+      specifications.forEach(
+        specification => {
 
+          details.push(
+            specification
+          );
 
+        }
+      );
 
 
+      return details;
 
-<div className="flex justify-between">
+    }, [
+      product?.category?.name,
+      specifications,
+    ]);
 
-<span className="text-neutral-500">
-Finish
-</span>
 
-<span className="text-white">
-{product.finish || "Luxury Gold Plated Look"}
-</span>
+  /*
+   * =========================================================
+   * DIMENSIONS & WEIGHT
+   * =========================================================
+   */
 
-</div>
+  const dimensions =
+    useMemo(() => {
 
+      const values: {
+        label: string;
+        value: string;
+      }[] = [];
 
 
+      /*
+       * Weight
+       *
+       * Stored in KG
+       */
 
-{
-product.weight &&
+      if (
+        product?.weight !== null &&
+        product?.weight !== undefined &&
+        product?.weight !== ""
+      ) {
 
-<div className="flex justify-between">
+        values.push({
 
-<span className="text-neutral-500">
-Weight
-</span>
+          label:
+            "Weight",
 
-<span className="text-white">
-{product.weight} g
-</span>
+          value:
+            `${product.weight} kg`,
 
-</div>
+        });
 
-}
+      }
 
 
+      /*
+       * Length
+       *
+       * Stored in CM
+       */
 
-</div>
+      if (
+        product?.length !== null &&
+        product?.length !== undefined &&
+        product?.length !== ""
+      ) {
 
-)
+        values.push({
 
-},
+          label:
+            "Length",
 
+          value:
+            `${product.length} cm`,
 
+        });
 
+      }
 
-{
-id:"care",
 
-title:"Care Guide",
+      /*
+       * Width
+       */
 
-content:
+      if (
+        product?.width !== null &&
+        product?.width !== undefined &&
+        product?.width !== ""
+      ) {
 
-product.care_instructions ||
+        values.push({
 
-"Keep away from moisture, perfume and chemicals. Store your jewellery in the provided packaging when not in use."
+          label:
+            "Width",
 
-},
+          value:
+            `${product.width} cm`,
 
+        });
 
+      }
 
 
+      /*
+       * Height
+       */
 
-{
-id:"shipping",
+      if (
+        product?.height !== null &&
+        product?.height !== undefined &&
+        product?.height !== ""
+      ) {
 
-title:"Shipping & Returns",
+        values.push({
 
-content:
+          label:
+            "Height",
 
-"Orders are carefully packed and shipped securely. Delivery timelines depend on your location. Please check our return policy for complete details."
+          value:
+            `${product.height} cm`,
 
-}
+        });
 
+      }
 
 
-],[
-product
-]);
+      return values;
 
+    }, [
 
+      product?.weight,
 
+      product?.length,
 
+      product?.width,
 
+      product?.height,
 
+    ]);
 
 
+  /*
+   * =========================================================
+   * SECTIONS
+   * =========================================================
+   */
 
-return (
+  const sections =
+    useMemo(() => {
 
-<div
+      const result: {
+        id: string;
+        title: string;
+        content: React.ReactNode;
+      }[] = [];
 
-className="
-mt-8
 
-border-t
+      /*
+       * =====================================================
+       * DESCRIPTION
+       * =====================================================
+       */
 
-border-[#D4AF37]/20
+      if (
+        product?.description &&
+        product.description.trim()
+      ) {
 
-"
+        result.push({
 
->
+          id:
+            "description",
 
+          title:
+            "Description",
 
-{
+          content:
 
-sections.map((section)=>(
+            <p>
 
+              {
+                product.description
+              }
 
-<div
+            </p>,
 
-key={section.id}
+        });
 
-className="
-border-b
+      }
 
-border-[#D4AF37]/20
 
-"
+      /*
+       * =====================================================
+       * PRODUCT DETAILS
+       * =====================================================
+       */
 
->
+      if (
+        productDetails.length > 0
+      ) {
 
+        result.push({
 
-<button
+          id:
+            "details",
 
-onClick={()=>
+          title:
+            "Product Details",
 
+          content:
 
-setOpen(
+            <div
+              className="
+                space-y-3
+              "
+            >
 
-open === section.id
+              {
+                productDetails.map(
+                  (
+                    detail
+                  ) => (
 
-?
+                    <div
 
-null
+                      key={
+                        detail.label
+                      }
 
-:
+                      className="
+                        flex
+                        items-start
+                        justify-between
+                        gap-6
+                      "
 
-section.id
+                    >
 
-)
+                      <span
+                        className="
+                          text-neutral-500
+                        "
+                      >
 
-}
+                        {
+                          detail.label
+                        }
 
-className="
-flex
+                      </span>
 
-w-full
 
-items-center
+                      <span
+                        className="
+                          text-right
+                          text-white
+                        "
+                      >
 
-justify-between
+                        {
+                          detail.value
+                        }
 
-py-5
+                      </span>
 
-text-left
+                    </div>
 
-"
+                  )
+                )
+              }
 
->
+            </div>,
 
+        });
 
-<span
+      }
 
-className="
-text-sm
 
-font-medium
+      /*
+       * =====================================================
+       * WEIGHT & DIMENSIONS
+       * =====================================================
+       */
 
-tracking-wide
+      if (
+        dimensions.length > 0
+      ) {
 
-text-white
+        result.push({
 
-md:text-base
+          id:
+            "dimensions",
 
-"
+          title:
+            "Weight & Dimensions",
 
->
+          content:
 
-{section.title}
+            <div
+              className="
+                space-y-3
+              "
+            >
 
-</span>
+              {
+                dimensions.map(
+                  (
+                    dimension
+                  ) => (
 
+                    <div
 
+                      key={
+                        dimension.label
+                      }
 
+                      className="
+                        flex
+                        items-start
+                        justify-between
+                        gap-6
+                      "
 
+                    >
 
-<ChevronDown
+                      <span
+                        className="
+                          text-neutral-500
+                        "
+                      >
 
-size={18}
+                        {
+                          dimension.label
+                        }
 
-className={`
+                      </span>
 
-text-[#D4AF37]
 
-transition-transform
+                      <span
+                        className="
+                          text-right
+                          text-white
+                        "
+                      >
 
-duration-300
+                        {
+                          dimension.value
+                        }
 
-ease-out
+                      </span>
 
+                    </div>
 
-${
+                  )
+                )
+              }
 
-open===section.id
+            </div>,
 
-?
+        });
 
-"rotate-180"
+      }
 
-:
 
-""
+      /*
+       * =====================================================
+       * CARE GUIDE
+       * =====================================================
+       */
 
-}
+      if (
+        product?.care_instructions &&
+        product.care_instructions.trim()
+      ) {
 
-`}
+        result.push({
 
-/>
+          id:
+            "care",
 
+          title:
+            "Care Guide",
 
+          content:
 
-</button>
+            <p>
 
+              {
+                product.care_instructions
+              }
 
+            </p>,
 
+        });
 
+      }
 
 
+      /*
+       * =====================================================
+       * SHIPPING & RETURNS
+       * =====================================================
+       *
+       * This is currently store-level static content.
+       * We can connect it to CMS/policies later.
+       */
 
-<div
+      result.push({
 
-className={`
+        id:
+          "shipping",
 
-grid
+        title:
+          "Shipping & Returns",
 
-transition-[grid-template-rows]
+        content:
 
-duration-300
+          <p>
 
-ease-out
+            Orders are carefully packed
+            and shipped securely.
+            Delivery timelines depend on
+            your location. Please check our
+            return policy for complete details.
 
+          </p>,
 
-${
+      });
 
-open===section.id
 
-?
+      return result;
 
-"grid-rows-[1fr]"
+    }, [
 
-:
+      product?.description,
 
-"grid-rows-[0fr]"
+      product?.care_instructions,
 
-}
+      productDetails,
 
-`}
+      dimensions,
 
->
+    ]);
 
 
-<div
+  /*
+   * =========================================================
+   * RENDER
+   * =========================================================
+   */
 
-className="
-overflow-hidden
+  return (
 
-"
+    <div
 
->
+      className="
+        mt-8
+        border-t
+        border-[#D4AF37]/20
+      "
 
+    >
 
-<div
+      {
+        sections.map(
+          (
+            section
+          ) => (
 
-className="
-pb-5
+            <div
 
-text-sm
+              key={
+                section.id
+              }
 
-leading-7
+              className="
+                border-b
+                border-[#D4AF37]/20
+              "
 
-text-neutral-400
+            >
 
-"
+              {/* =================================================
+                  HEADER
+              ================================================== */}
 
->
+              <button
 
-{section.content}
+                type="button"
 
-</div>
+                onClick={() =>
 
+                  setOpen(
 
-</div>
+                    open ===
+                      section.id
 
+                      ? null
 
-</div>
+                      : section.id
 
+                  )
 
+                }
 
-</div>
+                className="
+                  flex
+                  w-full
+                  items-center
+                  justify-between
+                  py-5
+                  text-left
+                "
 
+              >
 
-))
+                <span
 
-}
+                  className="
+                    text-sm
+                    font-medium
+                    tracking-wide
+                    text-white
+                    md:text-base
+                  "
 
+                >
 
+                  {
+                    section.title
+                  }
 
-</div>
+                </span>
 
-);
+
+                <ChevronDown
+
+                  size={
+                    18
+                  }
+
+                  className={`
+
+                    text-[#D4AF37]
+
+                    transition-transform
+
+                    duration-300
+
+                    ease-out
+
+                    ${
+                      open ===
+                      section.id
+
+                        ? "rotate-180"
+
+                        : ""
+                    }
+
+                  `}
+
+                />
+
+              </button>
+
+
+              {/* =================================================
+                  CONTENT
+              ================================================== */}
+
+              <div
+
+                className={`
+
+                  grid
+
+                  transition-[grid-template-rows]
+
+                  duration-300
+
+                  ease-out
+
+                  ${
+                    open ===
+                    section.id
+
+                      ? "grid-rows-[1fr]"
+
+                      : "grid-rows-[0fr]"
+                  }
+
+                `}
+
+              >
+
+                <div
+                  className="
+                    overflow-hidden
+                  "
+                >
+
+                  <div
+
+                    className="
+                      pb-5
+                      text-sm
+                      leading-7
+                      text-neutral-400
+                    "
+
+                  >
+
+                    {
+                      section.content
+                    }
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          )
+        )
+      }
+
+    </div>
+
+  );
 
 }

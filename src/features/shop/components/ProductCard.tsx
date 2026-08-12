@@ -12,7 +12,6 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
-  Coins,
 } from "lucide-react";
 
 import {
@@ -115,12 +114,6 @@ export default function ProductCard({
   const [
     imageLoaded,
     setImageLoaded,
-  ] = useState(false);
-
-
-  const [
-    showRewardInfo,
-    setShowRewardInfo,
   ] = useState(false);
 
 
@@ -515,12 +508,6 @@ export default function ProductCard({
     <>
 
       <div
-
-        /*
-         * ---------------------------------------------------
-         * PRODUCT CARD CLICK
-         * ---------------------------------------------------
-         */
 
         onClick={
           openProductDetails
@@ -1060,133 +1047,6 @@ export default function ProductCard({
 
 
           {/* =================================================
-              Rewards
-          ================================================== */}
-
-          <div
-            className="
-              relative
-              mt-3
-              hidden
-              items-center
-              gap-2
-              text-xs
-              text-[#D4AF37]
-              sm:flex
-            "
-          >
-
-            <div
-              className="
-                flex
-                items-center
-                gap-1
-              "
-            >
-
-              <Coins
-                size={15}
-                className="
-                  text-yellow-400
-                "
-              />
-
-
-              <span
-                className="
-                  font-medium
-                  text-yellow-400
-                "
-              >
-
-                {
-                  product.price
-                }
-
-              </span>
-
-            </div>
-
-
-            <button
-
-              type="button"
-
-              onClick={(
-                e
-              ) => {
-
-                e.preventDefault();
-
-                e.stopPropagation();
-
-                setShowRewardInfo(
-                  !showRewardInfo
-                );
-
-              }}
-
-              onMouseEnter={() =>
-                setShowRewardInfo(
-                  true
-                )
-              }
-
-              onMouseLeave={() =>
-                setShowRewardInfo(
-                  false
-                )
-              }
-
-              className="
-                text-neutral-400
-                transition
-                hover:text-[#D4AF37]
-              "
-
-            >
-
-              ⓘ
-
-            </button>
-
-
-            {showRewardInfo && (
-
-              <div
-                className="
-                  absolute
-                  bottom-6
-                  left-0
-                  z-30
-                  w-52
-                  rounded-lg
-                  border
-                  border-[#D4AF37]/30
-                  bg-black
-                  px-3
-                  py-2
-                  text-xs
-                  text-white
-                  shadow-lg
-                "
-              >
-
-                Earn{" "}
-                {
-                  product.price
-                }{" "}
-                Reward Points on
-                this purchase ✨
-
-              </div>
-
-            )}
-
-          </div>
-
-
-          {/* =================================================
               CART / NOTIFY + WISHLIST
           ================================================== */}
 
@@ -1197,12 +1057,6 @@ export default function ProductCard({
               gap-2
               pt-4
             "
-
-            /*
-             * Don't let clicks inside the action area
-             * navigate to product details.
-             */
-
             onClick={(
               e
             ) => {
@@ -1210,7 +1064,6 @@ export default function ProductCard({
               e.stopPropagation();
 
             }}
-
           >
 
             {isOutOfStock ? (
@@ -1300,7 +1153,6 @@ export default function ProductCard({
                 e.stopPropagation();
 
               }}
-
             >
 
               <WishlistButton
