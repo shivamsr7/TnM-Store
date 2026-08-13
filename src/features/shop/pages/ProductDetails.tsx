@@ -4,6 +4,8 @@ import {
 
 import MobileStickyCart from "@/features/products/components/MobileStickyCart";
 
+import ProductReviews from "@/features/reviews/components/ProductReviews";
+
 import ProductGallery from "../components/ProductGallery";
 
 import {
@@ -62,7 +64,6 @@ export default function ProductDetails() {
     return (
 
       <div
-
         className="
           flex
           min-h-screen
@@ -71,7 +72,6 @@ export default function ProductDetails() {
           bg-black
           text-white
         "
-
       >
 
         Loading product...
@@ -97,7 +97,6 @@ export default function ProductDetails() {
     return (
 
       <div
-
         className="
           flex
           min-h-screen
@@ -106,7 +105,6 @@ export default function ProductDetails() {
           bg-black
           text-red-400
         "
-
       >
 
         Product not found.
@@ -127,7 +125,6 @@ export default function ProductDetails() {
   return (
 
     <main
-
       className="
         min-h-screen
         bg-black
@@ -141,20 +138,20 @@ export default function ProductDetails() {
         lg:px-8
         lg:py-12
       "
-
     >
 
       <div
-
         className="
           mx-auto
           max-w-7xl
         "
-
       >
 
-        <div
+        {/* =================================================
+            PRODUCT
+        ================================================== */}
 
+        <div
           className="
             grid
             grid-cols-1
@@ -163,7 +160,6 @@ export default function ProductDetails() {
             lg:grid-cols-2
             lg:gap-12
           "
-
         >
 
           {/* =================================================
@@ -177,15 +173,6 @@ export default function ProductDetails() {
           >
 
             <ProductGallery
-
-              /*
-               * IMPORTANT:
-               *
-               * ProductGallery now needs productId
-               * so the existing WishlistButton can
-               * add/remove this exact product.
-               */
-
               productId={
                 product.id
               }
@@ -198,7 +185,6 @@ export default function ProductDetails() {
               productName={
                 product.name
               }
-
             />
 
           </div>
@@ -209,7 +195,6 @@ export default function ProductDetails() {
           ================================================== */}
 
           <div
-
             className="
               flex
               min-w-0
@@ -218,38 +203,42 @@ export default function ProductDetails() {
 
               sm:gap-6
             "
-
           >
 
             <ProductInfo
-
               product={
                 product
               }
-
             />
 
 
             <ProductActions
-
               product={
                 product
               }
-
             />
 
 
             <ProductAccordion
-
               product={
                 product
               }
-
             />
 
           </div>
 
         </div>
+
+
+        {/* =================================================
+            PRODUCT REVIEWS
+        ================================================== */}
+
+        <ProductReviews
+          productId={
+            product.id
+          }
+        />
 
       </div>
 
@@ -259,11 +248,9 @@ export default function ProductDetails() {
       ====================================================== */}
 
       <MobileStickyCart
-
         product={
           product
         }
-
       />
 
     </main>
