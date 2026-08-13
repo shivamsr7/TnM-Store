@@ -28,42 +28,44 @@ export default function MobileDrawer({
 
     if (open) {
 
-      document.body.style.overflow = "hidden";
+      document.body.style.overflow =
+        "hidden";
 
     } else {
 
-      document.body.style.overflow = "";
+      document.body.style.overflow =
+        "";
 
     }
 
 
     return () => {
 
-      document.body.style.overflow = "";
+      document.body.style.overflow =
+        "";
 
     };
 
-
   }, [open]);
-
-
 
 
   return (
 
     <AnimatePresence>
 
-
       {open && (
 
         <>
 
-
-          {/* Overlay */}
+          {/* =================================================
+              OVERLAY
+          ================================================= */}
 
           <motion.div
 
-            onClick={onClose}
+            onClick={
+              onClose
+            }
 
             className="
               fixed
@@ -74,44 +76,42 @@ export default function MobileDrawer({
             "
 
             initial={{
-              opacity:0,
+              opacity: 0,
             }}
 
             animate={{
-              opacity:1,
+              opacity: 1,
             }}
 
             exit={{
-              opacity:0,
+              opacity: 0,
             }}
 
           />
 
 
-
-
-
-          {/* Drawer */}
+          {/* =================================================
+              DRAWER
+          ================================================= */}
 
           <motion.div
 
             initial={{
-              x:"-100%",
+              x: "-100%",
             }}
 
             animate={{
-              x:0,
+              x: 0,
             }}
 
             exit={{
-              x:"-100%",
+              x: "-100%",
             }}
 
             transition={{
-              duration:0.3,
-              ease:"easeInOut",
+              duration: 0.3,
+              ease: "easeInOut",
             }}
-
 
             className="
               fixed
@@ -129,35 +129,44 @@ export default function MobileDrawer({
 
           >
 
+            {/* =================================================
+                HEADER
+            ================================================= */}
 
+            <div
+              className="
+                flex
+                h-16
+                shrink-0
+                items-center
+                justify-between
+                border-b
+                px-5
+              "
+            >
 
-            {/* Header */}
-
-            <div className="
-              flex
-              h-16
-              shrink-0
-              items-center
-              justify-between
-              border-b
-              px-5
-            ">
-
-              <h2 className="
-                text-lg
-                font-semibold
-                text-neutral-900
-              ">
+              <h2
+                className="
+                  text-lg
+                  font-semibold
+                  text-neutral-900
+                "
+              >
 
                 Menu
 
               </h2>
 
 
-
               <button
 
-                onClick={onClose}
+                type="button"
+
+                onClick={
+                  onClose
+                }
+
+                aria-label="Close menu"
 
                 className="
                   rounded-md
@@ -172,14 +181,21 @@ export default function MobileDrawer({
 
               </button>
 
-
             </div>
 
 
+            {/* =================================================
+                SCROLLABLE MENU CONTENT
+            =================================================
+            
+            Extra bottom padding is intentional.
 
+            The mobile bottom navigation is fixed at the
+            bottom of the viewport, so without this space
+            the last category can remain underneath it.
 
-
-            {/* Only Drawer Scrolls */}
+            The safe-area value also helps on iPhones.
+            ================================================= */}
 
             <div
 
@@ -190,7 +206,11 @@ export default function MobileDrawer({
               "
 
               style={{
-                WebkitOverflowScrolling:"touch",
+                WebkitOverflowScrolling:
+                  "touch",
+
+                paddingBottom:
+                  "calc(120px + env(safe-area-inset-bottom))",
               }}
 
             >
@@ -199,15 +219,11 @@ export default function MobileDrawer({
 
             </div>
 
-
-
           </motion.div>
-
 
         </>
 
       )}
-
 
     </AnimatePresence>
 
