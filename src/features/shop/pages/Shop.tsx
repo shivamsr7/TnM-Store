@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -155,6 +156,37 @@ export default function Shop() {
 
   /*
    * =======================================================
+   * SYNC SEARCH FROM URL
+   * =======================================================
+   *
+   * SearchBar sends:
+   *
+   * /shop?search=Earrings
+   *
+   * This keeps the Shop search state
+   * synchronized with that URL.
+   * =======================================================
+   */
+
+  useEffect(() => {
+
+    const searchParam =
+      searchParams.get(
+        "search"
+      ) ?? "";
+
+
+    setSearch(
+      searchParam
+    );
+
+  }, [
+    searchParams,
+  ]);
+
+
+  /*
+   * =======================================================
    * FILTER DRAWER
    * =======================================================
    */
@@ -167,7 +199,7 @@ export default function Shop() {
 
   /*
    * =======================================================
-   * CATEGORIES
+   * DYNAMIC CATEGORY NAMES
    * =======================================================
    */
 
@@ -175,10 +207,13 @@ export default function Shop() {
     useMemo(() => {
 
       return [
+
         "All",
 
         ...shopCategories.map(
-          (category) =>
+          (
+            category
+          ) =>
             category.name
         ),
 
@@ -193,12 +228,6 @@ export default function Shop() {
    * =======================================================
    * CATEGORY PARAM
    * =======================================================
-   *
-   * Parent category is always represented by:
-   *
-   * ?category=watches
-   *
-   * =======================================================
    */
 
   const categoryParam =
@@ -210,16 +239,6 @@ export default function Shop() {
   /*
    * =======================================================
    * SUBCATEGORY PARAM
-   * =======================================================
-   *
-   * Mobile / desktop can use:
-   *
-   * ?category=earrings&subcategory=UUID
-   *
-   * or:
-   *
-   * ?category=earrings&subcategory=hoops
-   *
    * =======================================================
    */
 
@@ -256,14 +275,19 @@ export default function Shop() {
 
 
       return (
+
         shopCategories.find(
-          (category) =>
+          (
+            category
+          ) =>
             slugify(
               category.slug
             ) ===
             value
         ) ??
+
         null
+
       );
 
     }, [
@@ -286,17 +310,6 @@ export default function Shop() {
   /*
    * =======================================================
    * ACTIVE SUBCATEGORY
-   * =======================================================
-   *
-   * IMPORTANT:
-   *
-   * We search by:
-   *
-   * 1. Database ID
-   * 2. Database slug
-   * 3. Name
-   *
-   * This means UUID URLs from mobile are valid.
    * =======================================================
    */
 
@@ -326,13 +339,16 @@ export default function Shop() {
 
 
       return (
+
         activeShopCategory
           .subcategories
           .find(
-            (subcategory) => {
+            (
+              subcategory
+            ) => {
 
               /*
-               * Exact database ID match
+               * Database ID
                */
 
               if (
@@ -346,7 +362,7 @@ export default function Shop() {
 
 
               /*
-               * Slug match
+               * Slug
                */
 
               if (
@@ -363,19 +379,23 @@ export default function Shop() {
 
 
               /*
-               * Name match
+               * Name
                */
 
               return (
+
                 slugify(
                   subcategory.name
                 ) ===
                 normalizedValue
+
               );
 
             }
           ) ??
+
         null
+
       );
 
     }, [
@@ -403,12 +423,16 @@ export default function Shop() {
 
 
       return (
+
         activeShopCategory
           .subcategories
           .map(
-            (subcategory) =>
+            (
+              subcategory
+            ) =>
               subcategory.name
           )
+
       );
 
     }, [
@@ -553,9 +577,13 @@ export default function Shop() {
    */
 
   const filterCount =
-    Number(inStock) +
+    Number(
+      inStock
+    ) +
 
-    Number(onSale) +
+    Number(
+      onSale
+    ) +
 
     Number(
       minDiscount > 0
@@ -565,15 +593,25 @@ export default function Shop() {
       minRating > 0
     ) +
 
-    Number(bestSeller) +
+    Number(
+      bestSeller
+    ) +
 
-    Number(newArrival) +
+    Number(
+      newArrival
+    ) +
 
-    Number(trending) +
+    Number(
+      trending
+    ) +
 
-    Number(editorsPick) +
+    Number(
+      editorsPick
+    ) +
 
-    Number(featured) +
+    Number(
+      featured
+    ) +
 
     Number(
       minPrice > 0 ||
@@ -603,7 +641,12 @@ export default function Shop() {
     Object.entries(
       updates
     ).forEach(
-      ([key, value]) => {
+      (
+        [
+          key,
+          value,
+        ]
+      ) => {
 
         if (
           value === null ||
@@ -636,6 +679,33 @@ export default function Shop() {
 
   /*
    * =======================================================
+   * SHOP SEARCH CHANGE
+   * =======================================================
+   */
+
+  function handleSearchChange(
+    value: string
+  ) {
+
+    setSearch(
+      value
+    );
+
+
+    updateParams({
+
+      search:
+        value.trim()
+          ? value
+          : null,
+
+    });
+
+  }
+
+
+  /*
+   * =======================================================
    * CATEGORY CHANGE
    * =======================================================
    */
@@ -643,10 +713,6 @@ export default function Shop() {
   function handleCategoryChange(
     value: string
   ) {
-
-    /*
-     * All categories
-     */
 
     if (
       value === "All"
@@ -667,13 +733,11 @@ export default function Shop() {
     }
 
 
-    /*
-     * Find category dynamically
-     */
-
     const category =
       shopCategories.find(
-        (item) =>
+        (
+          item
+        ) =>
           item.name ===
           value
       );
@@ -687,11 +751,6 @@ export default function Shop() {
 
     }
 
-
-    /*
-     * Change parent category and
-     * remove old subcategory.
-     */
 
     updateParams({
 
@@ -710,26 +769,11 @@ export default function Shop() {
    * =======================================================
    * SUBCATEGORY CHANGE
    * =======================================================
-   *
-   * NULL-SAFE
-   * =======================================================
    */
 
   function handleSubcategoryChange(
     value: string | null
   ) {
-
-    /*
-     * IMPORTANT:
-     *
-     * Guard FIRST.
-     *
-     * This fixes:
-     *
-     * 'activeShopCategory' is possibly 'null'
-     *
-     * =====================================================
-     */
 
     if (
       !activeShopCategory
@@ -741,9 +785,7 @@ export default function Shop() {
 
 
     /*
-     * -----------------------------------------------------
-     * ALL SUBCATEGORIES
-     * -----------------------------------------------------
+     * All subcategories
      */
 
     if (
@@ -765,17 +807,13 @@ export default function Shop() {
     }
 
 
-    /*
-     * -----------------------------------------------------
-     * FIND SUBCATEGORY
-     * -----------------------------------------------------
-     */
-
     const subcategory =
       activeShopCategory
         .subcategories
         .find(
-          (item) =>
+          (
+            item
+          ) =>
             item.name ===
             value
         );
@@ -789,24 +827,6 @@ export default function Shop() {
 
     }
 
-
-    /*
-     * -----------------------------------------------------
-     * USE DATABASE ID
-     * -----------------------------------------------------
-     *
-     * This is the safest option because:
-     *
-     * - IDs are unique
-     * - slug can be null
-     * - mobile already supports IDs
-     *
-     * URL:
-     *
-     * /shop?category=earrings&subcategory=UUID
-     *
-     * -----------------------------------------------------
-     */
 
     updateParams({
 
@@ -870,7 +890,9 @@ export default function Shop() {
       "editorsPick",
       "featured",
     ].forEach(
-      (key) => {
+      (
+        key
+      ) => {
 
         next.delete(
           key
@@ -928,7 +950,7 @@ export default function Shop() {
 
   /*
    * =======================================================
-   * APPLY DRAWER FILTERS
+   * DRAWER FILTERS
    * =======================================================
    */
 
@@ -1148,7 +1170,9 @@ export default function Shop() {
 
       let result =
         products.filter(
-          (product) => {
+          (
+            product
+          ) => {
 
             /*
              * SEARCH
@@ -1186,9 +1210,7 @@ export default function Shop() {
 
 
             /*
-             * =================================================
              * CATEGORY / SUBCATEGORY
-             * =================================================
              */
 
             if (
@@ -1196,9 +1218,7 @@ export default function Shop() {
             ) {
 
               /*
-               * ------------------------------------------------
-               * SUBCATEGORY SELECTED
-               * ------------------------------------------------
+               * Subcategory selected
                */
 
               if (
@@ -1260,9 +1280,7 @@ export default function Shop() {
 
 
               /*
-               * ------------------------------------------------
-               * PARENT CATEGORY
-               * ------------------------------------------------
+               * Parent category selected
                */
 
               else {
@@ -1486,7 +1504,10 @@ export default function Shop() {
         case "newest":
 
           result.sort(
-            (a, b) =>
+            (
+              a,
+              b
+            ) =>
               new Date(
                 b.created_at
               ).getTime() -
@@ -1501,7 +1522,10 @@ export default function Shop() {
         case "best-selling":
 
           result.sort(
-            (a, b) =>
+            (
+              a,
+              b
+            ) =>
               b.sales_count -
               a.sales_count
           );
@@ -1512,7 +1536,10 @@ export default function Shop() {
         case "trending":
 
           result.sort(
-            (a, b) =>
+            (
+              a,
+              b
+            ) =>
               Number(
                 b.trending
               ) -
@@ -1527,7 +1554,10 @@ export default function Shop() {
         case "price-low":
 
           result.sort(
-            (a, b) =>
+            (
+              a,
+              b
+            ) =>
               a.price -
               b.price
           );
@@ -1538,7 +1568,10 @@ export default function Shop() {
         case "price-high":
 
           result.sort(
-            (a, b) =>
+            (
+              a,
+              b
+            ) =>
               b.price -
               a.price
           );
@@ -1549,7 +1582,10 @@ export default function Shop() {
         case "discount":
 
           result.sort(
-            (a, b) =>
+            (
+              a,
+              b
+            ) =>
               getDiscount(
                 b
               ) -
@@ -1564,7 +1600,10 @@ export default function Shop() {
         case "rating":
 
           result.sort(
-            (a, b) =>
+            (
+              a,
+              b
+            ) =>
               b.rating -
               a.rating
           );
@@ -1577,21 +1616,19 @@ export default function Shop() {
         default:
 
           result.sort(
-            (a, b) => {
+            (
+              a,
+              b
+            ) => {
 
               if (
                 a.featured !==
                 b.featured
               ) {
 
-                return (
-                  Number(
-                    b.featured
-                  ) -
-                  Number(
-                    a.featured
-                  )
-                );
+                return a.featured
+                  ? -1
+                  : 1;
 
               }
 
@@ -1662,22 +1699,35 @@ export default function Shop() {
     return (
 
       <div
+
         className="
+
           min-h-screen
+
           bg-black
+
           px-4
+
           py-10
+
           sm:px-5
-          sm:py-12
+
           lg:py-16
+
         "
+
       >
 
         <div
+
           className="
+
             mx-auto
+
             max-w-7xl
+
           "
+
         >
 
           <div
@@ -1687,90 +1737,153 @@ export default function Shop() {
           >
 
             <div
+
               className="
+
                 mx-auto
+
                 h-10
+
                 w-52
+
                 rounded
+
                 bg-neutral-900
+
               "
+
             />
 
 
             <div
+
               className="
+
                 mx-auto
+
                 mt-4
+
                 h-4
+
                 max-w-md
+
                 rounded
+
                 bg-neutral-900
+
               "
+
             />
 
 
             <div
+
               className="
-                mt-8
+
+                mt-10
+
                 grid
+
                 grid-cols-2
+
                 gap-4
+
                 sm:grid-cols-3
+
                 lg:grid-cols-4
+
               "
+
             >
 
-              {Array.from({
-                length: 8,
-              }).map(
-                (_, index) => (
+              {Array.from(
+                {
+                  length: 8,
+                }
+              ).map(
+                (
+                  _,
+                  index
+                ) => (
 
                   <div
+
                     key={
                       index
                     }
 
                     className="
+
                       overflow-hidden
+
                       rounded-2xl
+
                       border
+
                       border-white/[0.06]
+
                       bg-white/[0.02]
+
                     "
+
                   >
 
                     <div
+
                       className="
+
                         aspect-square
+
                         bg-neutral-900
+
                       "
+
                     />
 
 
                     <div
+
                       className="
-                        space-y-2
+
+                        space-y-3
+
                         p-4
+
                       "
+
                     >
 
                       <div
+
                         className="
-                          h-3
+
+                          h-4
+
                           w-3/4
+
                           rounded
+
                           bg-neutral-800
+
                         "
+
                       />
 
 
                       <div
+
                         className="
+
                           h-3
+
                           w-1/2
+
                           rounded
+
                           bg-neutral-800
+
                         "
+
                       />
 
                     </div>
@@ -1807,14 +1920,22 @@ export default function Shop() {
     return (
 
       <div
+
         className="
+
           flex
+
           min-h-screen
+
           items-center
           justify-center
+
           bg-black
+
           text-red-400
+
         "
+
       >
 
         Unable to load Shop.
@@ -1835,22 +1956,37 @@ export default function Shop() {
   return (
 
     <main
+
       className="
+
         min-h-screen
+
         bg-black
+
         px-4
+
         py-10
+
         sm:px-5
+
         sm:py-12
+
         lg:py-16
+
       "
+
     >
 
       <div
+
         className="
+
           mx-auto
+
           max-w-7xl
+
         "
+
       >
 
         {/* =================================================
@@ -1864,7 +2000,7 @@ export default function Shop() {
           }
 
           setSearch={
-            setSearch
+            handleSearchChange
           }
 
           productCount={
@@ -1882,10 +2018,6 @@ export default function Shop() {
           setCategory={
             handleCategoryChange
           }
-
-          /*
-           * Dynamic subcategories
-           */
 
           subcategories={
             activeSubcategoryNames

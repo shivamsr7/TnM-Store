@@ -103,9 +103,33 @@ export default function Header() {
 
   const handleSearch = () => {
 
-    console.log(
-      "Searching:",
-      search
+    const searchTerm =
+      search.trim();
+
+
+    /*
+     * Don't navigate when
+     * search is empty.
+     */
+
+    if (
+      !searchTerm
+    ) {
+
+      return;
+
+    }
+
+
+    /*
+     * Navigate to Shop with
+     * the search query.
+     */
+
+    navigate(
+      `/shop?search=${encodeURIComponent(
+        searchTerm
+      )}`
     );
 
   };
@@ -115,45 +139,31 @@ export default function Header() {
    * =========================================================
    * LOGOUT
    * =========================================================
-   *
-   * IMPORTANT:
-   *
-   * After logout we must leave /account.
-   *
-   * Otherwise AccountPage remains visible with an empty
-   * customer state.
-   *
-   * =========================================================
    */
 
-  const handleLogout = async () => {
+  const handleLogout =
+    async () => {
 
-    try {
+      try {
 
-      await logout();
+        await logout();
 
-    } finally {
+      }
 
-      /*
-       * Close the drawer first.
-       */
+      finally {
 
-      setMobileOpen(
-        false
-      );
+        setMobileOpen(
+          false
+        );
 
 
-      /*
-       * Redirect to homepage.
-       */
+        navigate(
+          "/"
+        );
 
-      navigate(
-        "/"
-      );
+      }
 
-    }
-
-  };
+    };
 
 
   /*
@@ -165,12 +175,17 @@ export default function Header() {
   return (
 
     <header
+
       className="
+
         sticky
         top-0
         z-50
+
         bg-black
+
       "
+
     >
 
 
@@ -186,10 +201,15 @@ export default function Header() {
       ====================================================== */}
 
       <div
+
         className="
+
           hidden
+
           lg:block
+
         "
+
       >
 
         <TopSection
@@ -227,9 +247,13 @@ export default function Header() {
       ====================================================== */}
 
       <div
+
         className="
+
           lg:hidden
+
         "
+
       >
 
         <MobileHeader
