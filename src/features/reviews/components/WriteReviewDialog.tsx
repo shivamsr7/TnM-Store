@@ -1,4 +1,5 @@
 import { useState } from "react";
+
 import {
   Loader2,
   Star,
@@ -6,8 +7,13 @@ import {
 } from "lucide-react";
 
 import {
+  useAuth,
+} from "@/features/Auth/context/AuthContext";
+
+import {
   reviewService,
 } from "../services/review.service";
+
 
 interface WriteReviewDialogProps {
   productId: string;
@@ -15,11 +21,24 @@ interface WriteReviewDialogProps {
   onClose: () => void;
 }
 
+
 export default function WriteReviewDialog({
   productId,
   open,
   onClose,
 }: WriteReviewDialogProps) {
+
+  /*
+   * =========================================================
+   * AUTH
+   * =========================================================
+   */
+
+  const {
+    customer,
+  } = useAuth();
+
+
   /*
    * =========================================================
    * FORM STATE
@@ -38,6 +57,9 @@ export default function WriteReviewDialog({
   const [error, setError] =
     useState<string | null>(null);
 
+  const [isDuplicate, setIsDuplicate] =
+    useState(false);
+
   const [success, setSuccess] =
     useState(false);
 
@@ -53,6 +75,7 @@ export default function WriteReviewDialog({
     setTitle("");
     setReview("");
     setError(null);
+    setIsDuplicate(false);
     setSuccess(false);
   };
 
@@ -64,6 +87,7 @@ export default function WriteReviewDialog({
    */
 
   const handleClose = () => {
+
     if (isSubmitting) {
       return;
     }
@@ -75,22 +99,63 @@ export default function WriteReviewDialog({
 
   /*
    * =========================================================
-   * SUBMIT
+   * SUBMIT REVIEW
    * =========================================================
    */
 
   const handleSubmit = async (
     event: React.FormEvent<HTMLFormElement>
   ) => {
+
     event.preventDefault();
 
     setError(null);
+    setIsDuplicate(false);
+
 
     /*
-     * Rating validation
+     * =======================================================
+     * CUSTOMER CHECK
+     * =======================================================
      */
 
-    if (rating < 1 || rating > 5) {
+    if (!customer) {
+
+      setError(
+        "Please log in to write a review."
+      );
+
+      return;
+    }
+
+
+    /*
+     * =======================================================
+     * CUSTOMER ID CHECK
+     * =======================================================
+     */
+
+    if (!customer.id) {
+
+      setError(
+        "We couldn't identify your customer account."
+      );
+
+      return;
+    }
+
+
+    /*
+     * =======================================================
+     * RATING VALIDATION
+     * =======================================================
+     */
+
+    if (
+      rating < 1 ||
+      rating > 5
+    ) {
+
       setError(
         "Please select a rating."
       );
@@ -100,13 +165,19 @@ export default function WriteReviewDialog({
 
 
     /*
-     * Review validation
+     * =======================================================
+     * REVIEW VALIDATION
+     * =======================================================
      */
 
     const trimmedReview =
       review.trim();
 
-    if (trimmedReview.length < 10) {
+
+    if (
+      trimmedReview.length < 10
+    ) {
+
       setError(
         "Please write at least 10 characters."
       );
@@ -114,7 +185,11 @@ export default function WriteReviewDialog({
       return;
     }
 
-    if (trimmedReview.length > 2000) {
+
+    if (
+      trimmedReview.length > 2000
+    ) {
+
       setError(
         "Review cannot exceed 2000 characters."
       );
@@ -124,13 +199,19 @@ export default function WriteReviewDialog({
 
 
     /*
-     * Title validation
+     * =======================================================
+     * TITLE VALIDATION
+     * =======================================================
      */
 
     const trimmedTitle =
       title.trim();
 
-    if (trimmedTitle.length > 100) {
+
+    if (
+      trimmedTitle.length > 100
+    ) {
+
       setError(
         "Title cannot exceed 100 characters."
       );
@@ -139,54 +220,267 @@ export default function WriteReviewDialog({
     }
 
 
+    /*
+     * =======================================================
+     * SUBMIT
+     * =======================================================
+     */
+
     try {
+
       setIsSubmitting(true);
 
+
+      /*
+       * We intentionally send only:
+       *
+       * product_id
+       * customer_id
+       * rating
+       * title
+       * review
+       *
+       * The database controls:
+       *
+       * order_id
+       * is_verified
+       * status
+       */
+
       await reviewService.createReview({
-        product_id: productId,
 
-        customer_id: null,
+        product_id:
+          productId,
 
-        order_id: null,
+        customer_id:
+          customer.id,
 
-        rating,
+        rating:
+          rating,
 
         title:
-          trimmedTitle || null,
+          trimmedTitle ||
+          null,
 
         review:
           trimmedReview,
 
-        /*
-         * Customer-submitted reviews
-         * always start as pending.
-         */
-
-        status: "pending",
-
-        /*
-         * Verification will be handled
-         * separately through order verification.
-         */
-
-        is_verified: false,
       });
+
+
+      /*
+       * =====================================================
+       * SUCCESS
+       * =====================================================
+       */
 
       setSuccess(true);
 
-    } catch (submitError) {
+    } catch (
+      submitError
+    ) {
+
       console.error(
         "Review submission error:",
         submitError
       );
 
+
+      /*
+       * =====================================================
+       * IMPORTANT:
+       *
+       * Supabase errors are not always native Error objects.
+       *
+       * Supabase can return:
+       *
+       * {
+       *   code: "P0001",
+       *   message: "You have already reviewed this product."
+       * }
+       *
+       * So we must explicitly read the `message` property.
+       * =====================================================
+       */
+
+      const errorMessage =
+        typeof submitError === "object" &&
+        submitError !== null &&
+        "message" in submitError
+
+          ? String(
+              (
+                submitError as {
+                  message?: unknown;
+                }
+              ).message ?? ""
+            )
+
+          : submitError instanceof Error
+
+            ? submitError.message
+
+            : String(
+                submitError ?? ""
+              );
+
+
+      const normalizedError =
+        errorMessage.toLowerCase();
+
+
+      /*
+       * =====================================================
+       * DUPLICATE REVIEW
+       * =====================================================
+       */
+
+      if (
+        normalizedError.includes(
+          "already reviewed"
+        )
+      ) {
+
+        setIsDuplicate(true);
+
+        setError(
+          "You've already shared your love for this piece. ♡"
+        );
+
+        return;
+      }
+
+
+      /*
+       * =====================================================
+       * CUSTOMER ERROR
+       * =====================================================
+       */
+
+      if (
+        normalizedError.includes(
+          "customer account"
+        )
+      ) {
+
+        setError(
+          "We couldn't find your customer account."
+        );
+
+        return;
+      }
+
+
+      /*
+       * =====================================================
+       * PRODUCT ERROR
+       * =====================================================
+       */
+
+      if (
+        normalizedError.includes(
+          "product"
+        )
+      ) {
+
+        setError(
+          "This product could not be found."
+        );
+
+        return;
+      }
+
+
+      /*
+       * =====================================================
+       * RATING ERROR
+       * =====================================================
+       */
+
+      if (
+        normalizedError.includes(
+          "rating"
+        )
+      ) {
+
+        setError(
+          "Please select a valid rating."
+        );
+
+        return;
+      }
+
+
+      /*
+       * =====================================================
+       * REVIEW LENGTH ERROR
+       * =====================================================
+       */
+
+      if (
+        normalizedError.includes(
+          "10 characters"
+        )
+      ) {
+
+        setError(
+          "Please write at least 10 characters."
+        );
+
+        return;
+      }
+
+
+      if (
+        normalizedError.includes(
+          "2000 characters"
+        )
+      ) {
+
+        setError(
+          "Review cannot exceed 2000 characters."
+        );
+
+        return;
+      }
+
+
+      /*
+       * =====================================================
+       * TITLE ERROR
+       * =====================================================
+       */
+
+      if (
+        normalizedError.includes(
+          "100 characters"
+        )
+      ) {
+
+        setError(
+          "Review title cannot exceed 100 characters."
+        );
+
+        return;
+      }
+
+
+      /*
+       * =====================================================
+       * GENERIC ERROR
+       * =====================================================
+       */
+
       setError(
-        "We couldn't submit your review. Please try again."
+        "We're having a little trouble submitting your review right now. Please try again in a moment. ♡"
       );
 
     } finally {
+
       setIsSubmitting(false);
+
     }
+
   };
 
 
@@ -208,6 +502,7 @@ export default function WriteReviewDialog({
    */
 
   return (
+
     <div
       className="
         fixed
@@ -222,12 +517,16 @@ export default function WriteReviewDialog({
         backdrop-blur-sm
       "
       onMouseDown={(event) => {
+
         if (
           event.target ===
           event.currentTarget
         ) {
+
           handleClose();
+
         }
+
       }}
     >
 
@@ -256,8 +555,12 @@ export default function WriteReviewDialog({
 
         <button
           type="button"
-          onClick={handleClose}
-          disabled={isSubmitting}
+          onClick={
+            handleClose
+          }
+          disabled={
+            isSubmitting
+          }
           aria-label="Close"
           className="
             absolute
@@ -283,12 +586,14 @@ export default function WriteReviewDialog({
             disabled:opacity-50
           "
         >
+
           <X
             className="
               h-4
               w-4
             "
           />
+
         </button>
 
 
@@ -306,6 +611,7 @@ export default function WriteReviewDialog({
           {!success ? (
 
             <>
+
               {/* =============================================
                   HEADER
               ============================================== */}
@@ -361,7 +667,9 @@ export default function WriteReviewDialog({
               ============================================== */}
 
               <form
-                onSubmit={handleSubmit}
+                onSubmit={
+                  handleSubmit
+                }
                 className="
                   mt-6
                   space-y-5
@@ -402,9 +710,13 @@ export default function WriteReviewDialog({
                         const star =
                           index + 1;
 
+
                         return (
+
                           <button
-                            key={star}
+                            key={
+                              star
+                            }
                             type="button"
                             onClick={() =>
                               setRating(
@@ -436,7 +748,9 @@ export default function WriteReviewDialog({
                             />
 
                           </button>
+
                         );
+
                       }
                     )}
 
@@ -459,6 +773,7 @@ export default function WriteReviewDialog({
                       text-neutral-900
                     "
                   >
+
                     Review title
 
                     <span
@@ -470,13 +785,16 @@ export default function WriteReviewDialog({
                     >
                       (optional)
                     </span>
+
                   </label>
 
 
                   <input
                     id="review-title"
                     type="text"
-                    value={title}
+                    value={
+                      title
+                    }
                     onChange={(event) =>
                       setTitle(
                         event.target.value
@@ -548,7 +866,9 @@ export default function WriteReviewDialog({
 
                   <textarea
                     id="review-text"
-                    value={review}
+                    value={
+                      review
+                    }
                     onChange={(event) =>
                       setReview(
                         event.target.value
@@ -584,24 +904,57 @@ export default function WriteReviewDialog({
 
 
                 {/* ===========================================
-                    ERROR
+                    MESSAGE
                 ============================================ */}
 
                 {error && (
+
                   <div
-                    className="
+                    className={`
                       rounded-xl
-                      border
-                      border-red-200
-                      bg-red-50
                       px-4
                       py-3
                       text-sm
-                      text-red-600
-                    "
+                      leading-5
+
+                      ${
+                        isDuplicate
+                          ? `
+                            border
+                            border-[#C8A44D]/25
+                            bg-[#C8A44D]/[0.06]
+                            text-neutral-700
+                          `
+                          : `
+                            border
+                            border-red-200
+                            bg-red-50
+                            text-red-600
+                          `
+                      }
+                    `}
                   >
+
                     {error}
+
+
+                    {isDuplicate && (
+
+                      <p
+                        className="
+                          mt-1
+                          text-xs
+                          text-neutral-500
+                        "
+                      >
+                        Each product can be reviewed
+                        only once.
+                      </p>
+
+                    )}
+
                   </div>
+
                 )}
 
 
@@ -609,31 +962,38 @@ export default function WriteReviewDialog({
                     INFO
                 ============================================ */}
 
-                <div
-                  className="
-                    rounded-xl
-                    border
-                    border-[#C8A44D]/20
-                    bg-[#C8A44D]/5
-                    px-4
-                    py-3
-                    text-xs
-                    leading-5
-                    text-neutral-600
-                  "
-                >
-                  Your review will be published
-                  after our team reviews it.
-                </div>
+                {!isDuplicate && (
+
+                  <div
+                    className="
+                      rounded-xl
+                      border
+                      border-[#C8A44D]/20
+                      bg-[#C8A44D]/5
+                      px-4
+                      py-3
+                      text-xs
+                      leading-5
+                      text-neutral-600
+                    "
+                  >
+                    Your review will be published
+                    after our team reviews it.
+                  </div>
+
+                )}
 
 
                 {/* ===========================================
-                    SUBMIT
+                    SUBMIT BUTTON
                 ============================================ */}
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={
+                    isSubmitting ||
+                    isDuplicate
+                  }
                   className="
                     flex
                     h-12
@@ -661,6 +1021,7 @@ export default function WriteReviewDialog({
                   {isSubmitting ? (
 
                     <>
+
                       <Loader2
                         className="
                           h-4
@@ -670,7 +1031,12 @@ export default function WriteReviewDialog({
                       />
 
                       Submitting...
+
                     </>
+
+                  ) : isDuplicate ? (
+
+                    "Already Reviewed"
 
                   ) : (
 
@@ -681,6 +1047,7 @@ export default function WriteReviewDialog({
                 </button>
 
               </form>
+
             </>
 
           ) : (
@@ -699,8 +1066,6 @@ export default function WriteReviewDialog({
                 text-center
               "
             >
-
-              {/* Success Icon */}
 
               <div
                 className="
@@ -726,8 +1091,6 @@ export default function WriteReviewDialog({
               </div>
 
 
-              {/* Success Heading */}
-
               <h2
                 className="
                   mt-5
@@ -739,8 +1102,6 @@ export default function WriteReviewDialog({
                 Thank you! ♡
               </h2>
 
-
-              {/* Success Message */}
 
               <p
                 className="
@@ -757,11 +1118,11 @@ export default function WriteReviewDialog({
               </p>
 
 
-              {/* Done */}
-
               <button
                 type="button"
-                onClick={handleClose}
+                onClick={
+                  handleClose
+                }
                 className="
                   mt-6
                   rounded-full

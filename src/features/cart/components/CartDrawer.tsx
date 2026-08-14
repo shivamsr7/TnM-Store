@@ -62,6 +62,7 @@ export default function CartDrawer() {
     appliedCoupon,
     discount,
     getFinalTotal,
+    clearStockError,
   } = useCartStore();
 
 
@@ -76,6 +77,58 @@ export default function CartDrawer() {
 
   const finalTotal =
     getFinalTotal();
+
+
+  /*
+   * =========================================================
+   * STOCK LIMIT MESSAGE
+   * =========================================================
+   *
+   * Stores the ID of the product whose + button was clicked
+   * after reaching its maximum available stock.
+   * =========================================================
+   */
+
+  const [
+    stockLimitItemId,
+    setStockLimitItemId,
+  ] = useState<string | null>(null);
+
+
+  /*
+   * =========================================================
+   * STOCK LIMIT MESSAGE TIMER
+   * =========================================================
+   */
+
+  useEffect(() => {
+
+    if (!stockLimitItemId) {
+      return;
+    }
+
+
+    const timer =
+      window.setTimeout(() => {
+
+        setStockLimitItemId(
+          null
+        );
+
+      }, 3000);
+
+
+    return () => {
+
+      window.clearTimeout(
+        timer
+      );
+
+    };
+
+  }, [
+    stockLimitItemId,
+  ]);
 
 
   /*
@@ -109,6 +162,7 @@ export default function CartDrawer() {
         "";
 
     }
+
 
     return () => {
 
@@ -215,23 +269,27 @@ export default function CartDrawer() {
    */
 
   const freeGiftUnlocked =
-    total >= FREE_GIFT_AMOUNT;
+    total >=
+    FREE_GIFT_AMOUNT;
 
 
   const freeShippingUnlocked =
-    total >= FREE_SHIPPING_AMOUNT;
+    total >=
+    FREE_SHIPPING_AMOUNT;
 
 
   const amountToFreeGift =
     Math.max(
-      FREE_GIFT_AMOUNT - total,
+      FREE_GIFT_AMOUNT -
+        total,
       0
     );
 
 
   const amountToFreeShipping =
     Math.max(
-      FREE_SHIPPING_AMOUNT - total,
+      FREE_SHIPPING_AMOUNT -
+        total,
       0
     );
 
@@ -351,6 +409,74 @@ export default function CartDrawer() {
         setCouponLoading(
           false
         );
+
+      }
+
+    };
+
+
+  /*
+   * =========================================================
+   * HANDLE PLUS CLICK
+   * =========================================================
+   */
+
+  const handleIncreaseQuantity =
+    async (
+      item: (typeof items)[number]
+    ) => {
+
+      /*
+       * If we already know the latest database stock
+       * and the cart has reached that limit, don't make
+       * another request.
+       */
+
+      if (
+        item.stock !== null &&
+        item.stock !== Infinity &&
+        item.quantity >= item.stock
+      ) {
+
+        setStockLimitItemId(
+          item.id
+        );
+
+        return;
+
+      }
+
+
+      /*
+       * Try to increase quantity.
+       */
+
+      const updated =
+        await updateQuantity(
+          item.id,
+          item.quantity + 1
+        );
+
+
+      /*
+       * If the store rejected the increase because the
+       * database stock was reached, show our friendly
+       * product-specific message.
+       */
+
+      if (!updated) {
+
+        setStockLimitItemId(
+          item.id
+        );
+
+
+        /*
+         * Clear the generic store message because we're
+         * showing the nicer inline message instead.
+         */
+
+        clearStockError();
 
       }
 
@@ -725,9 +851,7 @@ export default function CartDrawer() {
                       />
 
 
-                      {/* =================================================
-                          ₹1000 MILESTONE
-                      ================================================== */}
+                      {/* ₹1000 MILESTONE */}
 
                       <div
 
@@ -789,9 +913,7 @@ export default function CartDrawer() {
                       </div>
 
 
-                      {/* =================================================
-                          ₹2000 MILESTONE
-                      ================================================== */}
+                      {/* ₹2000 MILESTONE */}
 
                       <div
 
@@ -854,9 +976,7 @@ export default function CartDrawer() {
                     </div>
 
 
-                    {/* =================================================
-                        LABEL ROW
-                    ================================================== */}
+                    {/* LABEL ROW */}
 
                     <div
 
@@ -1267,6 +1387,10 @@ export default function CartDrawer() {
                               </div>
 
 
+                              {/* =========================================
+                                  QUANTITY CONTROLS
+                              ========================================== */}
+
                               <div
 
                                 className="
@@ -1281,18 +1405,31 @@ export default function CartDrawer() {
 
                               >
 
+                                {/* MINUS */}
+
                                 <button
 
                                   disabled={
                                     item.quantity === 1
                                   }
 
-                                  onClick={() =>
-                                    updateQuantity(
+                                  onClick={() => {
+
+                                    if (
+                                      item.quantity <= 1
+                                    ) {
+
+                                      return;
+
+                                    }
+
+
+                                    void updateQuantity(
                                       item.id,
                                       item.quantity - 1
-                                    )
-                                  }
+                                    );
+
+                                  }}
 
                                   className={`
 
@@ -1306,15 +1443,19 @@ export default function CartDrawer() {
                                     rounded-lg
                                     border
 
+                                    transition
+
                                     ${
                                       item.quantity === 1
 
-                                        ? "cursor-not-allowed opacity-40"
+                                        ? "cursor-not-allowed opacity-30"
 
                                         : "hover:bg-neutral-100"
                                     }
 
                                   `}
+
+                                  aria-label="Decrease quantity"
 
                                 >
 
@@ -1325,12 +1466,20 @@ export default function CartDrawer() {
                                 </button>
 
 
+                                {/* QUANTITY */}
+
                                 <span
 
                                   className="
+
                                     min-w-5
+
                                     text-center
+
                                     text-sm
+
+                                    font-medium
+
                                   "
 
                                 >
@@ -1342,12 +1491,13 @@ export default function CartDrawer() {
                                 </span>
 
 
+                                {/* PLUS */}
+
                                 <button
 
                                   onClick={() =>
-                                    updateQuantity(
-                                      item.id,
-                                      item.quantity + 1
+                                    handleIncreaseQuantity(
+                                      item
                                     )
                                   }
 
@@ -1363,9 +1513,15 @@ export default function CartDrawer() {
                                     rounded-lg
                                     border
 
+                                    transition
+
                                     hover:bg-neutral-100
 
+                                    active:scale-95
+
                                   "
+
+                                  aria-label="Increase quantity"
 
                                 >
 
@@ -1375,6 +1531,8 @@ export default function CartDrawer() {
 
                                 </button>
 
+
+                                {/* DELETE */}
 
                                 <button
 
@@ -1393,6 +1551,8 @@ export default function CartDrawer() {
 
                                     text-red-500
 
+                                    transition
+
                                     hover:bg-red-50
 
                                   "
@@ -1408,6 +1568,127 @@ export default function CartDrawer() {
                                 </button>
 
                               </div>
+
+
+                              {/* =========================================
+                                  STOCK LIMIT MESSAGE
+                              ========================================== */}
+
+                              {
+                                stockLimitItemId ===
+                                  item.id && (
+
+                                  <div
+
+                                    className="
+
+                                      mt-3
+
+                                      flex
+                                      items-start
+                                      gap-2
+
+                                      rounded-xl
+
+                                      border
+                                      border-[#C8A44D]/20
+
+                                      bg-[#C8A44D]/[0.07]
+
+                                      px-3
+                                      py-2.5
+
+                                      text-[11px]
+                                      leading-4
+
+                                      text-[#8A6D25]
+
+                                      animate-in
+                                      fade-in
+                                      slide-in-from-top-1
+
+                                      duration-200
+
+                                    "
+
+                                  >
+
+                                    <span
+                                      className="
+                                        mt-0.5
+                                        shrink-0
+                                      "
+                                    >
+                                      ✨
+                                    </span>
+
+                                    <p>
+
+                                      Only{" "}
+                                      <span
+                                        className="
+                                          font-semibold
+                                        "
+                                      >
+                                        {
+                                          item.stock
+                                        }
+                                      </span>
+                                      {" "}
+                                      piece
+                                      {
+                                        item.stock !== 1
+                                          ? "s"
+                                          : ""
+                                      }
+                                      {" "}
+                                      available —
+                                      you've added them all. ♡
+
+                                    </p>
+
+                                  </div>
+
+                                )
+                              }
+
+
+                              {/* =========================================
+                                  AVAILABLE STOCK
+                              ========================================== */}
+
+                              {
+                                item.stock !== null &&
+                                item.stock !== Infinity &&
+                                item.stock > 0 && (
+
+                                  <p
+
+                                    className="
+
+                                      mt-2
+
+                                      text-[10px]
+                                      text-neutral-400
+
+                                    "
+
+                                  >
+
+                                    {
+                                      item.stock -
+                                      item.quantity > 0
+
+                                        ? `${item.stock - item.quantity} more available`
+
+                                        : "Maximum available quantity added"
+
+                                    }
+
+                                  </p>
+
+                                )
+                              }
 
                             </div>
 
@@ -1474,10 +1755,10 @@ export default function CartDrawer() {
 
                 >
 
-                  Use {
+                  Use{" "}
+                  {
                     bestCoupon.code
                   }
-
                   {" "}
                   and save ₹
                   {
@@ -1587,7 +1868,8 @@ export default function CartDrawer() {
                   "
                 >
 
-                  🎁 Unlock {
+                  🎁 Unlock{" "}
+                  {
                     unlockCoupon.code
                   }
 
@@ -1705,7 +1987,8 @@ export default function CartDrawer() {
                             "
                           >
 
-                            ✓ {
+                            ✓{" "}
+                            {
                               appliedCoupon.code
                             }
 
@@ -1781,9 +2064,7 @@ export default function CartDrawer() {
 
                       <>
 
-                        {/* =================================================
-                            COUPON INPUT
-                        ================================================== */}
+                        {/* COUPON INPUT */}
 
                         <div
                           className="

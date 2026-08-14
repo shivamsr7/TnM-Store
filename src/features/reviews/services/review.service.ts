@@ -7,12 +7,17 @@ import type {
 } from "../types/review.types";
 
 
+/*
+ * =========================================================
+ * CREATE REVIEW INPUT
+ * =========================================================
+ */
+
 interface CreateReviewInput {
+
   product_id: string;
 
-  customer_id: string | null;
-
-  order_id: string | null;
+  customer_id: string;
 
   rating: number;
 
@@ -20,22 +25,22 @@ interface CreateReviewInput {
 
   review: string;
 
-  status:
-    | "pending"
-    | "approved"
-    | "rejected";
-
-  is_verified: boolean;
 }
 
+
+/*
+ * =========================================================
+ * REVIEW SERVICE
+ * =========================================================
+ */
 
 class ReviewService {
 
 
   /*
-   * =========================================================
-   * GET APPROVED REVIEWS
-   * =========================================================
+   * =======================================================
+   * GET PRODUCT REVIEWS
+   * =======================================================
    */
 
   async getProductReviews(
@@ -81,9 +86,7 @@ class ReviewService {
       );
 
 
-    if (
-      error
-    ) {
+    if (error) {
 
       throw error;
 
@@ -98,9 +101,20 @@ class ReviewService {
 
 
   /*
-   * =========================================================
+   * =======================================================
    * CREATE REVIEW
-   * =========================================================
+   * =======================================================
+   *
+   * IMPORTANT:
+   *
+   * customer_id is supplied from the current development
+   * AuthContext.
+   *
+   * order_id and is_verified are NEVER supplied here.
+   *
+   * The database RPC determines them.
+   *
+   * =======================================================
    */
 
   async createReview(
@@ -110,82 +124,51 @@ class ReviewService {
     const {
       data,
       error,
-    } = await supabase
-
-      .from("reviews")
-
-      .insert({
-
-        product_id:
+    } = await supabase.rpc(
+      "create_product_review",
+      {
+        p_product_id:
           input.product_id,
 
-        customer_id:
+        p_customer_id:
           input.customer_id,
 
-        order_id:
-          input.order_id,
-
-        rating:
+        p_rating:
           input.rating,
 
-        title:
+        p_title:
           input.title,
 
-        review:
+        p_review:
           input.review,
-
-        /*
-         * Always pending when submitted
-         * from the storefront.
-         */
-
-        status:
-          "pending",
-
-        /*
-         * Never trust the browser
-         * to verify a purchase.
-         */
-
-        is_verified:
-          false,
-
-      })
-
-      .select(`
-        id,
-        product_id,
-        customer_id,
-        order_id,
-        rating,
-        title,
-        review,
-        status,
-        is_verified,
-        created_at,
-        updated_at
-      `)
-
-      .single();
+      }
+    );
 
 
-    if (
-      error
-    ) {
+    if (error) {
+
+      console.error(
+        "Create product review failed:",
+        error
+      );
 
       throw error;
 
     }
 
 
-    return (
-      data
-    ) as ProductReview;
+    return data as ProductReview;
 
   }
 
 }
 
+
+/*
+ * =========================================================
+ * EXPORT
+ * =========================================================
+ */
 
 export const reviewService =
   new ReviewService();

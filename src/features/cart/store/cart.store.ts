@@ -1,623 +1,1403 @@
 import {
-  create
+  create,
 } from "zustand";
 
 import {
-  persist
+  persist,
 } from "zustand/middleware";
 
-
-
-
-export interface CartItem {
-
-  id:string;
-
-  productId:string;
-
-  name:string;
-
-  price:number;
-
-  image?:string;
-
-  quantity:number;
-
-}
-
-
-
-
-
-export interface AppliedCoupon {
-
-id:string;
-
-code:string;
-
-title?:string;
-
-discount:number;
-
-freeShipping:boolean;
-
-freeGift:boolean;
-
-minimumOrderAmount:number;
-
-}
-
-
-
-
-
-
-interface CartStore {
-
-
-items:CartItem[];
-
-isCartOpen:boolean;
-
-
-
-// Coupon
-
-appliedCoupon:AppliedCoupon | null;
-
-discount:number;
-
-couponErrorMessage:string;
-
-
-
-
-
-addItem:(item:CartItem)=>void;
-
-
-removeItem:(id:string)=>void;
-
-
-updateQuantity:(id:string,quantity:number)=>void;
-
-
-clearCart:()=>void;
-
-
-
-openCart:()=>void;
-
-
-closeCart:()=>void;
-
-
-
-
-getTotal:()=>number;
-
-
-getFinalTotal:()=>number;
-
-
-getCartCount:()=>number;
-
-
-
-
-applyCoupon:(coupon:AppliedCoupon)=>void;
-
-
-removeCoupon:()=>void;
-
-
-clearCouponMessage:()=>void;
-
-
-}
-
-
-
-
-
-
-
-export const useCartStore = create<CartStore>()(
-
-persist(
-
-(set,get)=>({
-
-
-
-items:[],
-
-
-isCartOpen:false,
-
-
-
-appliedCoupon:null,
-
-
-discount:0,
-
-
-couponErrorMessage:"",
-
-
-
-
-
+import {
+  supabase,
+} from "@/shared/lib/supabase";
 
 
 /*
-  Check coupon validity after cart changes
-*/
+ * =========================================================
+ * CART ITEM
+ * =========================================================
+ */
 
-checkCouponValidity:undefined,
+export interface CartItem {
 
+  id: string;
 
+  productId: string;
 
+  name: string;
 
+  price: number;
 
+  image?: string;
 
+  quantity: number;
 
+  /*
+   * Latest database stock.
+   *
+   * null means stock has not been checked yet.
+   * Infinity means inventory tracking is disabled.
+   */
 
-
-addItem:(item)=>{
-
-
-const existingItem = get().items.find(
-
-(cartItem)=>
-
-cartItem.productId===item.productId
-
-);
-
-
-
-
-if(existingItem){
-
-
-set({
-
-items:get().items.map((cartItem)=>
-
-cartItem.productId===item.productId
-
-?
-
-{
-
-...cartItem,
-
-quantity:cartItem.quantity + item.quantity
-
-}
-
-:
-
-cartItem
-
-)
-
-});
-
-
-return;
+  stock: number | null;
 
 }
 
 
+/*
+ * =========================================================
+ * APPLIED COUPON
+ * =========================================================
+ */
 
+export interface AppliedCoupon {
 
+  id: string;
 
-set({
+  code: string;
 
-items:[
+  title?: string;
 
-...get().items,
+  discount: number;
 
-item
+  freeShipping: boolean;
 
-]
+  freeGift: boolean;
 
-});
-
-
-},
-
-
-
-
-
-
-
-removeItem:(id)=>{
-
-
-const updatedItems = get().items.filter(
-
-(item)=>
-
-item.id!==id
-
-);
-
-
-
-
-const coupon = get().appliedCoupon;
-
-
-
-const newTotal = updatedItems.reduce(
-
-(total,item)=>
-
-total + item.price * item.quantity,
-
-0
-
-);
-
-
-
-
-
-if(
-
-coupon &&
-
-coupon.minimumOrderAmount &&
-
-newTotal < coupon.minimumOrderAmount
-
-){
-
-
-set({
-
-items:updatedItems,
-
-appliedCoupon:null,
-
-discount:0,
-
-couponErrorMessage:
-
-"Coupon removed because minimum order value is not met"
-
-});
-
-
-return;
+  minimumOrderAmount: number;
 
 }
 
 
+/*
+ * =========================================================
+ * CART STORE
+ * =========================================================
+ */
 
+interface CartStore {
 
+  items: CartItem[];
 
-set({
+  isCartOpen: boolean;
 
-items:updatedItems
 
-});
+  // Coupon
 
+  appliedCoupon:
+    AppliedCoupon | null;
 
-},
+  discount: number;
 
+  couponErrorMessage: string;
 
 
+  // Stock
 
+  stockErrorMessage: string;
 
+  isStockChecking: boolean;
 
 
-updateQuantity:(id,quantity)=>{
+  /*
+   * Cart actions
+   */
 
+  addItem: (
+    item: CartItem
+  ) => Promise<boolean>;
 
-if(quantity<=0)
 
-return;
+  removeItem: (
+    id: string
+  ) => void;
 
 
+  updateQuantity: (
+    id: string,
+    quantity: number
+  ) => Promise<boolean>;
 
 
+  /*
+   * Stock refresh
+   */
 
-const updatedItems = get().items.map((item)=>
+  refreshCartStock: () => Promise<void>;
 
-item.id===id
 
-?
+  clearCart: () => void;
 
-{
 
-...item,
+  openCart: () => void;
 
-quantity
+  closeCart: () => void;
 
-}
 
-:
+  /*
+   * Totals
+   */
 
-item
+  getTotal: () => number;
 
-);
+  getFinalTotal: () => number;
 
+  getCartCount: () => number;
 
 
+  /*
+   * Coupon
+   */
 
+  applyCoupon: (
+    coupon: AppliedCoupon
+  ) => void;
 
-const coupon = get().appliedCoupon;
+  removeCoupon: () => void;
 
+  clearCouponMessage: () => void;
 
 
-const newTotal = updatedItems.reduce(
+  /*
+   * Stock message
+   */
 
-(total,item)=>
-
-total + item.price * item.quantity,
-
-0
-
-);
-
-
-
-
-
-
-
-if(
-
-coupon &&
-
-coupon.minimumOrderAmount &&
-
-newTotal < coupon.minimumOrderAmount
-
-){
-
-
-
-set({
-
-items:updatedItems,
-
-appliedCoupon:null,
-
-discount:0,
-
-couponErrorMessage:
-
-"Coupon removed because minimum order value is not met"
-
-});
-
-
-return;
-
+  clearStockError: () => void;
 
 }
 
 
+/*
+ * =========================================================
+ * GET PRODUCT STOCK
+ * =========================================================
+ *
+ * Fetches the CURRENT stock directly from Supabase.
+ *
+ * This is intentionally not based on the product data that
+ * was originally loaded into the product card.
+ * =========================================================
+ */
 
+const getProductStock = async (
+  productId: string
+): Promise<number | null> => {
 
+  const {
+    data,
+    error,
+  } = await supabase
 
+    .from("products")
 
-set({
+    .select(
+      "stock, track_inventory, status"
+    )
 
-items:updatedItems
+    .eq(
+      "id",
+      productId
+    )
 
-});
+    .maybeSingle();
 
 
-},
+  if (error) {
 
+    console.error(
+      "Failed to fetch product stock:",
+      error
+    );
 
+    return null;
 
+  }
 
 
+  if (!data) {
 
+    return null;
 
-clearCart:()=>{
+  }
 
 
-set({
+  /*
+   * Inventory tracking disabled.
+   *
+   * In this case there is no quantity limit.
+   */
 
-items:[],
+  if (
+    data.track_inventory === false
+  ) {
 
-appliedCoupon:null,
+    return Infinity;
 
-discount:0,
+  }
 
-couponErrorMessage:""
 
-});
+  return Math.max(
+    Number(
+      data.stock ?? 0
+    ),
+    0
+  );
 
+};
 
-},
 
+/*
+ * =========================================================
+ * STORE
+ * =========================================================
+ */
 
+export const useCartStore =
+  create<CartStore>()(
 
+    persist(
 
+      (set, get) => ({
 
+        /*
+         * ===================================================
+         * INITIAL STATE
+         * ===================================================
+         */
 
+        items: [],
 
-openCart:()=>{
+        isCartOpen: false,
 
 
-set({
+        appliedCoupon: null,
 
-isCartOpen:true
+        discount: 0,
 
-});
+        couponErrorMessage: "",
 
 
-},
+        stockErrorMessage: "",
 
+        isStockChecking: false,
 
 
+        /*
+         * ===================================================
+         * ADD ITEM
+         * ===================================================
+         */
 
+        addItem: async (
+          item
+        ) => {
 
+          set({
 
+            isStockChecking: true,
 
-closeCart:()=>{
+            stockErrorMessage: "",
 
+          });
 
-set({
 
-isCartOpen:false
+          try {
 
-});
+            /*
+             * Get latest database stock.
+             */
 
+            const stock =
+              await getProductStock(
+                item.productId
+              );
 
-},
 
+            /*
+             * Could not retrieve stock.
+             */
 
+            if (
+              stock === null
+            ) {
 
+              set({
 
+                stockErrorMessage:
+                  "We couldn't check product availability. Please try again.",
 
+              });
 
+              return false;
 
-getTotal:()=>{
+            }
 
 
-return get().items.reduce(
+            /*
+             * Out of stock.
+             */
 
-(total,item)=>
+            if (
+              stock <= 0
+            ) {
 
-total + item.price * item.quantity,
+              set({
 
-0
+                stockErrorMessage:
+                  "This product is currently out of stock.",
 
-);
+              });
 
+              return false;
 
-},
+            }
 
 
+            /*
+             * Find existing cart item.
+             */
 
+            const existingItem =
+              get().items.find(
+                (cartItem) =>
+                  cartItem.productId ===
+                  item.productId
+              );
 
 
+            const currentQuantity =
+              existingItem?.quantity ?? 0;
 
 
-getFinalTotal:()=>{
+            const requestedQuantity =
+              currentQuantity +
+              item.quantity;
 
 
-return Math.max(
+            /*
+             * Check against latest stock.
+             *
+             * Infinity means inventory tracking
+             * is disabled.
+             */
 
-get().getTotal() - get().discount,
+            if (
+              stock !== Infinity &&
+              requestedQuantity > stock
+            ) {
 
-0
+              const message =
+                stock === 1
 
-);
+                  ? "Only 1 available in stock."
 
+                  : `Only ${stock} available in stock.`;
 
-},
 
+              set({
 
+                stockErrorMessage:
+                  message,
 
+              });
 
 
+              /*
+               * Also keep the cart item's cached
+               * stock up to date.
+               */
 
+              if (existingItem) {
 
-getCartCount:()=>{
+                set({
 
+                  items:
+                    get().items.map(
+                      (cartItem) =>
+                        cartItem.productId ===
+                        item.productId
 
-return get().items.reduce(
+                          ? {
+                              ...cartItem,
+                              stock,
+                            }
 
-(total,item)=>
+                          : cartItem
+                    ),
 
-total + item.quantity,
+                });
 
-0
+              }
 
-);
 
+              return false;
 
-},
+            }
 
 
+            /*
+             * Existing product.
+             */
 
+            if (existingItem) {
 
+              set({
 
+                items:
+                  get().items.map(
+                    (cartItem) =>
+                      cartItem.productId ===
+                      item.productId
 
+                        ? {
 
-applyCoupon:(coupon)=>{
+                            ...cartItem,
 
+                            quantity:
+                              requestedQuantity,
 
-set({
+                            stock,
 
-appliedCoupon:coupon,
+                          }
 
-discount:coupon.discount,
+                        : cartItem
+                  ),
 
-couponErrorMessage:""
+              });
 
-});
 
+              return true;
 
-},
+            }
 
 
+            /*
+             * New product.
+             */
 
+            set({
 
+              items: [
 
+                ...get().items,
 
+                {
 
-removeCoupon:()=>{
+                  ...item,
 
+                  quantity:
+                    item.quantity,
 
-set({
+                  stock,
 
-appliedCoupon:null,
+                },
 
-discount:0,
+              ],
 
-couponErrorMessage:""
+            });
 
-});
 
+            return true;
 
-},
+          } finally {
 
+            set({
 
+              isStockChecking:
+                false,
 
+            });
 
+          }
 
+        },
 
 
-clearCouponMessage:()=>{
+        /*
+         * ===================================================
+         * REMOVE ITEM
+         * ===================================================
+         */
 
+        removeItem: (
+          id
+        ) => {
 
-set({
+          const updatedItems =
+            get().items.filter(
+              (item) =>
+                item.id !== id
+            );
 
-couponErrorMessage:""
 
-});
+          const coupon =
+            get().appliedCoupon;
 
 
-}
+          const newTotal =
+            updatedItems.reduce(
+              (
+                total,
+                item
+              ) =>
+                total +
+                item.price *
+                  item.quantity,
+              0
+            );
 
 
+          /*
+           * Remove coupon if minimum
+           * order amount is no longer met.
+           */
 
+          if (
+            coupon &&
+            coupon.minimumOrderAmount &&
+            newTotal <
+              coupon.minimumOrderAmount
+          ) {
 
+            set({
 
-}),
+              items:
+                updatedItems,
 
+              appliedCoupon:
+                null,
 
-{
+              discount:
+                0,
 
-name:"tnm-cart"
+              couponErrorMessage:
+                "Coupon removed because minimum order value is not met",
 
-}
+            });
 
 
-)
+            return;
 
-);
+          }
+
+
+          set({
+
+            items:
+              updatedItems,
+
+          });
+
+        },
+
+
+        /*
+         * ===================================================
+         * UPDATE QUANTITY
+         * ===================================================
+         */
+
+        updateQuantity: async (
+          id,
+          quantity
+        ) => {
+
+          /*
+           * Quantity can never be zero here.
+           *
+           * Removing an item is handled separately.
+           */
+
+          if (
+            quantity <= 0
+          ) {
+
+            return false;
+
+          }
+
+
+          const existingItem =
+            get().items.find(
+              (item) =>
+                item.id === id
+            );
+
+
+          if (!existingItem) {
+
+            return false;
+
+          }
+
+
+          /*
+           * =================================================
+           * DECREASE QUANTITY
+           * =================================================
+           *
+           * No database request is needed when decreasing.
+           * This makes -1 feel instant.
+           * =================================================
+           */
+
+          if (
+            quantity <
+            existingItem.quantity
+          ) {
+
+            const updatedItems =
+              get().items.map(
+                (item) =>
+                  item.id === id
+
+                    ? {
+                        ...item,
+                        quantity,
+                      }
+
+                    : item
+              );
+
+
+            const coupon =
+              get().appliedCoupon;
+
+
+            const newTotal =
+              updatedItems.reduce(
+                (
+                  total,
+                  item
+                ) =>
+                  total +
+                  item.price *
+                    item.quantity,
+                0
+              );
+
+
+            if (
+              coupon &&
+              coupon.minimumOrderAmount &&
+              newTotal <
+                coupon.minimumOrderAmount
+            ) {
+
+              set({
+
+                items:
+                  updatedItems,
+
+                appliedCoupon:
+                  null,
+
+                discount:
+                  0,
+
+                couponErrorMessage:
+                  "Coupon removed because minimum order value is not met",
+
+              });
+
+            } else {
+
+              set({
+
+                items:
+                  updatedItems,
+
+              });
+
+            }
+
+
+            return true;
+
+          }
+
+
+          /*
+           * =================================================
+           * INCREASE QUANTITY
+           * =================================================
+           */
+
+          set({
+
+            isStockChecking:
+              true,
+
+            stockErrorMessage:
+              "",
+
+          });
+
+
+          try {
+
+            /*
+             * Always get latest database stock.
+             */
+
+            const stock =
+              await getProductStock(
+                existingItem.productId
+              );
+
+
+            /*
+             * Could not retrieve stock.
+             */
+
+            if (
+              stock === null
+            ) {
+
+              set({
+
+                stockErrorMessage:
+                  "We couldn't check product availability. Please try again.",
+
+              });
+
+
+              return false;
+
+            }
+
+
+            /*
+             * Update cached stock even if
+             * quantity cannot be increased.
+             */
+
+            const latestItems =
+              get().items.map(
+                (item) =>
+                  item.id === id
+
+                    ? {
+                        ...item,
+                        stock,
+                      }
+
+                    : item
+              );
+
+
+            /*
+             * Product is now out of stock.
+             */
+
+            if (
+              stock <= 0
+            ) {
+
+              set({
+
+                items:
+                  latestItems,
+
+                stockErrorMessage:
+                  "This product is currently out of stock.",
+
+              });
+
+
+              return false;
+
+            }
+
+
+            /*
+             * Requested quantity exceeds stock.
+             */
+
+            if (
+              stock !== Infinity &&
+              quantity > stock
+            ) {
+
+              /*
+               * If the current quantity itself is
+               * now higher than database stock,
+               * automatically correct it.
+               */
+
+              const correctedQuantity =
+                Math.min(
+                  existingItem.quantity,
+                  stock
+                );
+
+
+              const message =
+                stock === 1
+
+                  ? "Only 1 available in stock."
+
+                  : `Only ${stock} available in stock.`;
+
+
+              set({
+
+                items:
+                  latestItems.map(
+                    (item) =>
+                      item.id === id
+
+                        ? {
+                            ...item,
+
+                            quantity:
+                              correctedQuantity,
+
+                          }
+
+                        : item
+                  ),
+
+                stockErrorMessage:
+                  message,
+
+              });
+
+
+              return false;
+
+            }
+
+
+            /*
+             * Update quantity normally.
+             */
+
+            const updatedItems =
+              latestItems.map(
+                (item) =>
+                  item.id === id
+
+                    ? {
+
+                        ...item,
+
+                        quantity,
+
+                        stock,
+
+                      }
+
+                    : item
+              );
+
+
+            const coupon =
+              get().appliedCoupon;
+
+
+            const newTotal =
+              updatedItems.reduce(
+                (
+                  total,
+                  item
+                ) =>
+                  total +
+                  item.price *
+                    item.quantity,
+                0
+              );
+
+
+            if (
+              coupon &&
+              coupon.minimumOrderAmount &&
+              newTotal <
+                coupon.minimumOrderAmount
+            ) {
+
+              set({
+
+                items:
+                  updatedItems,
+
+                appliedCoupon:
+                  null,
+
+                discount:
+                  0,
+
+                couponErrorMessage:
+                  "Coupon removed because minimum order value is not met",
+
+              });
+
+            } else {
+
+              set({
+
+                items:
+                  updatedItems,
+
+              });
+
+            }
+
+
+            return true;
+
+          } finally {
+
+            set({
+
+              isStockChecking:
+                false,
+
+            });
+
+          }
+
+        },
+
+
+        /*
+         * ===================================================
+         * REFRESH ALL CART STOCK
+         * ===================================================
+         *
+         * Called whenever the cart drawer opens.
+         *
+         * This is important because stock can change while
+         * the customer is browsing.
+         * ===================================================
+         */
+
+        refreshCartStock:
+          async () => {
+
+            const currentItems =
+              get().items;
+
+
+            if (
+              currentItems.length === 0
+            ) {
+
+              return;
+
+            }
+
+
+            set({
+
+              isStockChecking:
+                true,
+
+              stockErrorMessage:
+                "",
+
+            });
+
+
+            try {
+
+              const results =
+                await Promise.all(
+
+                  currentItems.map(
+                    async (item) => {
+
+                      const stock =
+                        await getProductStock(
+                          item.productId
+                        );
+
+
+                      return {
+                        item,
+                        stock,
+                      };
+
+                    }
+                  )
+
+                );
+
+
+              let hasStockAdjustment =
+                false;
+
+
+              let stockMessage =
+                "";
+
+
+              const updatedItems =
+                results.map(
+                  ({
+                    item,
+                    stock,
+                  }) => {
+
+                    /*
+                     * If the product couldn't be
+                     * checked, leave the previous
+                     * cached stock unchanged.
+                     */
+
+                    if (
+                      stock === null
+                    ) {
+
+                      return item;
+
+                    }
+
+
+                    /*
+                     * Product is now completely
+                     * out of stock.
+                     */
+
+                    if (
+                      stock <= 0
+                    ) {
+
+                      hasStockAdjustment =
+                        true;
+
+
+                      if (
+                        !stockMessage
+                      ) {
+
+                        stockMessage =
+                          `${item.name} is currently out of stock.`;
+                      }
+
+
+                      return {
+
+                        ...item,
+
+                        stock: 0,
+
+                        quantity: 0,
+
+                      };
+
+                    }
+
+
+                    /*
+                     * Stock is lower than the
+                     * current cart quantity.
+                     */
+
+                    if (
+                      stock !== Infinity &&
+                      item.quantity > stock
+                    ) {
+
+                      hasStockAdjustment =
+                        true;
+
+
+                      if (
+                        !stockMessage
+                      ) {
+
+                        stockMessage =
+                          `Only ${stock} available for ${item.name}.`;
+                      }
+
+
+                      return {
+
+                        ...item,
+
+                        stock,
+
+                        quantity:
+                          stock,
+
+                      };
+
+                    }
+
+
+                    /*
+                     * Stock is sufficient.
+                     */
+
+                    return {
+
+                      ...item,
+
+                      stock,
+
+                    };
+
+                  }
+                );
+
+
+              /*
+               * Remove items whose stock became zero.
+               */
+
+              const finalItems =
+                updatedItems.filter(
+                  (item) =>
+                    item.quantity > 0
+                );
+
+
+              set({
+
+                items:
+                  finalItems,
+
+                stockErrorMessage:
+                  hasStockAdjustment
+                    ? stockMessage
+                    : "",
+
+              });
+
+            } finally {
+
+              set({
+
+                isStockChecking:
+                  false,
+
+              });
+
+            }
+
+          },
+
+
+        /*
+         * ===================================================
+         * CLEAR CART
+         * ===================================================
+         */
+
+        clearCart: () => {
+
+          set({
+
+            items: [],
+
+            appliedCoupon:
+              null,
+
+            discount:
+              0,
+
+            couponErrorMessage:
+              "",
+
+            stockErrorMessage:
+              "",
+
+          });
+
+        },
+
+
+        /*
+         * ===================================================
+         * OPEN CART
+         * ===================================================
+         */
+
+        openCart: () => {
+
+          set({
+
+            isCartOpen:
+              true,
+
+          });
+
+        },
+
+
+        /*
+         * ===================================================
+         * CLOSE CART
+         * ===================================================
+         */
+
+        closeCart: () => {
+
+          set({
+
+            isCartOpen:
+              false,
+
+          });
+
+        },
+
+
+        /*
+         * ===================================================
+         * GET TOTAL
+         * ===================================================
+         */
+
+        getTotal: () => {
+
+          return get().items.reduce(
+            (
+              total,
+              item
+            ) =>
+              total +
+              item.price *
+                item.quantity,
+            0
+          );
+
+        },
+
+
+        /*
+         * ===================================================
+         * GET FINAL TOTAL
+         * ===================================================
+         */
+
+        getFinalTotal: () => {
+
+          return Math.max(
+
+            get().getTotal() -
+              get().discount,
+
+            0
+
+          );
+
+        },
+
+
+        /*
+         * ===================================================
+         * GET CART COUNT
+         * ===================================================
+         */
+
+        getCartCount: () => {
+
+          return get().items.reduce(
+            (
+              total,
+              item
+            ) =>
+              total +
+              item.quantity,
+            0
+          );
+
+        },
+
+
+        /*
+         * ===================================================
+         * APPLY COUPON
+         * ===================================================
+         */
+
+        applyCoupon: (
+          coupon
+        ) => {
+
+          set({
+
+            appliedCoupon:
+              coupon,
+
+            discount:
+              coupon.discount,
+
+            couponErrorMessage:
+              "",
+
+          });
+
+        },
+
+
+        /*
+         * ===================================================
+         * REMOVE COUPON
+         * ===================================================
+         */
+
+        removeCoupon: () => {
+
+          set({
+
+            appliedCoupon:
+              null,
+
+            discount:
+              0,
+
+            couponErrorMessage:
+              "",
+
+          });
+
+        },
+
+
+        /*
+         * ===================================================
+         * CLEAR COUPON MESSAGE
+         * ===================================================
+         */
+
+        clearCouponMessage: () => {
+
+          set({
+
+            couponErrorMessage:
+              "",
+
+          });
+
+        },
+
+
+        /*
+         * ===================================================
+         * CLEAR STOCK ERROR
+         * ===================================================
+         */
+
+        clearStockError: () => {
+
+          set({
+
+            stockErrorMessage:
+              "",
+
+          });
+
+        },
+
+      }),
+
+      {
+        name:
+          "tnm-cart",
+      }
+
+    )
+
+  );
