@@ -25,6 +25,14 @@ interface ProductGridProps {
   hasFilters?: boolean;
 
   onClearFilters?: () => void;
+
+  /*
+   * Sends the currently visible product count
+   * back to Shop.tsx.
+   */
+  onVisibleCountChange?: (
+    count: number
+  ) => void;
 }
 
 
@@ -37,13 +45,17 @@ export default function ProductGrid({
   hasSearch = false,
   hasFilters = false,
   onClearFilters,
+  onVisibleCountChange,
 }: ProductGridProps) {
 
   const [
     visibleCount,
     setVisibleCount,
   ] = useState(
-    INITIAL_VISIBLE
+    Math.min(
+      INITIAL_VISIBLE,
+      products.length
+    )
   );
 
 
@@ -55,10 +67,34 @@ export default function ProductGrid({
   useEffect(() => {
 
     setVisibleCount(
-      INITIAL_VISIBLE
+      Math.min(
+        INITIAL_VISIBLE,
+        products.length
+      )
     );
 
   }, [products]);
+
+
+  /*
+   * Send current visible count
+   * back to Shop.tsx.
+   */
+
+  useEffect(() => {
+
+    onVisibleCountChange?.(
+      Math.min(
+        visibleCount,
+        products.length
+      )
+    );
+
+  }, [
+    visibleCount,
+    products.length,
+    onVisibleCountChange,
+  ]);
 
 
   /*

@@ -5,6 +5,7 @@ import {
   X,
 } from "lucide-react";
 
+
 type SortOption =
   | "featured"
   | "newest"
@@ -15,37 +16,19 @@ type SortOption =
   | "discount"
   | "rating";
 
+
 interface Props {
   search: string;
   setSearch: (value: string) => void;
 
   productCount: number;
 
+  visibleProductCount: number;
+
   categories: string[];
   activeCategory: string;
   setCategory: (value: string) => void;
 
-  /*
-   * Dynamic parent-category subcategories.
-   *
-   * Examples:
-   *
-   * Bracelets & Bangles
-   * ├── Bracelets
-   * ├── Bangles
-   * └── Haath Phool
-   *
-   * Earrings
-   * ├── Studs
-   * ├── Hoops
-   * └── Jhumkas
-   *
-   * Rings
-   * ├── Adjustable
-   * └── Statement
-   *
-   * No category name is hardcoded here.
-   */
   subcategories?: string[];
 
   activeSubcategory?: string | null;
@@ -65,10 +48,12 @@ interface Props {
   filterCount?: number;
 }
 
+
 export default function ShopHeader({
   search,
   setSearch,
   productCount,
+  visibleProductCount,
   categories,
   activeCategory,
   setCategory,
@@ -358,9 +343,7 @@ export default function ShopHeader({
               "
             >
 
-              {/* =================================================
-                  ALL
-              ================================================== */}
+              {/* ALL */}
 
               <button
                 type="button"
@@ -411,9 +394,7 @@ export default function ShopHeader({
               </button>
 
 
-              {/* =================================================
-                  DATABASE SUBCATEGORIES
-              ================================================== */}
+              {/* DATABASE SUBCATEGORIES */}
 
               {subcategories.map(
                 (
@@ -669,7 +650,7 @@ export default function ShopHeader({
                 "
               >
 
-                {productCount}
+                {visibleProductCount}
 
               </span>
 
@@ -686,6 +667,42 @@ export default function ShopHeader({
 
               <span
                 className="
+                  text-xs
+                  font-medium
+                  text-white
+                  sm:text-sm
+                "
+              >
+
+                {visibleProductCount}
+
+                <span
+                  className="
+                    mx-1
+                    text-neutral-600
+                  "
+                >
+
+                  of
+
+                </span>
+
+                <span
+                  className="
+                    text-neutral-400
+                  "
+                >
+
+                  {productCount}
+
+                </span>
+
+              </span>
+
+
+              <span
+                className="
+                  mt-1
                   text-[9px]
                   font-medium
                   uppercase
@@ -695,23 +712,6 @@ export default function ShopHeader({
               >
 
                 Collection
-
-              </span>
-
-
-              <span
-                className="
-                  mt-1
-                  text-xs
-                  font-medium
-                  text-white
-                  sm:text-sm
-                "
-              >
-
-                {productCount === 1
-                  ? "1 piece"
-                  : `${productCount} pieces`}
 
               </span>
 

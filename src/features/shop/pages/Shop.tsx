@@ -158,14 +158,6 @@ export default function Shop() {
    * =======================================================
    * SYNC SEARCH FROM URL
    * =======================================================
-   *
-   * SearchBar sends:
-   *
-   * /shop?search=Earrings
-   *
-   * This keeps the Shop search state
-   * synchronized with that URL.
-   * =======================================================
    */
 
   useEffect(() => {
@@ -195,6 +187,23 @@ export default function Shop() {
     filterOpen,
     setFilterOpen,
   ] = useState(false);
+
+
+  /*
+   * =======================================================
+   * VISIBLE PRODUCT COUNT
+   * =======================================================
+   */
+
+  const [
+    visibleProductCount,
+    setVisibleProductCount,
+  ] = useState(
+    Math.min(
+      8,
+      products.length
+    )
+  );
 
 
   /*
@@ -347,10 +356,6 @@ export default function Shop() {
               subcategory
             ) => {
 
-              /*
-               * Database ID
-               */
-
               if (
                 subcategory.id ===
                 rawValue
@@ -360,10 +365,6 @@ export default function Shop() {
 
               }
 
-
-              /*
-               * Slug
-               */
 
               if (
                 subcategory.slug &&
@@ -377,10 +378,6 @@ export default function Shop() {
 
               }
 
-
-              /*
-               * Name
-               */
 
               return (
 
@@ -784,10 +781,6 @@ export default function Shop() {
     }
 
 
-    /*
-     * All subcategories
-     */
-
     if (
       value === null
     ) {
@@ -989,10 +982,6 @@ export default function Shop() {
     }
 
 
-    /*
-     * Price
-     */
-
     if (
       filters.minPrice > 0
     ) {
@@ -1033,29 +1022,17 @@ export default function Shop() {
     }
 
 
-    /*
-     * Availability
-     */
-
     setBooleanParam(
       "inStock",
       filters.inStock
     );
 
 
-    /*
-     * Sale
-     */
-
     setBooleanParam(
       "onSale",
       filters.onSale
     );
 
-
-    /*
-     * Discount
-     */
 
     if (
       filters.minDiscount > 0
@@ -1077,10 +1054,6 @@ export default function Shop() {
     }
 
 
-    /*
-     * Rating
-     */
-
     if (
       filters.minRating > 0
     ) {
@@ -1100,10 +1073,6 @@ export default function Shop() {
 
     }
 
-
-    /*
-     * Collections
-     */
 
     setBooleanParam(
       "bestSeller",
@@ -1174,10 +1143,6 @@ export default function Shop() {
             product
           ) => {
 
-            /*
-             * SEARCH
-             */
-
             const searchMatch =
               !searchValue ||
 
@@ -1209,17 +1174,9 @@ export default function Shop() {
             }
 
 
-            /*
-             * CATEGORY / SUBCATEGORY
-             */
-
             if (
               activeShopCategory
             ) {
-
-              /*
-               * Subcategory selected
-               */
 
               if (
                 activeSubcategory
@@ -1278,11 +1235,6 @@ export default function Shop() {
 
               }
 
-
-              /*
-               * Parent category selected
-               */
-
               else {
 
                 const productCategoryId =
@@ -1339,10 +1291,6 @@ export default function Shop() {
             }
 
 
-            /*
-             * PRICE
-             */
-
             if (
               product.price <
               minPrice
@@ -1364,10 +1312,6 @@ export default function Shop() {
             }
 
 
-            /*
-             * STOCK
-             */
-
             if (
               inStock &&
               product.track_inventory &&
@@ -1379,10 +1323,6 @@ export default function Shop() {
 
             }
 
-
-            /*
-             * SALE
-             */
 
             const discount =
               getDiscount(
@@ -1411,10 +1351,6 @@ export default function Shop() {
             }
 
 
-            /*
-             * RATING
-             */
-
             if (
               minRating > 0 &&
               product.rating <
@@ -1425,10 +1361,6 @@ export default function Shop() {
 
             }
 
-
-            /*
-             * COLLECTIONS
-             */
 
             if (
               bestSeller &&
@@ -1487,9 +1419,7 @@ export default function Shop() {
 
 
       /*
-       * =====================================================
        * SORT
-       * =====================================================
        */
 
       result = [
@@ -1701,33 +1631,21 @@ export default function Shop() {
       <div
 
         className="
-
           min-h-screen
-
           bg-black
-
           px-4
-
           py-10
-
           sm:px-5
-
           lg:py-16
-
         "
 
       >
 
         <div
-
           className="
-
             mx-auto
-
             max-w-7xl
-
           "
-
         >
 
           <div
@@ -1737,63 +1655,37 @@ export default function Shop() {
           >
 
             <div
-
               className="
-
                 mx-auto
-
                 h-10
-
                 w-52
-
                 rounded
-
                 bg-neutral-900
-
               "
-
             />
 
 
             <div
-
               className="
-
                 mx-auto
-
                 mt-4
-
                 h-4
-
                 max-w-md
-
                 rounded
-
                 bg-neutral-900
-
               "
-
             />
 
 
             <div
-
               className="
-
                 mt-10
-
                 grid
-
                 grid-cols-2
-
                 gap-4
-
                 sm:grid-cols-3
-
                 lg:grid-cols-4
-
               "
-
             >
 
               {Array.from(
@@ -1807,83 +1699,50 @@ export default function Shop() {
                 ) => (
 
                   <div
-
                     key={
                       index
                     }
-
                     className="
-
                       overflow-hidden
-
                       rounded-2xl
-
                       border
-
                       border-white/[0.06]
-
                       bg-white/[0.02]
-
                     "
-
                   >
 
                     <div
-
                       className="
-
                         aspect-square
-
                         bg-neutral-900
-
                       "
-
                     />
 
 
                     <div
-
                       className="
-
                         space-y-3
-
                         p-4
-
                       "
-
                     >
 
                       <div
-
                         className="
-
                           h-4
-
                           w-3/4
-
                           rounded
-
                           bg-neutral-800
-
                         "
-
                       />
 
 
                       <div
-
                         className="
-
                           h-3
-
                           w-1/2
-
                           rounded
-
                           bg-neutral-800
-
                         "
-
                       />
 
                     </div>
@@ -1920,22 +1779,14 @@ export default function Shop() {
     return (
 
       <div
-
         className="
-
           flex
-
           min-h-screen
-
           items-center
           justify-center
-
           bg-black
-
           text-red-400
-
         "
-
       >
 
         Unable to load Shop.
@@ -1956,37 +1807,22 @@ export default function Shop() {
   return (
 
     <main
-
       className="
-
         min-h-screen
-
         bg-black
-
         px-4
-
         py-10
-
         sm:px-5
-
         sm:py-12
-
         lg:py-16
-
       "
-
     >
 
       <div
-
         className="
-
           mx-auto
-
           max-w-7xl
-
         "
-
       >
 
         {/* =================================================
@@ -2005,6 +1841,10 @@ export default function Shop() {
 
           productCount={
             filteredProducts.length
+          }
+
+          visibleProductCount={
+            visibleProductCount
           }
 
           categories={
@@ -2136,6 +1976,10 @@ export default function Shop() {
 
           onClearFilters={
             clearFilters
+          }
+
+          onVisibleCountChange={
+            setVisibleProductCount
           }
 
         />
