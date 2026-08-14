@@ -12,7 +12,10 @@ import {
 } from "@/features/notifications/services/notification.service";
 
 
-function generateOrderNumber(){
+
+
+
+function generateOrderNumber() {
 
   return `TNM-${Date.now()}`;
 
@@ -23,77 +26,92 @@ function generateOrderNumber(){
 
 
 
+
 async function createOrderActivity({
 
   orderId,
+
   eventType,
+
   title,
+
   description,
+
   metadata
 
-}:{
+}: {
 
-  orderId:string;
+  orderId: string;
 
-  eventType:string;
+  eventType: string;
 
-  title:string;
+  title: string;
 
-  description?:string;
+  description?: string;
 
-  metadata?:Record<string,unknown>;
+  metadata?: Record<string, unknown>;
 
-}){
+}) {
 
 
-const {
-  data:{
-    user
+
+
+
+  const {
+
+    data: {
+
+      user
+
+    }
+
+  } = await supabase.auth.getUser();
+
+
+
+
+
+  const {
+
+    error
+
+  } = await supabase
+
+    .from("order_activity")
+
+    .insert({
+
+      order_id: orderId,
+
+      event_type: eventType,
+
+      title,
+
+      description: description ?? null,
+
+      metadata: metadata ?? {},
+
+      created_by: user?.id ?? null
+
+    });
+
+
+
+
+
+  if (error) {
+
+    console.error(
+
+      "Create activity failed:",
+
+      error
+
+    );
+
   }
-}=await supabase.auth.getUser();
-
-
-
-
-const {
-
-error
-
-}=await supabase
-
-.from("order_activity")
-
-.insert({
-
-  order_id:orderId,
-
-  event_type:eventType,
-
-  title,
-
-  description:description ?? null,
-
-  metadata:metadata ?? {},
-
-  created_by:user?.id ?? null
-
-});
-
-
-
-if(error){
-
-console.error(
-"Create activity failed:",
-error
-);
 
 }
-
-
-}
-
-
 
 
 
@@ -103,15 +121,15 @@ error
 
 export async function createOrder(
 
-  payload:CreateOrderPayload
+  payload: CreateOrderPayload
 
-){
+) {
 
 
 
 
 
-const orderNumber = generateOrderNumber();
+  const orderNumber = generateOrderNumber();
 
 
 
@@ -119,399 +137,502 @@ const orderNumber = generateOrderNumber();
 
 
 
-const orderData = {
+  const orderData = {
 
 
-// Order
 
-order_number:orderNumber,
 
 
+    // Order
 
+    order_number: orderNumber,
 
 
-// Customer
 
-customer_id:
-payload.customerId ?? null,
 
 
-customer_name:
-payload.customer.name,
+    // Customer
 
+    customer_id:
+      payload.customerId ?? null,
 
-customer_email:
-payload.customer.email ?? null,
 
 
-customer_phone:
-payload.customer.phone,
 
 
+    customer_name:
+      payload.customer.name,
 
 
 
 
 
-// Amounts
+    customer_email:
+      payload.customer.email ?? null,
 
-subtotal:
-payload.subtotal,
 
 
-discount:
-payload.discount,
 
 
-shipping_charge:
-payload.shippingCharge,
+    customer_phone:
+      payload.customer.phone,
 
 
-tax:
-payload.tax,
 
 
-total_amount:
-payload.totalAmount,
 
+    // Amounts
 
+    subtotal:
+      payload.subtotal,
 
 
 
 
 
-// Payment
+    discount:
+      payload.discount,
 
-advance_amount:
-payload.advanceAmount,
 
 
-remaining_amount:
-payload.totalAmount - payload.advanceAmount,
 
 
-payment_method:
-payload.paymentMethod,
+    shipping_charge:
+      payload.shippingCharge,
 
 
-payment_transaction_id:
-payload.paymentTransactionId ?? null,
 
 
 
+    tax:
+      payload.tax,
 
 
 
 
-// Coupon
 
-coupon_id:
-payload.coupon?.id ?? null,
+    total_amount:
+      payload.totalAmount,
 
 
-coupon_code:
-payload.coupon?.code ?? null,
 
 
 
+    // Payment
 
+    advance_amount:
+      payload.advanceAmount,
 
 
 
-// Shipping
 
-shipping_full_name:
-payload.shipping.fullName,
 
+    remaining_amount:
+      payload.totalAmount -
+      payload.advanceAmount,
 
-shipping_phone:
-payload.shipping.phone,
 
 
-shipping_address:
-payload.shipping.address,
 
 
-shipping_city:
-payload.shipping.city,
+    payment_method:
+      payload.paymentMethod,
 
 
-shipping_state:
-payload.shipping.state,
 
 
-shipping_pincode:
-payload.shipping.pincode,
 
+    payment_transaction_id:
+      payload.paymentTransactionId ??
+      null,
 
-shipping_landmark:
-payload.shipping.landmark ?? null,
 
 
 
 
+    // Coupon
 
+    coupon_id:
+      payload.coupon?.id ??
+      null,
 
 
-// Items
 
-items:
 
-payload.items.map(item=>({
 
+    coupon_code:
+      payload.coupon?.code ??
+      null,
 
-product_id:item.productId,
 
 
-product_name:item.productName,
 
 
-product_image:item.productImage ?? null,
+    // Shipping
 
+    shipping_full_name:
+      payload.shipping.fullName,
 
-price:item.price,
 
 
-quantity:item.quantity,
 
 
-total:item.total,
+    shipping_phone:
+      payload.shipping.phone,
 
 
-}))
 
 
 
-};
+    shipping_address:
+      payload.shipping.address,
 
 
 
 
 
+    shipping_city:
+      payload.shipping.city,
 
 
 
 
 
-const {
+    shipping_state:
+      payload.shipping.state,
 
-data,
 
-error
 
-}=await supabase.rpc(
 
-"create_order_transaction",
 
-{
+    shipping_pincode:
+      payload.shipping.pincode,
 
-order_data:orderData
 
-}
 
-);
 
 
+    shipping_landmark:
+      payload.shipping.landmark ??
+      null,
 
 
 
 
 
-if(error){
+    // Items
 
+    items:
 
-console.error(
+      payload.items.map(
 
-"Create order transaction failed:",
+        item => ({
 
-error
+          product_id:
+            item.productId,
 
-);
 
 
-throw error;
 
 
-}
+          product_name:
+            item.productName,
 
 
 
 
 
+          product_image:
+            item.productImage ??
+            null,
 
 
-const orderId = data;
 
 
 
+          price:
+            item.price,
 
 
 
 
 
+          quantity:
+            item.quantity,
 
-// Activity 1: Order Created
 
-await createOrderActivity({
 
-orderId,
 
 
-eventType:"order_created",
+          total:
+            item.total,
 
+        })
 
-title:"Order Created",
+      )
 
+  };
 
-description:
-`Order #${orderNumber} was placed successfully.`,
 
 
-metadata:{
 
-order_number:orderNumber
 
-}
 
-});
 
 
 
+  const {
 
+    data,
 
+    error
 
+  } = await supabase.rpc(
 
+    "create_order_transaction",
 
+    {
 
-// Notification 1: Order Placed
+      order_data:
+        orderData
 
-if(payload.customerId){
+    }
 
+  );
 
-await notificationService.createNotification({
 
-customerId:
-payload.customerId,
 
 
-title:
-"Order Placed",
 
 
-message:
-`Your order #${orderNumber} has been placed successfully.`,
 
 
-type:"order",
 
+  if (error) {
 
-referenceId:
-orderId,
+    console.error(
 
+      "Create order transaction failed:",
 
-});
+      error
 
+    );
 
-}
 
 
 
 
+    throw error;
 
+  }
 
 
 
 
-// Activity 2: Payment Received
 
-if(payload.paymentMethod==="prepaid"){
 
 
-await createOrderActivity({
 
-orderId,
 
+  const orderId = data;
 
-eventType:"payment_received",
 
 
-title:"Payment Received",
 
 
-description:
-`Payment received for order #${orderNumber}.`,
 
 
-metadata:{
 
-payment_method:"prepaid",
 
-transaction_id:
-payload.paymentTransactionId ?? null
+  // Activity 1: Order Created
 
-}
+  await createOrderActivity({
 
-});
+    orderId,
 
+    eventType:
+      "order_created",
 
+    title:
+      "Order Created",
 
+    description:
+      `Order #${orderNumber} was placed successfully.`,
 
+    metadata: {
 
+      order_number:
+        orderNumber
 
+    }
 
+  });
 
 
-// Notification 2: Payment Received
 
 
-if(payload.customerId){
 
 
-await notificationService.createNotification({
 
-customerId:
-payload.customerId,
 
 
-title:
-"Payment Received",
+  // Notification 1: Order Placed
 
+  if (payload.customerId) {
 
-message:
-`Payment received for order #${orderNumber}.`,
 
 
-type:"payment",
 
 
-referenceId:
-orderId,
+    await notificationService.createNotification({
 
+      customerId:
+        payload.customerId,
 
-});
+      title:
+        "Order Placed",
 
+      message:
+        `Your order #${orderNumber} has been placed successfully.`,
 
-}
+      type:
+        "order",
 
+      referenceId:
+        orderId,
 
-}
+    });
 
+  }
 
 
 
 
 
 
-return {
 
 
-orderId,
 
+  // Email: Order Confirmation
 
-orderNumber
+  if (payload.customer.email) {
 
 
-};
 
+
+
+    await notificationService.sendOrderConfirmationEmail({
+
+      to:
+        payload.customer.email,
+
+      orderNumber,
+
+      totalAmount:
+        payload.totalAmount,
+
+      paymentMethod:
+        payload.paymentMethod,
+
+    });
+
+  }
+
+
+
+
+
+
+
+
+
+  // Activity 2: Payment Received
+
+  if (payload.paymentMethod === "prepaid") {
+
+
+
+
+
+    await createOrderActivity({
+
+      orderId,
+
+      eventType:
+        "payment_received",
+
+      title:
+        "Payment Received",
+
+      description:
+        `Payment received for order #${orderNumber}.`,
+
+      metadata: {
+
+        payment_method:
+          "prepaid",
+
+        transaction_id:
+          payload.paymentTransactionId ??
+          null
+
+      }
+
+    });
+
+
+
+
+
+
+
+
+
+    // Notification 2: Payment Received
+
+    if (payload.customerId) {
+
+
+
+
+
+      await notificationService.createNotification({
+
+        customerId:
+          payload.customerId,
+
+        title:
+          "Payment Received",
+
+        message:
+          `Payment received for order #${orderNumber}.`,
+
+        type:
+          "payment",
+
+        referenceId:
+          orderId,
+
+      });
+
+    }
+
+  }
+
+
+
+
+
+
+
+
+
+  return {
+
+    orderId,
+
+    orderNumber
+
+  };
 
 }
