@@ -49,6 +49,78 @@ export interface SendEmailPayload {
 
 
 
+export interface OrderConfirmationEmailPayload {
+
+  to: string;
+
+  customerName: string;
+
+  orderNumber: string;
+
+  orderDate: string;
+
+  orderStatus: string;
+
+  items: {
+
+    productName: string;
+
+    productImage?: string | null;
+
+    price: number;
+
+    quantity: number;
+
+    total: number;
+
+  }[];
+
+  subtotal: number;
+
+  discount: number;
+
+  shippingCharge: number;
+
+  tax: number;
+
+  totalAmount: number;
+
+  paymentMethod:
+    | "partial_cod"
+    | "prepaid";
+
+  advanceAmount: number;
+
+  remainingAmount: number;
+
+  paymentTransactionId?: string | null;
+
+  couponCode?: string | null;
+
+  shipping: {
+
+    fullName: string;
+
+    phone: string;
+
+    address: string;
+
+    city: string;
+
+    state: string;
+
+    pincode: string;
+
+    landmark?: string | null;
+
+  };
+
+}
+
+
+
+
+
 class NotificationService {
 
 
@@ -68,6 +140,10 @@ class NotificationService {
     referenceId = null,
 
   }: CreateNotificationPayload) {
+
+
+
+
 
     const {
 
@@ -118,6 +194,10 @@ class NotificationService {
     html,
 
   }: SendEmailPayload) {
+
+
+
+
 
     if (!to)
 
@@ -205,23 +285,39 @@ class NotificationService {
 
     to,
 
+    customerName,
+
     orderNumber,
+
+    orderDate,
+
+    orderStatus,
+
+    items,
+
+    subtotal,
+
+    discount,
+
+    shippingCharge,
+
+    tax,
 
     totalAmount,
 
     paymentMethod,
 
-  }: {
+    advanceAmount,
 
-    to: string;
+    remainingAmount,
 
-    orderNumber: string;
+    paymentTransactionId,
 
-    totalAmount: number;
+    couponCode,
 
-    paymentMethod: "partial_cod" | "prepaid";
+    shipping,
 
-  }) {
+  }: OrderConfirmationEmailPayload) {
 
 
 
@@ -243,12 +339,644 @@ class NotificationService {
 
 
 
-    const paymentMessage =
+    const paymentStatus =
       isPrepaid
+        ? "Payment Received"
+        : "Advance Payment Received";
 
-        ? "Your payment has been received successfully."
 
-        : "Your order has been placed successfully with Partial COD.";
+
+
+
+    const formattedDate =
+      new Date(orderDate).toLocaleDateString(
+        "en-IN",
+        {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }
+      );
+
+
+
+
+
+    const formatMoney = (
+      amount: number
+    ) =>
+
+      `₹${amount.toLocaleString(
+        "en-IN",
+        {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }
+      )}`;
+
+
+
+
+
+    const escapeHtml = (
+      value: string
+    ) =>
+
+      value
+
+        .replace(/&/g, "&amp;")
+
+        .replace(/</g, "&lt;")
+
+        .replace(/>/g, "&gt;")
+
+        .replace(/"/g, "&quot;")
+
+        .replace(/'/g, "&#039;");
+
+
+
+
+
+    const productRows = items
+
+      .map(
+
+        (item) => {
+
+          const imageHtml =
+
+            item.productImage
+
+              ? `
+
+                <img
+
+                  src="${item.productImage}"
+
+                  alt="${escapeHtml(
+                    item.productName
+                  )}"
+
+                  width="70"
+
+                  height="70"
+
+                  style="
+
+                    display:block;
+
+                    width:70px;
+
+                    height:70px;
+
+                    object-fit:cover;
+
+                    border-radius:10px;
+
+                    border:1px solid #eee7da;
+
+                  "
+
+                />
+
+              `
+
+              : `
+
+                <div
+
+                  style="
+
+                    width:70px;
+
+                    height:70px;
+
+                    border-radius:10px;
+
+                    background:#f7f3eb;
+
+                    border:1px solid #eee7da;
+
+                  "
+
+                ></div>
+
+              `;
+
+
+
+
+
+          return `
+
+            <tr>
+
+              <td
+
+                style="
+
+                  padding:16px 8px 16px 0;
+
+                  vertical-align:middle;
+
+                  border-bottom:1px solid #eeeae2;
+
+                "
+
+              >
+
+                <table
+
+                  role="presentation"
+
+                  cellspacing="0"
+
+                  cellpadding="0"
+
+                  border="0"
+
+                >
+
+                  <tr>
+
+                    <td
+
+                      style="
+
+                        width:70px;
+
+                        vertical-align:middle;
+
+                      "
+
+                    >
+
+                      ${imageHtml}
+
+                    </td>
+
+
+
+
+
+                    <td
+
+                      style="
+
+                        padding-left:12px;
+
+                        vertical-align:middle;
+
+                      "
+
+                    >
+
+                      <div
+
+                        style="
+
+                          font-size:14px;
+
+                          line-height:20px;
+
+                          font-weight:600;
+
+                          color:#222222;
+
+                        "
+
+                      >
+
+                        ${escapeHtml(
+                          item.productName
+                        )}
+
+                      </div>
+
+
+
+
+
+                      <div
+
+                        style="
+
+                          margin-top:4px;
+
+                          font-size:12px;
+
+                          line-height:18px;
+
+                          color:#8c877e;
+
+                        "
+
+                      >
+
+                        Qty: ${item.quantity}
+
+                      </div>
+
+                    </td>
+
+                  </tr>
+
+                </table>
+
+              </td>
+
+
+
+
+
+              <td
+
+                align="right"
+
+                style="
+
+                  padding:16px 0;
+
+                  vertical-align:middle;
+
+                  border-bottom:1px solid #eeeae2;
+
+                  white-space:nowrap;
+
+                "
+
+              >
+
+                <div
+
+                  style="
+
+                    font-size:13px;
+
+                    color:#77736c;
+
+                  "
+
+                >
+
+                  ${formatMoney(
+                    item.price
+                  )}
+
+                </div>
+
+
+
+
+
+                <div
+
+                  style="
+
+                    margin-top:4px;
+
+                    font-size:14px;
+
+                    font-weight:600;
+
+                    color:#222222;
+
+                  "
+
+                >
+
+                  ${formatMoney(
+                    item.total
+                  )}
+
+                </div>
+
+              </td>
+
+            </tr>
+
+          `;
+
+        }
+
+      )
+
+      .join("");
+
+
+
+
+
+    const couponRow = couponCode
+
+      ? `
+
+        <tr>
+
+          <td
+
+            style="
+
+              padding:7px 0;
+
+              font-size:13px;
+
+              color:#77736c;
+
+            "
+
+          >
+
+            Coupon
+
+          </td>
+
+
+
+
+
+          <td
+
+            align="right"
+
+            style="
+
+              padding:7px 0;
+
+              font-size:13px;
+
+              font-weight:600;
+
+              color:#5d754f;
+
+            "
+
+          >
+
+            ${escapeHtml(
+              couponCode
+            )}
+
+          </td>
+
+        </tr>
+
+      `
+
+      : "";
+
+
+
+
+
+    const discountRow =
+
+      discount > 0
+
+        ? `
+
+          <tr>
+
+            <td
+
+              style="
+
+                padding:7px 0;
+
+                font-size:13px;
+
+                color:#77736c;
+
+              "
+
+            >
+
+              Discount
+
+            </td>
+
+
+
+
+
+            <td
+
+              align="right"
+
+              style="
+
+                padding:7px 0;
+
+                font-size:13px;
+
+                color:#4f7b45;
+
+              "
+
+            >
+
+              -${formatMoney(
+                discount
+              )}
+
+            </td>
+
+          </tr>
+
+        `
+
+        : "";
+
+
+
+
+
+    const taxRow =
+
+      tax > 0
+
+        ? `
+
+          <tr>
+
+            <td
+
+              style="
+
+                padding:7px 0;
+
+                font-size:13px;
+
+                color:#77736c;
+
+              "
+
+            >
+
+              Tax
+
+            </td>
+
+
+
+
+
+            <td
+
+              align="right"
+
+              style="
+
+                padding:7px 0;
+
+                font-size:13px;
+
+                color:#333333;
+
+              "
+
+            >
+
+              ${formatMoney(
+                tax
+              )}
+
+            </td>
+
+          </tr>
+
+        `
+
+        : "";
+
+
+
+
+
+    const remainingRow =
+
+      paymentMethod === "partial_cod"
+
+        ? `
+
+          <tr>
+
+            <td
+
+              style="
+
+                padding:7px 0;
+
+                font-size:13px;
+
+                color:#77736c;
+
+              "
+
+            >
+
+              Remaining on Delivery
+
+            </td>
+
+
+
+
+
+            <td
+
+              align="right"
+
+              style="
+
+                padding:7px 0;
+
+                font-size:13px;
+
+                font-weight:600;
+
+                color:#222222;
+
+              "
+
+            >
+
+              ${formatMoney(
+                remainingAmount
+              )}
+
+            </td>
+
+          </tr>
+
+        `
+
+        : "";
+
+
+
+
+
+    const transactionRow =
+
+      paymentTransactionId
+
+        ? `
+
+          <tr>
+
+            <td
+
+              style="
+
+                padding:7px 0;
+
+                font-size:13px;
+
+                color:#77736c;
+
+              "
+
+            >
+
+              Payment Reference
+
+            </td>
+
+
+
+
+
+            <td
+
+              align="right"
+
+              style="
+
+                padding:7px 0;
+
+                font-size:12px;
+
+                color:#333333;
+
+                word-break:break-all;
+
+              "
+
+            >
+
+              ${escapeHtml(
+                paymentTransactionId
+              )}
+
+            </td>
+
+          </tr>
+
+        `
+
+        : "";
 
 
 
@@ -258,7 +986,12 @@ class NotificationService {
 
       to,
 
+
+
+
+
       subject:
+
         `T&M Jewels — Order Confirmed #${orderNumber}`,
 
 
@@ -283,11 +1016,27 @@ class NotificationService {
 
   >
 
-  <meta name="color-scheme" content="light">
+  <meta
 
-  <meta name="supported-color-schemes" content="light">
+    name="color-scheme"
 
-  <title>T&M Jewels — Order Confirmed</title>
+    content="light"
+
+  >
+
+  <meta
+
+    name="supported-color-schemes"
+
+    content="light"
+
+  >
+
+  <title>
+
+    T&amp;M Jewels — Order Confirmation
+
+  </title>
 
 </head>
 
@@ -303,15 +1052,13 @@ class NotificationService {
 
     padding:0;
 
-    background-color:#f6f5f2;
+    background:#f5f3ef;
+
+    color:#222222;
 
     font-family:Arial,Helvetica,sans-serif;
 
-    color:#171717;
-
     -webkit-text-size-adjust:100%;
-
-    -ms-text-size-adjust:100%;
 
   "
 
@@ -333,17 +1080,7 @@ class NotificationService {
 
   border="0"
 
-  style="
-
-    width:100%;
-
-    background-color:#f6f5f2;
-
-    margin:0;
-
-    padding:0;
-
-  "
+  style="background:#f5f3ef;"
 
 >
 
@@ -353,15 +1090,13 @@ class NotificationService {
 
       align="center"
 
-      style="padding:32px 14px;"
+      style="padding:28px 12px;"
 
     >
 
 
 
 
-
-      <!-- Main Container -->
 
       <table
 
@@ -379,11 +1114,11 @@ class NotificationService {
 
           width:100%;
 
-          max-width:620px;
+          max-width:640px;
 
-          background-color:#ffffff;
+          background:#ffffff;
 
-          border:1px solid #e9e6df;
+          border:1px solid #e9e3d8;
 
         "
 
@@ -393,7 +1128,7 @@ class NotificationService {
 
 
 
-        <!-- Header -->
+        <!-- LOGO -->
 
         <tr>
 
@@ -403,7 +1138,7 @@ class NotificationService {
 
             style="
 
-              padding:38px 24px 30px;
+              padding:30px 20px 24px;
 
               border-bottom:1px solid #eeeae2;
 
@@ -411,29 +1146,29 @@ class NotificationService {
 
           >
 
-            <div
+            <img
+
+              src="https://wzphyyoftwxvpqxtfgtb.supabase.co/storage/v1/object/public/Logo/MainLogo.png"
+
+              alt="T&M Jewels"
+
+              width="190"
 
               style="
 
-                font-family:Georgia,'Times New Roman',serif;
+                display:block;
 
-                font-size:31px;
+                width:190px;
 
-                line-height:38px;
+                max-width:80%;
 
-                font-weight:600;
+                height:auto;
 
-                letter-spacing:1px;
-
-                color:#171717;
+                margin:0 auto;
 
               "
 
-            >
-
-              T&amp;M Jewels
-
-            </div>
+            />
 
 
 
@@ -443,15 +1178,15 @@ class NotificationService {
 
               style="
 
-                margin-top:9px;
+                margin-top:10px;
 
-                font-size:12px;
+                font-size:11px;
 
                 line-height:18px;
 
                 letter-spacing:1.5px;
 
-                color:#99958d;
+                color:#999287;
 
                 text-transform:uppercase;
 
@@ -471,7 +1206,7 @@ class NotificationService {
 
 
 
-        <!-- Confirmation -->
+        <!-- CONFIRMATION -->
 
         <tr>
 
@@ -479,89 +1214,41 @@ class NotificationService {
 
             align="center"
 
-            style="padding:38px 24px 24px;"
+            style="
+
+              padding:34px 24px 24px;
+
+            "
 
           >
-
-
-
-
-
-            <table
-
-              role="presentation"
-
-              cellspacing="0"
-
-              cellpadding="0"
-
-              border="0"
-
-              align="center"
-
-            >
-
-              <tr>
-
-                <td
-
-                  align="center"
-
-                  valign="middle"
-
-                  style="
-
-                    width:58px;
-
-                    height:58px;
-
-                    border-radius:50%;
-
-                    background-color:#f3f7f1;
-
-                    color:#4c8a4c;
-
-                    font-size:29px;
-
-                    line-height:58px;
-
-                  "
-
-                >
-
-                  ✓
-
-                </td>
-
-              </tr>
-
-            </table>
-
-
-
-
 
             <div
 
               style="
 
-                margin-top:22px;
+                display:inline-block;
 
-                font-family:Georgia,'Times New Roman',serif;
+                width:54px;
+
+                height:54px;
+
+                line-height:54px;
+
+                border-radius:50%;
+
+                background:#f3f7ef;
+
+                color:#4d8a4b;
 
                 font-size:28px;
 
-                line-height:36px;
-
-                font-weight:600;
-
-                color:#171717;
+                font-weight:bold;
 
               "
 
             >
 
-              Order Confirmed 🎉
+              ✓
 
             </div>
 
@@ -569,37 +1256,59 @@ class NotificationService {
 
 
 
-            <div
+            <h1
 
               style="
 
-                margin-top:10px;
+                margin:18px 0 8px;
+
+                font-family:Georgia,'Times New Roman',serif;
+
+                font-size:30px;
+
+                line-height:38px;
+
+                font-weight:600;
+
+                color:#8b6424;
+
+              "
+
+            >
+
+              Order Confirmed! 🎉
+
+            </h1>
+
+
+
+
+
+            <p
+
+              style="
+
+                margin:0;
 
                 font-size:14px;
 
                 line-height:23px;
 
-                color:#6f6b65;
-
-                max-width:440px;
-
-                margin-left:auto;
-
-                margin-right:auto;
+                color:#6e6a63;
 
               "
 
             >
 
-              Thank you for choosing T&amp;M Jewels.
+              Thank you for choosing T&amp;M Jewels,
+
+              ${escapeHtml(customerName)}.
+
+              <br>
 
               Your order has been successfully placed.
 
-            </div>
-
-
-
-
+            </p>
 
           </td>
 
@@ -609,7 +1318,7 @@ class NotificationService {
 
 
 
-        <!-- Order Details -->
+        <!-- ORDER META -->
 
         <tr>
 
@@ -617,15 +1326,11 @@ class NotificationService {
 
             style="
 
-              padding:10px 24px 0;
+              padding:4px 24px 20px;
 
             "
 
           >
-
-
-
-
 
             <table
 
@@ -643,11 +1348,9 @@ class NotificationService {
 
                 width:100%;
 
-                background-color:#faf9f6;
+                background:#faf8f3;
 
-                border:1px solid #eeeae2;
-
-                border-radius:12px;
+                border:1px solid #e8dfd0;
 
               "
 
@@ -657,31 +1360,31 @@ class NotificationService {
 
                 <td
 
+                  width="50%"
+
                   style="
 
-                    padding:20px;
+                    padding:17px;
+
+                    border-right:1px solid #e5ddcf;
 
                   "
 
                 >
 
-
-
-
-
                   <div
 
                     style="
 
-                      font-size:11px;
+                      font-size:10px;
 
                       line-height:16px;
 
-                      color:#a09b92;
-
-                      letter-spacing:1.4px;
+                      color:#9c968c;
 
                       text-transform:uppercase;
+
+                      letter-spacing:1.2px;
 
                     "
 
@@ -699,15 +1402,15 @@ class NotificationService {
 
                     style="
 
-                      margin-top:7px;
+                      margin-top:5px;
 
-                      font-size:19px;
+                      font-size:16px;
 
-                      line-height:27px;
+                      line-height:22px;
 
                       font-weight:600;
 
-                      color:#171717;
+                      color:#222222;
 
                       word-break:break-word;
 
@@ -719,94 +1422,6 @@ class NotificationService {
 
                   </div>
 
-
-
-
-
-                </td>
-
-              </tr>
-
-            </table>
-
-
-
-
-
-          </td>
-
-        </tr>
-
-
-
-
-
-        <!-- Amount / Payment -->
-
-        <tr>
-
-          <td
-
-            style="
-
-              padding:20px 24px 0;
-
-            "
-
-          >
-
-
-
-
-
-            <table
-
-              role="presentation"
-
-              width="100%"
-
-              cellspacing="0"
-
-              cellpadding="0"
-
-              border="0"
-
-              style="
-
-                width:100%;
-
-                border-top:1px solid #eeeae2;
-
-                border-bottom:1px solid #eeeae2;
-
-              "
-
-            >
-
-
-
-
-
-              <tr>
-
-                <td
-
-                  style="
-
-                    padding:17px 0;
-
-                    font-size:14px;
-
-                    line-height:20px;
-
-                    color:#6f6b65;
-
-                  "
-
-                >
-
-                  Order Total
-
                 </td>
 
 
@@ -815,205 +1430,11 @@ class NotificationService {
 
                 <td
 
-                  align="right"
+                  width="50%"
 
                   style="
 
-                    padding:17px 0;
-
-                    font-size:16px;
-
-                    line-height:20px;
-
-                    font-weight:600;
-
-                    color:#171717;
-
-                    white-space:nowrap;
-
-                  "
-
-                >
-
-                  ₹${totalAmount.toLocaleString("en-IN", {
-
-                    minimumFractionDigits:2,
-
-                    maximumFractionDigits:2
-
-                  })}
-
-                </td>
-
-              </tr>
-
-
-
-
-
-              <tr>
-
-                <td
-
-                  style="
-
-                    padding:0 0 17px;
-
-                    font-size:14px;
-
-                    line-height:20px;
-
-                    color:#6f6b65;
-
-                  "
-
-                >
-
-                  Payment
-
-                </td>
-
-
-
-
-
-                <td
-
-                  align="right"
-
-                  style="
-
-                    padding:0 0 17px;
-
-                    font-size:14px;
-
-                    line-height:20px;
-
-                    font-weight:600;
-
-                    color:#171717;
-
-                  "
-
-                >
-
-                  ${paymentLabel}
-
-                </td>
-
-              </tr>
-
-
-
-
-
-            </table>
-
-
-
-
-
-          </td>
-
-        </tr>
-
-
-
-
-
-        <!-- Message -->
-
-        <tr>
-
-          <td
-
-            style="
-
-              padding:24px 24px 0;
-
-            "
-
-          >
-
-            <div
-
-              style="
-
-                font-size:14px;
-
-                line-height:24px;
-
-                color:#5f5b55;
-
-              "
-
-            >
-
-              ${paymentMessage}
-
-              We will keep you updated as your order moves
-
-              through each stage.
-
-            </div>
-
-          </td>
-
-        </tr>
-
-
-
-
-
-        <!-- What's Next -->
-
-        <tr>
-
-          <td
-
-            style="
-
-              padding:24px 24px 0;
-
-            "
-
-          >
-
-
-
-
-
-            <table
-
-              role="presentation"
-
-              width="100%"
-
-              cellspacing="0"
-
-              cellpadding="0"
-
-              border="0"
-
-              style="
-
-                width:100%;
-
-                background-color:#fbfaf8;
-
-                border-left:3px solid #c8a44d;
-
-              "
-
-            >
-
-              <tr>
-
-                <td
-
-                  style="
-
-                    padding:16px 18px;
+                    padding:17px;
 
                   "
 
@@ -1023,19 +1444,21 @@ class NotificationService {
 
                     style="
 
-                      font-size:13px;
+                      font-size:10px;
 
-                      line-height:20px;
+                      line-height:16px;
 
-                      font-weight:600;
+                      color:#9c968c;
 
-                      color:#292722;
+                      text-transform:uppercase;
+
+                      letter-spacing:1.2px;
 
                     "
 
                   >
 
-                    What happens next?
+                    Order Date
 
                   </div>
 
@@ -1049,21 +1472,19 @@ class NotificationService {
 
                       margin-top:5px;
 
-                      font-size:13px;
+                      font-size:14px;
 
-                      line-height:21px;
+                      line-height:22px;
 
-                      color:#77736c;
+                      font-weight:600;
+
+                      color:#222222;
 
                     "
 
                   >
 
-                    We will carefully prepare your jewellery
-
-                    and share an update when your order moves
-
-                    to the next stage.
+                    ${formattedDate}
 
                   </div>
 
@@ -1073,9 +1494,193 @@ class NotificationService {
 
             </table>
 
+          </td>
+
+        </tr>
 
 
 
+
+
+        <!-- STATUS / PAYMENT -->
+
+        <tr>
+
+          <td
+
+            style="
+
+              padding:0 24px 24px;
+
+            "
+
+          >
+
+            <table
+
+              role="presentation"
+
+              width="100%"
+
+              cellspacing="0"
+
+              cellpadding="0"
+
+              border="0"
+
+            >
+
+              <tr>
+
+                <td
+
+                  width="50%"
+
+                  style="
+
+                    padding:15px;
+
+                    background:#fbfaf7;
+
+                    border:1px solid #eee8dc;
+
+                  "
+
+                >
+
+                  <div
+
+                    style="
+
+                      font-size:11px;
+
+                      color:#999287;
+
+                      text-transform:uppercase;
+
+                      letter-spacing:1px;
+
+                    "
+
+                  >
+
+                    Order Status
+
+                  </div>
+
+
+
+
+
+                  <div
+
+                    style="
+
+                      margin-top:6px;
+
+                      font-size:14px;
+
+                      font-weight:600;
+
+                      color:#4d8a4b;
+
+                    "
+
+                  >
+
+                    ${escapeHtml(
+                      orderStatus
+                    )}
+
+                  </div>
+
+                </td>
+
+
+
+
+
+                <td
+
+                  width="12"
+
+                  style="font-size:0;"
+
+                >
+
+                  &nbsp;
+
+                </td>
+
+
+
+
+
+                <td
+
+                  width="50%"
+
+                  style="
+
+                    padding:15px;
+
+                    background:#fbfaf7;
+
+                    border:1px solid #eee8dc;
+
+                  "
+
+                >
+
+                  <div
+
+                    style="
+
+                      font-size:11px;
+
+                      color:#999287;
+
+                      text-transform:uppercase;
+
+                      letter-spacing:1px;
+
+                    "
+
+                  >
+
+                    Payment Status
+
+                  </div>
+
+
+
+
+
+                  <div
+
+                    style="
+
+                      margin-top:6px;
+
+                      font-size:14px;
+
+                      font-weight:600;
+
+                      color:#4d8a4b;
+
+                    "
+
+                  >
+
+                    ${paymentStatus}
+
+                  </div>
+
+                </td>
+
+              </tr>
+
+            </table>
 
           </td>
 
@@ -1085,7 +1690,1071 @@ class NotificationService {
 
 
 
-        <!-- Footer -->
+        <!-- ORDER DETAILS -->
+
+        <tr>
+
+          <td
+
+            style="
+
+              padding:0 24px;
+
+            "
+
+          >
+
+            <div
+
+              style="
+
+                padding:13px 16px;
+
+                background:#f7f1e5;
+
+                color:#59431f;
+
+                font-family:Georgia,'Times New Roman',serif;
+
+                font-size:20px;
+
+                line-height:28px;
+
+                font-weight:600;
+
+              "
+
+            >
+
+              Order Details
+
+            </div>
+
+
+
+
+
+            <table
+
+              role="presentation"
+
+              width="100%"
+
+              cellspacing="0"
+
+              cellpadding="0"
+
+              border="0"
+
+            >
+
+              <tr>
+
+                <td
+
+                  style="
+
+                    padding:12px 0;
+
+                    font-size:11px;
+
+                    font-weight:600;
+
+                    color:#999287;
+
+                    text-transform:uppercase;
+
+                    letter-spacing:.7px;
+
+                    border-bottom:1px solid #eeeae2;
+
+                  "
+
+                >
+
+                  Product
+
+                </td>
+
+
+
+
+
+                <td
+
+                  align="right"
+
+                  style="
+
+                    padding:12px 0;
+
+                    font-size:11px;
+
+                    font-weight:600;
+
+                    color:#999287;
+
+                    text-transform:uppercase;
+
+                    letter-spacing:.7px;
+
+                    border-bottom:1px solid #eeeae2;
+
+                  "
+
+                >
+
+                  Amount
+
+                </td>
+
+              </tr>
+
+
+
+
+
+              ${productRows}
+
+            </table>
+
+          </td>
+
+        </tr>
+
+
+
+
+
+        <!-- PRICE SUMMARY -->
+
+        <tr>
+
+          <td
+
+            style="
+
+              padding:22px 24px 0;
+
+            "
+
+          >
+
+            <table
+
+              role="presentation"
+
+              width="100%"
+
+              cellspacing="0"
+
+              cellpadding="0"
+
+              border="0"
+
+              style="
+
+                border-top:1px solid #eeeae2;
+
+                border-bottom:1px solid #eeeae2;
+
+              "
+
+            >
+
+              <tr>
+
+                <td
+
+                  style="
+
+                    padding:7px 0;
+
+                    font-size:13px;
+
+                    color:#77736c;
+
+                  "
+
+                >
+
+                  Subtotal
+
+                </td>
+
+
+
+
+
+                <td
+
+                  align="right"
+
+                  style="
+
+                    padding:7px 0;
+
+                    font-size:13px;
+
+                    color:#333333;
+
+                  "
+
+                >
+
+                  ${formatMoney(
+                    subtotal
+                  )}
+
+                </td>
+
+              </tr>
+
+
+
+
+
+              ${discountRow}
+
+              ${couponRow}
+
+
+
+
+
+              <tr>
+
+                <td
+
+                  style="
+
+                    padding:7px 0;
+
+                    font-size:13px;
+
+                    color:#77736c;
+
+                  "
+
+                >
+
+                  Shipping
+
+                </td>
+
+
+
+
+
+                <td
+
+                  align="right"
+
+                  style="
+
+                    padding:7px 0;
+
+                    font-size:13px;
+
+                    color:#333333;
+
+                  "
+
+                >
+
+                  ${
+
+                    shippingCharge === 0
+
+                      ? "FREE"
+
+                      : formatMoney(
+                          shippingCharge
+                        )
+
+                  }
+
+                </td>
+
+              </tr>
+
+
+
+
+
+              ${taxRow}
+
+
+
+
+
+              <tr>
+
+                <td
+
+                  style="
+
+                    padding:16px 0;
+
+                    font-size:16px;
+
+                    font-weight:700;
+
+                    color:#222222;
+
+                    border-top:1px solid #eeeae2;
+
+                  "
+
+                >
+
+                  Total Amount
+
+                </td>
+
+
+
+
+
+                <td
+
+                  align="right"
+
+                  style="
+
+                    padding:16px 0;
+
+                    font-size:18px;
+
+                    font-weight:700;
+
+                    color:#8b6424;
+
+                    border-top:1px solid #eeeae2;
+
+                  "
+
+                >
+
+                  ${formatMoney(
+                    totalAmount
+                  )}
+
+                </td>
+
+              </tr>
+
+
+
+
+
+            </table>
+
+          </td>
+
+        </tr>
+
+
+
+
+
+        <!-- PAYMENT INFORMATION -->
+
+        <tr>
+
+          <td
+
+            style="
+
+              padding:24px 24px 0;
+
+            "
+
+          >
+
+            <div
+
+              style="
+
+                padding:16px;
+
+                background:#faf8f3;
+
+                border:1px solid #e8dfd0;
+
+              "
+
+            >
+
+              <div
+
+                style="
+
+                  font-family:Georgia,'Times New Roman',serif;
+
+                  font-size:18px;
+
+                  font-weight:600;
+
+                  color:#49371d;
+
+                "
+
+              >
+
+                Payment Information
+
+              </div>
+
+
+
+
+
+              <table
+
+                role="presentation"
+
+                width="100%"
+
+                cellspacing="0"
+
+                cellpadding="0"
+
+                border="0"
+
+                style="margin-top:10px;"
+
+              >
+
+                <tr>
+
+                  <td
+
+                    style="
+
+                      padding:6px 0;
+
+                      font-size:13px;
+
+                      color:#77736c;
+
+                    "
+
+                  >
+
+                    Payment Method
+
+                  </td>
+
+
+
+
+
+                  <td
+
+                    align="right"
+
+                    style="
+
+                      padding:6px 0;
+
+                      font-size:13px;
+
+                      font-weight:600;
+
+                    "
+
+                  >
+
+                    ${paymentLabel}
+
+                  </td>
+
+                </tr>
+
+
+
+
+
+                <tr>
+
+                  <td
+
+                    style="
+
+                      padding:6px 0;
+
+                      font-size:13px;
+
+                      color:#77736c;
+
+                    "
+
+                  >
+
+                    Advance Paid
+
+                  </td>
+
+
+
+
+
+                  <td
+
+                    align="right"
+
+                    style="
+
+                      padding:6px 0;
+
+                      font-size:13px;
+
+                      font-weight:600;
+
+                    "
+
+                  >
+
+                    ${formatMoney(
+                      advanceAmount
+                    )}
+
+                  </td>
+
+                </tr>
+
+
+
+
+
+                ${remainingRow}
+
+                ${transactionRow}
+
+              </table>
+
+            </div>
+
+          </td>
+
+        </tr>
+
+
+
+
+
+        <!-- SHIPPING ADDRESS -->
+
+        <tr>
+
+          <td
+
+            style="
+
+              padding:24px 24px 0;
+
+            "
+
+          >
+
+            <div
+
+              style="
+
+                padding:16px;
+
+                background:#faf8f3;
+
+                border:1px solid #e8dfd0;
+
+              "
+
+            >
+
+              <div
+
+                style="
+
+                  font-family:Georgia,'Times New Roman',serif;
+
+                  font-size:18px;
+
+                  font-weight:600;
+
+                  color:#49371d;
+
+                "
+
+              >
+
+                Shipping Address
+
+              </div>
+
+
+
+
+
+              <div
+
+                style="
+
+                  margin-top:12px;
+
+                  font-size:14px;
+
+                  line-height:23px;
+
+                  color:#55514b;
+
+                "
+
+              >
+
+                <strong>
+
+                  ${escapeHtml(
+                    shipping.fullName
+                  )}
+
+                </strong>
+
+                <br>
+
+                ${escapeHtml(
+                  shipping.address
+                )}
+
+                ${
+
+                  shipping.landmark
+
+                    ? `<br>${escapeHtml(
+                        shipping.landmark
+                      )}`
+
+                    : ""
+
+                }
+
+                <br>
+
+                ${escapeHtml(
+                  shipping.city
+                )},
+
+                ${escapeHtml(
+                  shipping.state
+                )}
+
+                — ${escapeHtml(
+                  shipping.pincode
+                )}
+
+                <br>
+
+                Phone:
+
+                ${escapeHtml(
+                  shipping.phone
+                )}
+
+              </div>
+
+            </div>
+
+          </td>
+
+        </tr>
+
+
+
+
+
+        <!-- ORDER JOURNEY -->
+
+        <tr>
+
+          <td
+
+            style="
+
+              padding:28px 24px 0;
+
+            "
+
+          >
+
+            <div
+
+              style="
+
+                text-align:center;
+
+                font-family:Georgia,'Times New Roman',serif;
+
+                font-size:20px;
+
+                font-weight:600;
+
+                color:#49371d;
+
+              "
+
+            >
+
+              Your Order Journey
+
+            </div>
+
+
+
+
+
+            <table
+
+              role="presentation"
+
+              width="100%"
+
+              cellspacing="0"
+
+              cellpadding="0"
+
+              border="0"
+
+              style="margin-top:18px;"
+
+            >
+
+              <tr>
+
+                <td
+
+                  align="center"
+
+                  width="25%"
+
+                >
+
+                  <div
+
+                    style="
+
+                      margin:auto;
+
+                      width:34px;
+
+                      height:34px;
+
+                      line-height:34px;
+
+                      border-radius:50%;
+
+                      background:#8b6424;
+
+                      color:#ffffff;
+
+                      font-size:16px;
+
+                    "
+
+                  >
+
+                    ✓
+
+                  </div>
+
+
+
+
+
+                  <div
+
+                    style="
+
+                      margin-top:7px;
+
+                      font-size:10px;
+
+                      line-height:15px;
+
+                      font-weight:600;
+
+                      color:#8b6424;
+
+                    "
+
+                  >
+
+                    Confirmed
+
+                  </div>
+
+                </td>
+
+
+
+
+
+                <td
+
+                  align="center"
+
+                  width="25%"
+
+                >
+
+                  <div
+
+                    style="
+
+                      margin:auto;
+
+                      width:34px;
+
+                      height:34px;
+
+                      line-height:34px;
+
+                      border-radius:50%;
+
+                      background:#f4f0e8;
+
+                      color:#aaa297;
+
+                      font-size:15px;
+
+                    "
+
+                  >
+
+                    2
+
+                  </div>
+
+
+
+
+
+                  <div
+
+                    style="
+
+                      margin-top:7px;
+
+                      font-size:10px;
+
+                      line-height:15px;
+
+                      color:#8f8a82;
+
+                    "
+
+                  >
+
+                    Packed
+
+                  </div>
+
+                </td>
+
+
+
+
+
+                <td
+
+                  align="center"
+
+                  width="25%"
+
+                >
+
+                  <div
+
+                    style="
+
+                      margin:auto;
+
+                      width:34px;
+
+                      height:34px;
+
+                      line-height:34px;
+
+                      border-radius:50%;
+
+                      background:#f4f0e8;
+
+                      color:#aaa297;
+
+                      font-size:15px;
+
+                    "
+
+                  >
+
+                    3
+
+                  </div>
+
+
+
+
+
+                  <div
+
+                    style="
+
+                      margin-top:7px;
+
+                      font-size:10px;
+
+                      line-height:15px;
+
+                      color:#8f8a82;
+
+                    "
+
+                  >
+
+                    Shipped
+
+                  </div>
+
+                </td>
+
+
+
+
+
+                <td
+
+                  align="center"
+
+                  width="25%"
+
+                >
+
+                  <div
+
+                    style="
+
+                      margin:auto;
+
+                      width:34px;
+
+                      height:34px;
+
+                      line-height:34px;
+
+                      border-radius:50%;
+
+                      background:#f4f0e8;
+
+                      color:#aaa297;
+
+                      font-size:15px;
+
+                    "
+
+                  >
+
+                    4
+
+                  </div>
+
+
+
+
+
+                  <div
+
+                    style="
+
+                      margin-top:7px;
+
+                      font-size:10px;
+
+                      line-height:15px;
+
+                      color:#8f8a82;
+
+                    "
+
+                  >
+
+                    Delivered
+
+                  </div>
+
+                </td>
+
+              </tr>
+
+            </table>
+
+          </td>
+
+        </tr>
+
+
+
+
+
+        <!-- MESSAGE -->
+
+        <tr>
+
+          <td
+
+            style="
+
+              padding:26px 24px 0;
+
+            "
+
+          >
+
+            <div
+
+              style="
+
+                padding:16px;
+
+                background:#fbfaf7;
+
+                border-left:3px solid #c8a44d;
+
+                font-size:13px;
+
+                line-height:22px;
+
+                color:#68635c;
+
+              "
+
+            >
+
+              Your jewellery is now being prepared with
+
+              care. We will keep you updated as your
+
+              order moves through each stage.
+
+            </div>
+
+          </td>
+
+        </tr>
+
+
+
+
+
+        <!-- FOOTER -->
 
         <tr>
 
@@ -1095,27 +2764,21 @@ class NotificationService {
 
             style="
 
-              padding:34px 24px 30px;
+              padding:32px 24px;
 
             "
 
           >
 
-
-
-
-
             <div
 
               style="
 
-                width:100%;
-
                 height:1px;
 
-                background-color:#eeeae2;
+                background:#eeeae2;
 
-                margin-bottom:24px;
+                margin-bottom:22px;
 
               "
 
@@ -1125,25 +2788,27 @@ class NotificationService {
 
 
 
-            <div
+            <img
+
+              src="https://wzphyyoftwxvpqxtfgtb.supabase.co/storage/v1/object/public/Logo/MainLogo.png"
+
+              alt="T&M Jewels"
+
+              width="125"
 
               style="
 
-                font-family:Georgia,'Times New Roman',serif;
+                display:block;
 
-                font-size:17px;
+                width:125px;
 
-                line-height:24px;
+                height:auto;
 
-                color:#171717;
+                margin:0 auto;
 
               "
 
-            >
-
-              T&amp;M Jewels
-
-            </div>
+            />
 
 
 
@@ -1153,19 +2818,29 @@ class NotificationService {
 
               style="
 
-                margin-top:8px;
+                margin-top:12px;
 
                 font-size:12px;
 
-                line-height:19px;
+                line-height:20px;
 
-                color:#9a968f;
+                color:#999287;
 
               "
 
             >
 
-              Thank you for being a part of T&amp;M Jewels.
+              Need help with your order?
+
+              <br>
+
+              Contact us at
+
+              <strong>
+
+                shop.tnm.official@gmail.com
+
+              </strong>
 
             </div>
 
@@ -1183,19 +2858,15 @@ class NotificationService {
 
                 line-height:18px;
 
-                color:#b0aca5;
+                color:#aaa49a;
 
               "
 
             >
 
-              © T&amp;M Jewels
+              © T&amp;M Jewels. All rights reserved.
 
             </div>
-
-
-
-
 
           </td>
 
@@ -1242,6 +2913,10 @@ class NotificationService {
     customerId: string
 
   ) {
+
+
+
+
 
     const {
 
@@ -1302,6 +2977,10 @@ class NotificationService {
     customerId: string
 
   ) {
+
+
+
+
 
     const {
 
@@ -1371,6 +3050,10 @@ class NotificationService {
 
   ) {
 
+
+
+
+
     const {
 
       error
@@ -1414,6 +3097,10 @@ class NotificationService {
     customerId: string
 
   ) {
+
+
+
+
 
     const {
 

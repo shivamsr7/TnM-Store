@@ -6,7 +6,6 @@ import type {
   CreateOrderPayload
 } from "../types/order.types";
 
-
 import {
   notificationService
 } from "@/features/notifications/services/notification.service";
@@ -81,17 +80,22 @@ async function createOrderActivity({
 
     .insert({
 
-      order_id: orderId,
+      order_id:
+        orderId,
 
-      event_type: eventType,
+      event_type:
+        eventType,
 
       title,
 
-      description: description ?? null,
+      description:
+        description ?? null,
 
-      metadata: metadata ?? {},
+      metadata:
+        metadata ?? {},
 
-      created_by: user?.id ?? null
+      created_by:
+        user?.id ?? null
 
     });
 
@@ -129,7 +133,10 @@ export async function createOrder(
 
 
 
-  const orderNumber = generateOrderNumber();
+  const orderNumber =
+    generateOrderNumber();
+
+
 
 
 
@@ -145,7 +152,8 @@ export async function createOrder(
 
     // Order
 
-    order_number: orderNumber,
+    order_number:
+      orderNumber,
 
 
 
@@ -156,23 +164,11 @@ export async function createOrder(
     customer_id:
       payload.customerId ?? null,
 
-
-
-
-
     customer_name:
       payload.customer.name,
 
-
-
-
-
     customer_email:
       payload.customer.email ?? null,
-
-
-
-
 
     customer_phone:
       payload.customer.phone,
@@ -186,30 +182,14 @@ export async function createOrder(
     subtotal:
       payload.subtotal,
 
-
-
-
-
     discount:
       payload.discount,
-
-
-
-
 
     shipping_charge:
       payload.shippingCharge,
 
-
-
-
-
     tax:
       payload.tax,
-
-
-
-
 
     total_amount:
       payload.totalAmount,
@@ -223,24 +203,12 @@ export async function createOrder(
     advance_amount:
       payload.advanceAmount,
 
-
-
-
-
     remaining_amount:
       payload.totalAmount -
       payload.advanceAmount,
 
-
-
-
-
     payment_method:
       payload.paymentMethod,
-
-
-
-
 
     payment_transaction_id:
       payload.paymentTransactionId ??
@@ -256,10 +224,6 @@ export async function createOrder(
       payload.coupon?.id ??
       null,
 
-
-
-
-
     coupon_code:
       payload.coupon?.code ??
       null,
@@ -273,44 +237,20 @@ export async function createOrder(
     shipping_full_name:
       payload.shipping.fullName,
 
-
-
-
-
     shipping_phone:
       payload.shipping.phone,
-
-
-
-
 
     shipping_address:
       payload.shipping.address,
 
-
-
-
-
     shipping_city:
       payload.shipping.city,
-
-
-
-
 
     shipping_state:
       payload.shipping.state,
 
-
-
-
-
     shipping_pincode:
       payload.shipping.pincode,
-
-
-
-
 
     shipping_landmark:
       payload.shipping.landmark ??
@@ -331,38 +271,18 @@ export async function createOrder(
           product_id:
             item.productId,
 
-
-
-
-
           product_name:
             item.productName,
-
-
-
-
 
           product_image:
             item.productImage ??
             null,
 
-
-
-
-
           price:
             item.price,
 
-
-
-
-
           quantity:
             item.quantity,
-
-
-
-
 
           total:
             item.total,
@@ -513,7 +433,7 @@ export async function createOrder(
 
 
 
-  // Email: Order Confirmation
+  // Email: Complete Order Confirmation
 
   if (payload.customer.email) {
 
@@ -526,13 +446,165 @@ export async function createOrder(
       to:
         payload.customer.email,
 
+
+
+
+
+      customerName:
+        payload.customer.name,
+
+
+
+
+
       orderNumber,
+
+
+
+
+
+      orderDate:
+        new Date().toISOString(),
+
+
+
+
+
+      orderStatus:
+        "Order Confirmed",
+
+
+
+
+
+      items:
+
+        payload.items.map(
+
+          item => ({
+
+            productName:
+              item.productName,
+
+            productImage:
+              item.productImage ??
+              null,
+
+            price:
+              item.price,
+
+            quantity:
+              item.quantity,
+
+            total:
+              item.total,
+
+          })
+
+        ),
+
+
+
+
+
+      subtotal:
+        payload.subtotal,
+
+
+
+
+
+      discount:
+        payload.discount,
+
+
+
+
+
+      shippingCharge:
+        payload.shippingCharge,
+
+
+
+
+
+      tax:
+        payload.tax,
+
+
+
+
 
       totalAmount:
         payload.totalAmount,
 
+
+
+
+
       paymentMethod:
         payload.paymentMethod,
+
+
+
+
+
+      advanceAmount:
+        payload.advanceAmount,
+
+
+
+
+
+      remainingAmount:
+        payload.totalAmount -
+        payload.advanceAmount,
+
+
+
+
+
+      paymentTransactionId:
+        payload.paymentTransactionId ??
+        null,
+
+
+
+
+
+      couponCode:
+        payload.coupon?.code ??
+        null,
+
+
+
+
+
+      shipping: {
+
+        fullName:
+          payload.shipping.fullName,
+
+        phone:
+          payload.shipping.phone,
+
+        address:
+          payload.shipping.address,
+
+        city:
+          payload.shipping.city,
+
+        state:
+          payload.shipping.state,
+
+        pincode:
+          payload.shipping.pincode,
+
+        landmark:
+          payload.shipping.landmark ??
+          null,
+
+      },
 
     });
 
@@ -548,7 +620,10 @@ export async function createOrder(
 
   // Activity 2: Payment Received
 
-  if (payload.paymentMethod === "prepaid") {
+  if (
+    payload.paymentMethod ===
+    "prepaid"
+  ) {
 
 
 
