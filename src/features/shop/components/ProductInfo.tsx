@@ -318,78 +318,6 @@ export default function ProductInfo({
 
 
       {/* =====================================================
-          FEATURE CHIPS
-      ====================================================== */}
-
-      <div
-
-        className="
-
-          mt-6
-
-          flex
-
-          gap-3
-
-          overflow-x-auto
-
-          pb-2
-
-        "
-
-      >
-
-        {
-          [
-            "Anti Tarnish",
-            "Premium Quality",
-            "Gift Ready Packaging",
-          ].map(
-            (
-              item
-            ) => (
-
-              <span
-
-                key={
-                  item
-                }
-
-                className="
-
-                  whitespace-nowrap
-
-                  rounded-full
-
-                  border
-
-                  border-[#D4AF37]/30
-
-                  px-4
-                  py-2
-
-                  text-xs
-
-                  text-[#D4AF37]
-
-                "
-
-              >
-
-                {
-                  item
-                }
-
-              </span>
-
-            )
-          )
-        }
-
-      </div>
-
-
-      {/* =====================================================
           SALES COUNT
       ====================================================== */}
 
@@ -459,9 +387,11 @@ export default function ProductInfo({
             SKU:
 
             <span
+
               className="
                 text-white
               "
+
             >
 
               {" "}

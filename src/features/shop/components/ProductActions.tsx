@@ -121,35 +121,50 @@ export default function ProductActions({
           STOCK STATUS
       ====================================================== */}
 
-      {!isOutOfStock && (
+      {
+        !isOutOfStock &&
+        Number(product.stock) > 0 &&
+        Number(product.stock) < 5 && (
 
-        <div
+          <div
 
-          className="
+            className="
 
-            flex
-            items-center
-            gap-2
+              flex
+              items-center
+              gap-2
 
-            text-sm
+              text-sm
 
-            text-green-400
+              font-medium
 
-          "
+              text-[#D4AF37]
 
-        >
+            "
 
-          <CheckCircle2
-            size={18}
-          />
+          >
 
-          <span>
-            Ready to ship
-          </span>
+            <CheckCircle2
+              size={18}
+            />
 
-        </div>
+            <span>
 
-      )}
+              {
+                Number(product.stock) === 1
+
+                  ? "Hurry! Only 1 left — Order now!"
+
+                  : `Hurry! Only ${product.stock} left — Order soon!`
+
+              }
+
+            </span>
+
+          </div>
+
+        )
+      }
 
 
       {isOutOfStock && (
