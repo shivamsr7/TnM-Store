@@ -18,6 +18,8 @@ import ProductAccordion from "../components/ProductAccordion";
 
 import ProductActions from "../components/ProductActions";
 
+import ProductRelatedProducts from "../components/ProductRelatedProducts";
+
 
 export default function ProductDetails() {
 
@@ -228,6 +230,25 @@ export default function ProductDetails() {
           </div>
 
         </div>
+
+
+        {/* =================================================
+            RELATED PRODUCTS
+        ================================================== */}
+
+        <ProductRelatedProducts
+          productId={
+            product.id
+          }
+
+          categoryId={
+            product.category_id
+          }
+
+          subcategoryId={
+            product.subcategory_id
+          }
+        />
 
 
         {/* =================================================

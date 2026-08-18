@@ -6,10 +6,12 @@ import {
   Check,
   Loader2,
   Sparkles,
+  ChevronDown,
 } from "lucide-react";
 
 import {
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -396,6 +398,93 @@ export default function CartDrawer() {
     checkoutOpen,
     setCheckoutOpen,
   ] = useState(false);
+
+
+  /*
+   * =========================================================
+   * COUPON SCROLL NAVIGATION
+   * =========================================================
+   */
+
+  const couponSectionRef =
+    useRef<HTMLDivElement | null>(null);
+
+
+  const [
+    showCouponNavigator,
+    setShowCouponNavigator,
+  ] = useState(true);
+
+
+  const scrollToCoupons = () => {
+
+    couponSectionRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+
+    setShowCouponNavigator(false);
+
+  };
+
+
+  useEffect(() => {
+
+    /*
+     * The coupon navigator should never appear when there
+     * is no currently valid/available coupon for this cart
+     * and customer.
+     */
+
+    if (
+      !isCartOpen ||
+      !bestCouponAvailable
+    ) {
+      setShowCouponNavigator(false);
+      return;
+    }
+
+
+    setShowCouponNavigator(true);
+
+
+    const couponSection =
+      couponSectionRef.current;
+
+    if (!couponSection) {
+      return;
+    }
+
+
+    const observer =
+      new IntersectionObserver(
+        ([entry]) => {
+
+          setShowCouponNavigator(
+            !entry.isIntersecting
+          );
+
+        },
+        {
+          threshold: 0.2,
+        }
+      );
+
+
+    observer.observe(
+      couponSection
+    );
+
+
+    return () => {
+      observer.disconnect();
+    };
+
+  }, [
+    isCartOpen,
+    items.length,
+    bestCouponAvailable,
+  ]);
 
 
   const [
@@ -1911,6 +2000,23 @@ export default function CartDrawer() {
 
 
           {/* =================================================
+              RELATED PRODUCTS
+              Compact upsell rail shown immediately after
+              cart items and before coupon offers.
+          ================================================== */}
+
+          {
+            items.length > 0 && (
+              <div className="mt-6">
+                <RelatedProducts
+                  cartItems={items}
+                />
+              </div>
+            )
+          }
+
+
+          {/* =================================================
               BEST COUPON
           ================================================== */}
 
@@ -2153,9 +2259,13 @@ export default function CartDrawer() {
 
               <div
 
+                ref={couponSectionRef}
+
                 className="
 
                   mt-6
+
+                  scroll-mt-6
 
                   rounded-2xl
 
@@ -2500,21 +2610,96 @@ export default function CartDrawer() {
             )
           }
 
-          {/* =================================================
-              RELATED PRODUCTS
-          ================================================== */}
-
-          {
-            items.length > 0 && (
-              <div className="mt-6">
-                <RelatedProducts
-                  cartItems={items}
-                />
-              </div>
-            )
-          }
-
         </div>
+
+
+        {/* ===================================================
+            SIDE COUPON NAVIGATOR
+        ==================================================== */}
+
+        {
+          items.length > 0 &&
+          bestCouponAvailable &&
+          showCouponNavigator && (
+
+            <button
+              type="button"
+              onClick={scrollToCoupons}
+              aria-label="Tap to view coupons"
+              className="
+                absolute
+                right-3
+                bottom-[292px]
+                z-30
+
+                flex
+                items-center
+                gap-1.5
+
+                rounded-full
+                border
+                border-neutral-200
+
+                bg-white/95
+                px-2
+                py-2
+
+                text-[10px]
+                font-semibold
+                text-neutral-800
+
+                shadow-[0_6px_20px_rgba(0,0,0,0.14)]
+                backdrop-blur
+
+                transition-all
+                duration-200
+
+                hover:-translate-y-0.5
+                hover:shadow-[0_8px_24px_rgba(0,0,0,0.16)]
+
+                active:scale-95
+
+                animate-in
+                fade-in
+                slide-in-from-right-2
+                duration-300
+              "
+            >
+
+              <span className="
+                whitespace-nowrap
+                leading-none
+              ">
+                Tap to view coupons
+              </span>
+
+              <span
+                className="
+                  flex
+                  h-7
+                  w-7
+                  shrink-0
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-black
+                  text-white
+                  shadow-sm
+                  animate-bounce
+                "
+              >
+
+                <ChevronDown
+                  size={15}
+                  strokeWidth={2.5}
+                />
+
+              </span>
+
+            </button>
+
+          )
+        }
 
 
         {/* ===================================================

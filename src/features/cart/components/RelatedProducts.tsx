@@ -409,13 +409,11 @@ export default function RelatedProducts({
     const images =
       product.product_images ?? [];
 
-
     const primary =
       images.find(
         (image: any) =>
           image.is_primary
       );
-
 
     const sorted =
       [...images].sort(
@@ -431,13 +429,11 @@ export default function RelatedProducts({
           )
       );
 
-
     return (
       primary?.image_url ||
       sorted[0]?.image_url ||
       ""
     );
-
   };
 
 
@@ -460,81 +456,92 @@ export default function RelatedProducts({
 
     <section
       className="
-        shrink-0
         border-t
         border-neutral-100
         bg-white
         px-4
-        pb-4
-        pt-5
+        pb-3
+        pt-4
       "
     >
 
       <div
         className="
           flex
-          items-end
+          items-center
           justify-between
           gap-3
         "
       >
 
-        <div>
+        <div
+          className="
+            flex
+            min-w-0
+            items-center
+            gap-1.5
+          "
+        >
 
-          <div
+          <Sparkles
+            size={14}
             className="
-              flex
-              items-center
-              gap-1.5
+              shrink-0
+              text-[#C8A44D]
+            "
+          />
+
+          <h3
+            className="
+              truncate
+              text-sm
+              font-semibold
+              leading-5
             "
           >
-
-            <Sparkles
-              size={15}
-              className="
-                text-[#C8A44D]
-              "
-            />
-
-            <h3
-              className="
-                text-sm
-                font-semibold
-              "
-            >
-
-              You may also like
-
-            </h3>
-
-          </div>
-
-
-          <p
-            className="
-              mt-1
-              text-[11px]
-              text-neutral-500
-            "
-          >
-
-            Complete your look with these picks
-
-          </p>
+            You may also like
+          </h3>
 
         </div>
+
+        <span
+          className="
+            shrink-0
+            text-[10px]
+            font-medium
+            text-neutral-400
+          "
+        >
+          Swipe →
+        </span>
 
       </div>
 
 
+      <p
+        className="
+          mt-0.5
+          text-[10px]
+          leading-4
+          text-neutral-500
+        "
+      >
+        Complete your look with these picks
+      </p>
+
+
       <div
         className="
-          mt-4
+          -mr-4
+          mt-3
           flex
-          gap-3
+          gap-2.5
           overflow-x-auto
           overscroll-x-contain
           pb-1
+          pr-4
+          snap-x
+          snap-mandatory
           [-ms-overflow-style:none]
           [scrollbar-width:none]
           [&::-webkit-scrollbar]:hidden
@@ -553,11 +560,9 @@ export default function RelatedProducts({
                   product
                 );
 
-
               const isAdded =
                 addedProductId ===
                 product.id;
-
 
               return (
 
@@ -566,14 +571,16 @@ export default function RelatedProducts({
                     product.id
                   }
                   className="
-                    w-[148px]
+                    w-[132px]
+                    min-w-[132px]
                     shrink-0
+                    snap-start
                     overflow-hidden
                     rounded-2xl
                     border
                     border-neutral-200
                     bg-white
-                    shadow-sm
+                    shadow-[0_2px_8px_rgba(0,0,0,0.06)]
                     animate-in
                     fade-in
                     slide-in-from-right-2
@@ -581,14 +588,14 @@ export default function RelatedProducts({
                   "
                   style={{
                     animationDelay:
-                      `${index * 60}ms`,
+                      `${index * 55}ms`,
                   }}
                 >
 
                   <div
                     className="
                       relative
-                      aspect-square
+                      h-[104px]
                       overflow-hidden
                       bg-neutral-100
                     "
@@ -604,6 +611,7 @@ export default function RelatedProducts({
                           alt={
                             product.name
                           }
+                          loading="lazy"
                           className="
                             h-full
                             w-full
@@ -611,6 +619,7 @@ export default function RelatedProducts({
                             transition-transform
                             duration-500
                             hover:scale-105
+                            active:scale-[1.02]
                           "
                         />
 
@@ -623,12 +632,10 @@ export default function RelatedProducts({
                             w-full
                             items-center
                             justify-center
-                            text-2xl
+                            text-xl
                           "
                         >
-
                           ✨
-
                         </div>
 
                       )
@@ -639,51 +646,49 @@ export default function RelatedProducts({
 
                   <div
                     className="
-                      p-3
+                      p-2
                     "
                   >
 
                     <p
                       className="
                         line-clamp-2
-                        min-h-[32px]
-                        text-[11px]
+                        min-h-[28px]
+                        text-[10px]
                         font-medium
-                        leading-4
+                        leading-[14px]
                         text-neutral-900
                       "
                     >
-
                       {
                         product.name
                       }
-
                     </p>
 
 
                     <div
                       className="
-                        mt-2
+                        mt-1.5
                         flex
+                        min-w-0
                         items-center
-                        gap-1.5
+                        gap-1
                       "
                     >
 
                       <span
                         className="
-                          text-sm
+                          text-[12px]
                           font-semibold
+                          leading-4
                         "
                       >
-
                         ₹
                         {
                           Number(
                             product.price
                           ).toFixed(0)
                         }
-
                       </span>
 
 
@@ -699,19 +704,18 @@ export default function RelatedProducts({
                           <span
                             className="
                               truncate
-                              text-[10px]
+                              text-[8px]
+                              leading-4
                               text-neutral-400
                               line-through
                             "
                           >
-
                             ₹
                             {
                               Number(
                                 product.compare_price
                               ).toFixed(0)
                             }
-
                           </span>
 
                         )
@@ -728,19 +732,19 @@ export default function RelatedProducts({
                         )
                       }
                       className={`
-                        mt-3
+                        mt-2
                         flex
+                        h-8
                         w-full
                         items-center
                         justify-center
-                        gap-1.5
-                        rounded-xl
-                        py-2.5
-                        text-[11px]
+                        gap-1
+                        rounded-lg
+                        text-[10px]
                         font-semibold
                         transition-all
                         duration-200
-                        active:scale-95
+                        active:scale-[0.96]
                         ${
                           isAdded
                             ? `
@@ -760,9 +764,15 @@ export default function RelatedProducts({
                         isAdded ? (
 
                           <>
+
                             <Check
-                              size={13}
-                              strokeWidth={2.5}
+                              size={11}
+                              strokeWidth={2.7}
+                              className="
+                                animate-in
+                                zoom-in-50
+                                duration-200
+                              "
                             />
 
                             Added
@@ -772,8 +782,10 @@ export default function RelatedProducts({
                         ) : (
 
                           <>
+
                             <Plus
-                              size={13}
+                              size={11}
+                              strokeWidth={2.5}
                             />
 
                             Add
