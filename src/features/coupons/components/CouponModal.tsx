@@ -1,7 +1,5 @@
 import {
   X,
-  Check,
-  Loader2,
   Sparkles,
 } from "lucide-react";
 
