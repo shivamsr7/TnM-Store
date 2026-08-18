@@ -3,6 +3,9 @@ import {
   Trash2,
   Minus,
   Plus,
+  Check,
+  Loader2,
+  Sparkles,
 } from "lucide-react";
 
 import {
@@ -254,6 +257,80 @@ export default function CartDrawer() {
 
   /*
    * =========================================================
+   * CUSTOMER COUPON USAGE
+   * =========================================================
+   *
+   * Used only for visibility. Coupon validation remains the
+   * source of truth when applying a coupon.
+   * =========================================================
+   */
+
+  const {
+    data: usedCouponRows = [],
+  } = useQuery({
+
+    queryKey: [
+      "customer-coupon-usage",
+      customer?.id,
+    ],
+
+    queryFn: async () => {
+
+      if (!customer?.id) {
+        return [];
+      }
+
+
+      const {
+        data,
+        error,
+      } = await supabase
+
+        .from("coupon_usage")
+
+        .select("coupon_id")
+
+        .eq(
+          "customer_id",
+          customer.id
+        );
+
+
+      if (error) {
+        throw error;
+      }
+
+
+      return data ?? [];
+
+    },
+
+    enabled: !!customer?.id && isCartOpen,
+
+    staleTime: 0,
+
+    refetchOnWindowFocus: true,
+
+  });
+
+
+  const usedCouponIds = new Set(
+    usedCouponRows.map(
+      (row: any) => row.coupon_id
+    )
+  );
+
+
+  const bestCouponAvailable =
+    !!bestCoupon &&
+    !(
+      bestCoupon.one_use_per_customer === true &&
+      usedCouponIds.has(bestCoupon.id)
+    );
+
+
+  /*
+   * =========================================================
    * COUPON ERROR
    * =========================================================
    */
@@ -317,6 +394,39 @@ export default function CartDrawer() {
     checkoutOpen,
     setCheckoutOpen,
   ] = useState(false);
+
+
+  const [
+    couponSuccess,
+    setCouponSuccess,
+  ] = useState(false);
+
+
+  const [
+    couponAnimationKey,
+    setCouponAnimationKey,
+  ] = useState(0);
+
+
+  /*
+   * =========================================================
+   * COUPON SUCCESS ANIMATION
+   * =========================================================
+   */
+
+  const showCouponSuccess = () => {
+
+    setCouponSuccess(true);
+
+    setCouponAnimationKey(
+      value => value + 1
+    );
+
+    window.setTimeout(() => {
+      setCouponSuccess(false);
+    }, 1800);
+
+  };
 
 
   /*
@@ -478,6 +588,8 @@ export default function CartDrawer() {
               : `Coupon applied! You saved ₹${result.discount}`
 
         );
+
+        showCouponSuccess();
 
       }
 
@@ -1642,6 +1754,7 @@ export default function CartDrawer() {
                                     transition
 
                                     hover:bg-red-50
+                                    active:scale-90
 
                                   "
 
@@ -1800,7 +1913,7 @@ export default function CartDrawer() {
 
           {
             items.length > 0 &&
-            bestCoupon &&
+            bestCouponAvailable &&
             !appliedCoupon && (
 
               <div
@@ -1903,6 +2016,8 @@ export default function CartDrawer() {
                             .minimum_order_amount,
 
                       });
+
+                      showCouponSuccess();
 
                     }
                   }
@@ -2072,6 +2187,12 @@ export default function CartDrawer() {
                           bg-green-50
 
                           p-3
+
+                          animate-in
+                          fade-in
+                          slide-in-from-top-2
+                          duration-300
+                          shadow-sm
 
                         "
 
@@ -2249,7 +2370,12 @@ export default function CartDrawer() {
 
                             {
                               couponLoading
-                                ? "..."
+                                ? (
+                                  <span className="flex items-center gap-1.5">
+                                    <Loader2 size={14} className="animate-spin" />
+                                    Applying
+                                  </span>
+                                )
                                 : "Apply"
                             }
 
@@ -2793,6 +2919,7 @@ export default function CartDrawer() {
 
               );
 
+              showCouponSuccess();
 
               setShowCoupons(
                 false
@@ -2823,6 +2950,45 @@ export default function CartDrawer() {
         }
 
       />
+
+
+      {couponSuccess && (
+
+        <div
+          key={couponAnimationKey}
+          className="
+            fixed
+            left-1/2
+            top-5
+            z-[1300]
+            w-[calc(100%-32px)]
+            max-w-sm
+            -translate-x-1/2
+            animate-in
+            fade-in
+            slide-in-from-top-3
+            duration-300
+          "
+        >
+
+          <div className="flex items-center gap-3 rounded-2xl border border-green-200 bg-white px-4 py-3 shadow-xl">
+
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 animate-in zoom-in duration-300">
+              <Check size={18} strokeWidth={2.5} />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-neutral-900">Coupon applied</p>
+              <p className="mt-0.5 text-xs text-neutral-500">Your savings have been updated.</p>
+            </div>
+
+            <Sparkles size={17} className="shrink-0 text-[#C8A44D] animate-pulse" />
+
+          </div>
+
+        </div>
+
+      )}
 
 
       {/* =====================================================

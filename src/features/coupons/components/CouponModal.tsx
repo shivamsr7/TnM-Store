@@ -1,10 +1,29 @@
 import {
-  X
+  X,
+  Check,
+  Loader2,
+  Sparkles,
 } from "lucide-react";
 
 import {
   useCoupons
 } from "../hooks/useCoupons";
+
+import {
+  useState,
+} from "react";
+
+import {
+  useAuth,
+} from "@/features/Auth/context/AuthContext";
+
+import {
+  useQuery,
+} from "@tanstack/react-query";
+
+import {
+  supabase,
+} from "@/shared/lib/supabase";
 
 
 
@@ -14,7 +33,7 @@ interface Props {
 
   onClose:()=>void;
 
-  onApply:(coupon:any)=>void;
+  onApply:(coupon:any)=>Promise<void>|void;
 
   cartTotal:number;
 
@@ -40,6 +59,15 @@ export default function CouponModal({
 
 }:Props){
 
+const {
+  customer,
+} = useAuth();
+
+const [
+  applyingCouponId,
+  setApplyingCouponId,
+] = useState<string | null>(null);
+
 
 
 const {
@@ -52,6 +80,50 @@ isLoading
 
 
 
+
+
+const {
+data:usedCouponRows=[],
+isLoading:isUsageLoading
+}=useQuery({
+
+queryKey:[
+  "customer-coupon-usage",
+  customer?.id,
+],
+
+queryFn:async()=>{
+
+if(!customer?.id)
+return [];
+
+const {
+data,
+error
+}=await supabase
+.from("coupon_usage")
+.select("coupon_id")
+.eq("customer_id",customer.id);
+
+if(error)
+throw error;
+
+return data ?? [];
+
+},
+
+enabled:open && !!customer?.id,
+
+staleTime:30*1000,
+
+});
+
+
+const usedCouponIds=new Set(
+  usedCouponRows.map(
+    (row:any)=>row.coupon_id
+  )
+);
 
 
 if(!open)
@@ -105,6 +177,16 @@ coupon.used_count >= coupon.usage_limit
 
 return false;
 
+
+if(
+
+coupon.one_use_per_customer === true &&
+
+usedCouponIds.has(coupon.id)
+
+)
+
+return false;
 
 
 return true;
@@ -169,6 +251,10 @@ z-[1100]
 
 bg-black/40
 
+animate-in
+fade-in
+duration-300
+
 "
 
 onClick={onClose}
@@ -205,6 +291,15 @@ bg-white
 
 p-5
 
+pb-[calc(1.25rem+env(safe-area-inset-bottom))]
+
+shadow-2xl
+
+animate-in
+slide-in-from-bottom-4
+fade-in
+duration-300
+
 "
 
 >
@@ -227,18 +322,19 @@ justify-between
 >
 
 
-<h2 className="text-lg font-semibold">
-
-Available Offers
-
-</h2>
-
+<div className="flex items-center gap-2">
+<Sparkles size={18} className="text-[#C8A44D]" />
+<h2 className="text-lg font-semibold">Available Offers</h2>
+</div>
 
 
-<button onClick={onClose}>
 
-<X/>
-
+<button
+  onClick={onClose}
+  className="rounded-full p-2 transition active:scale-90 hover:bg-neutral-100"
+  aria-label="Close offers"
+>
+<X size={20}/>
 </button>
 
 
@@ -252,7 +348,7 @@ Available Offers
 
 {
 
-isLoading &&
+(isLoading || isUsageLoading) &&
 
 <p className="mt-5 text-sm text-neutral-500">
 
@@ -293,10 +389,11 @@ Available for you
 
 {
 
-applicableCoupons.map((coupon:any)=>(
+applicableCoupons.map((coupon:any,index:number)=>(
 
 
 <div
+style={{ animationDelay: `${index * 70}ms` }}
 
 key={coupon.id}
 
@@ -307,6 +404,16 @@ rounded-2xl
 border
 
 p-4
+
+transition-all duration-300
+
+hover:-translate-y-0.5
+hover:shadow-md
+
+animate-in
+fade-in
+slide-in-from-bottom-2
+duration-300
 
 
 ${
@@ -390,13 +497,22 @@ Min order ₹{coupon.minimum_order_amount}
 
 <button
 
-disabled={appliedCoupon?.code===coupon.code}
+disabled={appliedCoupon?.code===coupon.code || applyingCouponId===coupon.id}
 
-onClick={()=>onApply(coupon)}
+onClick={async()=>{
+  try {
+    setApplyingCouponId(coupon.id);
+    await onApply(coupon);
+  } finally {
+    setApplyingCouponId(null);
+  }
+}}
 
 className={`
 
 rounded-xl
+
+min-w-[78px]
 
 px-4
 
@@ -509,6 +625,13 @@ bg-neutral-50
 p-4
 
 opacity-70
+
+transition-all duration-300
+
+animate-in
+fade-in
+slide-in-from-bottom-2
+duration-300
 
 "
 
