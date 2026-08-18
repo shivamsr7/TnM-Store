@@ -6,10 +6,15 @@ const navItems = [
   {
     title: "Shop",
     links: [
-      {name:"Rings", path:"/category/rings"},
-      {name:"Earrings", path:"/category/earrings"},
+      {name:"All Jewellery", path:"/shop"},
       {name:"Necklaces", path:"/category/necklaces"},
+      {name:"Earrings", path:"/category/earrings"},
+      {name:"Rings", path:"/category/rings"},
+      {name:"Bracelets", path:"/category/bracelets"},
       {name:"Watches", path:"/category/watches"},
+      {name:"Collections", path:"/collections"},
+      {name:"Best Sellers", path:"/shop?filter=best-sellers"},
+      {name:"New Arrivals", path:"/shop?filter=new-arrivals"},
     ]
   },
   {
