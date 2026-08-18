@@ -15,6 +15,10 @@ import {
 } from "@/features/coupons/services/coupon.service";
 
 import {
+  useAuth,
+} from "@/features/Auth/context/AuthContext";
+
+import {
   useCartStore,
 } from "../store/cart.store";
 
@@ -30,16 +34,9 @@ import {
 
 import CheckoutDialog from "@/features/checkout/components/CheckoutDialog";
 
+import { useQuery } from "@tanstack/react-query";
 
-/*
- * =========================================================
- * CART OFFER THRESHOLDS
- * =========================================================
- */
-
-const FREE_GIFT_AMOUNT = 1000;
-
-const FREE_SHIPPING_AMOUNT = 2000;
+import { supabase } from "@/shared/lib/supabase";
 
 
 export default function CartDrawer() {
@@ -64,6 +61,66 @@ export default function CartDrawer() {
     getFinalTotal,
     clearStockError,
   } = useCartStore();
+
+
+  /*
+   * =========================================================
+   * CUSTOMER AUTH
+   * =========================================================
+   */
+
+  const {
+    customer,
+  } = useAuth();
+
+
+  /*
+   * =========================================================
+   * STORE SETTINGS
+   * =========================================================
+   */
+
+  const {
+    data: storeSettings,
+  } = useQuery({
+
+    queryKey: [
+      "store-settings",
+    ],
+
+    queryFn: async () => {
+
+      const {
+        data,
+        error,
+      } = await supabase
+
+        .from(
+          "store_settings"
+        )
+
+        .select(
+          "free_shipping_threshold, free_gift_threshold, shipping_charge"
+        )
+
+        .single();
+
+
+      if (error) {
+
+        throw error;
+
+      }
+
+
+      return data;
+
+    },
+
+    staleTime:
+      5 * 60 * 1000,
+
+  });
 
 
   /*
@@ -268,19 +325,33 @@ export default function CartDrawer() {
    * =========================================================
    */
 
+  const freeGiftAmount =
+    Number(
+      storeSettings?.free_gift_threshold
+    ) || 0;
+
+
+  const freeShippingAmount =
+    Number(
+      storeSettings?.free_shipping_threshold
+    ) || 0;
+
+
   const freeGiftUnlocked =
+    freeGiftAmount > 0 &&
     total >=
-    FREE_GIFT_AMOUNT;
+      freeGiftAmount;
 
 
   const freeShippingUnlocked =
+    freeShippingAmount > 0 &&
     total >=
-    FREE_SHIPPING_AMOUNT;
+      freeShippingAmount;
 
 
   const amountToFreeGift =
     Math.max(
-      FREE_GIFT_AMOUNT -
+      freeGiftAmount -
         total,
       0
     );
@@ -288,7 +359,7 @@ export default function CartDrawer() {
 
   const amountToFreeShipping =
     Math.max(
-      FREE_SHIPPING_AMOUNT -
+      freeShippingAmount -
         total,
       0
     );
@@ -297,17 +368,24 @@ export default function CartDrawer() {
   /*
    * Progress:
    *
-   * ₹0 ---------------- ₹1000 ---------------- ₹2000
+   * ₹0 → Free Gift → Free Shipping
    */
 
   const combinedProgress =
-    Math.min(
-      (
-        total /
-        FREE_SHIPPING_AMOUNT
-      ) * 100,
-      100
-    );
+    freeShippingAmount > 0
+
+      ? Math.min(
+
+          (
+            total /
+            freeShippingAmount
+          ) * 100,
+
+          100
+
+        )
+
+      : 0;
 
 
   /*
@@ -343,10 +421,20 @@ export default function CartDrawer() {
         );
 
 
+        if (!customer) {
+
+          throw new Error(
+            "Please log in to use a coupon"
+          );
+
+        }
+
+
         const result =
           await validateCoupon(
             couponCode,
-            total
+            total,
+            customer.id
           );
 
 
@@ -851,7 +939,7 @@ export default function CartDrawer() {
                       />
 
 
-                      {/* ₹1000 MILESTONE */}
+                      {/* FREE GIFT MILESTONE */}
 
                       <div
 
@@ -913,7 +1001,7 @@ export default function CartDrawer() {
                       </div>
 
 
-                      {/* ₹2000 MILESTONE */}
+                      {/* FREE SHIPPING MILESTONE */}
 
                       <div
 
@@ -997,7 +1085,7 @@ export default function CartDrawer() {
 
                     >
 
-                      {/* ₹1000 LABEL */}
+                      {/* FREE GIFT LABEL */}
 
                       <div
 
@@ -1030,7 +1118,7 @@ export default function CartDrawer() {
 
                         >
 
-                          ₹1000
+                          ₹{freeGiftAmount.toFixed(0)}
 
                         </p>
 
@@ -1054,7 +1142,7 @@ export default function CartDrawer() {
                       </div>
 
 
-                      {/* ₹2000 LABEL */}
+                      {/* FREE SHIPPING LABEL */}
 
                       <div
 
@@ -1087,7 +1175,7 @@ export default function CartDrawer() {
 
                         >
 
-                          ₹2000
+                          ₹{freeShippingAmount.toFixed(0)}
 
                         </p>
 
@@ -1773,10 +1861,20 @@ export default function CartDrawer() {
                   onClick={
                     async () => {
 
+                      if (!customer) {
+
+                        throw new Error(
+                          "Please log in to use a coupon"
+                        );
+
+                      }
+
+
                       const result =
                         await validateCoupon(
                           bestCoupon.code,
-                          total
+                          total,
+                          customer.id
                         );
 
 
@@ -2637,10 +2735,20 @@ export default function CartDrawer() {
               );
 
 
+              if (!customer) {
+
+                throw new Error(
+                  "Please log in to use a coupon"
+                );
+
+              }
+
+
               const result =
                 await validateCoupon(
                   coupon.code,
-                  total
+                  total,
+                  customer.id
                 );
 
 

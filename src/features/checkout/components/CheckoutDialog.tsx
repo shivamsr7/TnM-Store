@@ -42,6 +42,10 @@ import {
   useDeliveryCheck,
 } from "@/features/shipping/hooks/useDeliveryCheck";
 
+import {
+  recordCouponUsage,
+} from "@/features/coupons/services/coupon-usage.service";
+
 
 interface Props {
   open: boolean;
@@ -876,6 +880,57 @@ export default function CheckoutDialog({
       setOrderNumber(
         result.orderNumber
       );
+
+
+      /*
+       * =======================================================
+       * RECORD COUPON USAGE
+       * =======================================================
+       *
+       * Coupon usage is recorded only after the order has
+       * been successfully created.
+       *
+       * This is what makes "One Use Per Customer" work
+       * on the customer's next order.
+       *
+       * We intentionally do not pass orderId here because
+       * createOrder currently exposes orderNumber in this
+       * checkout flow, while coupon_usage.order_id expects
+       * the order UUID.
+       * =======================================================
+       */
+
+      if (
+        appliedCoupon &&
+        customer?.id
+      ) {
+
+        try {
+
+          await recordCouponUsage(
+            appliedCoupon.id,
+            customer.id
+          );
+
+        } catch (couponUsageError) {
+
+          /*
+           * The order has already been created successfully.
+           * Do not turn a successful order into a failed
+           * checkout just because the coupon usage record
+           * could not be written.
+           *
+           * The error is logged so it can be investigated.
+           */
+
+          console.error(
+            "Coupon usage recording failed:",
+            couponUsageError
+          );
+
+        }
+
+      }
 
 
       clearCart();

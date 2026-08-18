@@ -3,75 +3,238 @@ import {
 } from "@/shared/lib/supabase";
 
 
+/*
+ * =========================================================
+ * RECORD COUPON USAGE
+ * =========================================================
+ *
+ * Call this ONLY after the order has been successfully
+ * created/paid.
+ *
+ * =========================================================
+ */
 
-export async function incrementCouponUsage(
+export async function recordCouponUsage(
 
-couponId:string
+  couponId: string,
 
-){
+  customerId: string,
 
-const {
+  orderId?: string
 
-data:coupon,
-
-error:fetchError
-
-}=await supabase
-
-.from("coupons")
-
-.select("used_count")
-
-.eq("id",couponId)
-
-.single();
+) {
 
 
+  /*
+   * Prevent duplicate usage records.
+   */
 
-if(fetchError)
+  const {
 
-throw fetchError;
+    data: existingUsage,
 
+    error: existingError
 
+  } = await supabase
 
-const updatedCount =
+    .from(
 
-(coupon.used_count ?? 0) + 1;
+      "coupon_usage"
 
+    )
 
+    .select(
 
+      "id"
 
+    )
 
-const {
+    .eq(
 
-error
+      "coupon_id",
 
-}=await supabase
+      couponId
 
-.from("coupons")
+    )
 
-.update({
+    .eq(
 
-used_count:updatedCount
+      "customer_id",
 
-})
+      customerId
 
-.eq(
+    )
 
-"id",
-
-couponId
-
-);
-
-
-
-if(error)
-
-throw error;
-
+    .maybeSingle();
 
 
-return true;
+  if (
+
+    existingError
+
+  ) {
+
+    throw existingError;
+
+  }
+
+
+  /*
+   * Already recorded.
+   */
+
+  if (
+
+    existingUsage
+
+  ) {
+
+    return true;
+
+  }
+
+
+  /*
+   * Create usage record.
+   */
+
+  const {
+
+    error: usageError
+
+  } = await supabase
+
+    .from(
+
+      "coupon_usage"
+
+    )
+
+    .insert({
+
+      coupon_id:
+        couponId,
+
+      customer_id:
+        customerId,
+
+      order_id:
+        orderId ?? null,
+
+    });
+
+
+  if (
+
+    usageError
+
+  ) {
+
+    throw usageError;
+
+  }
+
+
+  /*
+   * =========================================================
+   * INCREMENT GLOBAL USAGE
+   * =========================================================
+   */
+
+  const {
+
+    data: coupon,
+
+    error: couponError
+
+  } = await supabase
+
+    .from(
+
+      "coupons"
+
+    )
+
+    .select(
+
+      "used_count"
+
+    )
+
+    .eq(
+
+      "id",
+
+      couponId
+
+    )
+
+    .single();
+
+
+  if (
+
+    couponError
+
+  ) {
+
+    throw couponError;
+
+  }
+
+
+  const updatedCount =
+
+    (
+
+      coupon.used_count ??
+
+      0
+
+    ) +
+
+    1;
+
+
+  const {
+
+    error: updateError
+
+  } = await supabase
+
+    .from(
+
+      "coupons"
+
+    )
+
+    .update({
+
+      used_count:
+        updatedCount,
+
+    })
+
+    .eq(
+
+      "id",
+
+      couponId
+
+    );
+
+
+  if (
+
+    updateError
+
+  ) {
+
+    throw updateError;
+
+  }
+
+
+  return true;
 
 }

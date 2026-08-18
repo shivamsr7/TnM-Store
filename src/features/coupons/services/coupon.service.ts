@@ -3,293 +3,389 @@ import {
 } from "@/shared/lib/supabase";
 
 
-
 export async function validateCoupon(
 
-code:string,
+  code: string,
 
-cartTotal:number
+  cartTotal: number,
 
-){
+  customerId: string
 
+) {
 
-const {
 
-data,
+  /*
+   * =========================================================
+   * GET COUPON
+   * =========================================================
+   */
 
-error
+  const {
 
-}=await supabase
+    data,
 
-.from("coupons")
+    error
 
-.select("*")
+  } = await supabase
 
-.eq(
+    .from("coupons")
 
-"code",
+    .select("*")
 
-code.trim().toUpperCase()
+    .eq(
 
-)
+      "code",
 
-.eq(
+      code.trim().toUpperCase()
 
-"is_active",
+    )
 
-true
+    .eq(
 
-)
+      "is_active",
 
-.single();
+      true
 
+    )
 
+    .single();
 
 
+  if (
 
-if(error || !data){
+    error ||
 
-throw new Error(
-"Invalid coupon code"
-);
+    !data
 
-}
+  ) {
 
+    throw new Error(
 
+      "Invalid coupon code"
 
+    );
 
+  }
 
-const coupon=data;
 
+  const coupon =
+    data;
 
 
+  /*
+   * =========================================================
+   * START DATE
+   * =========================================================
+   */
 
+  const now =
+    new Date();
 
-const now=new Date();
 
+  if (
 
+    coupon.starts_at &&
 
+    now <
 
+      new Date(
 
-// Start date validation
+        coupon.starts_at
 
-if(
+      )
 
-coupon.starts_at &&
+  ) {
 
-now < new Date(coupon.starts_at)
+    throw new Error(
 
-){
+      "This coupon is not active yet"
 
-throw new Error(
+    );
 
-"This coupon is not active yet"
+  }
 
-);
 
-}
+  /*
+   * =========================================================
+   * EXPIRY
+   * =========================================================
+   */
 
+  if (
 
+    coupon.expires_at &&
 
+    now >
 
+      new Date(
 
+        coupon.expires_at
 
-// Expiry validation
+      )
 
-if(
+  ) {
 
-coupon.expires_at &&
+    throw new Error(
 
-now > new Date(coupon.expires_at)
+      "This coupon has expired"
 
-){
+    );
 
-throw new Error(
+  }
 
-"This coupon has expired"
 
-);
+  /*
+   * =========================================================
+   * GLOBAL USAGE LIMIT
+   * =========================================================
+   */
 
-}
+  if (
 
+    coupon.usage_limit &&
 
+    coupon.used_count >=
 
+      coupon.usage_limit
 
+  ) {
 
-// Usage limit validation
+    throw new Error(
 
-if(
+      "This coupon limit has been reached"
 
-coupon.usage_limit &&
+    );
 
-coupon.used_count >= coupon.usage_limit
+  }
 
-){
 
-throw new Error(
+  /*
+   * =========================================================
+   * ONE USE PER CUSTOMER
+   * =========================================================
+   */
 
-"This coupon limit has been reached"
+  if (
 
-);
+    coupon.one_use_per_customer
 
-}
+  ) {
 
 
+    const {
 
+      data: previousUsage,
 
+      error: usageError
 
-// Minimum order validation
+    } = await supabase
 
-if(
+      .from(
 
-cartTotal < coupon.minimum_order_amount
+        "coupon_usage"
 
-){
+      )
 
-throw new Error(
+      .select(
 
-`Minimum order value ₹${coupon.minimum_order_amount} required`
+        "id"
 
-);
+      )
 
-}
+      .eq(
 
+        "coupon_id",
 
+        coupon.id
 
+      )
 
+      .eq(
 
+        "customer_id",
 
+        customerId
 
-let discount=0;
+      )
 
-let freeShipping=false;
+      .maybeSingle();
 
-let freeGift=false;
 
+    if (
 
+      usageError
 
+    ) {
 
+      throw usageError;
 
-switch(coupon.discount_type){
+    }
 
 
+    if (
 
-case "percentage":
+      previousUsage
 
+    ) {
 
-discount =
+      throw new Error(
 
-(cartTotal * coupon.discount_value)
+        "You have already used this coupon"
 
-/
+      );
 
-100;
+    }
 
+  }
 
 
-if(
+  /*
+   * =========================================================
+   * MINIMUM ORDER
+   * =========================================================
+   */
 
-coupon.maximum_discount
+  if (
 
-){
+    cartTotal <
 
-discount=Math.min(
+    coupon.minimum_order_amount
 
-discount,
+  ) {
 
-coupon.maximum_discount
+    throw new Error(
 
-);
+      `Minimum order value ₹${coupon.minimum_order_amount} required`
 
-}
+    );
 
+  }
 
-break;
 
+  /*
+   * =========================================================
+   * DISCOUNT
+   * =========================================================
+   */
 
+  let discount =
+    0;
 
 
+  let freeShipping =
+    false;
 
 
+  let freeGift =
+    false;
 
-case "fixed":
 
+  switch (
 
-discount=coupon.discount_value;
+    coupon.discount_type
 
+  ) {
 
-break;
 
+    case "percentage":
 
 
+      discount =
 
+        (
 
+          cartTotal *
 
+          coupon.discount_value
 
-case "free_shipping":
+        ) /
 
+        100;
 
-freeShipping=true;
 
+      if (
 
-discount=0;
+        coupon.maximum_discount
 
+      ) {
 
-break;
+        discount =
 
+          Math.min(
 
+            discount,
 
+            coupon.maximum_discount
 
+          );
 
+      }
 
 
-case "free_gift":
+      break;
 
 
-freeGift=true;
+    case "fixed":
 
 
-discount=0;
+      discount =
 
+        coupon.discount_value;
 
-break;
 
+      break;
 
 
-default:
+    case "free_shipping":
 
 
-throw new Error(
+      freeShipping =
+        true;
 
-"Invalid coupon type"
 
-);
+      discount =
+        0;
 
 
-}
+      break;
 
 
+    case "free_gift":
 
 
+      freeGift =
+        true;
 
 
+      discount =
+        0;
 
-return {
 
+      break;
 
-coupon,
 
+    default:
 
-discount,
 
+      throw new Error(
 
-freeShipping,
+        "Invalid coupon type"
 
+      );
 
-freeGift
+  }
 
 
-};
+  return {
 
+    coupon,
+
+    discount,
+
+    freeShipping,
+
+    freeGift,
+
+  };
 
 }
