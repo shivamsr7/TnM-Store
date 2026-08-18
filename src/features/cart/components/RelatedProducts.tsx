@@ -1,0 +1,804 @@
+import {
+  Check,
+  Plus,
+  Sparkles,
+} from "lucide-react";
+
+import {
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  useQuery,
+} from "@tanstack/react-query";
+
+import {
+  supabase,
+} from "@/shared/lib/supabase";
+
+import {
+  useCartActions,
+} from "@/features/cart/hooks/useCartActions";
+
+
+interface RelatedProductsProps {
+  cartItems: Array<{
+    productId?: string;
+  }>;
+}
+
+
+export default function RelatedProducts({
+  cartItems,
+}: RelatedProductsProps) {
+
+  const {
+    addToCart,
+  } = useCartActions();
+
+
+  const [
+    addedProductId,
+    setAddedProductId,
+  ] = useState<string | null>(null);
+
+
+  const productIds = cartItems
+    .map((item) => item.productId)
+    .filter(Boolean) as string[];
+
+
+  const {
+    data: products = [],
+    isLoading,
+  } = useQuery({
+
+    queryKey: [
+      "cart-related-products",
+      ...productIds.sort(),
+    ],
+
+    queryFn: async () => {
+
+      if (productIds.length === 0) {
+        return [];
+      }
+
+
+      /*
+       * First get the categories/subcategories represented
+       * by the products already in the cart.
+       */
+
+      const {
+        data: cartProducts,
+        error: cartProductsError,
+      } = await supabase
+
+        .from("products")
+
+        .select(
+          "id, category_id, subcategory_id"
+        )
+
+        .in(
+          "id",
+          productIds
+        );
+
+
+      if (cartProductsError) {
+        throw cartProductsError;
+      }
+
+
+      const categoryIds = [
+        ...new Set(
+          (cartProducts ?? [])
+            .map(
+              (product: any) =>
+                product.category_id
+            )
+            .filter(Boolean)
+        ),
+      ];
+
+
+      const subcategoryIds = [
+        ...new Set(
+          (cartProducts ?? [])
+            .map(
+              (product: any) =>
+                product.subcategory_id
+            )
+            .filter(Boolean)
+        ),
+      ];
+
+
+      /*
+       * Prefer products from the same category.
+       * If no category is available, fall back to
+       * best sellers/trending products.
+       */
+
+      let query =
+        supabase
+
+          .from("products")
+
+          .select(
+            `
+              id,
+              name,
+              price,
+              compare_price,
+              stock,
+              category_id,
+              subcategory_id,
+              best_seller,
+              trending,
+              sales_count,
+              product_images(
+                image_url,
+                sort_order,
+                is_primary
+              )
+            `
+          )
+
+          .eq(
+            "status",
+            "active"
+          )
+
+          .gt(
+            "stock",
+            0
+          )
+
+          .not(
+            "id",
+            "in",
+            `(${productIds.join(",")})`
+          );
+
+
+      if (categoryIds.length > 0) {
+
+        query =
+          query.in(
+            "category_id",
+            categoryIds
+          );
+
+      }
+
+
+      const {
+        data: candidates,
+        error: candidatesError,
+      } = await query
+
+        .order(
+          "best_seller",
+          {
+            ascending: false,
+          }
+        )
+
+        .order(
+          "trending",
+          {
+            ascending: false,
+          }
+        )
+
+        .order(
+          "sales_count",
+          {
+            ascending: false,
+          }
+        )
+
+        .limit(
+          12
+        );
+
+
+      if (candidatesError) {
+        throw candidatesError;
+      }
+
+
+      /*
+       * Score candidates so same-subcategory products
+       * appear before general same-category products.
+       */
+
+      const scored = (
+        candidates ?? []
+      )
+        .map(
+          (product: any) => {
+
+            const sameSubcategory =
+              subcategoryIds.includes(
+                product.subcategory_id
+              );
+
+            const sameCategory =
+              categoryIds.includes(
+                product.category_id
+              );
+
+
+            const score =
+              (sameSubcategory ? 5 : 0) +
+              (sameCategory ? 3 : 0) +
+              (product.best_seller ? 2 : 0) +
+              (product.trending ? 1 : 0) +
+              Math.min(
+                Number(
+                  product.sales_count
+                ) || 0,
+                20
+              ) / 20;
+
+
+            return {
+              ...product,
+              _score: score,
+            };
+
+          }
+        )
+        .sort(
+          (a: any, b: any) =>
+            b._score -
+            a._score
+        )
+        .slice(
+          0,
+          6
+        );
+
+
+      /*
+       * If the cart products have no category or the
+       * category has no recommendations, fall back to
+       * best sellers/trending products from the store.
+       */
+
+      if (
+        scored.length === 0
+      ) {
+
+        const {
+          data: fallbackProducts,
+          error: fallbackError,
+        } = await supabase
+
+          .from("products")
+
+          .select(
+            `
+              id,
+              name,
+              price,
+              compare_price,
+              stock,
+              category_id,
+              subcategory_id,
+              best_seller,
+              trending,
+              sales_count,
+              product_images(
+                image_url,
+                sort_order,
+                is_primary
+              )
+            `
+          )
+
+          .eq(
+            "status",
+            "active"
+          )
+
+          .gt(
+            "stock",
+            0
+          )
+
+          .not(
+            "id",
+            "in",
+            `(${productIds.join(",")})`
+          )
+
+          .order(
+            "best_seller",
+            {
+              ascending: false,
+            }
+          )
+
+          .order(
+            "trending",
+            {
+              ascending: false,
+            }
+          )
+
+          .order(
+            "sales_count",
+            {
+              ascending: false,
+            }
+          )
+
+          .limit(
+            6
+          );
+
+
+        if (fallbackError) {
+          throw fallbackError;
+        }
+
+
+        return fallbackProducts ?? [];
+
+      }
+
+
+      return scored;
+
+    },
+
+    enabled:
+      productIds.length > 0,
+
+    staleTime:
+      5 * 60 * 1000,
+
+  });
+
+
+  useEffect(() => {
+
+    if (!addedProductId) {
+      return;
+    }
+
+
+    const timer =
+      window.setTimeout(
+        () => {
+          setAddedProductId(null);
+        },
+        1400
+      );
+
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+
+  }, [
+    addedProductId,
+  ]);
+
+
+  if (
+    isLoading ||
+    products.length === 0
+  ) {
+
+    return null;
+
+  }
+
+
+  const getImage = (
+    product: any
+  ) => {
+
+    const images =
+      product.product_images ?? [];
+
+
+    const primary =
+      images.find(
+        (image: any) =>
+          image.is_primary
+      );
+
+
+    const sorted =
+      [...images].sort(
+        (
+          a: any,
+          b: any
+        ) =>
+          (
+            a.sort_order ?? 0
+          ) -
+          (
+            b.sort_order ?? 0
+          )
+      );
+
+
+    return (
+      primary?.image_url ||
+      sorted[0]?.image_url ||
+      ""
+    );
+
+  };
+
+
+  const handleAdd = (
+    product: any
+  ) => {
+
+    addToCart(
+      product
+    );
+
+    setAddedProductId(
+      product.id
+    );
+
+  };
+
+
+  return (
+
+    <section
+      className="
+        shrink-0
+        border-t
+        border-neutral-100
+        bg-white
+        px-4
+        pb-4
+        pt-5
+      "
+    >
+
+      <div
+        className="
+          flex
+          items-end
+          justify-between
+          gap-3
+        "
+      >
+
+        <div>
+
+          <div
+            className="
+              flex
+              items-center
+              gap-1.5
+            "
+          >
+
+            <Sparkles
+              size={15}
+              className="
+                text-[#C8A44D]
+              "
+            />
+
+            <h3
+              className="
+                text-sm
+                font-semibold
+              "
+            >
+
+              You may also like
+
+            </h3>
+
+          </div>
+
+
+          <p
+            className="
+              mt-1
+              text-[11px]
+              text-neutral-500
+            "
+          >
+
+            Complete your look with these picks
+
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div
+        className="
+          mt-4
+          flex
+          gap-3
+          overflow-x-auto
+          overscroll-x-contain
+          pb-1
+          [-ms-overflow-style:none]
+          [scrollbar-width:none]
+          [&::-webkit-scrollbar]:hidden
+        "
+      >
+
+        {
+          products.map(
+            (
+              product: any,
+              index: number
+            ) => {
+
+              const image =
+                getImage(
+                  product
+                );
+
+
+              const isAdded =
+                addedProductId ===
+                product.id;
+
+
+              return (
+
+                <div
+                  key={
+                    product.id
+                  }
+                  className="
+                    w-[148px]
+                    shrink-0
+                    overflow-hidden
+                    rounded-2xl
+                    border
+                    border-neutral-200
+                    bg-white
+                    shadow-sm
+                    animate-in
+                    fade-in
+                    slide-in-from-right-2
+                    duration-300
+                  "
+                  style={{
+                    animationDelay:
+                      `${index * 60}ms`,
+                  }}
+                >
+
+                  <div
+                    className="
+                      relative
+                      aspect-square
+                      overflow-hidden
+                      bg-neutral-100
+                    "
+                  >
+
+                    {
+                      image ? (
+
+                        <img
+                          src={
+                            image
+                          }
+                          alt={
+                            product.name
+                          }
+                          className="
+                            h-full
+                            w-full
+                            object-cover
+                            transition-transform
+                            duration-500
+                            hover:scale-105
+                          "
+                        />
+
+                      ) : (
+
+                        <div
+                          className="
+                            flex
+                            h-full
+                            w-full
+                            items-center
+                            justify-center
+                            text-2xl
+                          "
+                        >
+
+                          ✨
+
+                        </div>
+
+                      )
+                    }
+
+                  </div>
+
+
+                  <div
+                    className="
+                      p-3
+                    "
+                  >
+
+                    <p
+                      className="
+                        line-clamp-2
+                        min-h-[32px]
+                        text-[11px]
+                        font-medium
+                        leading-4
+                        text-neutral-900
+                      "
+                    >
+
+                      {
+                        product.name
+                      }
+
+                    </p>
+
+
+                    <div
+                      className="
+                        mt-2
+                        flex
+                        items-center
+                        gap-1.5
+                      "
+                    >
+
+                      <span
+                        className="
+                          text-sm
+                          font-semibold
+                        "
+                      >
+
+                        ₹
+                        {
+                          Number(
+                            product.price
+                          ).toFixed(0)
+                        }
+
+                      </span>
+
+
+                      {
+                        product.compare_price &&
+                        Number(
+                          product.compare_price
+                        ) >
+                        Number(
+                          product.price
+                        ) && (
+
+                          <span
+                            className="
+                              truncate
+                              text-[10px]
+                              text-neutral-400
+                              line-through
+                            "
+                          >
+
+                            ₹
+                            {
+                              Number(
+                                product.compare_price
+                              ).toFixed(0)
+                            }
+
+                          </span>
+
+                        )
+                      }
+
+                    </div>
+
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleAdd(
+                          product
+                        )
+                      }
+                      className={`
+                        mt-3
+                        flex
+                        w-full
+                        items-center
+                        justify-center
+                        gap-1.5
+                        rounded-xl
+                        py-2.5
+                        text-[11px]
+                        font-semibold
+                        transition-all
+                        duration-200
+                        active:scale-95
+                        ${
+                          isAdded
+                            ? `
+                              bg-green-600
+                              text-white
+                            `
+                            : `
+                              bg-black
+                              text-white
+                              hover:bg-neutral-800
+                            `
+                        }
+                      `}
+                    >
+
+                      {
+                        isAdded ? (
+
+                          <>
+                            <Check
+                              size={13}
+                              strokeWidth={2.5}
+                            />
+
+                            Added
+
+                          </>
+
+                        ) : (
+
+                          <>
+                            <Plus
+                              size={13}
+                            />
+
+                            Add
+
+                          </>
+
+                        )
+                      }
+
+                    </button>
+
+                  </div>
+
+                </div>
+
+              );
+
+            }
+          )
+        }
+
+      </div>
+
+    </section>
+
+  );
+
+}

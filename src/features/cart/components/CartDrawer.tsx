@@ -41,6 +41,8 @@ import { useQuery } from "@tanstack/react-query";
 
 import { supabase } from "@/shared/lib/supabase";
 
+import RelatedProducts from "@/features/cart/components/RelatedProducts";
+
 
 export default function CartDrawer() {
 
@@ -846,13 +848,14 @@ export default function CartDrawer() {
 
           className="
 
+            min-h-0
             flex-1
 
             overflow-y-auto
             overscroll-contain
 
             px-4
-            pb-5
+            pb-6
             pt-5
 
           "
@@ -2494,6 +2497,20 @@ export default function CartDrawer() {
 
               </div>
 
+            )
+          }
+
+          {/* =================================================
+              RELATED PRODUCTS
+          ================================================== */}
+
+          {
+            items.length > 0 && (
+              <div className="mt-6">
+                <RelatedProducts
+                  cartItems={items}
+                />
+              </div>
             )
           }
 
