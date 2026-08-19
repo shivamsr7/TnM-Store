@@ -46,16 +46,6 @@ import { supabase } from "@/shared/lib/supabase";
 import RelatedProducts from "@/features/cart/components/RelatedProducts";
 
 
-interface CartBannerCoupon {
-  id: string;
-  code: string;
-  cart_display_text: string | null;
-  cart_display_priority: number;
-  is_active: boolean;
-  starts_at: string | null;
-  expires_at: string | null;
-}
-
 export default function CartDrawer() {
 
   /*
@@ -138,152 +128,6 @@ export default function CartDrawer() {
       5 * 60 * 1000,
 
   });
-
-
-  /*
-   * =========================================================
-   * CART BANNER COUPON
-   * =========================================================
-   *
-   * Reads the promotional cart banner from the Coupons
-   * section. Only coupons explicitly marked Show in Cart
-   * and currently valid are eligible.
-   *
-   * The highest cart_display_priority wins.
-   * =========================================================
-   */
-
-  const {
-    data: cartBannerCoupons = [],
-  } = useQuery<CartBannerCoupon[]>({
-    queryKey: [
-      "cart-banner-coupons",
-    ],
-
-    queryFn: async () => {
-      const {
-        data,
-        error,
-      } = await supabase
-        .from("coupons")
-        .select(
-          "id, code, cart_display_text, cart_display_priority, is_active, starts_at, expires_at"
-        )
-        .eq(
-          "show_in_cart",
-          true
-        )
-        .eq(
-          "is_active",
-          true
-        )
-        .order(
-          "cart_display_priority",
-          {
-            ascending: false,
-          }
-        );
-
-      if (error) {
-        throw error;
-      }
-
-      const now =
-        new Date();
-
-      return (data ?? []).filter(
-        (coupon) => {
-          const startsAt =
-            coupon.starts_at
-              ? new Date(
-                  coupon.starts_at
-                )
-              : null;
-
-          const expiresAt =
-            coupon.expires_at
-              ? new Date(
-                  coupon.expires_at
-                )
-              : null;
-
-          if (
-            startsAt &&
-            startsAt > now
-          ) {
-            return false;
-          }
-
-          if (
-            expiresAt &&
-            expiresAt < now
-          ) {
-            return false;
-          }
-
-          return true;
-        }
-      );
-    },
-
-    staleTime:
-      5 * 60 * 1000,
-
-    enabled:
-      isCartOpen,
-  });
-
-
-  /*
-   * =========================================================
-   * CART BANNER ROTATION
-   * =========================================================
-   *
-   * Shows every active cart promotion one after another.
-   * The list comes from Admin > Coupons > Show in Cart.
-   * =========================================================
-   */
-
-  const [
-    activeCartBannerIndex,
-    setActiveCartBannerIndex,
-  ] = useState(0);
-
-
-  useEffect(() => {
-    if (cartBannerCoupons.length <= 1) {
-      setActiveCartBannerIndex(0);
-      return;
-    }
-
-    setActiveCartBannerIndex(
-      current =>
-        current >= cartBannerCoupons.length
-          ? 0
-          : current
-    );
-
-    const interval =
-      window.setInterval(() => {
-        setActiveCartBannerIndex(
-          current =>
-            (current + 1) %
-            cartBannerCoupons.length
-        );
-      }, 3200);
-
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, [
-    cartBannerCoupons.length,
-  ]);
-
-
-  const activeCartBanner =
-    cartBannerCoupons[
-      activeCartBannerIndex
-    ] ?? null;
 
 
   /*
@@ -1118,49 +962,29 @@ export default function CartDrawer() {
 
                 {/* OFFER BANNER */}
 
-                {activeCartBanner && (
-                  <div
-                    key={activeCartBanner.id}
-                    className="
+                <div
 
-                      relative
-                      overflow-hidden
+                  className="
 
-                      rounded-2xl
+                    rounded-2xl
 
-                      bg-black
+                    bg-black
 
-                      px-4
-                      py-4
+                    px-4
+                    py-4
 
-                      text-center
-                      text-sm
-                      font-semibold
-                      text-white
+                    text-center
+                    text-sm
+                    font-semibold
+                    text-white
 
-                    "
-                  >
+                  "
 
-                    <div
-                      key={`${activeCartBanner.id}-${activeCartBannerIndex}`}
-                      className="
-                        animate-in
-                        fade-in
-                        slide-in-from-right-4
-                        duration-500
-                      "
-                    >
+                >
 
-                      ✨{" "}
-                      {activeCartBanner.cart_display_text?.trim() ||
-                        "Special offer available"}{" "}
-                      | Use Code :{" "}
-                      {activeCartBanner.code}
+                  ✨ Buy 4 at ₹2999 | Use Code : MONSOON4
 
-                    </div>
-
-                  </div>
-                )}
+                </div>
 
 
                 {/* =================================================
