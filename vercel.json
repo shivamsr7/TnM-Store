@@ -5,6 +5,10 @@
       "destination": "/api/shiprocket/products"
     },
     {
+      "source": "/shiprocket/collections",
+      "destination": "/api/shiprocket/collections"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
