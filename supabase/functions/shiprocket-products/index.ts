@@ -21,19 +21,6 @@ const corsHeaders = {
 };
 
 
-/*
- * =========================================================
- * SUPABASE
- * =========================================================
- *
- * The service-role key is used only inside this Edge
- * Function so Shiprocket can read the catalog even though
- * the public website tables are protected by RLS.
- *
- * NEVER expose SUPABASE_SERVICE_ROLE_KEY to the frontend.
- * =========================================================
- */
-
 const supabaseUrl =
   Deno.env.get(
     "SUPABASE_URL"
@@ -66,11 +53,13 @@ const supabase =
 
     {
       auth: {
+
         autoRefreshToken:
           false,
 
         persistSession:
           false,
+
       },
     }
 
@@ -131,8 +120,33 @@ function getImageUrl(
   }
 
 
+  const sortedImages =
+    [
+      ...images,
+    ].sort(
+
+      (
+        a,
+        b
+      ) =>
+
+        Number(
+          a?.sort_order ??
+          0
+        )
+
+        -
+
+        Number(
+          b?.sort_order ??
+          0
+        )
+
+    );
+
+
   const primary =
-    images.find(
+    sortedImages.find(
       (
         image
       ) =>
@@ -141,11 +155,14 @@ function getImageUrl(
 
 
   return String(
+
     (
       primary ??
-      images[0]
+      sortedImages[0]
     )?.image_url ??
+
     ""
+
   );
 
 }
@@ -162,15 +179,11 @@ function mapStatus(
     ).toLowerCase();
 
 
-  /*
-   * Shiprocket's example uses "active".
-   *
-   * We expose active products only from the catalog query,
-   * so this is primarily a defensive mapping.
-   */
+  return value ===
+    "active"
 
-  return value === "active"
     ? "active"
+
     : value;
 
 }
@@ -178,32 +191,53 @@ function mapStatus(
 
 /*
  * =========================================================
- * GET /shiprocket-products
+ * SHIPROCKET COLLECTION ID GENERATOR
  * =========================================================
  *
- * Shiprocket calls this endpoint in the form:
+ * We keep a separate numeric ID for Shiprocket.
  *
- * ?page=1&limit=100
+ * Your actual T&M collection ID remains a UUID.
  *
- * Response:
+ * Example:
  *
- * {
- *   "data": {
- *     "total": 1,
- *     "products": [...]
- *   }
- * }
+ * T&M UUID
+ *      ↓
+ * shiprocket_collection_mappings
+ *      ↓
+ * 100000001
+ *
+ * =========================================================
+ */
+
+function generateShiprocketCollectionId() {
+
+  return Math.floor(
+
+    100000000 +
+
+    Math.random() *
+      900000000
+
+  );
+
+}
+
+
+/*
+ * =========================================================
+ * HANDLER
  * =========================================================
  */
 
 serve(
+
   async (
     request
   ) => {
 
     /*
      * =======================================================
-     * CORS
+     * OPTIONS
      * =======================================================
      */
 
@@ -213,11 +247,14 @@ serve(
     ) {
 
       return new Response(
+
         "ok",
+
         {
           headers:
             corsHeaders,
         }
+
       );
 
     }
@@ -266,17 +303,17 @@ serve(
 
     try {
 
-      /*
-       * =====================================================
-       * PAGINATION
-       * =====================================================
-       */
-
       const url =
         new URL(
           request.url
         );
 
+
+      /*
+       * =====================================================
+       * PAGINATION
+       * =====================================================
+       */
 
       const page =
         Math.max(
@@ -284,10 +321,13 @@ serve(
           1,
 
           Number(
+
             url.searchParams.get(
               "page"
             ) ??
+
             "1"
+
           ) || 1
 
         );
@@ -295,16 +335,15 @@ serve(
 
       const requestedLimit =
         Number(
+
           url.searchParams.get(
             "limit"
           ) ??
+
           "100"
+
         ) || 100;
 
-
-      /*
-       * Keep the endpoint bounded.
-       */
 
       const limit =
         Math.min(
@@ -334,77 +373,400 @@ serve(
 
       /*
        * =====================================================
-       * TOTAL + PRODUCTS
-       * =====================================================
-       *
-       * Only active products are exposed to Shiprocket.
-       * This prevents draft/hidden/archived products from
-       * appearing in the checkout catalog.
+       * COLLECTION FILTER
        * =====================================================
        */
 
+      const collectionIdParam =
+        url.searchParams.get(
+          "collection_id"
+        );
+
+
+      let productIds:
+        string[] | null =
+          null;
+
+
+      /*
+       * =====================================================
+       * IF collection_id IS PROVIDED
+       * =====================================================
+       *
+       * Shiprocket sends its numeric collection ID.
+       *
+       * We translate that to our internal UUID using:
+       *
+       * shiprocket_collection_mappings
+       *
+       * Then find products through:
+       *
+       * product_collections
+       * =====================================================
+       */
+
+      if (
+        collectionIdParam !==
+        null &&
+        collectionIdParam !==
+        ""
+      ) {
+
+        const shiprocketCollectionId =
+          Number(
+            collectionIdParam
+          );
+
+
+        if (
+          !Number.isInteger(
+            shiprocketCollectionId
+          ) ||
+          shiprocketCollectionId <=
+            0
+        ) {
+
+          return new Response(
+
+            JSON.stringify({
+
+              error:
+                "Invalid collection_id.",
+
+            }),
+
+            {
+
+              status:
+                400,
+
+              headers: {
+
+                ...corsHeaders,
+
+                "Content-Type":
+                  "application/json",
+
+              },
+
+            }
+
+          );
+
+        }
+
+
+        /*
+         * ===================================================
+         * FIND COLLECTION MAPPING
+         * ===================================================
+         */
+
+        let {
+          data:
+            collectionMapping,
+
+          error:
+            collectionMappingError,
+
+        } = await supabase
+
+          .from(
+            "shiprocket_collection_mappings"
+          )
+
+          .select(
+
+            `
+              collection_id,
+              shiprocket_collection_id
+            `
+
+          )
+
+          .eq(
+
+            "shiprocket_collection_id",
+
+            shiprocketCollectionId
+
+          )
+
+          .maybeSingle();
+
+
+        if (
+          collectionMappingError
+        ) {
+
+          throw collectionMappingError;
+
+        }
+
+
+        /*
+         * If Shiprocket sends a collection ID that we have
+         * never mapped, return an empty collection rather
+         * than accidentally returning ALL products.
+         */
+
+        if (
+          !collectionMapping
+        ) {
+
+          return new Response(
+
+            JSON.stringify({
+
+              data: {
+
+                total:
+                  0,
+
+                products:
+                  [],
+
+              },
+
+            }),
+
+            {
+
+              status:
+                200,
+
+              headers: {
+
+                ...corsHeaders,
+
+                "Content-Type":
+                  "application/json",
+
+              },
+
+            }
+
+          );
+
+        }
+
+
+        /*
+         * ===================================================
+         * GET PRODUCT IDS FOR COLLECTION
+         * ===================================================
+         */
+
+        const {
+
+          data:
+            collectionProducts,
+
+          error:
+            collectionProductsError,
+
+        } = await supabase
+
+          .from(
+            "product_collections"
+          )
+
+          .select(
+            "product_id"
+          )
+
+          .eq(
+
+            "collection_id",
+
+            collectionMapping.collection_id
+
+          );
+
+
+        if (
+          collectionProductsError
+        ) {
+
+          throw collectionProductsError;
+
+        }
+
+
+        productIds =
+          (
+            collectionProducts ??
+            []
+          ).map(
+
+            (
+              row
+            ) =>
+              row.product_id
+
+          );
+
+
+        /*
+         * No products in the collection.
+         */
+
+        if (
+          productIds.length ===
+          0
+        ) {
+
+          return new Response(
+
+            JSON.stringify({
+
+              data: {
+
+                total:
+                  0,
+
+                products:
+                  [],
+
+              },
+
+            }),
+
+            {
+
+              status:
+                200,
+
+              headers: {
+
+                ...corsHeaders,
+
+                "Content-Type":
+                  "application/json",
+
+              },
+
+            }
+
+          );
+
+        }
+
+      }
+
+
+      /*
+       * =====================================================
+       * FETCH PRODUCTS
+       * =====================================================
+       *
+       * Two modes:
+       *
+       * 1. No collection_id
+       *    → all active products
+       *
+       * 2. collection_id provided
+       *    → active products belonging to that collection
+       * =====================================================
+       */
+
+      let productsQuery =
+        supabase
+
+          .from(
+            "products"
+          )
+
+          .select(
+
+            `
+              id,
+              name,
+              slug,
+              sku,
+              short_description,
+              description,
+              brand_id,
+              category_id,
+              price,
+              compare_price,
+              stock,
+              track_inventory,
+              allow_backorders,
+              status,
+              weight,
+              created_at,
+              updated_at,
+              product_images (
+                id,
+                image_url,
+                is_primary,
+                sort_order
+              )
+            `,
+
+            {
+              count:
+                "exact",
+            }
+
+          )
+
+          .eq(
+            "status",
+            "active"
+          )
+
+          .order(
+
+            "created_at",
+
+            {
+              ascending:
+                true,
+            }
+
+          );
+
+
+      /*
+       * Apply collection filtering only when requested.
+       */
+
+      if (
+        productIds !==
+        null
+      ) {
+
+        productsQuery =
+          productsQuery.in(
+
+            "id",
+
+            productIds
+
+          );
+
+      }
+
+
       const {
 
-        data: products,
+        data:
+          products,
 
-        error: productsError,
+        error:
+          productsError,
 
         count,
 
-      } = await supabase
+      } =
+        await productsQuery.range(
 
-        .from(
-          "products"
-        )
-
-        .select(
-          `
-            id,
-            name,
-            slug,
-            sku,
-            short_description,
-            description,
-            brand_id,
-            category_id,
-            price,
-            compare_price,
-            stock,
-            track_inventory,
-            allow_backorders,
-            status,
-            weight,
-            created_at,
-            updated_at,
-            product_images (
-              id,
-              image_url,
-              is_primary,
-              sort_order
-            )
-          `,
-          {
-            count:
-              "exact",
-          }
-        )
-
-        .eq(
-          "status",
-          "active"
-        )
-
-        .order(
-          "created_at",
-          {
-            ascending:
-              true,
-          }
-        )
-
-        .range(
           from,
+
           to
+
         );
 
 
@@ -424,7 +786,7 @@ serve(
 
       /*
        * =====================================================
-       * BUILD SHIPROCKET PRODUCTS
+       * BUILD SHIPROCKET RESPONSE
        * =====================================================
        */
 
@@ -439,7 +801,7 @@ serve(
 
         /*
          * ===================================================
-         * FIND EXISTING MAPPING
+         * PRODUCT MAPPING
          * ===================================================
          */
 
@@ -458,16 +820,21 @@ serve(
           )
 
           .select(
+
             `
               product_id,
               shiprocket_product_id,
               shiprocket_variant_id
             `
+
           )
 
           .eq(
+
             "product_id",
+
             product.id
+
           )
 
           .maybeSingle();
@@ -487,13 +854,7 @@ serve(
 
 
         /*
-         * ===================================================
-         * CREATE MAPPING
-         * ===================================================
-         *
-         * The SQL defaults we created earlier generate the
-         * permanent bigint Shiprocket IDs.
-         * ===================================================
+         * Create permanent product mapping if necessary.
          */
 
         if (
@@ -522,25 +883,26 @@ serve(
             })
 
             .select(
+
               `
                 product_id,
                 shiprocket_product_id,
                 shiprocket_variant_id
               `
+
             )
 
             .single();
 
 
-          /*
-           * Another request could have created the mapping
-           * between our SELECT and INSERT. If that happens,
-           * read the already-created mapping.
-           */
-
           if (
             mappingInsertError
           ) {
+
+            /*
+             * Another request may have created the
+             * mapping at the same time.
+             */
 
             if (
               mappingInsertError.code ===
@@ -562,16 +924,21 @@ serve(
                 )
 
                 .select(
+
                   `
                     product_id,
                     shiprocket_product_id,
                     shiprocket_variant_id
                   `
+
                 )
 
                 .eq(
+
                   "product_id",
+
                   product.id
+
                 )
 
                 .single();
@@ -610,7 +977,9 @@ serve(
         ) {
 
           throw new Error(
+
             `Unable to create Shiprocket mapping for product ${product.id}`
+
           );
 
         }
@@ -626,22 +995,32 @@ serve(
           Array.isArray(
             product.product_images
           )
+
             ? [
+
                 ...product.product_images,
+
               ].sort(
+
                 (
                   a,
                   b
                 ) =>
+
                   Number(
                     a?.sort_order ??
                     0
-                  ) -
+                  )
+
+                  -
+
                   Number(
                     b?.sort_order ??
                     0
                   )
+
               )
+
             : [];
 
 
@@ -658,15 +1037,23 @@ serve(
          */
 
         const quantity =
-          product.track_inventory === false
+          product.track_inventory ===
+          false
+
             ? 999999
+
             : Math.max(
+
                 0,
+
                 Math.floor(
+
                   numberOrZero(
                     product.stock
                   )
+
                 )
+
               );
 
 
@@ -674,27 +1061,23 @@ serve(
          * ===================================================
          * WEIGHT
          * ===================================================
-         *
-         * Your products.weight has no unit column.
-         *
-         * We therefore return the numeric value as kg,
-         * which is the safest explicit unit for the catalog
-         * response instead of silently converting it.
-         * ===================================================
          */
 
         const weight =
           Math.max(
+
             0,
+
             numberOrZero(
               product.weight
             )
+
           );
 
 
         /*
          * ===================================================
-         * PRODUCT
+         * PRODUCT OBJECT
          * ===================================================
          */
 
@@ -705,43 +1088,55 @@ serve(
               mapping.shiprocket_product_id
             ),
 
+
           title:
             nullableString(
               product.name
             ),
 
+
           body_html:
             nullableString(
+
               product.description ??
               product.short_description
+
             ),
+
 
           vendor:
             "T&M Jewels",
 
+
           product_type:
             "Jewellery",
+
 
           created_at:
             product.created_at ??
             "",
+
 
           handle:
             nullableString(
               product.slug
             ),
 
+
           updated_at:
             product.updated_at ??
             "",
 
+
           tags:
             "",
+
 
           status:
             mapStatus(
               product.status
             ),
+
 
           variants: [
 
@@ -752,47 +1147,61 @@ serve(
                   mapping.shiprocket_variant_id
                 ),
 
+
               title:
                 "Default",
+
 
               price:
                 numberOrZero(
                   product.price
                 ).toFixed(2),
 
+
               compare_at_price:
-                product.compare_price == null
-                  ? ""
-                  : numberOrZero(
+
+                Number(
+                  product.compare_price
+                ) > 0
+
+                  ? Number(
                       product.compare_price
-                    ).toFixed(2),
+                    ).toFixed(2)
+
+                  : "",
+
 
               sku:
                 nullableString(
                   product.sku
                 ),
 
-              quantity,
 
               created_at:
                 product.created_at ??
                 "",
 
+
               updated_at:
                 product.updated_at ??
                 "",
 
+
               taxable:
                 true,
 
-              option_values:
-                {},
+
+              quantity,
+
 
               grams:
                 Math.round(
+
                   weight *
                   1000
+
                 ),
+
 
               image: {
 
@@ -801,7 +1210,13 @@ serve(
 
               },
 
+
+              option_values:
+                {},
+
+
               weight,
+
 
               weight_unit:
                 "kg",
@@ -810,15 +1225,17 @@ serve(
 
           ],
 
+
+          options:
+            [],
+
+
           image: {
 
             src:
               imageUrl,
 
           },
-
-          options:
-            [],
 
         });
 
@@ -827,7 +1244,7 @@ serve(
 
       /*
        * =====================================================
-       * RESPONSE
+       * FINAL RESPONSE
        * =====================================================
        */
 
@@ -873,8 +1290,11 @@ serve(
     ) {
 
       console.error(
-        "Shiprocket catalog error:",
+
+        "Shiprocket products error:",
+
         error
+
       );
 
 
@@ -883,8 +1303,11 @@ serve(
         JSON.stringify({
 
           error:
+
             error instanceof Error
+
               ? error.message
+
               : "Unable to fetch products.",
 
         }),
@@ -910,4 +1333,5 @@ serve(
     }
 
   }
+
 );
