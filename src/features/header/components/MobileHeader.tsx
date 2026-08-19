@@ -9,12 +9,10 @@ import {
   Truck,
 } from "lucide-react";
 
-
 import {
   Link,
   useNavigate,
 } from "react-router-dom";
-
 
 import {
   useEffect,
@@ -22,21 +20,17 @@ import {
   useState,
 } from "react";
 
-
 import Logo from "./logo";
 
 import SearchBar from "./SearchBar";
-
 
 import {
   useAuth,
 } from "@/features/Auth/context/AuthContext";
 
-
 import {
   useCartStore,
 } from "@/features/cart/store/cart.store";
-
 
 import {
   useUnreadNotificationsCount,
@@ -44,7 +38,6 @@ import {
   useMarkNotificationRead,
   useMarkAllNotificationsRead,
 } from "@/features/notifications/hooks/useNotifications";
-
 
 import {
   timeAgo,
@@ -78,21 +71,17 @@ function getNotificationIcon(
 
       return CreditCard;
 
-
     case "reward":
 
       return Gift;
-
 
     case "shipping":
 
       return Truck;
 
-
     case "order":
 
       return Package;
-
 
     default:
 
@@ -113,16 +102,13 @@ function getNotificationColor(
 
       return "bg-emerald-100 text-emerald-700";
 
-
     case "reward":
 
       return "bg-purple-100 text-purple-700";
 
-
     case "shipping":
 
       return "bg-blue-100 text-blue-700";
-
 
     default:
 
@@ -322,6 +308,7 @@ export default function MobileHeader({
 
       <div
         className="
+          relative
           flex
           h-16
           items-center
@@ -362,11 +349,21 @@ export default function MobileHeader({
 
         {/* ===================================================
             LOGO
+            FIX:
+            Absolutely centered so its position is independent
+            of the width of the left/right icon groups.
         ==================================================== */}
 
         <div
           className="
+            pointer-events-none
+            absolute
+            left-1/2
+            top-1/2
             flex
+            -translate-x-1/2
+            -translate-y-1/2
+            items-center
             justify-center
           "
         >
@@ -382,6 +379,7 @@ export default function MobileHeader({
 
         <div
           className="
+            ml-auto
             flex
             items-center
             gap-1
@@ -391,8 +389,6 @@ export default function MobileHeader({
 
           {/* =================================================
               WISHLIST
-              FIXED:
-              Now navigates to /wishlist
           ================================================== */}
 
           <Link
