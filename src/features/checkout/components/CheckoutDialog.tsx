@@ -1147,211 +1147,314 @@ export default function CheckoutDialog({
             !orderSuccess && (
 
               <div
-
                 className="
                   mt-5
-                  flex
-                  items-center
-                  justify-between
+                  rounded-2xl
+                  border
+                  border-neutral-100
+                  bg-neutral-50/70
+                  px-3
+                  py-3.5
+                  shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]
 
                   md:mt-6
+                  md:px-4
                 "
-
               >
 
-                {
-                  STEPS.map(
-                    (
-                      item,
-                      index
-                    ) => {
+                <div
+                  className="
+                    flex
+                    items-start
+                  "
+                >
 
-                      const Icon =
-                        item.icon;
+                  {
+                    STEPS.map(
+                      (
+                        item,
+                        index
+                      ) => {
 
+                        const Icon =
+                          item.icon;
 
-                      const active =
-                        index <=
-                        currentStepIndex;
+                        const completed =
+                          index <
+                          currentStepIndex;
 
+                        const active =
+                          index ===
+                          currentStepIndex;
 
-                      return (
+                        const available =
+                          index <=
+                          currentStepIndex;
 
-                        <div
-
-                          key={
-                            item.key
-                          }
-
-                          className="
-                            flex
-                            flex-1
-                            items-center
-                          "
-
-                        >
+                        return (
 
                           <div
-
+                            key={
+                              item.key
+                            }
                             className="
                               flex
-                              flex-col
-                              items-center
+                              min-w-0
+                              flex-1
+                              items-start
                             "
-
                           >
 
-                            <button
+                            <div
+                              className="
+                                flex
+                                min-w-0
+                                flex-1
+                                flex-col
+                                items-center
+                              "
+                            >
 
-                              type="button"
+                              <button
+                                type="button"
+                                disabled={
+                                  !available
+                                }
+                                onClick={() => {
 
-                              disabled={
-                                index >
-                                currentStepIndex
-                              }
+                                  if (
+                                    !available
+                                  ) {
+                                    return;
+                                  }
 
-                              onClick={() => {
+                                  if (
+                                    item.key ===
+                                    "login"
+                                  ) {
 
-                                if (
-                                  index <
-                                  currentStepIndex
-                                ) {
+                                    if (
+                                      !authCustomer
+                                    ) {
+
+                                      setStep(
+                                        "login"
+                                      );
+
+                                    }
+
+                                    return;
+
+                                  }
 
                                   if (
                                     item.key ===
                                     "address"
                                   ) {
 
-                                    setShippingError(
-                                      ""
-                                    );
+                                    setShippingError("");
 
                                     setStep(
                                       "address"
                                     );
 
-                                  }
+                                    return;
 
+                                  }
 
                                   if (
                                     item.key ===
-                                      "login" &&
-                                    !authCustomer
+                                    "payment"
                                   ) {
 
                                     setStep(
-                                      "login"
+                                      "payment"
                                     );
 
                                   }
 
+                                }}
+                                className={`
+                                  group
+                                  relative
+                                  flex
+                                  h-11
+                                  w-11
+                                  shrink-0
+                                  items-center
+                                  justify-center
+                                  rounded-full
+                                  border
+                                  transition-all
+                                  duration-300
+                                  motion-safe:hover:scale-105
+                                  motion-safe:active:scale-95
+
+                                  ${
+                                    active
+                                      ? "border-[#C8A44D] bg-[#C8A44D] text-black shadow-[0_8px_24px_rgba(200,164,77,0.30)] ring-4 ring-[#C8A44D]/10"
+                                      : completed
+                                        ? "border-[#C8A44D] bg-[#C8A44D]/15 text-[#9A7A22] shadow-sm"
+                                        : "border-neutral-200 bg-white text-neutral-400 shadow-sm"
+                                  }
+
+                                  ${
+                                    available
+                                      ? "cursor-pointer"
+                                      : "cursor-default"
+                                  }
+                                `}
+                              >
+
+                                {
+                                  completed
+                                    ? (
+                                      <span
+                                        className="
+                                          text-sm
+                                          font-bold
+                                          motion-safe:animate-[stepCheck_300ms_ease-out]
+                                        "
+                                      >
+                                        ✓
+                                      </span>
+                                    )
+                                    : (
+                                      <Icon
+                                        size={18}
+                                        strokeWidth={
+                                          active
+                                            ? 2.4
+                                            : 2
+                                        }
+                                      />
+                                    )
                                 }
 
-                              }}
-
-                              className={`
-
-                                flex
-                                h-11
-                                w-11
-                                items-center
-                                justify-center
-
-                                rounded-full
-
-                                border
-                                border-transparent
-
-                                shadow-sm
-
-                                transition-all
-                                duration-300
-
-                                motion-safe:hover:scale-105
-
-                                ${
-                                  active
-                                    ? "bg-[#C8A44D] text-black shadow-[0_6px_18px_rgba(200,164,77,0.28)] ring-4 ring-[#C8A44D]/10"
-                                    : "bg-neutral-100 text-neutral-400 border-neutral-200"
+                                {
+                                  active && (
+                                    <span
+                                      className="
+                                        absolute
+                                        inset-[-5px]
+                                        rounded-full
+                                        border
+                                        border-[#C8A44D]/25
+                                        motion-safe:animate-[stepPulse_2s_ease-in-out_infinite]
+                                      "
+                                    />
+                                  )
                                 }
 
-                                ${
-                                  index <
-                                  currentStepIndex
-                                    ? "cursor-pointer hover:scale-105"
-                                    : "cursor-default"
-                                }
-
-                              `}
-
-                            >
-
-                              <Icon
-                                size={17}
-                              />
-
-                            </button>
+                              </button>
 
 
-                            <p
+                              <div
+                                className="
+                                  mt-2
+                                  text-center
+                                "
+                              >
 
-                              className={`
+                                <p
+                                  className={`
+                                    text-[11px]
+                                    font-semibold
+                                    tracking-wide
+                                    transition-colors
+                                    duration-300
 
-                                mt-2
-                                text-xs
+                                    ${
+                                      active
+                                        ? "text-neutral-950"
+                                        : completed
+                                          ? "text-[#9A7A22]"
+                                          : "text-neutral-400"
+                                    }
+                                  `}
+                                >
+                                  {
+                                    item.label
+                                  }
+                                </p>
 
-                                ${
-                                  active
-                                    ? "font-medium text-black"
-                                    : "text-neutral-400"
-                                }
+                                <p
+                                  className={`
+                                    mt-0.5
+                                    hidden
+                                    text-[9px]
+                                    sm:block
 
-                              `}
+                                    ${
+                                      active
+                                        ? "text-neutral-500"
+                                        : "text-neutral-400"
+                                    }
+                                  `}
+                                >
+                                  {
+                                    item.key === "login"
+                                      ? "Secure access"
+                                      : item.key === "address"
+                                        ? "Delivery details"
+                                        : "Complete order"
+                                  }
+                                </p>
 
-                            >
+                              </div>
 
-                              {
-                                item.label
-                              }
+                            </div>
 
-                            </p>
+
+                            {
+                              index !==
+                              STEPS.length - 1 && (
+
+                                <div
+                                  className="
+                                    relative
+                                    mt-5
+                                    h-[2px]
+                                    flex-1
+                                    overflow-hidden
+                                    rounded-full
+                                    bg-neutral-200
+                                  "
+                                >
+
+                                  <div
+                                    className={`
+                                      absolute
+                                      inset-y-0
+                                      left-0
+                                      rounded-full
+                                      transition-all
+                                      duration-500
+                                      ease-out
+
+                                      ${
+                                        index <
+                                        currentStepIndex
+                                          ? "w-full bg-[#C8A44D]"
+                                          : "w-0 bg-[#C8A44D]"
+                                      }
+                                    `}
+                                  />
+
+                                </div>
+
+                              )
+                            }
 
                           </div>
 
+                        );
 
-                          {
-                            index !==
-                            STEPS.length - 1 && (
+                      }
+                    )
+                  }
 
-                              <div
-
-                                className={`
-
-                                  mx-2
-                                  h-px
-                                  flex-1
-
-                                  ${
-                                    index <
-                                    currentStepIndex
-                                      ? "bg-[#C8A44D]"
-                                      : "bg-neutral-200"
-                                  }
-
-                                `}
-
-                              />
-
-                            )
-                          }
-
-                        </div>
-
-                      );
-
-                    }
-                  )
-                }
+                </div>
 
               </div>
 
@@ -2225,6 +2328,28 @@ export default function CheckoutDialog({
             }
             50% {
               transform: translateY(-5px);
+            }
+          }
+
+          @keyframes stepPulse {
+            0%, 100% {
+              opacity: 0.35;
+              transform: scale(1);
+            }
+            50% {
+              opacity: 0.8;
+              transform: scale(1.06);
+            }
+          }
+
+          @keyframes stepCheck {
+            from {
+              opacity: 0;
+              transform: scale(0.6) rotate(-12deg);
+            }
+            to {
+              opacity: 1;
+              transform: scale(1) rotate(0);
             }
           }
 
