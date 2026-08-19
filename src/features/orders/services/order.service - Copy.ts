@@ -133,27 +133,6 @@ export async function createOrder(
 
 
 
-  /*
-   * A checkout quote is now required for the secure
-   * order transaction.
-   *
-   * The server-generated quote contains the verified
-   * Shiprocket shipping rate and will become the
-   * authoritative pricing reference for the order.
-   */
-
-  if (!payload.checkoutQuoteId) {
-
-    throw new Error(
-      "Checkout quote is missing. Please return to the address step and try again."
-    );
-
-  }
-
-
-
-
-
   const orderNumber =
     generateOrderNumber();
 
@@ -180,20 +159,6 @@ export async function createOrder(
 
 
 
-    /*
-     * Secure checkout quote.
-     *
-     * create_order_transaction() will use this instead
-     * of trusting frontend-calculated shipping/total values.
-     */
-
-    checkout_quote_id:
-      payload.checkoutQuoteId,
-
-
-
-
-
     // Customer
 
     customer_id:
@@ -213,10 +178,6 @@ export async function createOrder(
 
 
     // Amounts
-    //
-    // Retained for backwards compatibility with the
-    // current payload shape. The secure RPC must
-    // recalculate authoritative values server-side.
 
     subtotal:
       payload.subtotal,

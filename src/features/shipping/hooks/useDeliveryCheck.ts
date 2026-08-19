@@ -1,15 +1,35 @@
 import {
   useMutation
-
 } from "@tanstack/react-query";
 
 
 import {
   shippingService
-
 } from "../services/shipping.service";
 
 
+interface DeliveryCheckItem {
+
+  productId: string;
+
+  quantity: number;
+
+}
+
+
+interface DeliveryCheckParams {
+
+  pincode: string;
+
+  weight?: number;
+
+  customerId?: string | null;
+
+  paymentMethod?: string;
+
+  items?: DeliveryCheckItem[];
+
+}
 
 
 
@@ -27,14 +47,13 @@ export function useDeliveryCheck(){
 
       weight,
 
-    }:{
+      customerId,
 
-      pincode:string;
+      paymentMethod,
 
-      weight?:number;
+      items,
 
-
-    }) =>
+    }: DeliveryCheckParams) =>
 
 
       shippingService.checkDelivery({
@@ -42,6 +61,12 @@ export function useDeliveryCheck(){
         pincode,
 
         weight,
+
+        customerId,
+
+        paymentMethod,
+
+        items,
 
       }),
 

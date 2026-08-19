@@ -1,7 +1,10 @@
 import {
-  serve
+  serve,
 } from "https://deno.land/std/http/server.ts";
 
+import {
+  createClient,
+} from "https://esm.sh/@supabase/supabase-js@2";
 
 
 const corsHeaders = {
@@ -17,195 +20,455 @@ const corsHeaders = {
 };
 
 
+function jsonResponse(
+  body: unknown,
+  status = 200
+) {
 
+  return new Response(
 
+    JSON.stringify(body),
 
-serve(async (req)=>{
+    {
 
+      status,
 
-// Handle browser preflight
+      headers: {
 
-if(req.method === "OPTIONS"){
+        ...corsHeaders,
 
-return new Response(
+        "Content-Type":
+          "application/json",
 
-"ok",
+      },
 
-{
+    }
 
-headers:corsHeaders
-
-}
-
-);
-
-}
-
-
-
-
-
-try{
-
-
-const body = await req.json();
-
-
-const amount = body.amount;
-
-
-
-
-
-const keyId =
-Deno.env.get(
-"RAZORPAY_KEY_ID"
-);
-
-
-
-const keySecret =
-Deno.env.get(
-"RAZORPAY_KEY_SECRET"
-);
-
-
-
-
-
-if(!keyId || !keySecret){
-
-
-throw new Error(
-"Razorpay credentials missing"
-);
-
+  );
 
 }
 
 
+serve(async (req) => {
 
+  if (
+    req.method === "OPTIONS"
+  ) {
 
+    return new Response(
 
+      "ok",
 
+      {
+        headers:
+          corsHeaders,
+      }
 
-const response = await fetch(
+    );
 
-"https://api.razorpay.com/v1/orders",
+  }
 
-{
 
-method:"POST",
+  try {
 
-headers:{
+    const body =
+      await req.json();
 
 
-"Content-Type":
-"application/json",
+    const checkoutQuoteId =
+      String(
+        body?.checkoutQuoteId ??
+        ""
+      ).trim();
 
 
-"Authorization":
+    if (!checkoutQuoteId) {
 
-"Basic " +
+      return jsonResponse(
 
-btoa(
+        {
+          error:
+            "Secure checkout quote is required.",
+        },
 
-`${keyId}:${keySecret}`
+        400
 
-)
+      );
 
+    }
 
-},
 
+    const supabaseUrl =
+      Deno.env.get(
+        "SUPABASE_URL"
+      );
 
-body:JSON.stringify({
 
-amount:
-Math.round(amount * 100),
+    const serviceRoleKey =
+      Deno.env.get(
+        "SUPABASE_SERVICE_ROLE_KEY"
+      );
 
 
-currency:"INR",
+    const keyId =
+      Deno.env.get(
+        "RAZORPAY_KEY_ID"
+      );
 
 
-receipt:
+    const keySecret =
+      Deno.env.get(
+        "RAZORPAY_KEY_SECRET"
+      );
 
-`tnm_${Date.now()}`
 
+    if (
+      !supabaseUrl ||
+      !serviceRoleKey
+    ) {
 
-})
+      throw new Error(
+        "Supabase server credentials missing."
+      );
 
-}
+    }
 
-);
 
+    if (
+      !keyId ||
+      !keySecret
+    ) {
 
+      throw new Error(
+        "Razorpay credentials missing."
+      );
 
+    }
 
 
+    const supabaseAdmin =
+      createClient(
 
-const data = await response.json();
+        supabaseUrl,
 
+        serviceRoleKey,
 
+        {
 
+          auth: {
 
+            persistSession:
+              false,
 
+            autoRefreshToken:
+              false,
 
-return new Response(
+          },
 
-JSON.stringify(data),
+        }
 
-{
+      );
 
-status:200,
 
-headers:{
+    /*
+     * =========================================================
+     * 1. READ THE AUTHORITATIVE CHECKOUT QUOTE
+     * =========================================================
+     *
+     * Never accept the payment amount from the browser.
+     */
 
-...corsHeaders,
+    const {
+      data: quote,
+      error: quoteError,
+    } = await supabaseAdmin
 
-"Content-Type":
-"application/json"
+      .from(
+        "checkout_quotes"
+      )
 
-}
+      .select(
+        "id, total_amount, expires_at, used_at"
+      )
 
-}
+      .eq(
+        "id",
+        checkoutQuoteId
+      )
 
-);
+      .maybeSingle();
 
 
+    if (quoteError) {
 
-}
+      throw quoteError;
 
-catch(error){
+    }
 
 
+    if (!quote) {
 
-return new Response(
+      return jsonResponse(
 
-JSON.stringify({
+        {
+          error:
+            "Checkout quote not found.",
+        },
 
-error:error.message
+        404
 
-}),
+      );
 
-{
+    }
 
-status:500,
 
-headers:{
+    if (quote.used_at) {
 
-...corsHeaders,
+      return jsonResponse(
 
-"Content-Type":
-"application/json"
+        {
+          error:
+            "This checkout quote has already been used.",
+        },
 
-}
+        409
 
-}
+      );
 
-);
+    }
 
 
-}
+    if (
+      new Date(
+        quote.expires_at
+      ).getTime() <= Date.now()
+    ) {
 
+      return jsonResponse(
+
+        {
+          error:
+            "Checkout quote has expired. Please return to the address step.",
+        },
+
+        410
+
+      );
+
+    }
+
+
+    const amount =
+      Number(
+        quote.total_amount
+      );
+
+
+    if (
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
+
+      return jsonResponse(
+
+        {
+          error:
+            "Invalid checkout amount.",
+        },
+
+        400
+
+      );
+
+    }
+
+
+    const razorpayAmount =
+      Math.round(
+        amount * 100
+      );
+
+
+    /*
+     * =========================================================
+     * 2. CREATE RAZORPAY ORDER
+     * =========================================================
+     *
+     * IMPORTANT:
+     * We intentionally do NOT send "capture" here.
+     *
+     * Your Razorpay API currently rejects the capture field with:
+     * "capture is/are not required and should not be sent".
+     *
+     * Capture should therefore be controlled through the
+     * Razorpay Dashboard's Payment Capture setting.
+     */
+
+    const razorpayResponse =
+      await fetch(
+
+        "https://api.razorpay.com/v1/orders",
+
+        {
+
+          method:
+            "POST",
+
+          headers: {
+
+            "Content-Type":
+              "application/json",
+
+            "Authorization":
+              "Basic " +
+              btoa(
+                `${keyId}:${keySecret}`
+              ),
+
+          },
+
+          body:
+            JSON.stringify({
+
+              amount:
+                razorpayAmount,
+
+              currency:
+                "INR",
+
+              receipt:
+                `tnm_${quote.id}`,
+
+            }),
+
+        }
+
+      );
+
+
+    const razorpayData =
+      await razorpayResponse.json();
+
+
+    if (
+      !razorpayResponse.ok
+    ) {
+
+      console.error(
+        "Razorpay order creation failed:",
+        razorpayData
+      );
+
+
+      return jsonResponse(
+
+        {
+          error:
+            razorpayData?.error?.description ||
+            "Unable to create Razorpay order.",
+
+          razorpay:
+            razorpayData?.error ||
+            null,
+
+        },
+
+        razorpayResponse.status
+
+      );
+
+    }
+
+
+    /*
+     * Extra server-side sanity check.
+     */
+
+    if (
+      Number(
+        razorpayData.amount
+      ) !==
+      razorpayAmount
+    ) {
+
+      console.error(
+
+        "Razorpay created an unexpected amount:",
+
+        {
+
+          expected:
+            razorpayAmount,
+
+          received:
+            razorpayData.amount,
+
+          checkoutQuoteId,
+
+        }
+
+      );
+
+
+      return jsonResponse(
+
+        {
+          error:
+            "Razorpay order amount does not match the secure checkout total.",
+        },
+
+        502
+
+      );
+
+    }
+
+
+    return jsonResponse(
+
+      {
+
+        ...razorpayData,
+
+        secure_quote_id:
+          quote.id,
+
+        verified_amount:
+          amount,
+
+      },
+
+      200
+
+    );
+
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "create-razorpay-order error:",
+      error
+    );
+
+
+    return jsonResponse(
+
+      {
+
+        error:
+
+          error instanceof Error
+            ? error.message
+            : "Unable to create Razorpay order.",
+
+      },
+
+      500
+
+    );
+
+  }
 
 });

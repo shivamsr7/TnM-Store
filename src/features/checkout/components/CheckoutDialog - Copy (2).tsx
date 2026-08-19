@@ -42,10 +42,6 @@ import {
   useDeliveryCheck,
 } from "@/features/shipping/hooks/useDeliveryCheck";
 
-import {
-  finalizeCheckoutQuote,
-} from "@/features/orders/services/checkout-quote.service";
-
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -185,23 +181,6 @@ export default function CheckoutDialog({
     checkoutQuoteId,
     setCheckoutQuoteId,
   ] = useState<string | null>(null);
-
-  /*
-   * =========================================================
-   * SERVER-VERIFIED CHECKOUT PRICING
-   * =========================================================
-   */
-
-  const [
-    verifiedCheckoutPricing,
-    setVerifiedCheckoutPricing,
-  ] = useState<{
-    subtotal:number;
-    discount:number;
-    shippingCharge:number;
-    tax:number;
-    totalAmount:number;
-  } | null>(null);
 
 
   /*
@@ -386,10 +365,6 @@ export default function CheckoutDialog({
     );
 
     setCheckoutQuoteId(
-      null
-    );
-
-    setVerifiedCheckoutPricing(
       null
     );
 
@@ -609,7 +584,7 @@ export default function CheckoutDialog({
 
       {
 
-        onSuccess: async (
+        onSuccess: (
           data
         ) => {
 
@@ -788,23 +763,17 @@ export default function CheckoutDialog({
           );
 
 
+          setCalculatingShipping(
+            false
+          );
+
+
           /*
-           * =================================================
-           * FINALIZE SERVER-SIDE CHECKOUT TOTAL
-           * =================================================
-           *
-           * The Shiprocket quote only contains the verified
-           * shipping rate. Before Payment is shown, the server
-           * now re-fetches prices and validates the selected
-           * coupon/eligibility rules and stores the final
-           * payable amount in checkout_quotes.
+           * Only move to Payment after the secure shipping
+           * quote has been successfully generated.
            */
 
           if (!quoteId) {
-
-            setCalculatingShipping(
-              false
-            );
 
             setShippingError(
               "Unable to create a secure shipping quote. Please try again."
@@ -815,93 +784,9 @@ export default function CheckoutDialog({
           }
 
 
-          try {
-
-            const finalized =
-              await finalizeCheckoutQuote({
-
-                quoteId,
-
-                customerId:
-                  customer?.id,
-
-                couponId:
-                  appliedCoupon?.id ??
-                  null,
-
-              });
-
-
-            setCheckoutQuoteId(
-              finalized.quote_id
-            );
-
-
-            setShippingCharge(
-              finalized.shipping_charge
-            );
-
-
-            setVerifiedCheckoutPricing({
-
-              subtotal:
-                finalized.subtotal,
-
-              discount:
-                finalized.discount,
-
-              shippingCharge:
-                finalized.shipping_charge,
-
-              tax:
-                finalized.tax,
-
-              totalAmount:
-                finalized.total_amount,
-
-            });
-
-
-            setCalculatingShipping(
-              false
-            );
-
-
-            setStep(
-              "payment"
-            );
-
-          }
-
-          catch (finalizeError:any) {
-
-            console.error(
-              "Checkout quote finalization failed:",
-              finalizeError
-            );
-
-
-            setCalculatingShipping(
-              false
-            );
-
-
-            setCheckoutQuoteId(
-              null
-            );
-
-
-            setVerifiedCheckoutPricing(
-              null
-            );
-
-
-            setShippingError(
-              finalizeError?.message ||
-              "Unable to verify your final total. Please try again."
-            );
-
-          }
+          setStep(
+            "payment"
+          );
 
         },
 
@@ -927,10 +812,6 @@ export default function CheckoutDialog({
 
 
           setCheckoutQuoteId(
-            null
-          );
-
-          setVerifiedCheckoutPricing(
             null
           );
 
@@ -1057,14 +938,10 @@ export default function CheckoutDialog({
             ),
 
 
-          subtotal:
-            verifiedCheckoutPricing?.subtotal ??
-            subtotal,
+          subtotal,
 
 
-          discount:
-            verifiedCheckoutPricing?.discount ??
-            discount,
+          discount,
 
 
           /*
@@ -1072,22 +949,18 @@ export default function CheckoutDialog({
            */
 
           shippingCharge:
-            verifiedCheckoutPricing?.shippingCharge ??
             finalShippingCharge,
 
 
           tax:
-            verifiedCheckoutPricing?.tax ??
             0,
 
 
           totalAmount:
-            verifiedCheckoutPricing?.totalAmount ??
             finalAmount,
 
 
           advanceAmount:
-            verifiedCheckoutPricing?.totalAmount ??
             finalAmount,
 
 
@@ -2543,12 +2416,7 @@ export default function CheckoutDialog({
                 <PaymentStep
 
                   totalAmount={
-                    verifiedCheckoutPricing?.totalAmount ??
                     finalAmount
-                  }
-
-                  checkoutQuoteId={
-                    checkoutQuoteId ?? ""
                   }
 
                   onSuccess={

@@ -88,7 +88,7 @@ export interface CouponPayload {
 
 export interface CreateOrderPayload {
 
-  customerId?: string;
+    customerId?: string;
 
 
   customer:CustomerPayload;
@@ -103,26 +103,6 @@ export interface CreateOrderPayload {
 
 
 
-
-  /*
-   * Server-generated checkout quote.
-   *
-   * The secure order RPC uses this quote as the
-   * authoritative source for shipping and final
-   * checkout calculations.
-   */
-
-  checkoutQuoteId?: string | null;
-
-
-
-
-
-  /*
-   * These amount fields are retained for the current
-   * checkout/email UI contract, but the secure RPC
-   * must not trust them for final pricing.
-   */
 
   subtotal:number;
 
@@ -154,8 +134,7 @@ export interface CreateOrderPayload {
 
 
 
-  paymentTransactionId?: string;
-
+paymentTransactionId?: string;
 
   advanceAmount:number;
 
