@@ -1017,28 +1017,41 @@ export default function CheckoutDialog({
 
         className="
           fixed
-          left-1/2
-          top-1/2
+          left-0
+          top-0
           z-[1100]
 
           flex
-          max-h-[90vh]
+          h-[100dvh]
+          max-h-[100dvh]
 
-          w-[calc(100%-32px)]
-          max-w-[560px]
+          w-full
+          max-w-none
 
-          -translate-x-1/2
-          -translate-y-1/2
+          translate-x-0
+          translate-y-0
 
           flex-col
 
           overflow-hidden
 
-          rounded-3xl
+          rounded-none
 
           bg-white
 
           shadow-2xl
+
+          motion-safe:animate-[checkoutIn_320ms_ease-out]
+
+          md:left-1/2
+          md:top-1/2
+          md:h-auto
+          md:max-h-[90vh]
+          md:w-[calc(100%-32px)]
+          md:max-w-[560px]
+          md:-translate-x-1/2
+          md:-translate-y-1/2
+          md:rounded-3xl
         "
 
       >
@@ -1052,9 +1065,15 @@ export default function CheckoutDialog({
           className="
             shrink-0
             border-b
+            border-neutral-100
             bg-white
-            px-6
-            py-5
+            px-5
+            pb-4
+            pt-[calc(1rem+env(safe-area-inset-top))]
+            shadow-[0_1px_0_rgba(0,0,0,0.03)]
+
+            md:px-6
+            md:py-5
           "
 
         >
@@ -1072,8 +1091,13 @@ export default function CheckoutDialog({
             <h2
 
               className="
-                text-2xl
+                text-[28px]
                 font-semibold
+                tracking-[-0.03em]
+                text-neutral-950
+                motion-safe:animate-[fadeUp_300ms_ease-out]
+
+                md:text-2xl
               "
 
             >
@@ -1095,9 +1119,13 @@ export default function CheckoutDialog({
 
               className="
                 rounded-full
-                p-2
+                p-2.5
+                text-neutral-700
                 transition
+                duration-200
+                hover:rotate-90
                 hover:bg-neutral-100
+                active:scale-90
               "
 
             >
@@ -1121,10 +1149,12 @@ export default function CheckoutDialog({
               <div
 
                 className="
-                  mt-6
+                  mt-5
                   flex
                   items-center
                   justify-between
+
+                  md:mt-6
                 "
 
               >
@@ -1222,19 +1252,27 @@ export default function CheckoutDialog({
                               className={`
 
                                 flex
-                                h-9
-                                w-9
+                                h-11
+                                w-11
                                 items-center
                                 justify-center
 
                                 rounded-full
 
-                                transition
+                                border
+                                border-transparent
+
+                                shadow-sm
+
+                                transition-all
+                                duration-300
+
+                                motion-safe:hover:scale-105
 
                                 ${
                                   active
-                                    ? "bg-[#C8A44D] text-black"
-                                    : "bg-neutral-200 text-neutral-500"
+                                    ? "bg-[#C8A44D] text-black shadow-[0_6px_18px_rgba(200,164,77,0.28)] ring-4 ring-[#C8A44D]/10"
+                                    : "bg-neutral-100 text-neutral-400 border-neutral-200"
                                 }
 
                                 ${
@@ -1330,10 +1368,18 @@ export default function CheckoutDialog({
         <div
 
           className="
+            min-h-0
             flex-1
             overflow-y-auto
-            px-6
-            py-7
+            overscroll-contain
+            scroll-smooth
+            px-5
+            pb-8
+            pt-6
+            [scrollbar-width:thin]
+
+            md:px-6
+            md:py-7
           "
 
         >
@@ -1352,8 +1398,13 @@ export default function CheckoutDialog({
                   rounded-2xl
                   border
                   border-neutral-200
-                  bg-neutral-50
+                  bg-gradient-to-br
+                  from-white
+                  via-neutral-50
+                  to-[#C8A44D]/[0.045]
                   p-4
+                  shadow-[0_8px_30px_rgba(0,0,0,0.045)]
+                  motion-safe:animate-[fadeUp_350ms_ease-out]
                 "
 
               >
@@ -1699,13 +1750,22 @@ export default function CheckoutDialog({
                       items-center
                       justify-center
                       rounded-full
-                      bg-neutral-100
+                      bg-gradient-to-br
+                      from-neutral-50
+                      to-neutral-100
+                      shadow-[0_14px_40px_rgba(0,0,0,0.08)]
+                      ring-8
+                      ring-neutral-50
+                      motion-safe:animate-[softFloat_3s_ease-in-out_infinite]
                     "
 
                   >
 
                     <UserRound
                       size={38}
+                      className="
+                        text-neutral-800
+                      "
                     />
 
                   </div>
@@ -1785,6 +1845,7 @@ export default function CheckoutDialog({
                   className="
                     mb-6
                     space-y-5
+                    motion-safe:animate-[fadeUp_350ms_ease-out]
                   "
                 >
 
@@ -1901,7 +1962,8 @@ export default function CheckoutDialog({
                               bg-black
 
                               transition-all
-                              duration-300
+                              duration-700
+                              ease-out
                             "
 
                             style={{
@@ -2032,7 +2094,8 @@ export default function CheckoutDialog({
                               bg-black
 
                               transition-all
-                              duration-300
+                              duration-700
+                              ease-out
                             "
 
                             style={{
@@ -2088,9 +2151,16 @@ export default function CheckoutDialog({
               className="
                 shrink-0
                 border-t
-                bg-neutral-50
-                px-6
-                py-4
+                border-neutral-100
+                bg-white/95
+                px-5
+                pb-[calc(0.9rem+env(safe-area-inset-bottom))]
+                pt-3
+                shadow-[0_-8px_24px_rgba(0,0,0,0.045)]
+                backdrop-blur-md
+
+                md:px-6
+                md:py-4
               "
 
             >
@@ -2102,7 +2172,8 @@ export default function CheckoutDialog({
                   items-center
                   justify-center
                   gap-2
-                  text-sm
+                  text-[13px]
+                  font-medium
                   text-neutral-600
                 "
 
@@ -2122,6 +2193,53 @@ export default function CheckoutDialog({
         }
 
       </div>
+
+      {/* Component-local motion used by the mobile-first checkout shell. */}
+      <style>
+        {`
+          @keyframes checkoutIn {
+            from {
+              opacity: 0;
+              transform: translateY(18px) scale(0.985);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0) scale(1);
+            }
+          }
+
+          @keyframes fadeUp {
+            from {
+              opacity: 0;
+              transform: translateY(10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+
+          @keyframes softFloat {
+            0%, 100% {
+              transform: translateY(0);
+            }
+            50% {
+              transform: translateY(-5px);
+            }
+          }
+
+          @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+              animation-duration: 0.01ms !important;
+              animation-iteration-count: 1 !important;
+              transition-duration: 0.01ms !important;
+              scroll-behavior: auto !important;
+            }
+          }
+        `}
+      </style>
 
     </>
 
