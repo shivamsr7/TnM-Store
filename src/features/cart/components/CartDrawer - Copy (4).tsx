@@ -30,6 +30,10 @@ import {
 import CouponModal from "@/features/coupons/components/CouponModal";
 
 import {
+  useBestCoupon,
+} from "@/features/coupons/hooks/useBestCoupon";
+
+import {
   useUnlockCoupon,
 } from "@/features/coupons/hooks/useUnlockCoupon";
 
@@ -400,52 +404,56 @@ export default function CartDrawer() {
 
   /*
    * =========================================================
-   * BEST ELIGIBLE COUPON
-   * =========================================================
-   *
-   * Do not trust useBestCoupon(total) for customer-facing
-   * recommendations because it does not know the current
-   * customer's targeting rules or the current cart items.
-   *
-   * Instead, validate every active coupon against the current
-   * customer + current cart and choose the one with the highest
-   * real saving.
+   * BEST COUPON
    * =========================================================
    */
 
   const {
-    data: eligibleBestCoupon = null,
-    isFetching:
-      isCheckingBestCoupon,
+    bestCoupon,
+  } = useBestCoupon(
+    total
+  );
+
+
+  /*
+   * =========================================================
+   * CUSTOMER COUPON USAGE
+   * =========================================================
+   *
+   * Used only for visibility. Coupon validation remains the
+   * source of truth when applying a coupon.
+   * =========================================================
+   */
+
+  const {
+    data: usedCouponRows = [],
   } = useQuery({
 
     queryKey: [
-      "eligible-best-coupon",
-      customer?.id ?? null,
-      total,
-      items.map(
-        item =>
-          `${item.id}:${item.quantity}`
-      ).join("|"),
+      "customer-coupon-usage",
+      customer?.id,
     ],
 
     queryFn: async () => {
 
-      if (
-        !customer?.id ||
-        items.length === 0
-      ) {
-        return null;
+      if (!customer?.id) {
+        return [];
       }
 
 
       const {
-        data: coupons,
+        data,
         error,
       } = await supabase
-        .from("coupons")
-        .select("*")
-        .eq("is_active", true);
+
+        .from("coupon_usage")
+
+        .select("coupon_id")
+
+        .eq(
+          "customer_id",
+          customer.id
+        );
 
 
       if (error) {
@@ -453,140 +461,33 @@ export default function CartDrawer() {
       }
 
 
-      const validated =
-        await Promise.all(
-          (coupons ?? []).map(
-            async coupon => {
-
-              try {
-
-                const result =
-                  await validateCoupon(
-                    coupon.code,
-                    total,
-                    customer.id,
-                    items
-                  );
-
-                const shippingSaving =
-                  result.freeShipping
-                    ? Number(
-                        storeSettings?.shipping_charge ??
-                        0
-                      )
-                    : 0;
-
-                const estimatedSaving =
-                  Number(
-                    result.discount ?? 0
-                  ) +
-                  shippingSaving;
-
-                return {
-                  ...result.coupon,
-                  discount:
-                    result.discount,
-                  freeShipping:
-                    result.freeShipping,
-                  freeGift:
-                    result.freeGift,
-                  estimatedSaving,
-                };
-
-              } catch {
-                /*
-                 * Any validation failure means the coupon is
-                 * not eligible for this customer/cart.
-                 */
-                return null;
-              }
-
-            }
-          )
-        );
-
-
-      const eligible =
-        validated.filter(
-          Boolean
-        ) as any[];
-
-
-      if (
-        eligible.length === 0
-      ) {
-        return null;
-      }
-
-
-      eligible.sort(
-        (a, b) => {
-          const savingDifference =
-            Number(
-              b.estimatedSaving ?? 0
-            ) -
-            Number(
-              a.estimatedSaving ?? 0
-            );
-
-          if (
-            savingDifference !== 0
-          ) {
-            return savingDifference;
-          }
-
-          /*
-           * If savings are equal, prefer the coupon with the
-           * higher configured discount value, then newest.
-           */
-          const discountDifference =
-            Number(
-              b.discount_value ?? 0
-            ) -
-            Number(
-              a.discount_value ?? 0
-            );
-
-          if (
-            discountDifference !== 0
-          ) {
-            return discountDifference;
-          }
-
-          return (
-            new Date(
-              b.created_at ?? 0
-            ).getTime() -
-            new Date(
-              a.created_at ?? 0
-            ).getTime()
-          );
-        }
-      );
-
-
-      return eligible[0] ?? null;
+      return data ?? [];
 
     },
 
-    enabled:
-      isCartOpen &&
-      !!customer?.id &&
-      items.length > 0,
+    enabled: !!customer?.id && isCartOpen,
 
     staleTime: 0,
+
     refetchOnWindowFocus: true,
+
   });
 
 
-  const bestCoupon =
-    eligibleBestCoupon;
+  const usedCouponIds = new Set(
+    usedCouponRows.map(
+      (row: any) => row.coupon_id
+    )
+  );
 
 
   const bestCouponAvailable =
     !!bestCoupon &&
-    !appliedCoupon &&
-    !isCheckingBestCoupon;
+    !(
+      bestCoupon.one_use_per_customer === true &&
+      usedCouponIds.has(bestCoupon.id)
+    );
+
 
   /*
    * =========================================================

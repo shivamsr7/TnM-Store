@@ -1,712 +1,1362 @@
 import {
-  X,
+  Check,
+  Copy,
+  Loader2,
   Sparkles,
+  Tag,
+  X,
 } from "lucide-react";
 
 import {
-  useCoupons
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  useCoupons,
 } from "../hooks/useCoupons";
 
 import {
-  useState,
-} from "react";
+  validateCoupon,
+} from "../services/coupon.service";
 
 import {
   useAuth,
 } from "@/features/Auth/context/AuthContext";
 
-import {
-  useQuery,
-} from "@tanstack/react-query";
-
-import {
-  supabase,
-} from "@/shared/lib/supabase";
-
-
-
 interface Props {
-
-  open:boolean;
-
-  onClose:()=>void;
-
-  onApply:(coupon:any)=>Promise<void>|void;
-
-  cartTotal:number;
-
-  appliedCoupon?:any;
-
+  open: boolean;
+  onClose: () => void;
+  onApply: (coupon: any) => void | Promise<void>;
+  cartTotal: number;
+  cartItems?: any[];
+  appliedCoupon?: any;
 }
 
-
-
-
+interface EligibleCoupon {
+  coupon: any;
+  result: any;
+  saving: number;
+}
 
 export default function CouponModal({
-
   open,
-
   onClose,
-
   onApply,
-
   cartTotal,
-
-  appliedCoupon
-
-}:Props){
-
-const {
-  customer,
-} = useAuth();
-
-const [
-  applyingCouponId,
-  setApplyingCouponId,
-] = useState<string | null>(null);
-
-
-
-const {
-
-data:coupons=[],
-
-isLoading
-
-}=useCoupons();
-
-
-
-
-
-const {
-data:usedCouponRows=[],
-isLoading:isUsageLoading
-}=useQuery({
-
-queryKey:[
-  "customer-coupon-usage",
-  customer?.id,
-],
-
-queryFn:async()=>{
-
-if(!customer?.id)
-return [];
-
-const {
-data,
-error
-}=await supabase
-.from("coupon_usage")
-.select("coupon_id")
-.eq("customer_id",customer.id);
-
-if(error)
-throw error;
-
-return data ?? [];
-
-},
-
-enabled:open && !!customer?.id,
-
-staleTime:30*1000,
-
-});
-
-
-const usedCouponIds=new Set(
-  usedCouponRows.map(
-    (row:any)=>row.coupon_id
-  )
-);
-
-
-if(!open)
-
-return null;
-
-
-
-
-
-const now = new Date();
-
-
-
-
-
-const validCoupons = coupons.filter((coupon:any)=>{
-
-
-if(
-
-coupon.expires_at &&
-
-now > new Date(coupon.expires_at)
-
-)
-
-return false;
-
-
-
-if(
-
-coupon.starts_at &&
-
-now < new Date(coupon.starts_at)
-
-)
-
-return false;
-
-
-
-if(
-
-coupon.usage_limit &&
-
-coupon.used_count >= coupon.usage_limit
-
-)
-
-return false;
-
-
-if(
-
-coupon.one_use_per_customer === true &&
-
-usedCouponIds.has(coupon.id)
-
-)
-
-return false;
-
-
-return true;
-
-});
-
-
-
-
-
-
-const applicableCoupons = validCoupons
-
-.filter((coupon:any)=>
-
-cartTotal >= coupon.minimum_order_amount
-
-)
-
-.sort(
-
-(a:any,b:any)=>
-
-b.discount_value - a.discount_value
-
-);
-
-
-
-
-
-
-const lockedCoupons = validCoupons
-
-.filter((coupon:any)=>
-
-cartTotal < coupon.minimum_order_amount
-
-);
-
-
-
-
-
-
-
-
-
-return (
-
-<>
-
-
-<div
-
-className="
-fixed
-
-inset-0
-
-z-[1100]
-
-bg-black/40
-
-animate-in
-fade-in
-duration-300
-
-"
-
-onClick={onClose}
-
-/>
-
-
-
-
-
-
-
-
-<div
-
-className="
-fixed
-
-bottom-0
-
-left-0
-
-right-0
-
-z-[1200]
-
-max-h-[85vh]
-
-overflow-y-auto
-
-rounded-t-3xl
-
-bg-white
-
-p-5
-
-pb-[calc(1.25rem+env(safe-area-inset-bottom))]
-
-shadow-2xl
-
-animate-in
-slide-in-from-bottom-4
-fade-in
-duration-300
-
-"
-
->
-
-
-
-
-
-<div
-
-className="
-flex
-
-items-center
-
-justify-between
-
-"
-
->
-
-
-<div className="flex items-center gap-2">
-<Sparkles size={18} className="text-[#C8A44D]" />
-<h2 className="text-lg font-semibold">Available Offers</h2>
-</div>
-
-
-
-<button
-  onClick={onClose}
-  className="rounded-full p-2 transition active:scale-90 hover:bg-neutral-100"
-  aria-label="Close offers"
->
-<X size={20}/>
-</button>
-
-
-</div>
-
-
-
-
-
-
-
-{
-
-(isLoading || isUsageLoading) &&
-
-<p className="mt-5 text-sm text-neutral-500">
-
-Loading offers...
-
-</p>
-
-}
-
-
-
-
-
-
-
-
-
-{/* Applicable */}
-
-{
-
-applicableCoupons.length > 0 &&
-
-<>
-
-<h3 className="mt-6 text-sm font-semibold">
-
-Available for you
-
-</h3>
-
-
-
-
-
-<div className="mt-3 space-y-3">
-
-
-{
-
-applicableCoupons.map((coupon:any,index:number)=>(
-
-
-<div
-style={{ animationDelay: `${index * 70}ms` }}
-
-key={coupon.id}
-
-className={`
-
-rounded-2xl
-
-border
-
-p-4
-
-transition-all duration-300
-
-hover:-translate-y-0.5
-hover:shadow-md
-
-animate-in
-fade-in
-slide-in-from-bottom-2
-duration-300
-
-
-${
-
-appliedCoupon?.code===coupon.code
-
-?
-
-"border-green-500 bg-green-50"
-
-:
-
-"border-neutral-200"
-
-}
-
-`}
-
->
-
-
-<div className="flex justify-between gap-4">
-
-
-<div>
-
-
-<div className="flex items-center gap-2">
-
-<p className="font-semibold">
-
-{coupon.code}
-
-</p>
-
-
-{
-
-appliedCoupon?.code===coupon.code &&
-
-<span className="text-xs text-green-600">
-
-Applied
-
-</span>
-
-}
-
-</div>
-
-
-
-
-<p className="text-sm text-neutral-700">
-
-{coupon.title}
-
-</p>
-
-
-
-{
-
-coupon.minimum_order_amount>0 &&
-
-<p className="mt-1 text-xs text-neutral-500">
-
-Min order ₹{coupon.minimum_order_amount}
-
-</p>
-
-}
-
-
-
-</div>
-
-
-
-
-
-<button
-
-disabled={appliedCoupon?.code===coupon.code || applyingCouponId===coupon.id}
-
-onClick={async()=>{
-  try {
-    setApplyingCouponId(coupon.id);
-    await onApply(coupon);
-  } finally {
-    setApplyingCouponId(null);
+  cartItems = [],
+  appliedCoupon,
+}: Props) {
+  const {
+    customer,
+  } = useAuth();
+
+  const {
+    data: coupons = [],
+    isLoading,
+  } = useCoupons();
+
+  const [
+    eligibleCoupons,
+    setEligibleCoupons,
+  ] = useState<EligibleCoupon[]>([]);
+
+  const [
+    checkingEligibility,
+    setCheckingEligibility,
+  ] = useState(false);
+
+  const [
+    applyingCouponId,
+    setApplyingCouponId,
+  ] = useState<string | null>(null);
+
+  const [
+    copiedCode,
+    setCopiedCode,
+  ] = useState<string | null>(null);
+
+
+  /*
+   * =========================================================
+   * CHECK EVERY COUPON AGAINST THE CURRENT CUSTOMER + CART
+   * =========================================================
+   *
+   * The modal must never show a coupon merely because it is
+   * active or because the cart total passes its minimum.
+   *
+   * validateCoupon is the source of truth for:
+   * - customer targeting
+   * - membership
+   * - product/category/collection/brand/tag targeting
+   * - cart conditions
+   * - usage limits
+   * - one-use-per-customer
+   * - dates
+   * - discount rules
+   * =========================================================
+   */
+
+  /*
+   * CartDrawer can provide a newly-created cartItems array on
+   * every render. Do not use that array directly as an effect
+   * dependency or eligibility checking will run forever.
+   *
+   * A stable fingerprint lets us re-check only when the actual
+   * cart contents change.
+   */
+  const cartFingerprint =
+    useMemo(
+      () =>
+        cartItems
+          .map((item: any) => ({
+            id:
+              item.productId ??
+              item.product_id ??
+              item.id ??
+              "",
+            quantity:
+              Number(item.quantity ?? 0),
+            price:
+              Number(
+                item.unit_price ??
+                item.price ??
+                0
+              ),
+          }))
+          .sort(
+            (a, b) =>
+              String(a.id).localeCompare(
+                String(b.id)
+              )
+          )
+          .map(
+            item =>
+              `${item.id}:${item.quantity}:${item.price}`
+          )
+          .join("|"),
+      [cartItems]
+    );
+
+  const stableCartItems =
+    useMemo(
+      () =>
+        cartItems.map(
+          (item: any) => ({
+            ...item,
+          })
+        ),
+      [cartFingerprint]
+    );
+
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkEligibility() {
+      if (
+        !open ||
+        isLoading ||
+        coupons.length === 0
+      ) {
+        if (!cancelled) {
+          setEligibleCoupons([]);
+          setCheckingEligibility(false);
+        }
+
+        return;
+      }
+
+      setCheckingEligibility(true);
+
+      try {
+        const results =
+          await Promise.all(
+            coupons
+              .filter(
+                (coupon: any) =>
+                  coupon.is_active === true
+              )
+              .map(
+                async (
+                  coupon: any
+                ): Promise<EligibleCoupon | null> => {
+                  try {
+                    const result =
+                      await Promise.race([
+                        validateCoupon(
+                          coupon.code,
+                          cartTotal,
+                          customer?.id ?? "",
+                          stableCartItems
+                        ),
+                        new Promise<never>(
+                          (_, reject) =>
+                            window.setTimeout(
+                              () =>
+                                reject(
+                                  new Error(
+                                    "Coupon eligibility check timed out"
+                                  )
+                                ),
+                              8000
+                            )
+                        ),
+                      ]);
+
+                    const discount =
+                      Number(
+                        result.discount ?? 0
+                      );
+
+                    /*
+                     * validateCoupon currently returns
+                     * freeShipping but does not return a
+                     * shippingCharge value. Keep the saving
+                     * calculation based on the actual
+                     * discount returned by validation.
+                     */
+                    return {
+                      coupon,
+                      result,
+                      saving: discount,
+                    };
+                  } catch {
+                    /*
+                     * Ineligible coupons are intentionally
+                     * omitted completely.
+                     */
+                    return null;
+                  }
+                }
+              )
+          );
+
+        if (cancelled) {
+          return;
+        }
+
+        const eligible =
+          results
+            .filter(
+              (
+                item
+              ): item is EligibleCoupon =>
+                !!item
+            )
+            .sort(
+              (
+                a,
+                b
+              ) =>
+                b.saving -
+                a.saving
+            );
+
+        setEligibleCoupons(
+          eligible
+        );
+      } finally {
+        if (!cancelled) {
+          setCheckingEligibility(false);
+        }
+      }
+    }
+
+    checkEligibility();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    open,
+    isLoading,
+    coupons,
+    cartTotal,
+    customer?.id,
+    cartFingerprint,
+  ]);
+
+
+  /*
+   * Re-check after the modal opens so the list feels fresh.
+   */
+  useEffect(() => {
+    if (!open) {
+      setCopiedCode(null);
+    }
+  }, [open]);
+
+
+  const topOffer =
+    eligibleCoupons[0] ?? null;
+
+
+  const otherOffers =
+    useMemo(
+      () =>
+        topOffer
+          ? eligibleCoupons.slice(1)
+          : eligibleCoupons,
+      [eligibleCoupons, topOffer]
+    );
+
+
+  const formatSaving = (
+    amount: number
+  ) =>
+    Number(
+      amount || 0
+    ).toLocaleString(
+      "en-IN"
+    );
+
+
+  const getOfferText = (
+    item: EligibleCoupon
+  ) => {
+    const {
+      coupon,
+      result,
+    } = item;
+
+    if (result.freeShipping) {
+      return "Free shipping on this order";
+    }
+
+    if (result.freeGift) {
+      return "Free gift unlocked on this order";
+    }
+
+    if (
+      coupon.discount_type ===
+      "percentage"
+    ) {
+      return `${coupon.discount_value}% off`;
+    }
+
+    if (
+      coupon.discount_type ===
+      "fixed"
+    ) {
+      return `₹${formatSaving(
+        coupon.discount_value
+      )} off`;
+    }
+
+    if (
+      coupon.discount_type ===
+      "buy_x_get_y"
+    ) {
+      return "Special Buy X Get Y offer";
+    }
+
+    return "Special offer";
+  };
+
+
+  const copyCode = async (
+    code: string
+  ) => {
+    try {
+      await navigator.clipboard.writeText(
+        code
+      );
+
+      setCopiedCode(code);
+
+      window.setTimeout(() => {
+        setCopiedCode(
+          current =>
+            current === code
+              ? null
+              : current
+        );
+      }, 1400);
+    } catch {
+      /* Clipboard permission can be unavailable. */
+    }
+  };
+
+
+  if (!open) {
+    return null;
   }
-}}
 
-className={`
 
-rounded-xl
-
-min-w-[78px]
-
-px-4
-
-py-2
-
-text-sm
-
-text-white
-
-
-${
-
-appliedCoupon?.code===coupon.code
-
-?
-
-"bg-green-600"
-
-:
-
-"bg-black"
-
-}
-
-`}
-
->
-
-{
-
-appliedCoupon?.code===coupon.code
-
-?
-
-"Applied"
-
-:
-
-"Apply"
-
-}
-
-</button>
-
-
-
-</div>
-
-
-</div>
-
-
-))
-
-}
-
-
-</div>
-
-
-</>
-
-}
-
-
-
-
-
-
-
-
-
-{/* Locked */}
-
-{
-
-lockedCoupons.length > 0 &&
-
-<>
-
-<h3 className="mt-8 text-sm font-semibold">
-
-More Offers
-
-</h3>
-
-
-
-
-<div className="mt-3 space-y-3">
-
-
-{
-
-lockedCoupons.map((coupon:any)=>(
-
-
-<div
-
-key={coupon.id}
-
-className="
-
-rounded-2xl
-
-border
-
-bg-neutral-50
-
-p-4
-
-opacity-70
-
-transition-all duration-300
-
-animate-in
-fade-in
-slide-in-from-bottom-2
-duration-300
-
-"
-
->
-
-
-<p className="font-semibold">
-
-🔒 {coupon.code}
-
-</p>
-
-
-<p className="text-sm">
-
-{coupon.title}
-
-</p>
-
-
-
-<p className="mt-1 text-xs text-neutral-500">
-
-Add ₹
-
-{
-
-coupon.minimum_order_amount-cartTotal
-
-}
-
- more to unlock
-
-</p>
-
-
-
-</div>
-
-
-))
-
-}
-
-
-</div>
-
-
-</>
-
-}
-
-
-
-{
-
-!isLoading &&
-
-applicableCoupons.length===0 &&
-
-lockedCoupons.length===0 &&
-
-<p className="mt-6 text-sm text-neutral-500">
-
-No offers available.
-
-</p>
-
-}
-
-
-
-</div>
-
-
-</>
-
-);
-
+  return (
+    <>
+      {/* =====================================================
+          BACKDROP
+      ====================================================== */}
+
+      <div
+        className="
+          fixed inset-0
+          z-[1100]
+          bg-black/45
+          backdrop-blur-[3px]
+
+          animate-in
+          fade-in
+          duration-300
+        "
+        onClick={onClose}
+      />
+
+
+      {/* =====================================================
+          MODAL
+      ====================================================== */}
+
+      <div
+        className="
+          fixed
+          inset-x-0
+          bottom-0
+          z-[1200]
+
+          flex
+          max-h-[88dvh]
+          flex-col
+
+          overflow-hidden
+
+          rounded-t-[28px]
+          bg-white
+
+          shadow-[0_-20px_70px_rgba(0,0,0,0.20)]
+
+          animate-in
+          slide-in-from-bottom-8
+          duration-400
+
+          sm:inset-x-1/2
+          sm:bottom-1/2
+          sm:w-[min(680px,calc(100vw-32px))]
+          sm:max-h-[82vh]
+          sm:-translate-x-1/2
+          sm:translate-y-1/2
+          sm:rounded-[28px]
+          sm:animate-in
+          sm:zoom-in-95
+          sm:slide-in-from-bottom-0
+        "
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="available-offers-title"
+      >
+
+        {/* ===================================================
+            HEADER
+        ==================================================== */}
+
+        <div
+          className="
+            relative
+            shrink-0
+            border-b
+            border-neutral-100
+            bg-white
+            px-5
+            pb-4
+            pt-4
+            sm:px-6
+            sm:pt-5
+          "
+        >
+
+          <div
+            className="
+              mx-auto
+              mb-3
+              h-1
+              w-10
+              rounded-full
+              bg-neutral-200
+              sm:hidden
+            "
+          />
+
+          <div
+            className="
+              flex
+              items-center
+              justify-between
+              gap-4
+            "
+          >
+
+            <div
+              className="
+                flex
+                min-w-0
+                items-center
+                gap-3
+              "
+            >
+
+              <div
+                className="
+                  flex
+                  h-10
+                  w-10
+                  shrink-0
+                  items-center
+                  justify-center
+                  rounded-2xl
+                  bg-[#C8A44D]/10
+                  text-[#A88325]
+                "
+              >
+                <Sparkles
+                  size={19}
+                />
+              </div>
+
+              <div
+                className="
+                  min-w-0
+                "
+              >
+
+                <h2
+                  id="available-offers-title"
+                  className="
+                    truncate
+                    text-base
+                    font-semibold
+                    text-neutral-950
+                    sm:text-lg
+                  "
+                >
+                  Offers for you
+                </h2>
+
+                <p
+                  className="
+                    mt-0.5
+                    text-[11px]
+                    text-neutral-500
+                    sm:text-xs
+                  "
+                >
+                  Showing only offers you can use right now
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="
+                flex
+                h-9
+                w-9
+                shrink-0
+                items-center
+                justify-center
+                rounded-full
+                bg-neutral-100
+                text-neutral-700
+
+                transition
+                hover:bg-neutral-200
+                active:scale-90
+              "
+              aria-label="Close offers"
+            >
+              <X
+                size={18}
+              />
+            </button>
+
+          </div>
+
+        </div>
+
+
+        {/* ===================================================
+            CONTENT
+        ==================================================== */}
+
+        <div
+          className="
+            min-h-0
+            flex-1
+            overflow-y-auto
+            overscroll-contain
+
+            px-4
+            py-4
+
+            sm:px-6
+            sm:py-5
+          "
+        >
+
+          {
+            (
+              isLoading ||
+              checkingEligibility
+            ) ? (
+
+              <div
+                className="
+                  flex
+                  min-h-[180px]
+                  flex-col
+                  items-center
+                  justify-center
+                  gap-3
+                "
+              >
+
+                <div
+                  className="
+                    flex
+                    h-11
+                    w-11
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-[#C8A44D]/10
+                  "
+                >
+                  <Loader2
+                    size={20}
+                    className="
+                      animate-spin
+                      text-[#A88325]
+                    "
+                  />
+                </div>
+
+                <div
+                  className="
+                    text-center
+                  "
+                >
+
+                  <p
+                    className="
+                      text-sm
+                      font-medium
+                      text-neutral-800
+                    "
+                  >
+                    Finding your best offers…
+                  </p>
+
+                  <p
+                    className="
+                      mt-1
+                      text-xs
+                      text-neutral-500
+                    "
+                  >
+                    Checking offers against your cart
+                  </p>
+
+                </div>
+
+              </div>
+
+            ) : eligibleCoupons.length > 0 ? (
+
+              <div
+                className="
+                  space-y-3
+                "
+              >
+
+                {/* =================================================
+                    BEST OFFER
+                ================================================== */}
+
+                {
+                  topOffer && (
+
+                    <div
+                      className="
+                        relative
+                        overflow-hidden
+                        rounded-[22px]
+
+                        border
+                        border-[#D7C27A]
+
+                        bg-gradient-to-br
+                        from-[#fffdf4]
+                        via-[#fffaf0]
+                        to-white
+
+                        p-4
+                        shadow-[0_8px_30px_rgba(184,146,43,0.10)]
+
+                        animate-in
+                        fade-in
+                        zoom-in-95
+                        duration-300
+                      "
+                    >
+
+                      <div
+                        className="
+                          absolute
+                          -right-8
+                          -top-8
+                          h-24
+                          w-24
+                          rounded-full
+                          bg-[#C8A44D]/10
+                        "
+                      />
+
+                      <div
+                        className="
+                          relative
+                          flex
+                          items-start
+                          justify-between
+                          gap-3
+                        "
+                      >
+
+                        <div
+                          className="
+                            min-w-0
+                            flex-1
+                          "
+                        >
+
+                          <div
+                            className="
+                              mb-2
+                              inline-flex
+                              items-center
+                              gap-1.5
+                              rounded-full
+                              bg-[#C8A44D]
+                              px-2.5
+                              py-1
+                              text-[10px]
+                              font-bold
+                              uppercase
+                              tracking-[0.08em]
+                              text-white
+                            "
+                          >
+                            <Sparkles
+                              size={11}
+                            />
+                            Best offer
+                          </div>
+
+                          <div
+                            className="
+                              flex
+                              flex-wrap
+                              items-center
+                              gap-2
+                            "
+                          >
+
+                            <p
+                              className="
+                                text-base
+                                font-bold
+                                tracking-wide
+                                text-neutral-950
+                              "
+                            >
+                              {topOffer.coupon.code}
+                            </p>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                copyCode(
+                                  topOffer.coupon.code
+                                )
+                              }
+                              className="
+                                inline-flex
+                                items-center
+                                gap-1
+                                rounded-full
+                                border
+                                border-neutral-200
+                                bg-white
+                                px-2
+                                py-1
+                                text-[10px]
+                                font-medium
+                                text-neutral-600
+                                transition
+                                hover:border-neutral-300
+                              "
+                            >
+                              <Copy
+                                size={10}
+                              />
+                              {
+                                copiedCode ===
+                                topOffer.coupon.code
+                                  ? "Copied"
+                                  : "Copy"
+                              }
+                            </button>
+
+                          </div>
+
+                          <p
+                            className="
+                              mt-1
+                              text-sm
+                              text-neutral-700
+                            "
+                          >
+                            {
+                              topOffer.coupon.title ||
+                              "Special offer"
+                            }
+                          </p>
+
+                          <div
+                            className="
+                              mt-2
+                              flex
+                              flex-wrap
+                              items-center
+                              gap-x-3
+                              gap-y-1
+                              text-xs
+                              text-neutral-500
+                            "
+                          >
+
+                            <span
+                              className="
+                                font-medium
+                                text-neutral-700
+                              "
+                            >
+                              {
+                                getOfferText(
+                                  topOffer
+                                )
+                              }
+                            </span>
+
+                            {
+                              topOffer.saving >
+                                0 && (
+                                <span
+                                  className="
+                                    font-semibold
+                                    text-green-700
+                                  "
+                                >
+                                  Save ₹
+                                  {
+                                    formatSaving(
+                                      topOffer.saving
+                                    )
+                                  }
+                                </span>
+                              )
+                            }
+
+                          </div>
+
+                        </div>
+
+
+                        <div
+                          className="
+                            flex
+                            shrink-0
+                            flex-col
+                            items-end
+                            gap-2
+                          "
+                        >
+
+                          <Tag
+                            size={18}
+                            className="
+                              text-[#A88325]
+                            "
+                          />
+
+                          <button
+                            type="button"
+                            disabled={
+                              applyingCouponId ===
+                              topOffer.coupon.id ||
+                              appliedCoupon?.code ===
+                              topOffer.coupon.code
+                            }
+                            onClick={async () => {
+                              try {
+                                setApplyingCouponId(
+                                  topOffer.coupon.id
+                                );
+
+                                await onApply(
+                                  topOffer.coupon
+                                );
+                              } finally {
+                                setApplyingCouponId(
+                                  null
+                                );
+                              }
+                            }}
+                            className="
+                              min-w-[76px]
+                              rounded-xl
+                              bg-black
+                              px-4
+                              py-2.5
+                              text-xs
+                              font-semibold
+                              text-white
+
+                              shadow-sm
+
+                              transition
+                              hover:bg-neutral-800
+                              active:scale-95
+                              disabled:cursor-not-allowed
+                              disabled:opacity-60
+                            "
+                          >
+
+                            {
+                              applyingCouponId ===
+                              topOffer.coupon.id ? (
+                                <Loader2
+                                  size={14}
+                                  className="
+                                    mx-auto
+                                    animate-spin
+                                  "
+                                />
+                              ) : appliedCoupon?.code ===
+                                topOffer.coupon.code ? (
+                                <span
+                                  className="
+                                    flex
+                                    items-center
+                                    justify-center
+                                    gap-1
+                                  "
+                                >
+                                  <Check
+                                    size={13}
+                                  />
+                                  Applied
+                                </span>
+                              ) : (
+                                "Apply"
+                              )
+                            }
+
+                          </button>
+
+                        </div>
+
+                      </div>
+
+                    </div>
+                  )
+                }
+
+
+                {/* =================================================
+                    OTHER ELIGIBLE OFFERS
+                ================================================== */}
+
+                {
+                  otherOffers.length > 0 && (
+
+                    <div
+                      className="
+                        pt-2
+                      "
+                    >
+
+                      <div
+                        className="
+                          mb-2.5
+                          flex
+                          items-center
+                          justify-between
+                        "
+                      >
+
+                        <p
+                          className="
+                            text-xs
+                            font-semibold
+                            uppercase
+                            tracking-[0.08em]
+                            text-neutral-500
+                          "
+                        >
+                          More offers you can use
+                        </p>
+
+                        <span
+                          className="
+                            text-[10px]
+                            text-neutral-400
+                          "
+                        >
+                          {otherOffers.length}
+                        </span>
+
+                      </div>
+
+
+                      <div
+                        className="
+                          grid
+                          gap-2.5
+                          sm:grid-cols-2
+                        "
+                      >
+
+                        {
+                          otherOffers.map(
+                            (
+                              item,
+                              index
+                            ) => (
+
+                              <div
+                                key={
+                                  item.coupon.id
+                                }
+                                style={{
+                                  animationDelay:
+                                    `${index * 60}ms`,
+                                }}
+                                className="
+                                  rounded-2xl
+                                  border
+                                  border-neutral-200
+                                  bg-white
+                                  p-3.5
+
+                                  transition-all
+                                  duration-300
+                                  hover:-translate-y-0.5
+                                  hover:border-neutral-300
+                                  hover:shadow-md
+
+                                  animate-in
+                                  fade-in
+                                  slide-in-from-bottom-2
+                                "
+                              >
+
+                                <div
+                                  className="
+                                    flex
+                                    items-start
+                                    justify-between
+                                    gap-2
+                                  "
+                                >
+
+                                  <div
+                                    className="
+                                      min-w-0
+                                    "
+                                  >
+
+                                    <div
+                                      className="
+                                        flex
+                                        flex-wrap
+                                        items-center
+                                        gap-1.5
+                                      "
+                                    >
+
+                                      <p
+                                        className="
+                                          truncate
+                                          text-sm
+                                          font-bold
+                                          text-neutral-900
+                                        "
+                                      >
+                                        {
+                                          item.coupon.code
+                                        }
+                                      </p>
+
+                                      {
+                                        item.saving >
+                                          0 && (
+                                          <span
+                                            className="
+                                              rounded-full
+                                              bg-green-50
+                                              px-2
+                                              py-0.5
+                                              text-[9px]
+                                              font-semibold
+                                              text-green-700
+                                            "
+                                          >
+                                            Save ₹
+                                            {
+                                              formatSaving(
+                                                item.saving
+                                              )
+                                            }
+                                          </span>
+                                        )
+                                      }
+
+                                    </div>
+
+                                    <p
+                                      className="
+                                        mt-1
+                                        truncate
+                                        text-xs
+                                        text-neutral-600
+                                      "
+                                    >
+                                      {
+                                        item.coupon.title ||
+                                        getOfferText(
+                                          item
+                                        )
+                                      }
+                                    </p>
+
+                                    <p
+                                      className="
+                                        mt-1
+                                        text-[10px]
+                                        text-neutral-400
+                                      "
+                                    >
+                                      {
+                                        getOfferText(
+                                          item
+                                        )
+                                      }
+                                    </p>
+
+                                  </div>
+
+
+                                  <button
+                                    type="button"
+                                    disabled={
+                                      applyingCouponId ===
+                                      item.coupon.id ||
+                                      appliedCoupon?.code ===
+                                      item.coupon.code
+                                    }
+                                    onClick={async () => {
+                                      try {
+                                        setApplyingCouponId(
+                                          item.coupon.id
+                                        );
+
+                                        await onApply(
+                                          item.coupon
+                                        );
+                                      } finally {
+                                        setApplyingCouponId(
+                                          null
+                                        );
+                                      }
+                                    }}
+                                    className="
+                                      shrink-0
+                                      rounded-xl
+                                      bg-black
+                                      px-3.5
+                                      py-2
+                                      text-[11px]
+                                      font-semibold
+                                      text-white
+
+                                      transition
+                                      hover:bg-neutral-800
+                                      active:scale-95
+                                      disabled:opacity-60
+                                    "
+                                  >
+                                    {
+                                      applyingCouponId ===
+                                      item.coupon.id ? (
+                                        <Loader2
+                                          size={13}
+                                          className="animate-spin"
+                                        />
+                                      ) : appliedCoupon?.code ===
+                                        item.coupon.code ? (
+                                        "Applied"
+                                      ) : (
+                                        "Apply"
+                                      )
+                                    }
+                                  </button>
+
+                                </div>
+
+                              </div>
+
+                            )
+                          )
+                        }
+
+                      </div>
+
+                    </div>
+                  )
+                }
+
+              </div>
+
+            ) : (
+
+              <div
+                className="
+                  flex
+                  min-h-[220px]
+                  flex-col
+                  items-center
+                  justify-center
+                  px-5
+                  text-center
+
+                  animate-in
+                  fade-in
+                  duration-300
+                "
+              >
+
+                <div
+                  className="
+                    flex
+                    h-14
+                    w-14
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-neutral-100
+                    text-neutral-400
+                  "
+                >
+                  <Tag
+                    size={24}
+                  />
+                </div>
+
+                <p
+                  className="
+                    mt-4
+                    text-sm
+                    font-semibold
+                    text-neutral-800
+                  "
+                >
+                  No eligible offers right now
+                </p>
+
+                <p
+                  className="
+                    mt-1
+                    max-w-xs
+                    text-xs
+                    leading-5
+                    text-neutral-500
+                  "
+                >
+                  We’re only showing offers that are valid
+                  for your account and current cart.
+                </p>
+
+              </div>
+            )
+          }
+
+        </div>
+
+
+        {/* ===================================================
+            FOOTER
+        ==================================================== */}
+
+        <div
+          className="
+            shrink-0
+            border-t
+            border-neutral-100
+            bg-white
+            px-4
+            py-3
+
+            sm:px-6
+          "
+        >
+
+          <div
+            className="
+              flex
+              items-center
+              justify-between
+              gap-3
+            "
+          >
+
+            <p
+              className="
+                text-[10px]
+                text-neutral-400
+              "
+            >
+              Offers are checked against your current cart.
+            </p>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="
+                shrink-0
+                rounded-lg
+                px-2
+                py-1
+                text-[11px]
+                font-medium
+                text-neutral-500
+                transition
+                hover:text-black
+              "
+            >
+              Close
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+    </>
+  );
 }
