@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/shiprocket/products",
+      "destination": "/api/shiprocket/products"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
