@@ -1009,16 +1009,17 @@ export default function RelatedProducts({
                       }
                       className={`
                         mt-auto
-                        pt-2
                         flex
-                        h-8
+                        h-9
                         w-full
+                        shrink-0
                         items-center
                         justify-center
-                        gap-1
+                        gap-1.5
                         rounded-lg
                         text-[10px]
                         font-semibold
+                        leading-none
                         transition-all
                         duration-200
                         active:scale-[0.96]
@@ -1040,40 +1041,60 @@ export default function RelatedProducts({
                       `}
                     >
 
-                      {
-                        isAdded ? (
+                      <span
+                        className="
+                          inline-flex
+                          items-center
+                          justify-center
+                          gap-1.5
+                          leading-none
+                        "
+                      >
 
-                          <>
+                        {
+                          isAdded ? (
 
-                            <Check
-                              size={11}
-                              strokeWidth={2.7}
-                              className="
-                                animate-in
-                                zoom-in-50
-                                duration-200
-                              "
-                            />
+                            <>
 
-                            Added
+                              <Check
+                                size={11}
+                                strokeWidth={2.7}
+                                className="
+                                  shrink-0
+                                  animate-in
+                                  zoom-in-50
+                                  duration-200
+                                "
+                              />
 
-                          </>
+                              <span>
+                                Added
+                              </span>
 
-                        ) : (
+                            </>
 
-                          <>
+                          ) : (
 
-                            <Plus
-                              size={11}
-                              strokeWidth={2.5}
-                            />
+                            <>
 
-                            Add
+                              <Plus
+                                size={11}
+                                strokeWidth={2.5}
+                                className="
+                                  shrink-0
+                                "
+                              />
 
-                          </>
+                              <span>
+                                Add
+                              </span>
 
-                        )
-                      }
+                            </>
+
+                          )
+                        }
+
+                      </span>
 
                     </button>
 
