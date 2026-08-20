@@ -23,6 +23,10 @@ import MobileBottomNav
   from "@/features/header/components/MobileBottomNav";
 
 
+import PageTransition
+  from "@/shared/components/animations/PageTransition";
+
+
 export default function MainLayout() {
 
   return (
@@ -54,7 +58,12 @@ export default function MainLayout() {
         "
       >
 
-        <Outlet />
+        <PageTransition>
+
+          <Outlet />
+
+        </PageTransition>
+
 
         <Footer />
 
