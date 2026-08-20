@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -296,6 +297,15 @@ export default function MyOrders() {
   );
 
 
+  const [
+    visibleOrderCount,
+    setVisibleOrderCount,
+  ] = useState(6);
+
+
+  const ORDERS_PER_LOAD = 6;
+
+
 
 
 
@@ -355,6 +365,33 @@ export default function MyOrders() {
 
 
 
+
+
+  const visibleOrders =
+    filteredOrders.slice(
+      0,
+      visibleOrderCount
+    );
+
+
+  const hasMoreOrders =
+    visibleOrderCount <
+    filteredOrders.length;
+
+
+  useEffect(
+    () => {
+
+      setVisibleOrderCount(
+        ORDERS_PER_LOAD
+      );
+
+    },
+    [
+      searchQuery,
+      activeFilter,
+    ]
+  );
 
 
   const filterCounts =
@@ -1139,7 +1176,7 @@ export default function MyOrders() {
 
               ) : (
 
-                filteredOrders.map(
+                visibleOrders.map(
                   (
                     order: any
                   ) => (
@@ -1330,6 +1367,117 @@ export default function MyOrders() {
             }
 
           </div>
+
+
+          {/* =================================================
+              LOAD MORE
+          ================================================== */}
+
+          {
+            hasMoreOrders && (
+
+              <div
+                className="
+                  mt-5
+                  flex
+                  flex-col
+                  items-center
+                  gap-2
+                "
+              >
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setVisibleOrderCount(
+                      (
+                        current
+                      ) =>
+                        Math.min(
+                          current +
+                            ORDERS_PER_LOAD,
+                          filteredOrders.length
+                        )
+                    )
+                  }
+                  className="
+                    group
+                    inline-flex
+                    min-w-[190px]
+                    items-center
+                    justify-center
+                    gap-2
+                    rounded-full
+                    border
+                    border-[#C8A44D]/45
+                    bg-[#C8A44D]/[0.07]
+                    px-5
+                    py-3
+                    text-sm
+                    font-medium
+                    text-[#C8A44D]
+                    transition-all
+                    duration-200
+                    hover:border-[#C8A44D]
+                    hover:bg-[#C8A44D]/12
+                    hover:text-[#E0C06A]
+                    active:scale-[0.98]
+                  "
+                >
+
+                  Load more orders
+
+                  <ChevronRight
+                    size={16}
+                    className="
+                      transition-transform
+                      duration-200
+                      group-hover:translate-y-0.5
+                      group-hover:translate-x-0.5
+                    "
+                  />
+
+                </button>
+
+
+                <p
+                  className="
+                    text-[11px]
+                    text-neutral-600
+                  "
+                >
+
+                  Showing{" "}
+                  <span
+                    className="
+                      text-neutral-400
+                    "
+                  >
+                    {Math.min(
+                      visibleOrderCount,
+                      filteredOrders.length
+                    )}
+                  </span>
+                  {" "}of{" "}
+                  <span
+                    className="
+                      text-neutral-400
+                    "
+                  >
+                    {filteredOrders.length}
+                  </span>
+                  {" "}
+                  {filteredOrders.length === 1
+                    ? "order"
+                    : "orders"}
+
+                </p>
+
+              </div>
+
+            )
+          }
+
 
         </div>
 
