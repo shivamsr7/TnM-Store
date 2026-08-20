@@ -4,6 +4,7 @@ import {
   CreditCard,
   Gift,
   Truck,
+  ChevronRight,
 } from "lucide-react";
 
 
@@ -29,592 +30,444 @@ import {
 
 
 
+function getNotificationIcon(
+  type: string
+) {
 
+  switch (type) {
 
+    case "payment":
+      return CreditCard;
 
+    case "reward":
+      return Gift;
 
-function getNotificationIcon(type:string){
+    case "shipping":
+      return Truck;
 
+    case "order":
+      return Package;
 
-switch(type){
+    default:
+      return Bell;
 
-
-case "payment":
-
-return CreditCard;
-
-
-
-case "reward":
-
-return Gift;
-
-
-
-case "shipping":
-
-return Truck;
-
-
-
-case "order":
-
-return Package;
-
-
-
-default:
-
-return Bell;
-
-
-}
+  }
 
 }
 
 
 
+function getNotificationColor(
+  type: string
+) {
 
+  switch (type) {
 
+    case "payment":
+      return "bg-emerald-500/10 text-emerald-400";
 
+    case "reward":
+      return "bg-purple-500/10 text-purple-400";
 
+    case "shipping":
+      return "bg-blue-500/10 text-blue-400";
 
-function getNotificationColor(type:string){
+    case "order":
+      return "bg-[#C8A44D]/10 text-[#C8A44D]";
 
+    default:
+      return "bg-neutral-800 text-neutral-400";
 
-switch(type){
-
-
-case "payment":
-
-return "bg-emerald-500/10 text-emerald-400";
-
-
-
-case "reward":
-
-return "bg-purple-500/10 text-purple-400";
-
-
-
-case "shipping":
-
-return "bg-blue-500/10 text-blue-400";
-
-
-
-case "order":
-
-return "bg-[#C8A44D]/10 text-[#C8A44D]";
-
-
-
-default:
-
-return "bg-neutral-800 text-neutral-400";
-
-
-}
+  }
 
 }
 
 
 
+export default function RecentNotifications() {
 
 
+  const {
+    customer,
+  } = useAuth();
 
 
+  const {
+    data: notifications = [],
+    isLoading,
+  } = useCustomerNotifications(
+    customer?.id
+  );
 
 
-export default function RecentNotifications(){
+  const {
+    mutate: markRead,
+  } = useMarkNotificationRead();
 
 
 
-const {
-customer
-}=useAuth();
+  function handleClick(
+    item: any
+  ) {
 
+    if (!item.is_read) {
 
+      markRead(
+        item.id
+      );
 
+    }
 
+  }
 
 
 
-const {
+  if (isLoading) {
 
-data:notifications=[],
+    return (
 
-isLoading
+      <div
+        className="
+          px-4
+          py-8
+          text-center
+          text-sm
+          text-neutral-400
+        "
+      >
 
-}=useCustomerNotifications(
-customer?.id
-);
+        Loading activity...
 
+      </div>
 
+    );
 
+  }
 
 
 
-const {
+  return (
 
-mutate:markRead
+    <div>
 
-}=useMarkNotificationRead();
+      {
+        notifications.length === 0 ? (
 
+          <div
+            className="
+              flex
+              flex-col
+              items-center
+              justify-center
+              px-5
+              py-10
+              text-center
+            "
+          >
+
+            <div
+              className="
+                flex
+                h-14
+                w-14
+                items-center
+                justify-center
+                rounded-full
+                bg-[#C8A44D]/10
+                text-[#C8A44D]
+              "
+            >
+
+              <Bell
+                size={24}
+                strokeWidth={1.8}
+              />
+
+            </div>
+
 
-
-
-
-
-
-
-
-function handleClick(item:any){
-
-
-if(!item.is_read){
-
-markRead(item.id);
-
-}
-
-
-}
-
-
-
-
-
-
-
-
-
-if(isLoading){
-
-
-return (
-
-<div
-
-className="
-rounded-2xl
-border
-border-neutral-800
-bg-neutral-950
-p-5
-text-sm
-text-neutral-400
-"
-
->
-
-Loading notifications...
-
-</div>
-
-);
-
-
-}
-
-
-
-
-
-
-
-
-
-return (
-
-<div
-
-className="
-rounded-2xl
-border
-border-neutral-800
-bg-neutral-950
-p-5
-"
-
->
-
-
-
-
-
-
-<div
-
-className="
-mb-5
-flex
-items-center
-justify-between
-"
-
->
-
-
-<h2
-
-className="
-text-lg
-font-semibold
-text-white
-"
-
->
-
-Recent Activity
-
-</h2>
-
-
-
-<Link
-
-to="/account/notifications"
-
-className="
-text-sm
-text-[#C8A44D]
-hover:text-white
-"
-
->
-
-View All
-
-</Link>
-
-
-
-</div>
-
-
-
-
-
-
-
-
-
-{
-
-notifications.length===0 ? (
-
-
-<div
-
-className="
-py-10
-text-center
-"
-
->
-
-
-<Bell
-
-size={38}
-
-className="
-mx-auto
-mb-3
-text-neutral-700
-"
-
-/>
-
-
-
-<p
-
-className="
-text-sm
-text-neutral-400
-"
-
->
-
-No notifications yet
-
-</p>
-
-
-
-</div>
-
-
-)
-
-:
-
-(
-
-
-<div
-
-className="
-space-y-3
-"
-
->
-
-
-{
-
-notifications
-.slice(0,5)
-.map((item:any)=>{
-
-
-const Icon =
-getNotificationIcon(
-item.type
-);
-
-
-
-return (
-
-<button
-
-key={item.id}
-
-onClick={()=>handleClick(item)}
-
-className={`
-
-flex
-
-w-full
-
-gap-3
-
-rounded-xl
-
-border
-
-p-4
-
-text-left
-
-transition
-
-hover:border-[#C8A44D]/40
-
-
-${
-
-item.is_read
-
-?
-
-"border-neutral-800"
-
-:
-
-"border-[#C8A44D]/40 bg-[#C8A44D]/5"
-
-}
-
-`}
-
->
-
-
-
-
-
-
-
-<div
-
-className={`
-
-flex
-
-h-11
-
-w-11
-
-shrink-0
-
-items-center
-
-justify-center
-
-rounded-full
-
-${
-
-getNotificationColor(
-item.type
-)
-
-}
-
-`}
-
->
-
-<Icon size={20}/>
-
-</div>
-
-
-
-
-
-
-
-
-<div
-
-className="
-min-w-0
-flex-1
-"
-
->
-
-
-<div
-
-className="
-flex
-items-start
-justify-between
-gap-2
-"
-
->
-
-
-<p
-
-className="
-text-sm
-font-medium
-text-white
-"
-
->
-
-{item.title}
-
-</p>
-
-
-
-
-
-{
-
-!item.is_read && (
-
-<span
-
-className="
-mt-1
-h-2
-w-2
-shrink-0
-rounded-full
-bg-[#C8A44D]
-"
-
-/>
-
-)
-
-}
-
-
-
-</div>
-
-
-
-
-
-
-
-
-<p
-
-className="
-mt-1
-line-clamp-2
-text-xs
-leading-relaxed
-text-neutral-400
-"
-
->
-
-{item.message}
-
-</p>
-
-
-
-
-
-
-
-
-<p
-
-className="
-mt-2
-text-[11px]
-text-neutral-500
-"
-
->
-
-{timeAgo(item.created_at)}
-
-</p>
-
-
-
-
-
-</div>
-
-
-
-
-
-
-</button>
-
-)
-
-})
-
-
-}
-
-
-
-</div>
-
-
-)
-
-}
-
-
-
-
-
-</div>
-
-);
+            <p
+              className="
+                mt-4
+                text-sm
+                font-medium
+                text-white
+              "
+            >
+              You're all caught up
+            </p>
+
+
+            <p
+              className="
+                mt-1
+                max-w-[260px]
+                text-xs
+                leading-5
+                text-neutral-500
+              "
+            >
+              New order and account updates will appear here.
+            </p>
+
+          </div>
+
+        ) : (
+
+          <div
+            className="
+              divide-y
+              divide-neutral-800
+            "
+          >
+
+            {
+              notifications
+                .slice(0, 4)
+                .map(
+                  (
+                    item: any
+                  ) => {
+
+                    const Icon =
+                      getNotificationIcon(
+                        item.type
+                      );
+
+
+                    return (
+
+                      <button
+                        key={
+                          item.id
+                        }
+                        type="button"
+                        onClick={() =>
+                          handleClick(
+                            item
+                          )
+                        }
+                        className={`
+                          group
+                          flex
+                          w-full
+                          items-start
+                          gap-3
+                          px-4
+                          py-4
+                          text-left
+                          transition-colors
+                          duration-200
+                          hover:bg-[#111111]
+                          active:bg-[#151515]
+                          sm:px-5
+
+                          ${
+                            item.is_read
+                              ? ""
+                              : "bg-[#C8A44D]/[0.035]"
+                          }
+                        `}
+                      >
+
+
+                        {/* =================================
+                            ICON
+                        ================================== */}
+
+                        <div
+                          className={`
+                            flex
+                            h-10
+                            w-10
+                            shrink-0
+                            items-center
+                            justify-center
+                            rounded-xl
+                            ${getNotificationColor(
+                              item.type
+                            )}
+                          `}
+                        >
+
+                          <Icon
+                            size={17}
+                            strokeWidth={1.9}
+                          />
+
+                        </div>
+
+
+
+                        {/* =================================
+                            CONTENT
+                        ================================== */}
+
+                        <div
+                          className="
+                            min-w-0
+                            flex-1
+                          "
+                        >
+
+                          <div
+                            className="
+                              flex
+                              items-start
+                              gap-2
+                            "
+                          >
+
+                            <p
+                              className="
+                                min-w-0
+                                flex-1
+                                line-clamp-1
+                                text-sm
+                                font-medium
+                                text-white
+                              "
+                            >
+
+                              {
+                                item.title
+                              }
+
+                            </p>
+
+
+                            {
+                              !item.is_read && (
+
+                                <span
+                                  className="
+                                    mt-1.5
+                                    h-1.5
+                                    w-1.5
+                                    shrink-0
+                                    rounded-full
+                                    bg-[#C8A44D]
+                                    shadow-[0_0_0_3px_rgba(200,164,77,0.08)]
+                                  "
+                                  aria-label="Unread"
+                                />
+
+                              )
+                            }
+
+                          </div>
+
+
+                          <p
+                            className="
+                              mt-1
+                              line-clamp-1
+                              text-[11px]
+                              leading-4
+                              text-neutral-500
+                            "
+                          >
+
+                            {
+                              item.message
+                            }
+
+                          </p>
+
+
+                          <p
+                            className="
+                              mt-1.5
+                              text-[10px]
+                              text-neutral-600
+                            "
+                          >
+
+                            {
+                              timeAgo(
+                                item.created_at
+                              )
+                            }
+
+                          </p>
+
+                        </div>
+
+
+
+                        {/* =================================
+                            NAVIGATION CUE
+                        ================================== */}
+
+                        <ChevronRight
+                          size={17}
+                          className="
+                            mt-2
+                            shrink-0
+                            text-neutral-700
+                            transition-all
+                            duration-200
+                            group-hover:translate-x-0.5
+                            group-hover:text-[#C8A44D]
+                          "
+                        />
+
+                      </button>
+
+                    );
+
+                  }
+                )
+            }
+
+          </div>
+
+        )
+      }
+
+
+
+      {/* =====================================================
+          VIEW ALL
+      ====================================================== */}
+
+      {
+        notifications.length > 4 && (
+
+          <Link
+            to="/account/notifications"
+            className="
+              flex
+              items-center
+              justify-center
+              gap-1
+              border-t
+              border-neutral-800
+              px-4
+              py-3.5
+              text-xs
+              font-medium
+              text-[#C8A44D]
+              transition-colors
+              hover:bg-[#111111]
+              hover:text-white
+              sm:px-5
+            "
+          >
+
+            View all activity
+
+            <ChevronRight
+              size={14}
+            />
+
+          </Link>
+
+        )
+      }
+
+    </div>
+
+  );
 
 }
