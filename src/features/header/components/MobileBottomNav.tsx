@@ -159,6 +159,10 @@ export default function MobileBottomNav() {
             font-medium
 
             transition-colors
+            duration-200
+            ease-out
+
+            motion-reduce:transition-none
 
             ${
               isActive
@@ -179,9 +183,31 @@ export default function MobileBottomNav() {
                     ? 2.2
                     : 1.8
                 }
+
+                className={`
+                  transition-[transform]
+                  duration-200
+                  ease-out
+
+                  motion-reduce:transition-none
+
+                  ${
+                    isActive
+                      ? "scale-[1.06]"
+                      : "scale-100"
+                  }
+                `}
               />
 
-              <span>
+              <span
+                className="
+                  transition-[transform,opacity]
+                  duration-200
+                  ease-out
+
+                  motion-reduce:transition-none
+                "
+              >
                 Home
               </span>
 
@@ -210,6 +236,10 @@ export default function MobileBottomNav() {
             font-medium
 
             transition-colors
+            duration-200
+            ease-out
+
+            motion-reduce:transition-none
 
             ${
               isActive
@@ -230,9 +260,31 @@ export default function MobileBottomNav() {
                     ? 2.2
                     : 1.8
                 }
+
+                className={`
+                  transition-[transform]
+                  duration-200
+                  ease-out
+
+                  motion-reduce:transition-none
+
+                  ${
+                    isActive
+                      ? "scale-[1.06]"
+                      : "scale-100"
+                  }
+                `}
               />
 
-              <span>
+              <span
+                className="
+                  transition-[transform,opacity]
+                  duration-200
+                  ease-out
+
+                  motion-reduce:transition-none
+                "
+              >
                 Shop
               </span>
 
@@ -267,8 +319,13 @@ export default function MobileBottomNav() {
             font-medium
 
             transition-colors
+            duration-200
+            ease-out
+
+            motion-reduce:transition-none
 
             active:scale-95
+            motion-reduce:active:scale-100
           "
         >
 
@@ -281,23 +338,37 @@ export default function MobileBottomNav() {
                 : 1.8
             }
 
-            className={
-              customer
-                ? "text-[#C8A44D]"
-                : "text-neutral-400"
-            }
+            className={`
+              transition-[transform]
+              duration-200
+              ease-out
+
+              motion-reduce:transition-none
+
+              ${
+                customer
+                  ? "scale-[1.06] text-[#C8A44D]"
+                  : "scale-100 text-neutral-400"
+              }
+            `}
           />
 
           <span
-            className={
-              customer
-                ? "text-[#C8A44D]"
-                : "text-neutral-400"
-            }
+            className={`
+              transition-[transform,opacity,color]
+              duration-200
+              ease-out
+
+              motion-reduce:transition-none
+
+              ${
+                customer
+                  ? "text-[#C8A44D]"
+                  : "text-neutral-400"
+              }
+            `}
           >
-
             Account
-
           </span>
 
         </button>
@@ -330,10 +401,15 @@ export default function MobileBottomNav() {
             text-neutral-400
 
             transition-colors
+            duration-200
+            ease-out
+
+            motion-reduce:transition-none
 
             hover:text-[#C8A44D]
 
             active:scale-95
+            motion-reduce:active:scale-100
           "
         >
 
@@ -346,6 +422,14 @@ export default function MobileBottomNav() {
             <ShoppingBag
               size={21}
               strokeWidth={1.8}
+
+              className="
+                transition-[transform]
+                duration-200
+                ease-out
+
+                motion-reduce:transition-none
+              "
             />
 
 
@@ -374,6 +458,12 @@ export default function MobileBottomNav() {
                   font-bold
                   leading-none
                   text-black
+
+                  transition-[transform]
+                  duration-200
+                  ease-out
+
+                  motion-reduce:transition-none
                 "
               >
 
@@ -390,7 +480,15 @@ export default function MobileBottomNav() {
           </div>
 
 
-          <span>
+          <span
+            className="
+              transition-[transform,opacity]
+              duration-200
+              ease-out
+
+              motion-reduce:transition-none
+            "
+          >
             Cart
           </span>
 
