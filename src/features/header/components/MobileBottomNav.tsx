@@ -118,11 +118,11 @@ export default function MobileBottomNav() {
         z-50
 
         border-t
-        border-neutral-200
+        border-[#2A2418]
 
-        bg-white
+        bg-[#0A0A0A]
 
-        shadow-[0_-4px_20px_rgba(0,0,0,0.08)]
+        shadow-[0_-4px_20px_rgba(0,0,0,0.35)]
 
         lg:hidden
 
@@ -166,8 +166,8 @@ export default function MobileBottomNav() {
 
             ${
               isActive
-                ? "text-[#C8A44D]"
-                : "text-neutral-400"
+                ? "text-[#D4AF5A]"
+                : "text-[#8F7840]"
             }
           `}
         >
@@ -178,6 +178,7 @@ export default function MobileBottomNav() {
 
               <Home
                 size={21}
+
                 strokeWidth={
                   isActive
                     ? 2.2
@@ -243,8 +244,8 @@ export default function MobileBottomNav() {
 
             ${
               isActive
-                ? "text-[#C8A44D]"
-                : "text-neutral-400"
+                ? "text-[#D4AF5A]"
+                : "text-[#8F7840]"
             }
           `}
         >
@@ -255,6 +256,7 @@ export default function MobileBottomNav() {
 
               <ShoppingBag
                 size={21}
+
                 strokeWidth={
                   isActive
                     ? 2.2
@@ -347,8 +349,8 @@ export default function MobileBottomNav() {
 
               ${
                 customer
-                  ? "scale-[1.06] text-[#C8A44D]"
-                  : "scale-100 text-neutral-400"
+                  ? "scale-[1.06] text-[#D4AF5A]"
+                  : "scale-100 text-[#8F7840]"
               }
             `}
           />
@@ -363,8 +365,8 @@ export default function MobileBottomNav() {
 
               ${
                 customer
-                  ? "text-[#C8A44D]"
-                  : "text-neutral-400"
+                  ? "text-[#D4AF5A]"
+                  : "text-[#8F7840]"
               }
             `}
           >
@@ -398,7 +400,7 @@ export default function MobileBottomNav() {
 
             text-[10px]
             font-medium
-            text-neutral-400
+            text-[#8F7840]
 
             transition-colors
             duration-200
@@ -406,7 +408,7 @@ export default function MobileBottomNav() {
 
             motion-reduce:transition-none
 
-            hover:text-[#C8A44D]
+            hover:text-[#D4AF5A]
 
             active:scale-95
             motion-reduce:active:scale-100
@@ -421,6 +423,7 @@ export default function MobileBottomNav() {
 
             <ShoppingBag
               size={21}
+
               strokeWidth={1.8}
 
               className="
@@ -450,7 +453,7 @@ export default function MobileBottomNav() {
 
                   rounded-full
 
-                  bg-[#C8A44D]
+                  bg-[#D4AF5A]
 
                   px-1
 
