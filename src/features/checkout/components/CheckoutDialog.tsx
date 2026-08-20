@@ -165,6 +165,20 @@ export default function CheckoutDialog({
 
 
   /*
+   * Payment was captured/verified, but final order completion
+   * encountered a recoverable client/server error.
+   *
+   * Keep the customer away from the payment step so they cannot
+   * accidentally pay twice. Retry uses the SAME Razorpay payment
+   * ID and the database idempotency protection.
+   */
+  const [
+    paymentRecoveryError,
+    setPaymentRecoveryError,
+  ] = useState("");
+
+
+  /*
    * =========================================================
    * SHIPPING
    * =========================================================
@@ -393,6 +407,10 @@ export default function CheckoutDialog({
       false
     );
 
+    setPaymentRecoveryError(
+      ""
+    );
+
     setSelectedAddress(
       null
     );
@@ -616,7 +634,7 @@ export default function CheckoutDialog({
 
         items:
           items.map(
-            item => ({
+            (item: typeof items[number]) => ({
               productId:
                 item.productId,
 
@@ -972,62 +990,119 @@ export default function CheckoutDialog({
 
   /*
    * =========================================================
-   * PAYMENT SUCCESS
+   * COMPLETE ORDER AFTER VERIFIED PAYMENT
    * =========================================================
    */
 
-  async function handlePaymentSuccess(
+  async function completeOrderAfterPayment(
     payment: any
   ) {
 
-    /*
-     * Razorpay has confirmed payment. From this point onward,
-     * never return the customer to Address/Payment while the
-     * server-side order transaction is being completed.
-     */
-
-    if (processingPayment) {
-      return;
-    }
-
-
-    setProcessingPayment(
-      true
-    );
-
-
     try {
 
-      if (!checkoutQuoteId) {
+      /*
+       * Normal completion uses the live checkout state.
+       * Recovery uses the exact checkout snapshot captured
+       * immediately after Razorpay success.
+       */
+      let recoverySnapshot: any = null;
+
+      const storedRecoverySnapshot =
+        sessionStorage.getItem(
+          "tnm_payment_order_recovery"
+        );
+
+      if (storedRecoverySnapshot) {
+
+        try {
+
+          recoverySnapshot =
+            JSON.parse(
+              storedRecoverySnapshot
+            );
+
+        } catch {
+
+          recoverySnapshot = null;
+
+        }
+
+      }
+
+
+      const recoveryQuoteId =
+        checkoutQuoteId ||
+        recoverySnapshot?.checkoutQuoteId ||
+        sessionStorage.getItem(
+          "tnm_last_verified_checkout_quote_id"
+        );
+
+
+      const recoveryAddress =
+        selectedAddress ||
+        recoverySnapshot?.shipping ||
+        null;
+
+
+      if (!recoveryQuoteId) {
 
         throw new Error(
-          "Secure shipping quote is missing. Please return to the address step and try again."
+          "Secure shipping quote is missing. Please contact support before making another payment."
         );
 
       }
+
+
+      if (!recoveryAddress) {
+
+        throw new Error(
+          "Delivery address is missing. Please contact support before making another payment."
+        );
+
+      }
+
+
+      const recoveryItems =
+        items?.length
+          ? items
+          : (
+              recoverySnapshot?.items ??
+              []
+            );
+
+
+      const recoveryCustomer =
+        customer ||
+        recoverySnapshot?.customer ||
+        null;
+
+
+      const recoveryPricing =
+        recoverySnapshot?.pricing ??
+        null;
 
 
       const result =
         await createOrder({
 
           customerId:
-            customer?.id ??
+            recoveryCustomer?.id ??
             null,
 
           checkoutQuoteId:
-            checkoutQuoteId,
+            recoveryQuoteId,
 
           customer: {
 
             name:
-              `${customer?.first_name ?? ""} ${customer?.last_name ?? ""}`,
+              `${recoveryCustomer?.first_name ?? ""} ${recoveryCustomer?.last_name ?? ""}`,
 
             email:
-              customer?.email ??
+              recoveryCustomer?.email ??
               null,
 
             phone:
-              customer?.phone,
+              recoveryCustomer?.phone,
 
           },
 
@@ -1035,24 +1110,25 @@ export default function CheckoutDialog({
           shipping: {
 
             fullName:
-              selectedAddress.full_name,
+              recoveryAddress.full_name,
 
             phone:
-              selectedAddress.phone,
+              recoveryAddress.phone,
 
             address:
-              `${selectedAddress.address_line_1} ${selectedAddress.address_line_2 ?? ""}`,
+              `${recoveryAddress.address_line_1} ${recoveryAddress.address_line_2 ?? ""}`,
 
             city:
-              selectedAddress.city,
+              recoveryAddress.city,
 
             state:
-              selectedAddress.state,
+              recoveryAddress.state,
 
             pincode:
-              selectedAddress.postal_code,
+              recoveryAddress.postal_code,
 
             landmark:
+              recoveryAddress.landmark ??
               null,
 
           },
@@ -1060,8 +1136,8 @@ export default function CheckoutDialog({
 
           items:
 
-            items.map(
-              item => ({
+            recoveryItems.map(
+              (item: any) => ({
 
                 productId:
                   item.productId,
@@ -1089,31 +1165,37 @@ export default function CheckoutDialog({
 
           subtotal:
             verifiedCheckoutPricing?.subtotal ??
+            recoveryPricing?.subtotal ??
             subtotal,
 
 
           discount:
             verifiedCheckoutPricing?.discount ??
+            recoveryPricing?.discount ??
             discount,
 
 
           shippingCharge:
             verifiedCheckoutPricing?.shippingCharge ??
+            recoveryPricing?.shippingCharge ??
             finalShippingCharge,
 
 
           tax:
             verifiedCheckoutPricing?.tax ??
+            recoveryPricing?.tax ??
             0,
 
 
           totalAmount:
             verifiedCheckoutPricing?.totalAmount ??
+            recoveryPricing?.totalAmount ??
             finalAmount,
 
 
           advanceAmount:
             verifiedCheckoutPricing?.totalAmount ??
+            recoveryPricing?.totalAmount ??
             finalAmount,
 
 
@@ -1142,7 +1224,10 @@ export default function CheckoutDialog({
 
                 }
 
-              : null,
+              : (
+                  recoverySnapshot?.coupon ??
+                  null
+                ),
 
         });
 
@@ -1153,6 +1238,23 @@ export default function CheckoutDialog({
 
 
       clearCart();
+
+      sessionStorage.removeItem(
+        "tnm_last_verified_razorpay_payment_id"
+      );
+
+      sessionStorage.removeItem(
+        "tnm_last_verified_checkout_quote_id"
+      );
+
+      sessionStorage.removeItem(
+        "tnm_payment_order_recovery"
+      );
+
+
+      setPaymentRecoveryError(
+        ""
+      );
 
 
       setProcessingPayment(
@@ -1166,28 +1268,249 @@ export default function CheckoutDialog({
 
     }
 
-    catch (error) {
+    catch (error: any) {
 
       console.error(
-        "Order creation failed",
+        "Order completion failed after verified payment:",
         error
       );
 
-      /*
-       * Keep the customer in the payment-processing state if
-       * Razorpay already succeeded. This prevents a misleading
-       * jump back to Address and avoids encouraging a duplicate
-       * payment.
-       *
-       * The customer should retry/order support from this state
-       * rather than being asked to pay again.
-       */
 
+      /*
+       * IMPORTANT:
+       * Razorpay has already succeeded. Never send the customer
+       * back to Payment and never ask them to pay again here.
+       */
       setProcessingPayment(
         false
       );
 
+
+      setPaymentRecoveryError(
+        error?.message ||
+        "We couldn't complete your order yet."
+      );
+
     }
+
+  }
+
+
+  /*
+   * =========================================================
+   * PAYMENT SUCCESS
+   * =========================================================
+   */
+
+  async function handlePaymentSuccess(
+    payment: any
+  ) {
+
+    if (processingPayment) {
+      return;
+    }
+
+
+    setPaymentRecoveryError(
+      ""
+    );
+
+
+    sessionStorage.setItem(
+      "tnm_last_verified_razorpay_payment_id",
+      payment.razorpay_payment_id
+    );
+
+    if (!checkoutQuoteId) {
+      setProcessingPayment(false);
+      setPaymentRecoveryError(
+        "Secure checkout quote is missing. Please contact support before making another payment."
+      );
+      return;
+    }
+
+    sessionStorage.setItem(
+      "tnm_last_verified_checkout_quote_id",
+      checkoutQuoteId
+    );
+
+    /*
+     * Snapshot everything required to finish the already-paid
+     * order. If React checkout state is reset/unmounted after
+     * payment verification fails, retry can still complete the
+     * order without asking for another payment or address.
+     */
+    sessionStorage.setItem(
+      "tnm_payment_order_recovery",
+      JSON.stringify({
+
+        checkoutQuoteId,
+
+        customer: {
+
+          id:
+            customer?.id ??
+            null,
+
+          first_name:
+            customer?.first_name ??
+            "",
+
+          last_name:
+            customer?.last_name ??
+            "",
+
+          email:
+            customer?.email ??
+            null,
+
+          phone:
+            customer?.phone ??
+            null,
+
+        },
+
+        shipping: {
+
+          full_name:
+            selectedAddress?.full_name,
+
+          phone:
+            selectedAddress?.phone,
+
+          address_line_1:
+            selectedAddress?.address_line_1,
+
+          address_line_2:
+            selectedAddress?.address_line_2 ??
+            "",
+
+          city:
+            selectedAddress?.city,
+
+          state:
+            selectedAddress?.state,
+
+          postal_code:
+            selectedAddress?.postal_code,
+
+          landmark:
+            selectedAddress?.landmark ??
+            null,
+
+        },
+
+        items,
+
+        pricing: {
+
+          subtotal:
+            verifiedCheckoutPricing?.subtotal ??
+            subtotal,
+
+          discount:
+            verifiedCheckoutPricing?.discount ??
+            discount,
+
+          shippingCharge:
+            verifiedCheckoutPricing?.shippingCharge ??
+            finalShippingCharge,
+
+          tax:
+            verifiedCheckoutPricing?.tax ??
+            0,
+
+          totalAmount:
+            verifiedCheckoutPricing?.totalAmount ??
+            finalAmount,
+
+        },
+
+        coupon:
+          appliedCoupon
+            ? {
+
+                id:
+                  appliedCoupon.id,
+
+                code:
+                  appliedCoupon.code,
+
+                discount:
+                  appliedCoupon.discount,
+
+              }
+            : null,
+
+        paymentTransactionId:
+          payment.razorpay_payment_id,
+
+      })
+    );
+
+
+    setProcessingPayment(
+      true
+    );
+
+
+    await completeOrderAfterPayment(
+      payment
+    );
+
+  }
+
+
+  /*
+   * =========================================================
+   * RETRY ORDER COMPLETION
+   * =========================================================
+   *
+   * Uses the exact same Razorpay payment ID. The database
+   * idempotency check makes this safe if the first request
+   * already created the order.
+   */
+
+  async function handleRetryOrderCompletion() {
+
+    if (processingPayment) {
+      return;
+    }
+
+
+    const paymentId =
+      sessionStorage.getItem(
+        "tnm_last_verified_razorpay_payment_id"
+      );
+
+
+    if (!paymentId) {
+
+      setPaymentRecoveryError(
+        "We couldn't safely recover this payment automatically. Please contact us with your payment reference before trying to pay again."
+      );
+
+      return;
+
+    }
+
+
+    setPaymentRecoveryError(
+      ""
+    );
+
+
+    setProcessingPayment(
+      true
+    );
+
+
+    await completeOrderAfterPayment({
+
+      razorpay_payment_id:
+        paymentId,
+
+    });
 
   }
 
@@ -1385,7 +1708,8 @@ export default function CheckoutDialog({
 
           {
             !orderSuccess &&
-            !processingPayment && (
+            !processingPayment &&
+            !paymentRecoveryError && (
 
               <div
                 className="
@@ -1855,6 +2179,149 @@ export default function CheckoutDialog({
                   Please don't close or refresh
 
                 </div>
+
+              </div>
+
+            </div>
+
+          )
+        }
+
+
+        {/* ===================================================
+            PAYMENT RECOVERY STATE
+        ==================================================== */}
+
+        {
+          paymentRecoveryError &&
+          !processingPayment &&
+          !orderSuccess && (
+
+            <div
+              className="
+                absolute
+                inset-0
+                z-[120]
+                flex
+                items-center
+                justify-center
+                bg-white
+                px-6
+                md:rounded-3xl
+              "
+            >
+
+              <div
+                className="
+                  w-full
+                  max-w-[390px]
+                  text-center
+                  motion-safe:animate-[scaleIn_260ms_ease-out]
+                "
+              >
+
+                <div
+                  className="
+                    mx-auto
+                    flex
+                    h-20
+                    w-20
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-amber-50
+                    text-amber-700
+                    ring-8
+                    ring-amber-50/70
+                  "
+                >
+
+                  <ShieldCheck
+                    size={34}
+                    strokeWidth={2}
+                  />
+
+                </div>
+
+
+                <h3
+                  className="
+                    mt-7
+                    text-xl
+                    font-semibold
+                    tracking-[-0.02em]
+                    text-neutral-950
+                  "
+                >
+                  Payment received
+                </h3>
+
+
+                <p
+                  className="
+                    mt-2
+                    text-base
+                    font-medium
+                    text-neutral-800
+                  "
+                >
+                  We're completing your order securely.
+                </p>
+
+
+                <p
+                  className="
+                    mx-auto
+                    mt-2
+                    max-w-[330px]
+                    text-sm
+                    leading-5
+                    text-neutral-500
+                  "
+                >
+                  Your payment was successful, but we couldn't finish the order confirmation yet. Please don't make another payment.
+                </p>
+
+
+                <button
+                  type="button"
+                  onClick={
+                    handleRetryOrderCompletion
+                  }
+                  className="
+                    mt-7
+                    inline-flex
+                    w-full
+                    items-center
+                    justify-center
+                    rounded-xl
+                    bg-black
+                    px-5
+                    py-3.5
+                    text-sm
+                    font-semibold
+                    text-white
+                    transition
+                    hover:bg-neutral-800
+                    active:scale-[0.98]
+                  "
+                >
+                  Retry Order Confirmation
+                </button>
+
+
+                <p
+                  className="
+                    mt-4
+                    text-[11px]
+                    font-medium
+                    uppercase
+                    tracking-[0.1em]
+                    text-neutral-400
+                  "
+                >
+                  Do not make another payment
+                </p>
 
               </div>
 
@@ -2775,7 +3242,8 @@ export default function CheckoutDialog({
 
         {
           !orderSuccess &&
-          !processingPayment && (
+          !processingPayment &&
+          !paymentRecoveryError && (
 
             <div
 

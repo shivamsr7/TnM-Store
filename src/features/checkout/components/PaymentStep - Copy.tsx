@@ -184,7 +184,7 @@ export default function PaymentStep({
 
                 setError(
                   verification?.error ||
-                  "We couldn't confirm your payment yet. Please don't try paying again immediately."
+                  "Payment verification failed. Please try again."
                 );
 
                 setLoading(false);
@@ -204,7 +204,7 @@ export default function PaymentStep({
               setError(
 
                 error?.message ||
-                "We couldn't confirm your payment yet. Please don't try paying again immediately."
+                "Payment verification failed. Please try again."
 
               );
 
@@ -242,33 +242,7 @@ export default function PaymentStep({
             setLoading(false);
 
             setError(
-              "Payment was cancelled. You can try again whenever you're ready."
-            );
-
-          },
-
-        },
-
-        /*
-         * Razorpay payment-failure callback.
-         * The customer remains on the Payment step and can retry.
-         */
-        callback: {
-
-          failure: (
-            response: any
-          ) => {
-
-            console.error(
-              "Razorpay payment failed:",
-              response
-            );
-
-            setLoading(false);
-
-            setError(
-              response?.error?.description ||
-              "Payment failed. Please try again."
+              "Payment cancelled"
             );
 
           },

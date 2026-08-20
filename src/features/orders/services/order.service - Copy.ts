@@ -124,12 +124,24 @@ async function createOrderActivity({
 
 
 export async function createOrder(
+
   payload: CreateOrderPayload
+
 ) {
 
+
+
+
+
   /*
-   * A checkout quote is required for the secure order transaction.
+   * A checkout quote is now required for the secure
+   * order transaction.
+   *
+   * The server-generated quote contains the verified
+   * Shiprocket shipping rate and will become the
+   * authoritative pricing reference for the order.
    */
+
   if (!payload.checkoutQuoteId) {
 
     throw new Error(
@@ -139,89 +151,47 @@ export async function createOrder(
   }
 
 
-  const paymentTransactionId =
-    payload.paymentTransactionId ??
-    null;
 
-
-  /*
-   * =========================================================
-   * PAYMENT IDEMPOTENCY PRE-CHECK
-   * =========================================================
-   *
-   * If Razorpay payment succeeded but the previous frontend
-   * request failed after the database created the order, a
-   * retry must return the existing order without repeating
-   * activities, notifications or emails.
-   */
-
-  if (paymentTransactionId) {
-
-    const {
-      data: existingOrder,
-      error: existingOrderError,
-    } = await supabase
-      .from("orders")
-      .select("id, order_number")
-      .eq(
-        "payment_transaction_id",
-        paymentTransactionId
-      )
-      .maybeSingle();
-
-
-    if (existingOrderError) {
-
-      console.error(
-        "Existing payment order lookup failed:",
-        existingOrderError
-      );
-
-      throw existingOrderError;
-
-    }
-
-
-    if (existingOrder) {
-
-      return {
-
-        orderId:
-          existingOrder.id,
-
-        orderNumber:
-          existingOrder.order_number,
-
-        alreadyExisted:
-          true,
-
-      };
-
-    }
-
-  }
 
 
   const orderNumber =
     generateOrderNumber();
 
 
+
+
+
+
+
+
+
   const orderData = {
+
+
+
+
 
     // Order
 
     order_number:
       orderNumber,
 
+
+
+
+
     /*
      * Secure checkout quote.
      *
-     * create_order_transaction() recalculates the authoritative
-     * pricing server-side.
+     * create_order_transaction() will use this instead
+     * of trusting frontend-calculated shipping/total values.
      */
 
     checkout_quote_id:
       payload.checkoutQuoteId,
+
+
+
 
 
     // Customer
@@ -239,10 +209,14 @@ export async function createOrder(
       payload.customer.phone,
 
 
+
+
+
     // Amounts
     //
-    // Retained for backwards compatibility. The secure RPC
-    // remains the source of truth.
+    // Retained for backwards compatibility with the
+    // current payload shape. The secure RPC must
+    // recalculate authoritative values server-side.
 
     subtotal:
       payload.subtotal,
@@ -260,6 +234,9 @@ export async function createOrder(
       payload.totalAmount,
 
 
+
+
+
     // Payment
 
     advance_amount:
@@ -273,7 +250,11 @@ export async function createOrder(
       payload.paymentMethod,
 
     payment_transaction_id:
-      paymentTransactionId,
+      payload.paymentTransactionId ??
+      null,
+
+
+
 
 
     // Coupon
@@ -285,6 +266,9 @@ export async function createOrder(
     coupon_code:
       payload.coupon?.code ??
       null,
+
+
+
 
 
     // Shipping
@@ -312,11 +296,15 @@ export async function createOrder(
       null,
 
 
+
+
+
     // Items
 
     items:
 
       payload.items.map(
+
         item => ({
 
           product_id:
@@ -339,71 +327,58 @@ export async function createOrder(
             item.total,
 
         })
+
       )
 
   };
 
 
+
+
+
+
+
+
+
   const {
+
     data,
-    error,
+
+    error
+
   } = await supabase.rpc(
+
     "create_order_transaction",
+
     {
+
       order_data:
-        orderData,
+        orderData
+
     }
+
   );
+
+
+
+
+
+
+
 
 
   if (error) {
 
     console.error(
+
       "Create order transaction failed:",
+
       error
+
     );
 
-    /*
-     * One final lookup protects the frontend from treating a
-     * successful database insert as a failed payment/order when
-     * the RPC response itself was interrupted.
-     */
-    if (paymentTransactionId) {
-
-      const {
-        data: recoveredOrder,
-        error: recoveryLookupError,
-      } = await supabase
-        .from("orders")
-        .select("id, order_number")
-        .eq(
-          "payment_transaction_id",
-          paymentTransactionId
-        )
-        .maybeSingle();
 
 
-      if (
-        !recoveryLookupError &&
-        recoveredOrder
-      ) {
-
-        return {
-
-          orderId:
-            recoveredOrder.id,
-
-          orderNumber:
-            recoveredOrder.order_number,
-
-          alreadyExisted:
-            true,
-
-        };
-
-      }
-
-    }
 
 
     throw error;
@@ -411,45 +386,21 @@ export async function createOrder(
   }
 
 
-  const orderId =
-    data;
 
 
-  /*
-   * Fetch the authoritative order number returned/stored by the
-   * database. For a brand-new order this normally matches the
-   * generated value above. This also keeps the service resilient
-   * if the RPC returns an already-existing order.
-   */
-
-  const {
-    data: createdOrder,
-    error: createdOrderLookupError,
-  } = await supabase
-    .from("orders")
-    .select("id, order_number")
-    .eq(
-      "id",
-      orderId
-    )
-    .single();
 
 
-  if (createdOrderLookupError) {
-
-    console.error(
-      "Created order lookup failed:",
-      createdOrderLookupError
-    );
-
-    throw createdOrderLookupError;
-
-  }
 
 
-  const finalOrderNumber =
-    createdOrder.order_number ??
-    orderNumber;
+
+  const orderId = data;
+
+
+
+
+
+
+
 
 
   // Activity 1: Order Created
@@ -465,21 +416,32 @@ export async function createOrder(
       "Order Created",
 
     description:
-      `Order #${finalOrderNumber} was placed successfully.`,
+      `Order #${orderNumber} was placed successfully.`,
 
     metadata: {
 
       order_number:
-        finalOrderNumber
+        orderNumber
 
     }
 
   });
 
 
+
+
+
+
+
+
+
   // Notification 1: Order Placed
 
   if (payload.customerId) {
+
+
+
+
 
     await notificationService.createNotification({
 
@@ -490,7 +452,7 @@ export async function createOrder(
         "Order Placed",
 
       message:
-        `Your order #${finalOrderNumber} has been placed successfully.`,
+        `Your order #${orderNumber} has been placed successfully.`,
 
       type:
         "order",
@@ -503,30 +465,61 @@ export async function createOrder(
   }
 
 
+
+
+
+
+
+
+
   // Email: Complete Order Confirmation
 
   if (payload.customer.email) {
+
+
+
+
 
     await notificationService.sendOrderConfirmationEmail({
 
       to:
         payload.customer.email,
 
+
+
+
+
       customerName:
         payload.customer.name,
 
-      orderNumber:
-        finalOrderNumber,
+
+
+
+
+      orderNumber,
+
+
+
+
 
       orderDate:
         new Date().toISOString(),
 
+
+
+
+
       orderStatus:
         "Order Confirmed",
+
+
+
+
 
       items:
 
         payload.items.map(
+
           item => ({
 
             productName:
@@ -546,39 +539,85 @@ export async function createOrder(
               item.total,
 
           })
+
         ),
+
+
+
+
 
       subtotal:
         payload.subtotal,
 
+
+
+
+
       discount:
         payload.discount,
+
+
+
+
 
       shippingCharge:
         payload.shippingCharge,
 
+
+
+
+
       tax:
         payload.tax,
+
+
+
+
 
       totalAmount:
         payload.totalAmount,
 
+
+
+
+
       paymentMethod:
         payload.paymentMethod,
 
+
+
+
+
       advanceAmount:
         payload.advanceAmount,
+
+
+
+
 
       remainingAmount:
         payload.totalAmount -
         payload.advanceAmount,
 
+
+
+
+
       paymentTransactionId:
-        paymentTransactionId,
+        payload.paymentTransactionId ??
+        null,
+
+
+
+
 
       couponCode:
         payload.coupon?.code ??
         null,
+
+
+
+
 
       shipping: {
 
@@ -611,12 +650,23 @@ export async function createOrder(
   }
 
 
+
+
+
+
+
+
+
   // Activity 2: Payment Received
 
   if (
     payload.paymentMethod ===
     "prepaid"
   ) {
+
+
+
+
 
     await createOrderActivity({
 
@@ -629,7 +679,7 @@ export async function createOrder(
         "Payment Received",
 
       description:
-        `Payment received for order #${finalOrderNumber}.`,
+        `Payment received for order #${orderNumber}.`,
 
       metadata: {
 
@@ -637,16 +687,28 @@ export async function createOrder(
           "prepaid",
 
         transaction_id:
-          paymentTransactionId
+          payload.paymentTransactionId ??
+          null
 
       }
 
     });
 
 
+
+
+
+
+
+
+
     // Notification 2: Payment Received
 
     if (payload.customerId) {
+
+
+
+
 
       await notificationService.createNotification({
 
@@ -657,7 +719,7 @@ export async function createOrder(
           "Payment Received",
 
         message:
-          `Payment received for order #${finalOrderNumber}.`,
+          `Payment received for order #${orderNumber}.`,
 
         type:
           "payment",
@@ -672,17 +734,19 @@ export async function createOrder(
   }
 
 
+
+
+
+
+
+
+
   return {
 
     orderId,
 
-    orderNumber:
-      finalOrderNumber,
-
-    alreadyExisted:
-      false,
+    orderNumber
 
   };
 
 }
-

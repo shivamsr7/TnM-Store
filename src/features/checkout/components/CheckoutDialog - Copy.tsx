@@ -147,6 +147,22 @@ export default function CheckoutDialog({
     setOrderNumber,
   ] = useState("");
 
+  /*
+   * =========================================================
+   * PAYMENT PROCESSING
+   * =========================================================
+   *
+   * Razorpay success is only the beginning of the final
+   * order-completion step. Keep the checkout locked in a
+   * dedicated processing state until the server-side order
+   * transaction has completed successfully.
+   */
+
+  const [
+    processingPayment,
+    setProcessingPayment,
+  ] = useState(false);
+
 
   /*
    * =========================================================
@@ -371,6 +387,10 @@ export default function CheckoutDialog({
 
     setOrderNumber(
       ""
+    );
+
+    setProcessingPayment(
+      false
     );
 
     setSelectedAddress(
@@ -960,13 +980,23 @@ export default function CheckoutDialog({
     payment: any
   ) {
 
-    try {
+    /*
+     * Razorpay has confirmed payment. From this point onward,
+     * never return the customer to Address/Payment while the
+     * server-side order transaction is being completed.
+     */
 
-      /*
-       * A secure shipping quote must exist before an order
-       * can proceed. The order RPC will be updated in the
-       * next step to verify this quote server-side.
-       */
+    if (processingPayment) {
+      return;
+    }
+
+
+    setProcessingPayment(
+      true
+    );
+
+
+    try {
 
       if (!checkoutQuoteId) {
 
@@ -1067,10 +1097,6 @@ export default function CheckoutDialog({
             discount,
 
 
-          /*
-           * FINAL CUSTOMER SHIPPING CHARGE
-           */
-
           shippingCharge:
             verifiedCheckoutPricing?.shippingCharge ??
             finalShippingCharge,
@@ -1129,6 +1155,11 @@ export default function CheckoutDialog({
       clearCart();
 
 
+      setProcessingPayment(
+        false
+      );
+
+
       setOrderSuccess(
         true
       );
@@ -1140,6 +1171,20 @@ export default function CheckoutDialog({
       console.error(
         "Order creation failed",
         error
+      );
+
+      /*
+       * Keep the customer in the payment-processing state if
+       * Razorpay already succeeded. This prevents a misleading
+       * jump back to Address and avoids encouraging a duplicate
+       * payment.
+       *
+       * The customer should retry/order support from this state
+       * rather than being asked to pay again.
+       */
+
+      setProcessingPayment(
+        false
       );
 
     }
@@ -1298,7 +1343,9 @@ export default function CheckoutDialog({
               {
                 orderSuccess
                   ? "Order Confirmed"
-                  : "Checkout"
+                  : processingPayment
+                    ? "Processing Payment"
+                    : "Checkout"
               }
 
             </h2>
@@ -1337,7 +1384,8 @@ export default function CheckoutDialog({
           ================================================== */}
 
           {
-            !orderSuccess && (
+            !orderSuccess &&
+            !processingPayment && (
 
               <div
                 className="
@@ -1655,6 +1703,165 @@ export default function CheckoutDialog({
           }
 
         </div>
+
+
+        {/* ===================================================
+            PAYMENT PROCESSING OVERLAY
+        ==================================================== */}
+
+        {
+          processingPayment && (
+
+            <div
+              className="
+                absolute
+                inset-0
+                z-[100]
+                flex
+                items-center
+                justify-center
+                rounded-none
+                bg-white
+                px-6
+                backdrop-blur-[6px]
+                motion-safe:animate-[fadeIn_180ms_ease-out]
+                md:rounded-3xl
+              "
+            >
+
+              <div
+                className="
+                  w-full
+                  max-w-[370px]
+                  text-center
+                  motion-safe:animate-[scaleIn_260ms_ease-out]
+                "
+              >
+
+                <div
+                  className="
+                    mx-auto
+                    flex
+                    h-20
+                    w-20
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-[#C8A44D]/10
+                    text-[#9A7A22]
+                    ring-8
+                    ring-[#C8A44D]/[0.06]
+                  "
+                >
+
+                  <Loader2
+                    size={32}
+                    strokeWidth={2.2}
+                    className="animate-spin"
+                  />
+
+                </div>
+
+
+                <h3
+                  className="
+                    mt-7
+                    text-xl
+                    font-semibold
+                    tracking-[-0.02em]
+                    text-neutral-950
+                  "
+                >
+                  Payment successful
+                </h3>
+
+
+                <p
+                  className="
+                    mt-2
+                    text-base
+                    font-medium
+                    text-neutral-700
+                  "
+                >
+                  Completing your order...
+                </p>
+
+
+                <p
+                  className="
+                    mx-auto
+                    mt-2
+                    max-w-[310px]
+                    text-sm
+                    leading-5
+                    text-neutral-500
+                  "
+                >
+                  We're securely confirming your payment and placing your order.
+                </p>
+
+
+                <div
+                  className="
+                    mx-auto
+                    mt-7
+                    h-1.5
+                    w-40
+                    overflow-hidden
+                    rounded-full
+                    bg-neutral-100
+                  "
+                >
+
+                  <div
+                    className="
+                      h-full
+                      w-1/2
+                      rounded-full
+                      bg-[#C8A44D]
+                      motion-safe:animate-[loadingSlide_1.2s_ease-in-out_infinite]
+                    "
+                  />
+
+                </div>
+
+
+                <div
+                  className="
+                    mt-6
+                    inline-flex
+                    items-center
+                    gap-2
+                    rounded-full
+                    border
+                    border-neutral-100
+                    bg-neutral-50
+                    px-4
+                    py-2
+                    text-[11px]
+                    font-medium
+                    uppercase
+                    tracking-[0.1em]
+                    text-neutral-500
+                  "
+                >
+
+                  <ShieldCheck
+                    size={14}
+                    className="text-green-600"
+                  />
+
+                  Please don't close or refresh
+
+                </div>
+
+              </div>
+
+            </div>
+
+          )
+        }
 
 
         {/* ===================================================
@@ -2547,15 +2754,12 @@ export default function CheckoutDialog({
                     finalAmount
                   }
 
-                  checkoutQuoteId={
-                    checkoutQuoteId ?? ""
-                  }
-
-                  onSuccess={
-                    handlePaymentSuccess
-                  }
-
-                />
+                  checkoutQuoteId={checkoutQuoteId ?? ""}
+  onPaymentSuccessStart={() => {
+    setProcessingPayment(true);
+  }}
+  onSuccess={handlePaymentSuccess}
+/>
 
               </>
 
@@ -2570,7 +2774,8 @@ export default function CheckoutDialog({
         ==================================================== */}
 
         {
-          !orderSuccess && (
+          !orderSuccess &&
+          !processingPayment && (
 
             <div
 
