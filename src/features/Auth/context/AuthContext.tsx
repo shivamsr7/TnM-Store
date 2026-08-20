@@ -71,6 +71,10 @@ interface AuthContextType {
 
   logout: () => Promise<void>;
 
+  updateCustomer: (
+    customer: Customer
+  ) => void;
+
 }
 
 
@@ -555,6 +559,35 @@ export function AuthProvider({
 
   /*
    * =========================================================
+   * UPDATE CUSTOMER
+   * =========================================================
+   *
+   * Keeps AuthContext synchronized immediately after a
+   * profile update so the account UI does not require a
+   * page refresh.
+   * =========================================================
+   */
+
+  function updateCustomer(
+    updatedCustomer: Customer
+  ) {
+
+    setCustomer(
+      updatedCustomer
+    );
+
+    localStorage.setItem(
+      "tnm_customer",
+      JSON.stringify(
+        updatedCustomer
+      )
+    );
+
+  }
+
+
+  /*
+   * =========================================================
    * PROVIDER
    * =========================================================
  */
@@ -571,6 +604,8 @@ export function AuthProvider({
         loginWithPhone,
 
         logout,
+
+        updateCustomer,
 
       }}
     >

@@ -12,10 +12,6 @@ import {
   useCustomerStore,
 } from "../store/customer.store";
 
-import {
-  useAuth,
-} from "@/features/Auth/context/AuthContext";
-
 
 
 
@@ -37,10 +33,6 @@ useCustomerStore(
 (state)=>state.setCustomer
 
 );
-
-const {
-  updateCustomer,
-} = useAuth();
 
 
 
@@ -71,13 +63,6 @@ onSuccess:(updatedCustomer)=>{
 
 
 setCustomer(
-
-updatedCustomer
-
-);
-
-
-updateCustomer(
 
 updatedCustomer
 
