@@ -2423,6 +2423,104 @@ export default function CartDrawer() {
 
 
           {/* =================================================
+              LOGIN TO USE COUPONS
+          ================================================== */}
+
+          {
+            items.length > 0 &&
+            !customer &&
+            !appliedCoupon && (
+
+              <div
+
+                className="
+
+                  mt-6
+
+                  rounded-2xl
+
+                  border
+                  border-[#C8A44D]/20
+
+                  bg-[#FBF7EA]
+
+                  p-4
+
+                  animate-in
+                  fade-in
+                  duration-200
+
+                "
+
+              >
+
+                <div
+                  className="
+                    flex
+                    items-center
+                    gap-3
+                  "
+                >
+
+                  <div
+                    className="
+                      flex
+                      h-9
+                      w-9
+                      shrink-0
+                      items-center
+                      justify-center
+                      rounded-full
+                      bg-white
+                      text-[#B28A20]
+                      shadow-sm
+                    "
+                  >
+
+                    ✨
+
+                  </div>
+
+
+                  <div className="min-w-0">
+
+                    <p
+                      className="
+                        text-sm
+                        font-semibold
+                        text-neutral-900
+                      "
+                    >
+
+                      Login to unlock your best offer
+
+                    </p>
+
+
+                    <p
+                      className="
+                        mt-0.5
+                        text-xs
+                        leading-4
+                        text-neutral-500
+                      "
+                    >
+
+                      Sign in to check and apply coupons available for you.
+
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            )
+          }
+
+
+          {/* =================================================
               BEST COUPON LOADING
           ================================================== */}
 

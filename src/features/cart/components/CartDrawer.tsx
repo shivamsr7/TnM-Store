@@ -89,6 +89,63 @@ export default function CartDrawer() {
 
   /*
    * =========================================================
+   * CLEAR COUPON ON LOGOUT
+   * =========================================================
+   *
+   * Keep the customer's cart items when they log out, but
+   * remove any coupon that was applied during the previous
+   * customer's authenticated session. This prevents a
+   * customer-specific coupon from remaining visible after
+   * logout and being carried into another session.
+   * =========================================================
+   */
+
+  const previousCustomerIdRef =
+    useRef<string | null>(null);
+
+
+  useEffect(() => {
+
+    const previousCustomerId =
+      previousCustomerIdRef.current;
+
+    const currentCustomerId =
+      customer?.id ?? null;
+
+
+    /*
+     * Customer has logged out.
+     *
+     * Keep the cart products, but remove the coupon that
+     * belonged to the previous customer's session.
+     */
+
+    if (
+      previousCustomerId &&
+      !currentCustomerId &&
+      appliedCoupon
+    ) {
+
+      removeCoupon();
+
+      setCouponCode("");
+      setCouponMessage("");
+      setCouponError("");
+
+    }
+
+    previousCustomerIdRef.current =
+      currentCustomerId;
+
+  }, [
+    customer?.id,
+    appliedCoupon,
+    removeCoupon,
+  ]);
+
+
+  /*
+   * =========================================================
    * STORE SETTINGS
    * =========================================================
    */

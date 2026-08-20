@@ -31,8 +31,9 @@ import {
 import logo from "@/assets/logo/mainLogo.png";
 
 import {
-  supabase,
-} from "@/shared/lib/supabase";
+  sendOtp,
+  verifyOtp,
+} from "@/features/Auth/services/auth.service";
 
 import {
   createCustomer,
@@ -165,6 +166,25 @@ export default function AuthDialog({
     useRef<
       (HTMLInputElement | null)[]
     >([]);
+
+
+  /*
+   * =========================================================
+   * TEST OTP
+   * =========================================================
+   *
+   * When VITE_SKIP_OTP=true:
+   *
+   * - Real OTP is skipped
+   * - Any 6 digit OTP can be entered
+   * - AuthContext handles the customer login
+   *
+   * =========================================================
+   */
+
+  const SKIP_OTP =
+    import.meta.env.VITE_SKIP_OTP ===
+    "true";
 
 
   /*
@@ -355,32 +375,33 @@ export default function AuthDialog({
 
       /*
        * =====================================================
-       * VERIFY REAL SUPABASE OTP
-       * =====================================================
-       *
-       * Supabase Auth verifies the OTP and creates the
-       * authenticated session.
-       *
-       * SMS delivery:
-       * Supabase Auth → Send SMS Hook → 2Factor
-       *
+       * REAL OTP
        * =====================================================
        */
 
-      await supabase.auth.verifyOtp({
-        phone: `+91${normalizedPhone}`,
-        token: otp.join(""),
-        type: "sms",
-      });
+      if (
+        !SKIP_OTP
+      ) {
+
+        await verifyOtp(
+          normalizedPhone,
+          otp.join("")
+        );
+
+      }
 
 
       /*
        * =====================================================
-       * RESOLVE T&M CUSTOMER
+       * LOGIN
        * =====================================================
        *
-       * AuthContext uses the authenticated Supabase session
-       * to load the matching T&M customer record.
+       * AuthContext handles:
+       *
+       * - Existing customer lookup
+       * - Global customer state
+       * - Test login persistence
+       * - Immediate UI update
        *
        * =====================================================
        */
@@ -445,29 +466,9 @@ export default function AuthDialog({
       );
 
 
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Unable to verify OTP";
-
-
-      if (
-        message.toLowerCase().includes("invalid") ||
-        message.toLowerCase().includes("expired") ||
-        message.toLowerCase().includes("otp")
-      ) {
-
-        toast.error(
-          "Invalid or expired OTP. Please check and try again."
-        );
-
-      } else {
-
-        toast.error(
-          "Unable to complete login. Please try again."
-        );
-
-      }
+      toast.error(
+        "Invalid OTP. Please check and try again."
+      );
 
     }
 
@@ -520,9 +521,7 @@ export default function AuthDialog({
             undefined,
 
           phone:
-            phone
-              .replace(/\D/g, "")
-              .slice(-10),
+            phone,
 
         });
 
@@ -567,17 +566,11 @@ export default function AuthDialog({
        * -----------------------------------------------------
        * LOGIN IMMEDIATELY
        * -----------------------------------------------------
-       *
-       * The Supabase Auth session was created when the OTP
-       * was verified. AuthContext now resolves that session
-       * to the newly created T&M customer.
        */
 
       const loggedInCustomer =
         await loginWithPhone(
           phone
-            .replace(/\D/g, "")
-            .slice(-10)
         );
 
 
@@ -989,9 +982,15 @@ export default function AuthDialog({
 
                       try {
 
-                        await supabase.auth.signInWithOtp({
-                          phone: `+91${phone}`,
-                        });
+                        if (
+                          !SKIP_OTP
+                        ) {
+
+                          await sendOtp(
+                            phone
+                          );
+
+                        }
 
 
                         setOtp([
@@ -1300,9 +1299,28 @@ export default function AuthDialog({
 
                           try {
 
-                            await supabase.auth.signInWithOtp({
-                              phone: `+91${phone}`,
-                            });
+                            if (
+                              SKIP_OTP
+                            ) {
+
+                              setTimer(
+                                30
+                              );
+
+
+                              toast.success(
+                                "Test OTP ready again"
+                              );
+
+
+                              return;
+
+                            }
+
+
+                            await sendOtp(
+                              phone
+                            );
 
 
                             setTimer(
