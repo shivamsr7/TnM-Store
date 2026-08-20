@@ -21,6 +21,12 @@ interface Props {
 
   checkoutQuoteId: string;
 
+  /*
+   * Called immediately when Razorpay reports a successful payment,
+   * before server-side verification/order completion finishes.
+   */
+  onPaymentSuccessStart?: () => void;
+
   onSuccess: (paymentData: any) => void;
 
 }
@@ -31,6 +37,8 @@ export default function PaymentStep({
   totalAmount,
 
   checkoutQuoteId,
+
+  onPaymentSuccessStart,
 
   onSuccess,
 
@@ -118,6 +126,18 @@ export default function PaymentStep({
           ) {
 
             try {
+
+              /*
+               * IMPORTANT:
+               * Razorpay has already reported payment success.
+               * Tell CheckoutDialog immediately so it can switch
+               * to its blocking "Payment successful / Completing
+               * your order..." state BEFORE verification begins.
+               *
+               * This removes the brief Address-step flash.
+               */
+              onPaymentSuccessStart?.();
+
 
               setLoading(true);
 
