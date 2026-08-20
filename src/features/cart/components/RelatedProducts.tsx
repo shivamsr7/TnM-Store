@@ -23,15 +23,29 @@ import {
 
 
 interface RelatedProductsProps {
+
   cartItems: Array<{
     productId?: string;
   }>;
+
 }
 
 
+
+
+
 export default function RelatedProducts({
+
   cartItems,
+
 }: RelatedProductsProps) {
+
+
+  /*
+   * =========================================================
+   * CART
+   * =========================================================
+   */
 
   const {
     addToCart,
@@ -41,13 +55,35 @@ export default function RelatedProducts({
   const [
     addedProductId,
     setAddedProductId,
-  ] = useState<string | null>(null);
+  ] = useState<string | null>(
+    null
+  );
 
 
-  const productIds = cartItems
-    .map((item) => item.productId)
-    .filter(Boolean) as string[];
+  /*
+   * =========================================================
+   * CART PRODUCT IDS
+   * =========================================================
+   */
 
+  const productIds =
+    cartItems
+      .map(
+        (
+          item
+        ) =>
+          item.productId
+      )
+      .filter(
+        Boolean
+      ) as string[];
+
+
+  /*
+   * =========================================================
+   * RELATED PRODUCTS
+   * =========================================================
+   */
 
   const {
     data: products = [],
@@ -59,24 +95,34 @@ export default function RelatedProducts({
       ...productIds.sort(),
     ],
 
+
     queryFn: async () => {
 
-      if (productIds.length === 0) {
+      if (
+        productIds.length ===
+        0
+      ) {
+
         return [];
+
       }
 
 
       /*
-       * First get the categories/subcategories represented
-       * by the products already in the cart.
+       * =====================================================
+       * CART PRODUCT CATEGORIES
+       * =====================================================
        */
 
       const {
         data: cartProducts,
-        error: cartProductsError,
+        error:
+          cartProductsError,
       } = await supabase
 
-        .from("products")
+        .from(
+          "products"
+        )
 
         .select(
           "id, category_id, subcategory_id"
@@ -88,45 +134,80 @@ export default function RelatedProducts({
         );
 
 
-      if (cartProductsError) {
+      if (
+        cartProductsError
+      ) {
+
         throw cartProductsError;
+
       }
 
 
       const categoryIds = [
+
         ...new Set(
-          (cartProducts ?? [])
+
+          (
+            cartProducts ??
+            []
+          )
+
             .map(
-              (product: any) =>
+              (
+                product: any
+              ) =>
                 product.category_id
             )
-            .filter(Boolean)
+
+            .filter(
+              Boolean
+            )
+
         ),
+
       ];
 
 
       const subcategoryIds = [
+
         ...new Set(
-          (cartProducts ?? [])
+
+          (
+            cartProducts ??
+            []
+          )
+
             .map(
-              (product: any) =>
+              (
+                product: any
+              ) =>
                 product.subcategory_id
             )
-            .filter(Boolean)
+
+            .filter(
+              Boolean
+            )
+
         ),
+
       ];
 
 
       /*
+       * =====================================================
+       * PRODUCT QUERY
+       * =====================================================
+       *
        * Prefer products from the same category.
-       * If no category is available, fall back to
-       * best sellers/trending products.
+       * =====================================================
        */
 
       let query =
         supabase
 
-          .from("products")
+          .from(
+            "products"
+          )
 
           .select(
             `
@@ -165,7 +246,10 @@ export default function RelatedProducts({
           );
 
 
-      if (categoryIds.length > 0) {
+      if (
+        categoryIds.length >
+        0
+      ) {
 
         query =
           query.in(
@@ -178,27 +262,31 @@ export default function RelatedProducts({
 
       const {
         data: candidates,
-        error: candidatesError,
+        error:
+          candidatesError,
       } = await query
 
         .order(
           "best_seller",
           {
-            ascending: false,
+            ascending:
+              false,
           }
         )
 
         .order(
           "trending",
           {
-            ascending: false,
+            ascending:
+              false,
           }
         )
 
         .order(
           "sales_count",
           {
-            ascending: false,
+            ascending:
+              false,
           }
         )
 
@@ -207,26 +295,54 @@ export default function RelatedProducts({
         );
 
 
-      if (candidatesError) {
+      if (
+        candidatesError
+      ) {
+
         throw candidatesError;
+
       }
 
 
       /*
-       * Score candidates so same-subcategory products
-       * appear before general same-category products.
+       * =====================================================
+       * SCORE PRODUCTS
+       * =====================================================
+       *
+       * Same subcategory:
+       * +5
+       *
+       * Same category:
+       * +3
+       *
+       * Best seller:
+       * +2
+       *
+       * Trending:
+       * +1
+       *
+       * Sales:
+       * Small additional score
+       * =====================================================
        */
 
       const scored = (
-        candidates ?? []
+
+        candidates ??
+        []
+
       )
+
         .map(
-          (product: any) => {
+          (
+            product: any
+          ) => {
 
             const sameSubcategory =
               subcategoryIds.includes(
                 product.subcategory_id
               );
+
 
             const sameCategory =
               categoryIds.includes(
@@ -235,10 +351,31 @@ export default function RelatedProducts({
 
 
             const score =
-              (sameSubcategory ? 5 : 0) +
-              (sameCategory ? 3 : 0) +
-              (product.best_seller ? 2 : 0) +
-              (product.trending ? 1 : 0) +
+
+              (
+                sameSubcategory
+                  ? 5
+                  : 0
+              ) +
+
+              (
+                sameCategory
+                  ? 3
+                  : 0
+              ) +
+
+              (
+                product.best_seller
+                  ? 2
+                  : 0
+              ) +
+
+              (
+                product.trending
+                  ? 1
+                  : 0
+              ) +
+
               Math.min(
                 Number(
                   product.sales_count
@@ -248,17 +385,26 @@ export default function RelatedProducts({
 
 
             return {
+
               ...product,
-              _score: score,
+
+              _score:
+                score,
+
             };
 
           }
         )
+
         .sort(
-          (a: any, b: any) =>
+          (
+            a: any,
+            b: any
+          ) =>
             b._score -
             a._score
         )
+
         .slice(
           0,
           6
@@ -266,21 +412,26 @@ export default function RelatedProducts({
 
 
       /*
-       * If the cart products have no category or the
-       * category has no recommendations, fall back to
-       * best sellers/trending products from the store.
+       * =====================================================
+       * FALLBACK PRODUCTS
+       * =====================================================
        */
 
       if (
-        scored.length === 0
+        scored.length ===
+        0
       ) {
 
         const {
-          data: fallbackProducts,
-          error: fallbackError,
+          data:
+            fallbackProducts,
+          error:
+            fallbackError,
         } = await supabase
 
-          .from("products")
+          .from(
+            "products"
+          )
 
           .select(
             `
@@ -321,21 +472,24 @@ export default function RelatedProducts({
           .order(
             "best_seller",
             {
-              ascending: false,
+              ascending:
+                false,
             }
           )
 
           .order(
             "trending",
             {
-              ascending: false,
+              ascending:
+                false,
             }
           )
 
           .order(
             "sales_count",
             {
-              ascending: false,
+              ascending:
+                false,
             }
           )
 
@@ -344,12 +498,19 @@ export default function RelatedProducts({
           );
 
 
-        if (fallbackError) {
+        if (
+          fallbackError
+        ) {
+
           throw fallbackError;
+
         }
 
 
-        return fallbackProducts ?? [];
+        return (
+          fallbackProducts ??
+          []
+        );
 
       }
 
@@ -358,8 +519,11 @@ export default function RelatedProducts({
 
     },
 
+
     enabled:
-      productIds.length > 0,
+      productIds.length >
+      0,
+
 
     staleTime:
       5 * 60 * 1000,
@@ -367,30 +531,55 @@ export default function RelatedProducts({
   });
 
 
+  /*
+   * =========================================================
+   * ADDED STATE RESET
+   * =========================================================
+   */
+
   useEffect(() => {
 
-    if (!addedProductId) {
+    if (
+      !addedProductId
+    ) {
+
       return;
+
     }
 
 
     const timer =
       window.setTimeout(
         () => {
-          setAddedProductId(null);
+
+          setAddedProductId(
+            null
+          );
+
         },
+
         1400
       );
 
 
     return () => {
-      window.clearTimeout(timer);
+
+      window.clearTimeout(
+        timer
+      );
+
     };
 
   }, [
     addedProductId,
   ]);
 
+
+  /*
+   * =========================================================
+   * LOADING / EMPTY
+   * =========================================================
+   */
 
   if (
     isLoading ||
@@ -402,40 +591,67 @@ export default function RelatedProducts({
   }
 
 
+  /*
+   * =========================================================
+   * GET PRODUCT IMAGE
+   * =========================================================
+   */
+
   const getImage = (
     product: any
   ) => {
 
     const images =
-      product.product_images ?? [];
+      product.product_images ??
+      [];
+
 
     const primary =
       images.find(
-        (image: any) =>
+        (
+          image: any
+        ) =>
           image.is_primary
       );
 
+
     const sorted =
-      [...images].sort(
+      [
+        ...images,
+      ].sort(
         (
           a: any,
           b: any
         ) =>
           (
-            a.sort_order ?? 0
+            a.sort_order ??
+            0
           ) -
           (
-            b.sort_order ?? 0
+            b.sort_order ??
+            0
           )
       );
 
+
     return (
+
       primary?.image_url ||
+
       sorted[0]?.image_url ||
+
       ""
+
     );
+
   };
 
+
+  /*
+   * =========================================================
+   * ADD PRODUCT
+   * =========================================================
+   */
 
   const handleAdd = (
     product: any
@@ -445,6 +661,7 @@ export default function RelatedProducts({
       product
     );
 
+
     setAddedProductId(
       product.id
     );
@@ -452,10 +669,17 @@ export default function RelatedProducts({
   };
 
 
+  /*
+   * =========================================================
+   * RENDER
+   * =========================================================
+   */
+
   return (
 
     <section
       className="
+        shrink-0
         border-t
         border-neutral-100
         bg-white
@@ -464,6 +688,10 @@ export default function RelatedProducts({
         pt-4
       "
     >
+
+      {/* =====================================================
+          HEADER
+      ====================================================== */}
 
       <div
         className="
@@ -491,6 +719,7 @@ export default function RelatedProducts({
             "
           />
 
+
           <h3
             className="
               truncate
@@ -499,10 +728,13 @@ export default function RelatedProducts({
               leading-5
             "
           >
+
             You may also like
+
           </h3>
 
         </div>
+
 
         <span
           className="
@@ -512,7 +744,9 @@ export default function RelatedProducts({
             text-neutral-400
           "
         >
+
           Swipe →
+
         </span>
 
       </div>
@@ -526,9 +760,15 @@ export default function RelatedProducts({
           text-neutral-500
         "
       >
+
         Complete your look with these picks
+
       </p>
 
+
+      {/* =====================================================
+          HORIZONTAL PRODUCT CAROUSEL
+      ====================================================== */}
 
       <div
         className="
@@ -560,9 +800,11 @@ export default function RelatedProducts({
                   product
                 );
 
+
               const isAdded =
                 addedProductId ===
                 product.id;
+
 
               return (
 
@@ -592,10 +834,14 @@ export default function RelatedProducts({
                   }}
                 >
 
+                  {/* =========================================
+                      PRODUCT IMAGE
+                  ========================================== */}
+
                   <div
                     className="
                       relative
-                      h-[104px]
+                      aspect-[4/5]
                       overflow-hidden
                       bg-neutral-100
                     "
@@ -615,7 +861,7 @@ export default function RelatedProducts({
                           className="
                             h-full
                             w-full
-                            object-cover
+                            object-contain
                             transition-transform
                             duration-500
                             hover:scale-105
@@ -635,7 +881,9 @@ export default function RelatedProducts({
                             text-xl
                           "
                         >
+
                           ✨
+
                         </div>
 
                       )
@@ -643,6 +891,10 @@ export default function RelatedProducts({
 
                   </div>
 
+
+                  {/* =========================================
+                      PRODUCT DETAILS
+                  ========================================== */}
 
                   <div
                     className="
@@ -660,11 +912,17 @@ export default function RelatedProducts({
                         text-neutral-900
                       "
                     >
+
                       {
                         product.name
                       }
+
                     </p>
 
+
+                    {/* =======================================
+                        PRICE
+                    ======================================== */}
 
                     <div
                       className="
@@ -683,12 +941,14 @@ export default function RelatedProducts({
                           leading-4
                         "
                       >
+
                         ₹
                         {
                           Number(
                             product.price
                           ).toFixed(0)
                         }
+
                       </span>
 
 
@@ -710,12 +970,14 @@ export default function RelatedProducts({
                               line-through
                             "
                           >
+
                             ₹
                             {
                               Number(
                                 product.compare_price
                               ).toFixed(0)
                             }
+
                           </span>
 
                         )
@@ -723,6 +985,10 @@ export default function RelatedProducts({
 
                     </div>
 
+
+                    {/* =======================================
+                        ADD BUTTON
+                    ======================================== */}
 
                     <button
                       type="button"
@@ -745,12 +1011,15 @@ export default function RelatedProducts({
                         transition-all
                         duration-200
                         active:scale-[0.96]
+
                         ${
                           isAdded
+
                             ? `
                               bg-green-600
                               text-white
                             `
+
                             : `
                               bg-black
                               text-white

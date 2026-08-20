@@ -50,35 +50,35 @@ import {
 const schema = z.object({
 
   full_name:
-  z.string().min(2,"Name is required"),
+    z.string().min(2, "Name is required"),
 
 
   phone:
-  z.string().min(10,"Valid phone required"),
+    z.string().min(10, "Valid phone required"),
 
 
   address_line_1:
-  z.string().min(5,"Address required"),
+    z.string().min(5, "Address required"),
 
 
   address_line_2:
-  z.string().optional(),
+    z.string().optional(),
 
 
   city:
-  z.string().min(2,"City required"),
+    z.string().min(2, "City required"),
 
 
   state:
-  z.string().min(2,"State required"),
+    z.string().min(2, "State required"),
 
 
   postal_code:
-  z.string().min(5,"Postal code required"),
+    z.string().min(5, "Postal code required"),
 
 
   type:
-  z.string(),
+    z.string(),
 
 });
 
@@ -87,7 +87,7 @@ const schema = z.object({
 
 
 type FormData =
-z.infer<typeof schema>;
+  z.infer<typeof schema>;
 
 
 
@@ -98,13 +98,13 @@ z.infer<typeof schema>;
 
 interface Props {
 
-open:boolean;
+  open: boolean;
 
-onClose:()=>void;
+  onClose: () => void;
 
-onSuccess:()=>void;
+  onSuccess: () => void;
 
-address:any | null;
+  address: any | null;
 
 }
 
@@ -118,15 +118,15 @@ address:any | null;
 
 export default function EditAddressDialog({
 
-open,
+  open,
 
-onClose,
+  onClose,
 
-onSuccess,
+  onSuccess,
 
-address,
+  address,
 
-}:Props){
+}: Props) {
 
 
 
@@ -135,15 +135,15 @@ address,
 
 
 
-const {
+  const {
 
-updateMutation
+    updateMutation,
 
-}=useCustomerAddressMutations(
+  } = useCustomerAddressMutations(
 
-address?.customer_id
+    address?.customer_id
 
-);
+  );
 
 
 
@@ -153,24 +153,24 @@ address?.customer_id
 
 
 
-const {
+  const {
 
-register,
+    register,
 
-handleSubmit,
+    handleSubmit,
 
-reset,
+    reset,
 
-formState:{
-errors
-}
+    formState: {
+      errors,
+    },
 
-}=useForm<FormData>({
+  } = useForm<FormData>({
 
-resolver:
-zodResolver(schema)
+    resolver:
+      zodResolver(schema),
 
-});
+  });
 
 
 
@@ -180,417 +180,494 @@ zodResolver(schema)
 
 
 
-useEffect(()=>{
+  useEffect(() => {
 
+    if (address) {
 
-if(address){
+      reset({
 
+        full_name:
+          address.full_name,
 
-reset({
 
-full_name:
-address.full_name,
+        phone:
+          address.phone,
 
 
-phone:
-address.phone,
+        address_line_1:
+          address.address_line_1,
 
 
-address_line_1:
-address.address_line_1,
+        address_line_2:
+          address.address_line_2 ||
+          "",
 
 
-address_line_2:
-address.address_line_2 || "",
+        city:
+          address.city,
 
 
-city:
-address.city,
+        state:
+          address.state,
 
 
-state:
-address.state,
+        postal_code:
+          address.postal_code,
 
 
-postal_code:
-address.postal_code,
+        type:
+          address.type,
 
+      });
 
-type:
-address.type,
+    }
 
+  }, [
+    address,
+    reset,
+  ]);
 
-});
 
 
-}
 
 
-},[
-address,
-reset
-]);
 
 
 
 
+  function submit(
+    data: FormData
+  ) {
 
+    if (!address?.id) {
+      return;
+    }
 
 
+    updateMutation.mutate(
 
+      {
 
-function submit(
-data:FormData
-){
+        id:
+          address.id,
 
+        data,
 
-if(!address?.id)
+      },
 
-return;
+      {
 
+        onSuccess: () => {
 
+          toast.success(
+            "Address updated successfully"
+          );
 
 
+          onSuccess();
 
-updateMutation.mutate(
+          onClose();
 
-{
+        },
 
-id:address.id,
 
-data,
+        onError: () => {
 
-},
+          toast.error(
+            "Unable to update address"
+          );
 
-{
+        },
 
-onSuccess:()=>{
+      }
 
+    );
 
-toast.success(
-"Address updated successfully"
-);
+  }
 
 
 
-onSuccess();
 
-onClose();
 
 
-},
 
 
-onError:()=>{
 
+  return (
 
-toast.error(
-"Unable to update address"
-);
+    <Dialog
 
+      open={
+        open
+      }
 
-}
+      onOpenChange={(
+        value
+      ) => {
 
-}
+        if (!value) {
+          onClose();
+        }
 
-);
+      }}
 
+    >
 
-}
+      <DialogContent
 
+        className="
+          z-[2000]
 
+          max-h-[90vh]
+          w-[95vw]
+          overflow-y-auto
+          rounded-3xl
+          border-neutral-200
+          bg-white
+          p-0
+          text-black
+          shadow-2xl
 
+          sm:max-w-xl
 
+          [&>button]:hidden
+        "
 
+      >
 
+        <div
 
+          className="
+            flex
+            items-center
+            justify-between
+            border-b
+            border-neutral-200
+            px-6
+            py-5
+          "
 
+        >
 
-return (
+          <DialogHeader>
 
-<Dialog
+            <DialogTitle
 
-open={open}
+              className="
+                text-xl
+                font-semibold
+              "
 
-onOpenChange={(value)=>{
+            >
 
-if(!value)
+              Edit Address
 
-onClose();
+            </DialogTitle>
 
-}}
+          </DialogHeader>
 
->
 
 
 
 
 
 
-<DialogContent
+          <button
 
-className="
-max-h-[90vh]
-w-[95vw]
-overflow-y-auto
-rounded-3xl
-border-neutral-200
-bg-white
-p-0
-text-black
-shadow-xl
-sm:max-w-xl
+            type="button"
 
-[&>button]:hidden
-"
+            onClick={
+              onClose
+            }
 
->
+            className="
+              flex
+              h-9
+              w-9
+              items-center
+              justify-center
+              rounded-full
+              border
+              border-neutral-300
+              transition
+              hover:bg-neutral-100
+              active:scale-95
+            "
 
+            aria-label="Close edit address"
 
+          >
 
+            <X
+              size={18}
+            />
 
+          </button>
 
+        </div>
 
 
-<div
 
-className="
-flex
-items-center
-justify-between
-border-b
-border-neutral-200
-px-6
-py-5
-"
 
->
 
 
-<DialogHeader>
 
 
-<DialogTitle
+        <form
 
-className="
-text-xl
-font-semibold
-"
+          onSubmit={
+            handleSubmit(
+              submit
+            )
+          }
 
->
+          className="
+            space-y-5
+            p-6
+          "
 
-Edit Address
+        >
 
-</DialogTitle>
 
 
-</DialogHeader>
 
 
 
 
 
+          <div>
 
+            <label
 
-<button
+              className="
+                mb-2
+                block
+                text-sm
+                font-medium
+                text-neutral-700
+              "
 
-onClick={onClose}
+            >
 
-className="
-flex
-h-9
-w-9
-items-center
-justify-center
-rounded-full
-border
-border-neutral-300
-transition
-hover:bg-neutral-100
-"
+              Full Name
 
->
+            </label>
 
-<X size={18}/>
 
-</button>
+            <input
 
+              {...register(
+                "full_name"
+              )}
 
+              placeholder="
+                Enter your full name
+              "
 
-</div>
+              className="
+                w-full
+                rounded-xl
+                border
+                border-neutral-200
+                bg-neutral-50
+                px-4
+                py-3
+                text-sm
+                outline-none
+                transition
+                focus:border-[#C8A44D]
+                focus:bg-white
+              "
 
+            />
 
 
+            <p
 
+              className="
+                mt-1
+                text-xs
+                text-red-500
+              "
 
+            >
 
+              {
+                errors.full_name?.message
+              }
 
+            </p>
 
-<form
+          </div>
 
-onSubmit={handleSubmit(submit)}
 
-className="
-space-y-5
-p-6
-"
 
->
 
 
 
 
 
 
+          <div>
 
+            <label
 
-<div>
+              className="
+                mb-2
+                block
+                text-sm
+                font-medium
+                text-neutral-700
+              "
 
-<label className="
-mb-2
-block
-text-sm
-font-medium
-text-neutral-700
-">
+            >
 
-Full Name
+              Phone Number
 
-</label>
+            </label>
 
 
-<input
+            <input
 
-{...register("full_name")}
+              {...register(
+                "phone"
+              )}
 
-placeholder="Enter your full name"
+              placeholder="
+                Enter phone number
+              "
 
-className="
-w-full
-rounded-xl
-border
-border-neutral-200
-bg-neutral-50
-px-4
-py-3
-text-sm
-outline-none
-transition
-focus:border-[#C8A44D]
-focus:bg-white
-"
+              className="
+                w-full
+                rounded-xl
+                border
+                border-neutral-200
+                bg-neutral-50
+                px-4
+                py-3
+                text-sm
+                outline-none
+                transition
+                focus:border-[#C8A44D]
+                focus:bg-white
+              "
 
-/>
+            />
 
+          </div>
 
-<p className="
-mt-1
-text-xs
-text-red-500
-">
 
-{errors.full_name?.message}
 
-</p>
 
 
-</div>
 
 
 
 
+          <div>
 
+            <label
 
+              className="
+                mb-2
+                block
+                text-sm
+                font-medium
+                text-neutral-700
+              "
 
+            >
 
+              Address Line 1
 
-<div>
+            </label>
 
-<label className="
-mb-2
-block
-text-sm
-font-medium
-text-neutral-700
-">
 
-Phone Number
+            <input
 
-</label>
+              {...register(
+                "address_line_1"
+              )}
 
+              placeholder="
+                House no, Street, Area
+              "
 
-<input
+              className="
+                w-full
+                rounded-xl
+                border
+                border-neutral-200
+                bg-neutral-50
+                px-4
+                py-3
+                text-sm
+                outline-none
+                transition
+                focus:border-[#C8A44D]
+                focus:bg-white
+              "
 
-{...register("phone")}
+            />
 
-placeholder="Enter phone number"
+          </div>
 
-className="
-w-full
-rounded-xl
-border
-border-neutral-200
-bg-neutral-50
-px-4
-py-3
-text-sm
-outline-none
-transition
-focus:border-[#C8A44D]
-focus:bg-white
-"
 
-/>
 
-</div>
 
 
 
 
 
 
+          <div>
 
+            <label
 
+              className="
+                mb-2
+                block
+                text-sm
+                font-medium
+                text-neutral-700
+              "
 
-<div>
+            >
 
-<label className="
-mb-2
-block
-text-sm
-font-medium
-text-neutral-700
-">
+              Address Line 2
 
-Address Line 1
+            </label>
 
-</label>
 
+            <input
 
-<input
+              {...register(
+                "address_line_2"
+              )}
 
-{...register("address_line_1")}
+              placeholder="
+                Apartment, Landmark (optional)
+              "
 
-placeholder="House no, Street, Area"
+              className="
+                w-full
+                rounded-xl
+                border
+                border-neutral-200
+                bg-neutral-50
+                px-4
+                py-3
+                text-sm
+                outline-none
+                transition
+                focus:border-[#C8A44D]
+                focus:bg-white
+              "
 
-className="
-w-full
-rounded-xl
-border
-border-neutral-200
-bg-neutral-50
-px-4
-py-3
-text-sm
-outline-none
-transition
-focus:border-[#C8A44D]
-focus:bg-white
-"
+            />
 
-/>
+          </div>
 
-</div>
 
 
 
@@ -599,315 +676,289 @@ focus:bg-white
 
 
 
+          <div
 
-<div>
+            className="
+              grid
+              grid-cols-1
+              gap-4
+              sm:grid-cols-2
+            "
 
-<label className="
-mb-2
-block
-text-sm
-font-medium
-text-neutral-700
-">
+          >
 
-Address Line 2
 
-</label>
+            <div>
 
+              <label
 
-<input
+                className="
+                  mb-2
+                  block
+                  text-sm
+                  font-medium
+                  text-neutral-700
+                "
 
-{...register("address_line_2")}
+              >
 
-placeholder="Apartment, Landmark (optional)"
+                City
 
-className="
-w-full
-rounded-xl
-border
-border-neutral-200
-bg-neutral-50
-px-4
-py-3
-text-sm
-outline-none
-transition
-focus:border-[#C8A44D]
-focus:bg-white
-"
+              </label>
 
-/>
 
-</div>
+              <input
 
+                {...register(
+                  "city"
+                )}
 
+                placeholder="
+                  City
+                "
 
+                className="
+                  w-full
+                  rounded-xl
+                  border
+                  border-neutral-200
+                  bg-neutral-50
+                  px-4
+                  py-3
+                  outline-none
+                  transition
+                  focus:border-[#C8A44D]
+                  focus:bg-white
+                "
 
+              />
 
+            </div>
 
 
 
 
-<div className="
-grid
-grid-cols-1
-gap-4
-sm:grid-cols-2
-">
 
+            <div>
 
-<div>
+              <label
 
-<label className="
-mb-2
-block
-text-sm
-font-medium
-text-neutral-700
-">
+                className="
+                  mb-2
+                  block
+                  text-sm
+                  font-medium
+                  text-neutral-700
+                "
 
-City
+              >
 
-</label>
+                State
 
+              </label>
 
-<input
 
-{...register("city")}
+              <input
 
-placeholder="City"
+                {...register(
+                  "state"
+                )}
 
-className="
-w-full
-rounded-xl
-border
-border-neutral-200
-bg-neutral-50
-px-4
-py-3
-outline-none
-focus:border-[#C8A44D]
-"
+                placeholder="
+                  State
+                "
 
-/>
+                className="
+                  w-full
+                  rounded-xl
+                  border
+                  border-neutral-200
+                  bg-neutral-50
+                  px-4
+                  py-3
+                  outline-none
+                  transition
+                  focus:border-[#C8A44D]
+                  focus:bg-white
+                "
 
-</div>
+              />
 
+            </div>
 
 
+          </div>
 
 
-<div>
 
-<label className="
-mb-2
-block
-text-sm
-font-medium
-text-neutral-700
-">
 
-State
 
-</label>
 
 
-<input
 
-{...register("state")}
 
-placeholder="State"
+          <div>
 
-className="
-w-full
-rounded-xl
-border
-border-neutral-200
-bg-neutral-50
-px-4
-py-3
-outline-none
-focus:border-[#C8A44D]
-"
+            <label
 
-/>
+              className="
+                mb-2
+                block
+                text-sm
+                font-medium
+                text-neutral-700
+              "
 
-</div>
+            >
 
+              Postal Code
 
-</div>
+            </label>
 
 
+            <input
 
+              {...register(
+                "postal_code"
+              )}
 
+              placeholder="
+                PIN Code
+              "
 
+              className="
+                w-full
+                rounded-xl
+                border
+                border-neutral-200
+                bg-neutral-50
+                px-4
+                py-3
+                outline-none
+                transition
+                focus:border-[#C8A44D]
+                focus:bg-white
+              "
 
+            />
 
+          </div>
 
 
-<div>
 
-<label className="
-mb-2
-block
-text-sm
-font-medium
-text-neutral-700
-">
 
-Postal Code
 
-</label>
 
 
-<input
 
-{...register("postal_code")}
 
-placeholder="PIN Code"
+          <div>
 
-className="
-w-full
-rounded-xl
-border
-border-neutral-200
-bg-neutral-50
-px-4
-py-3
-outline-none
-focus:border-[#C8A44D]
-"
+            <label
 
-/>
+              className="
+                mb-2
+                block
+                text-sm
+                font-medium
+                text-neutral-700
+              "
 
-</div>
+            >
 
+              Address Type
 
+            </label>
 
 
+            <select
 
+              {...register(
+                "type"
+              )}
 
+              className="
+                w-full
+                rounded-xl
+                border
+                border-neutral-200
+                bg-neutral-50
+                px-4
+                py-3
+                outline-none
+                transition
+                focus:border-[#C8A44D]
+                focus:bg-white
+              "
 
+            >
 
+              <option value="home">
+                Home
+              </option>
 
-<div>
+              <option value="work">
+                Work
+              </option>
 
-<label className="
-mb-2
-block
-text-sm
-font-medium
-text-neutral-700
-">
+              <option value="other">
+                Other
+              </option>
 
-Address Type
+            </select>
 
-</label>
+          </div>
 
 
-<select
 
-{...register("type")}
 
-className="
-w-full
-rounded-xl
-border
-border-neutral-200
-bg-neutral-50
-px-4
-py-3
-outline-none
-focus:border-[#C8A44D]
-"
 
->
 
-<option value="home">
-Home
-</option>
 
-<option value="work">
-Work
-</option>
 
-<option value="other">
-Other
-</option>
 
-</select>
+          <button
 
-</div>
+            type="submit"
 
+            disabled={
+              updateMutation.isPending
+            }
 
+            className="
+              w-full
+              rounded-xl
+              bg-[#C8A44D]
+              py-3.5
+              font-semibold
+              text-black
+              transition
+              hover:bg-[#b8943f]
+              active:scale-[0.99]
+              disabled:cursor-not-allowed
+              disabled:opacity-70
+            "
 
+          >
 
+            {
 
+              updateMutation.isPending
 
+                ? "Updating..."
 
+                : "Update Address"
 
+            }
 
-<button
+          </button>
 
-type="submit"
+        </form>
 
-disabled={updateMutation.isPending}
+      </DialogContent>
 
-className="
-w-full
-rounded-xl
-bg-[#C8A44D]
-py-3.5
-font-semibold
-text-black
-transition
-hover:bg-[#b8943f]
-disabled:cursor-not-allowed
-disabled:opacity-70
-"
+    </Dialog>
 
->
-
-{
-
-updateMutation.isPending
-
-?
-
-"Updating..."
-
-:
-
-"Update Address"
-
-}
-
-</button>
-
-
-
-
-
-
-
-</form>
-
-
-
-
-
-
-
-</DialogContent>
-
-
-
-
-
-
-
-</Dialog>
-
-);
+  );
 
 }

@@ -870,6 +870,38 @@ export default function CartDrawer() {
   };
 
 
+  /*
+   * =========================================================
+   * RELATED PRODUCTS SCROLL NAVIGATION
+   * =========================================================
+   */
+
+  const relatedProductsRef =
+    useRef<HTMLDivElement | null>(null);
+
+
+  const scrollContainerRef =
+    useRef<HTMLDivElement | null>(null);
+
+
+  const [
+    showRelatedNavigator,
+    setShowRelatedNavigator,
+  ] = useState(true);
+
+
+  const scrollToRelatedProducts = () => {
+
+    relatedProductsRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+
+    setShowRelatedNavigator(false);
+
+  };
+
+
   useEffect(() => {
 
     /*
@@ -926,6 +958,73 @@ export default function CartDrawer() {
     isCartOpen,
     items.length,
     bestCouponAvailable,
+  ]);
+
+
+  useEffect(() => {
+
+    if (
+      !isCartOpen ||
+      items.length === 0
+    ) {
+
+      setShowRelatedNavigator(false);
+      return;
+
+    }
+
+
+    const relatedSection =
+      relatedProductsRef.current;
+
+    const scrollContainer =
+      scrollContainerRef.current;
+
+
+    if (
+      !relatedSection ||
+      !scrollContainer
+    ) {
+
+      setShowRelatedNavigator(true);
+      return;
+
+    }
+
+
+    const observer =
+      new IntersectionObserver(
+        ([entry]) => {
+
+          setShowRelatedNavigator(
+            !entry.isIntersecting
+          );
+
+        },
+        {
+          root:
+            scrollContainer,
+
+          threshold:
+            0.15,
+        }
+      );
+
+
+    observer.observe(
+      relatedSection
+    );
+
+
+    return () => {
+
+      observer.disconnect();
+
+    };
+
+  }, [
+    isCartOpen,
+    items.length,
   ]);
 
 
@@ -1377,6 +1476,10 @@ export default function CartDrawer() {
         ==================================================== */}
 
         <div
+
+          ref={
+            scrollContainerRef
+          }
 
           className="
 
@@ -2409,43 +2512,6 @@ export default function CartDrawer() {
                               }
 
 
-                              {/* =========================================
-                                  AVAILABLE STOCK
-                              ========================================== */}
-
-                              {
-                                item.stock !== null &&
-                                item.stock !== Infinity &&
-                                item.stock > 0 && (
-
-                                  <p
-
-                                    className="
-
-                                      mt-2
-
-                                      text-[10px]
-                                      text-neutral-400
-
-                                    "
-
-                                  >
-
-                                    {
-                                      item.stock -
-                                      item.quantity > 0
-
-                                        ? `${item.stock - item.quantity} more available`
-
-                                        : "Maximum available quantity added"
-
-                                    }
-
-                                  </p>
-
-                                )
-                              }
-
                             </div>
 
                           </div>
@@ -2463,18 +2529,34 @@ export default function CartDrawer() {
 
 
           {/* =================================================
-              RELATED PRODUCTS
-              Compact upsell rail shown immediately after
-              cart items and before coupon offers.
+              MORE FOR YOU CUE + RELATED PRODUCTS
           ================================================== */}
 
           {
             items.length > 0 && (
-              <div className="mt-6">
-                <RelatedProducts
-                  cartItems={items}
-                />
-              </div>
+
+              <>
+
+                {/* =============================================
+                    RELATED PRODUCTS
+                ============================================== */}
+
+                <div
+                  ref={relatedProductsRef}
+                  className="
+                    mt-1
+                    scroll-mt-5
+                  "
+                >
+
+                  <RelatedProducts
+                    cartItems={items}
+                  />
+
+                </div>
+
+              </>
+
             )
           }
 
@@ -3372,6 +3454,7 @@ export default function CartDrawer() {
 
           className="
 
+            relative
             shrink-0
 
             border-t
@@ -3387,6 +3470,87 @@ export default function CartDrawer() {
           "
 
         >
+
+          {
+            items.length > 0 &&
+            showRelatedNavigator && (
+
+              <button
+                type="button"
+                onClick={
+                  scrollToRelatedProducts
+                }
+                aria-label="View You may also like products"
+                className="
+                  absolute
+                  left-1/2
+                  top-[-52px]
+                  z-30
+                  -translate-x-1/2
+
+                  flex
+                  items-center
+                  gap-2
+
+                  rounded-full
+                  border
+                  border-[#C8A44D]/25
+                  bg-white/95
+                  px-3.5
+                  py-2
+
+                  text-[10px]
+                  font-semibold
+                  tracking-wide
+                  text-[#8A6D25]
+
+                  shadow-[0_6px_22px_rgba(0,0,0,0.14)]
+                  backdrop-blur-md
+
+                  transition-all
+                  duration-200
+
+                  hover:-translate-x-1/2
+                  hover:-translate-y-0.5
+                  hover:shadow-[0_9px_26px_rgba(0,0,0,0.17)]
+
+                  active:scale-95
+                "
+              >
+
+                <span>
+                  More for you
+                </span>
+
+                <span
+                  className="
+                    flex
+                    h-6
+                    w-6
+                    shrink-0
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-[#C8A44D]/15
+                    text-[#8A6D25]
+                  "
+                >
+
+                  <ChevronDown
+                    size={14}
+                    strokeWidth={2.5}
+                    className="
+                      motion-safe:animate-bounce
+                    "
+                  />
+
+                </span>
+
+              </button>
+
+            )
+          }
+
 
           {
             items.length > 0

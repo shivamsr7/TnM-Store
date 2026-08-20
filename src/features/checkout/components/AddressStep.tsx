@@ -1,23 +1,33 @@
 import {
   useEffect,
-  useState
+  useState,
 } from "react";
 
 
 import {
-  getCustomerAddresses
+  Pencil,
+} from "lucide-react";
+
+
+import {
+  getCustomerAddresses,
 } from "@/features/customers/services/address.service";
 
 
 import AddAddressForm from "./AddAddressForm";
 
 
+import EditAddressDialog from "@/components/account/EditAddressDialog";
+
+
 
 interface Props {
 
-  customer:any;
+  customer: any;
 
-  onContinue:(address:any)=>void;
+  onContinue: (
+    address: any
+  ) => void;
 
 }
 
@@ -29,425 +39,772 @@ export default function AddressStep({
 
   customer,
 
-  onContinue
+  onContinue,
 
-}:Props){
+}: Props) {
 
 
+  /*
+   * =========================================================
+   * ADDRESSES
+   * =========================================================
+   */
 
-const [addresses,setAddresses]=useState<any[]>([]);
+  const [
+    addresses,
+    setAddresses,
+  ] = useState<any[]>([]);
 
-const [selected,setSelected]=useState<any>(null);
 
-const [loading,setLoading]=useState(true);
+  const [
+    selected,
+    setSelected,
+  ] = useState<any>(null);
 
-const [showAddForm,setShowAddForm]=useState(false);
 
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
 
 
+  /*
+   * =========================================================
+   * ADD ADDRESS
+   * =========================================================
+   */
 
+  const [
+    showAddForm,
+    setShowAddForm,
+  ] = useState(false);
 
 
-async function loadAddresses(){
+  /*
+   * =========================================================
+   * EDIT ADDRESS
+   * =========================================================
+   */
 
+  const [
+    showEditDialog,
+    setShowEditDialog,
+  ] = useState(false);
 
-console.log(
-"Customer passed to AddressStep:",
-customer
-);
 
+  const [
+    editingAddress,
+    setEditingAddress,
+  ] = useState<any>(null);
 
-const data = await getCustomerAddresses(
 
-customer.id
+  /*
+   * =========================================================
+   * LOAD ADDRESSES
+   * =========================================================
+   */
 
-);
+  async function loadAddresses() {
 
+    if (!customer?.id) {
 
+      setAddresses([]);
 
-setAddresses(data);
+      setSelected(null);
 
+      setLoading(false);
 
+      return;
 
-const defaultAddress =
+    }
 
-data.find(
 
-(item)=>item.is_default
+    try {
 
-);
+      setLoading(true);
 
 
+      console.log(
+        "Customer passed to AddressStep:",
+        customer
+      );
 
-setSelected(
 
-defaultAddress ?? data[0] ?? null
+      const data =
+        await getCustomerAddresses(
+          customer.id
+        );
 
-);
 
+      setAddresses(
+        data
+      );
 
 
-setLoading(false);
+      /*
+       * Keep the currently selected address
+       * if it still exists after refresh.
+       */
 
+      const currentSelected =
+        data.find(
+          (
+            item
+          ) =>
+            item.id ===
+            selected?.id
+        );
 
-}
 
+      if (currentSelected) {
 
+        setSelected(
+          currentSelected
+        );
 
+      }
 
+      else {
 
-useEffect(()=>{
+        const defaultAddress =
+          data.find(
+            (
+              item
+            ) =>
+              item.is_default
+          );
 
 
-loadAddresses();
+        setSelected(
+          defaultAddress ??
+          data[0] ??
+          null
+        );
 
+      }
 
-},[customer]);
+    }
 
+    catch (error) {
 
+      console.error(
+        "Address loading failed:",
+        error
+      );
 
+      setAddresses([]);
 
+      setSelected(null);
 
+    }
 
+    finally {
 
-if(loading)
+      setLoading(false);
 
-return (
+    }
 
-<div className="py-10 text-center text-sm text-neutral-500">
+  }
 
-Loading addresses...
 
-</div>
+  /*
+   * =========================================================
+   * LOAD ON CUSTOMER CHANGE
+   * =========================================================
+   */
 
-);
+  useEffect(() => {
 
+    loadAddresses();
 
+  }, [
+    customer,
+  ]);
 
 
 
 
 
-return (
+  /*
+   * =========================================================
+   * OPEN EDIT
+   * =========================================================
+   */
 
-<div className="space-y-5">
+  function handleEdit(
+    event: React.MouseEvent,
+    address: any
+  ) {
 
+    /*
+     * Prevent the edit button from also
+     * selecting the address card.
+     */
 
+    event.stopPropagation();
 
 
+    setEditingAddress(
+      address
+    );
 
-<h3 className="text-lg font-semibold">
 
-Select Delivery Address
+    setShowEditDialog(
+      true
+    );
 
-</h3>
+  }
 
 
 
 
 
+  /*
+   * =========================================================
+   * EDIT SUCCESS
+   * =========================================================
+   */
 
+  async function handleEditSuccess() {
 
-{
-showAddForm &&
+    /*
+     * Close first so the transition feels
+     * natural on mobile.
+     */
 
-<AddAddressForm
+    setShowEditDialog(
+      false
+    );
 
-customerId={customer.id}
 
-onCancel={()=>setShowAddForm(false)}
+    /*
+     * Refresh the addresses from Supabase.
+     */
 
-onSaved={(address)=>{
+    await loadAddresses();
 
-setAddresses(prev=>[
-address,
-...prev
-]);
+  }
 
-setSelected(address);
 
-setShowAddForm(false);
 
-}}
 
-/>
 
-}
+  /*
+   * =========================================================
+   * LOADING
+   * =========================================================
+   */
 
+  if (loading)
 
+    return (
 
+      <div
+        className="
+          py-10
+          text-center
+          text-sm
+          text-neutral-500
+        "
+      >
 
+        Loading addresses...
 
+      </div>
 
+    );
 
 
-{
 
-!showAddForm &&
 
-<>
 
+  /*
+   * =========================================================
+   * RENDER
+   * =========================================================
+   */
 
+  return (
 
+    <div
+      className="
+        space-y-5
+      "
+    >
 
 
-{
-addresses.length===0 &&
+      {/* ===================================================
+          TITLE
+      ==================================================== */}
 
-<div
+      <h3
+        className="
+          text-lg
+          font-semibold
+        "
+      >
 
-className="
+        Select Delivery Address
 
-rounded-2xl
+      </h3>
 
-border
 
-border-dashed
 
-p-5
 
-text-center
+      {/* ===================================================
+          ADD ADDRESS FORM
+      ==================================================== */}
 
-text-sm
+      {
+        showAddForm && (
 
-text-neutral-500
+          <AddAddressForm
 
-"
+            customerId={
+              customer.id
+            }
 
->
+            onCancel={() =>
+              setShowAddForm(
+                false
+              )
+            }
 
-No saved address found.
+            onSaved={(
+              address
+            ) => {
 
-Add your delivery address.
+              setAddresses(
+                prev => [
+                  address,
+                  ...prev,
+                ]
+              );
 
-</div>
 
-}
+              setSelected(
+                address
+              );
 
 
+              setShowAddForm(
+                false
+              );
 
+            }}
 
+          />
 
+        )
+      }
 
 
 
-{
-addresses.map((address)=>(
 
 
-<div
+      {
+        !showAddForm && (
 
-key={address.id}
+          <>
 
-onClick={()=>setSelected(address)}
 
-className={`
+            {/* =============================================
+                EMPTY STATE
+            ============================================== */}
 
-cursor-pointer
+            {
+              addresses.length === 0 && (
 
-rounded-2xl
+                <div
+                  className="
+                    rounded-2xl
+                    border
+                    border-dashed
+                    p-5
+                    text-center
+                    text-sm
+                    text-neutral-500
+                  "
+                >
 
-border
+                  No saved address found.
 
-p-4
+                  <br />
 
-transition
+                  Add your delivery address.
 
+                </div>
 
-${
+              )
+            }
 
-selected?.id===address.id
 
-?
 
-"border-black bg-neutral-50"
 
-:
 
-"border-neutral-200"
+            {/* =============================================
+                ADDRESS LIST
+            ============================================== */}
 
-}
+            {
+              addresses.map(
+                (
+                  address
+                ) => (
 
-`}
+                  <div
+                    key={
+                      address.id
+                    }
+                    onClick={() =>
+                      setSelected(
+                        address
+                      )
+                    }
+                    className={`
+                      cursor-pointer
+                      rounded-2xl
+                      border
+                      p-4
+                      transition-all
+                      duration-200
 
->
+                      ${
+                        selected?.id ===
+                        address.id
 
+                          ? "border-black bg-neutral-50 shadow-sm"
 
+                          : "border-neutral-200 bg-white"
+                      }
 
+                      hover:border-neutral-400
+                    `}
+                  >
 
 
-<div className="flex justify-between">
+                    {/* ===================================
+                        ADDRESS HEADER
+                    ==================================== */}
 
+                    <div
+                      className="
+                        flex
+                        items-start
+                        justify-between
+                        gap-3
+                      "
+                    >
 
-<p className="font-medium">
 
-{address.full_name}
+                      <div
+                        className="
+                          min-w-0
+                          flex-1
+                        "
+                      >
 
-</p>
+                        <p
+                          className="
+                            font-medium
+                            text-neutral-950
+                          "
+                        >
 
+                          {
+                            address.full_name
+                          }
 
+                        </p>
 
+                      </div>
 
-{
 
-address.is_default &&
+                      {/* =================================
+                          ACTIONS
+                      ================================== */}
 
-<span
+                      <div
+                        className="
+                          flex
+                          shrink-0
+                          items-center
+                          gap-2
+                        "
+                      >
 
-className="
-rounded-full
-bg-neutral-100
-px-2
-py-1
-text-xs
-"
 
->
+                        {
+                          address.is_default && (
 
-Default
+                            <span
+                              className="
+                                rounded-full
+                                bg-neutral-100
+                                px-2
+                                py-1
+                                text-xs
+                                text-neutral-600
+                              "
+                            >
 
-</span>
+                              Default
 
-}
+                            </span>
 
+                          )
+                        }
 
-</div>
 
+                        <button
+                          type="button"
+                          onClick={(
+                            event
+                          ) =>
+                            handleEdit(
+                              event,
+                              address
+                            )
+                          }
+                          className="
+                            inline-flex
+                            h-8
+                            w-8
+                            items-center
+                            justify-center
+                            rounded-full
+                            border
+                            border-neutral-200
+                            bg-white
+                            text-neutral-600
+                            transition-all
+                            duration-200
 
+                            hover:border-[#C8A44D]
+                            hover:bg-[#C8A44D]/10
+                            hover:text-[#9A7A22]
 
+                            active:scale-95
+                          "
+                          aria-label="Edit address"
+                          title="Edit address"
+                        >
 
+                          <Pencil
+                            size={14}
+                            strokeWidth={2}
+                          />
 
+                        </button>
 
-<p className="mt-2 text-sm text-neutral-600">
 
-{address.address_line_1}
+                      </div>
 
-</p>
+                    </div>
 
 
 
-{
 
-address.address_line_2 &&
+                    {/* ===================================
+                        ADDRESS DETAILS
+                    ==================================== */}
 
-<p className="text-sm text-neutral-600">
+                    <p
+                      className="
+                        mt-2
+                        text-sm
+                        text-neutral-600
+                      "
+                    >
 
-{address.address_line_2}
+                      {
+                        address.address_line_1
+                      }
 
-</p>
+                    </p>
 
-}
 
+                    {
+                      address.address_line_2 && (
 
+                        <p
+                          className="
+                            text-sm
+                            text-neutral-600
+                          "
+                        >
 
+                          {
+                            address.address_line_2
+                          }
 
+                        </p>
 
+                      )
+                    }
 
-<p className="text-sm text-neutral-600">
 
-{address.city}, {address.state}
+                    <p
+                      className="
+                        text-sm
+                        text-neutral-600
+                      "
+                    >
 
-</p>
+                      {
+                        address.city
+                      }
 
+                      ,
 
+                      {" "}
 
+                      {
+                        address.state
+                      }
 
-<p className="text-sm text-neutral-600">
+                    </p>
 
-{address.postal_code}
 
-</p>
+                    <p
+                      className="
+                        text-sm
+                        text-neutral-600
+                      "
+                    >
 
+                      {
+                        address.postal_code
+                      }
 
+                    </p>
 
 
+                  </div>
 
-</div>
+                )
+              )
+            }
 
 
 
-))
 
-}
 
+            {/* =============================================
+                ADD NEW ADDRESS
+            ============================================== */}
 
+            <button
+              type="button"
+              onClick={() =>
+                setShowAddForm(
+                  true
+                )
+              }
+              className="
+                w-full
+                rounded-xl
+                border
+                border-dashed
+                border-neutral-300
+                py-3
+                text-sm
+                font-medium
+                text-neutral-700
+                transition
+                hover:border-[#C8A44D]
+                hover:bg-[#C8A44D]/5
+                hover:text-[#9A7A22]
+                active:scale-[0.99]
+              "
+            >
 
+              + Add New Address
 
+            </button>
 
 
 
-<button
 
-onClick={()=>setShowAddForm(true)}
+            {/* =============================================
+                CONTINUE
+            ============================================== */}
 
-className="
+            <button
+              type="button"
+              disabled={
+                !selected
+              }
+              onClick={() =>
+                onContinue(
+                  selected
+                )
+              }
+              className="
+                w-full
+                rounded-xl
+                bg-black
+                py-3
+                text-sm
+                font-medium
+                text-white
+                transition
+                hover:bg-neutral-800
+                active:scale-[0.99]
+                disabled:cursor-not-allowed
+                disabled:opacity-50
+              "
+            >
 
-w-full
+              Continue
 
-rounded-xl
+            </button>
 
-border
 
-border-dashed
+          </>
 
-py-3
+        )
+      }
 
-text-sm
 
-font-medium
 
-"
 
->
 
-+ Add New Address
+      {/* ===================================================
+          EDIT ADDRESS DIALOG
+      ==================================================== */}
 
-</button>
+      <EditAddressDialog
 
+        open={
+          showEditDialog
+        }
 
+        address={
+          editingAddress
+        }
 
+        onClose={() => {
 
-<button
+          setShowEditDialog(
+            false
+          );
 
-disabled={!selected}
+          setEditingAddress(
+            null
+          );
 
-onClick={()=>onContinue(selected)}
+        }}
 
-className="
+        onSuccess={
+          handleEditSuccess
+        }
 
-w-full
+      />
 
-rounded-xl
 
-bg-black
+    </div>
 
-py-3
-
-text-white
-
-disabled:opacity-50
-
-"
-
->
-
-Continue
-
-</button>
-
-
-
-</>
-
-}
-
-
-
-
-
-
-</div>
-
-);
+  );
 
 }
