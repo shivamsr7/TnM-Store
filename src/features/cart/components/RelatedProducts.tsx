@@ -813,10 +813,13 @@ export default function RelatedProducts({
                     product.id
                   }
                   className="
+                    flex
+                    h-[286px]
                     w-[132px]
                     min-w-[132px]
                     shrink-0
                     snap-start
+                    flex-col
                     overflow-hidden
                     rounded-2xl
                     border
@@ -841,7 +844,8 @@ export default function RelatedProducts({
                   <div
                     className="
                       relative
-                      aspect-[4/5]
+                      h-[164px]
+                      shrink-0
                       overflow-hidden
                       bg-neutral-100
                     "
@@ -898,6 +902,10 @@ export default function RelatedProducts({
 
                   <div
                     className="
+                      flex
+                      min-h-0
+                      flex-1
+                      flex-col
                       p-2
                     "
                   >
@@ -928,7 +936,9 @@ export default function RelatedProducts({
                       className="
                         mt-1.5
                         flex
+                        h-4
                         min-w-0
+                        shrink-0
                         items-center
                         gap-1
                       "
@@ -998,7 +1008,8 @@ export default function RelatedProducts({
                         )
                       }
                       className={`
-                        mt-2
+                        mt-auto
+                        pt-2
                         flex
                         h-8
                         w-full
