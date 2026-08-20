@@ -104,11 +104,8 @@ export default function PageTransition({
     /*
      * PUSH
      *
-     * A normal link click such as:
-     *
+     * Normal navigation:
      * Shop → Product
-     *
-     * is treated as forward navigation.
      */
 
     if (
@@ -148,10 +145,6 @@ export default function PageTransition({
      * POP
      *
      * Browser back / forward.
-     *
-     * We compare the current route
-     * against the locally tracked history
-     * to determine the direction.
      */
 
     else if (
@@ -185,13 +178,6 @@ export default function PageTransition({
 
       else {
 
-        /*
-         * If the route was reached through
-         * a browser-level history entry that
-         * this component has not tracked,
-         * use the safest subtle transition.
-         */
-
         setDirection(
           "back"
         );
@@ -213,8 +199,6 @@ export default function PageTransition({
 
     /*
      * REPLACE
-     *
-     * Keep the current visual direction.
      */
 
     else {
@@ -231,8 +215,7 @@ export default function PageTransition({
 
 
     /*
-     * Start the new page slightly
-     * transparent and offset.
+     * Start transition.
      */
 
     setIsVisible(
@@ -269,7 +252,7 @@ export default function PageTransition({
 
   /*
    * =========================================================
-   * TRANSITION
+   * TRANSITION DIRECTION
    * =========================================================
    */
 
@@ -299,6 +282,9 @@ export default function PageTransition({
 
     <div
       className={`
+        min-w-0
+        will-change-[transform,opacity]
+
         transition-[opacity,transform]
         duration-300
         ease-out
