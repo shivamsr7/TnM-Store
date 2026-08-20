@@ -2423,6 +2423,106 @@ export default function CartDrawer() {
 
 
           {/* =================================================
+              BEST COUPON LOADING
+          ================================================== */}
+
+          {
+            items.length > 0 &&
+            isCheckingBestCoupon &&
+            !appliedCoupon && (
+
+              <div
+
+                className="
+
+                  mt-6
+
+                  rounded-2xl
+
+                  border
+                  border-neutral-200
+
+                  bg-neutral-50
+
+                  p-4
+
+                  animate-in
+                  fade-in
+                  duration-200
+
+                "
+
+              >
+
+                <div
+                  className="
+                    flex
+                    items-center
+                    gap-3
+                  "
+                >
+
+                  <div
+                    className="
+                      flex
+                      h-9
+                      w-9
+                      shrink-0
+                      items-center
+                      justify-center
+                      rounded-full
+                      bg-white
+                      text-[#B28A20]
+                      shadow-sm
+                    "
+                  >
+
+                    <Loader2
+                      size={18}
+                      className="animate-spin"
+                    />
+
+                  </div>
+
+
+                  <div className="min-w-0">
+
+                    <p
+                      className="
+                        text-sm
+                        font-semibold
+                        text-neutral-900
+                      "
+                    >
+
+                      Finding your best offer...
+
+                    </p>
+
+
+                    <p
+                      className="
+                        mt-0.5
+                        text-xs
+                        text-neutral-500
+                      "
+                    >
+
+                      Checking available coupons and your savings
+
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            )
+          }
+
+
+          {/* =================================================
               BEST COUPON
           ================================================== */}
 
