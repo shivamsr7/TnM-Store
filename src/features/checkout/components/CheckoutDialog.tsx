@@ -230,6 +230,7 @@ export default function CheckoutDialog({
     subtotal:number;
     discount:number;
     shippingCharge:number;
+    giftWrapAmount:number;
     tax:number;
     totalAmount:number;
   } | null>(null);
@@ -921,6 +922,13 @@ export default function CheckoutDialog({
               shippingCharge:
                 finalized.shipping_charge,
 
+              giftWrapAmount:
+                Number(
+                  (finalized as any).gift_wrap_amount ??
+                  (finalized as any).giftWrapAmount ??
+                  0
+                ),
+
               tax:
                 finalized.tax,
 
@@ -1445,6 +1453,10 @@ export default function CheckoutDialog({
           shippingCharge:
             verifiedCheckoutPricing?.shippingCharge ??
             finalShippingCharge,
+
+          giftWrapAmount:
+            verifiedCheckoutPricing?.giftWrapAmount ??
+            0,
 
           tax:
             verifiedCheckoutPricing?.tax ??
@@ -2702,7 +2714,10 @@ export default function CheckoutDialog({
 
                           : step === "payment"
 
-                            ? `₹${finalShippingCharge.toFixed(2)}`
+                            ? `₹${(
+                                verifiedCheckoutPricing?.shippingCharge ??
+                                finalShippingCharge
+                              ).toFixed(2)}`
 
                             : "Calculated at next step"
                       }
@@ -2710,6 +2725,45 @@ export default function CheckoutDialog({
                     </span>
 
                   </div>
+
+
+                  {
+                    step === "payment" &&
+                    (
+                      verifiedCheckoutPricing?.giftWrapAmount ??
+                      0
+                    ) > 0 && (
+
+                      <div
+                        className="
+                          flex
+                          items-center
+                          justify-between
+                        "
+                      >
+
+                        <span
+                          className="
+                            text-neutral-500
+                          "
+                        >
+                          🎁 Gift Wrap
+                        </span>
+
+                        <span>
+                          ₹
+                          {
+                            (
+                              verifiedCheckoutPricing?.giftWrapAmount ??
+                              0
+                            ).toFixed(2)
+                          }
+                        </span>
+
+                      </div>
+
+                    )
+                  }
 
 
                   <div
@@ -2739,7 +2793,14 @@ export default function CheckoutDialog({
 
                       ₹
                       {
-                        finalAmount.toFixed(2)
+                        (
+                          step === "payment"
+                            ? (
+                                verifiedCheckoutPricing?.totalAmount ??
+                                finalAmount
+                              )
+                            : finalAmount
+                        ).toFixed(2)
                       }
 
                     </span>
