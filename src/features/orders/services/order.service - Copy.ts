@@ -427,18 +427,7 @@ export async function createOrder(
     error: createdOrderLookupError,
   } = await supabase
     .from("orders")
-    .select(`
-      id,
-      order_number,
-      gift_wrap,
-      gift_wrap_amount,
-      gift_message,
-      subtotal,
-      discount,
-      shipping_charge,
-      tax,
-      total_amount
-    `)
+    .select("id, order_number")
     .eq(
       "id",
       orderId
@@ -461,26 +450,6 @@ export async function createOrder(
   const finalOrderNumber =
     createdOrder.order_number ??
     orderNumber;
-
-
-  /*
-   * Gift Wrap values come from the created order so the
-   * confirmation email uses the server-authoritative amount.
-   */
-
-  const finalGiftWrapAmount =
-    Number(
-      createdOrder.gift_wrap_amount ??
-      0
-    );
-
-  const finalGiftMessage =
-    createdOrder.gift_wrap
-      ? (
-          createdOrder.gift_message ??
-          null
-        )
-      : null;
 
 
   // Activity 1: Order Created
@@ -580,40 +549,19 @@ export async function createOrder(
         ),
 
       subtotal:
-        Number(
-          createdOrder.subtotal ??
-          payload.subtotal
-        ),
+        payload.subtotal,
 
       discount:
-        Number(
-          createdOrder.discount ??
-          payload.discount
-        ),
+        payload.discount,
 
       shippingCharge:
-        Number(
-          createdOrder.shipping_charge ??
-          payload.shippingCharge
-        ),
-
-      giftWrapAmount:
-        finalGiftWrapAmount,
-
-      giftMessage:
-        finalGiftMessage,
+        payload.shippingCharge,
 
       tax:
-        Number(
-          createdOrder.tax ??
-          payload.tax
-        ),
+        payload.tax,
 
       totalAmount:
-        Number(
-          createdOrder.total_amount ??
-          payload.totalAmount
-        ),
+        payload.totalAmount,
 
       paymentMethod:
         payload.paymentMethod,
@@ -622,10 +570,7 @@ export async function createOrder(
         payload.advanceAmount,
 
       remainingAmount:
-        Number(
-          createdOrder.total_amount ??
-          payload.totalAmount
-        ) -
+        payload.totalAmount -
         payload.advanceAmount,
 
       paymentTransactionId:

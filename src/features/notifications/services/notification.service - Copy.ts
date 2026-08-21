@@ -81,10 +81,6 @@ export interface OrderConfirmationEmailPayload {
 
   shippingCharge: number;
 
-  giftWrapAmount: number;
-
-  giftMessage?: string | null;
-
   tax: number;
 
   totalAmount: number;
@@ -304,10 +300,6 @@ class NotificationService {
     discount,
 
     shippingCharge,
-
-    giftWrapAmount,
-
-    giftMessage,
 
     tax,
 
@@ -1990,50 +1982,6 @@ class NotificationService {
 
 
 
-              ${
-                giftWrapAmount > 0
-                  ? `
-
-                    <tr>
-
-                      <td
-                        style="
-                          padding:7px 0;
-                          font-size:13px;
-                          color:#77736c;
-                        "
-                      >
-
-                        🎁 Gift Wrap
-
-                      </td>
-
-                      <td
-                        align="right"
-                        style="
-                          padding:7px 0;
-                          font-size:13px;
-                          font-weight:600;
-                          color:#8b6424;
-                        "
-                      >
-
-                        ${formatMoney(
-                          giftWrapAmount
-                        )}
-
-                      </td>
-
-                    </tr>
-
-                  `
-                  : ""
-              }
-
-
-
-
-
               ${taxRow}
 
 
@@ -2105,72 +2053,6 @@ class NotificationService {
           </td>
 
         </tr>
-
-
-
-
-
-        <!-- GIFT MESSAGE -->
-
-        ${
-          giftWrapAmount > 0 &&
-          giftMessage?.trim()
-            ? `
-
-              <tr>
-
-                <td
-                  style="
-                    padding:24px 24px 0;
-                  "
-                >
-
-                  <div
-                    style="
-                      padding:16px;
-                      background:#faf8f3;
-                      border:1px solid #e8dfd0;
-                    "
-                  >
-
-                    <div
-                      style="
-                        font-family:Georgia,'Times New Roman',serif;
-                        font-size:18px;
-                        line-height:24px;
-                        font-weight:600;
-                        color:#49371d;
-                      "
-                    >
-
-                      🎁 Gift Message
-
-                    </div>
-
-                    <div
-                      style="
-                        margin-top:9px;
-                        font-size:13px;
-                        line-height:22px;
-                        color:#55514b;
-                      "
-                    >
-
-                      ${escapeHtml(
-                        giftMessage.trim()
-                      )}
-
-                    </div>
-
-                  </div>
-
-                </td>
-
-              </tr>
-
-            `
-            : ""
-        }
 
 
 
