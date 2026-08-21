@@ -7,8 +7,6 @@ import {
   Loader2,
   Sparkles,
   ChevronDown,
-  Gift,
-  MessageCircle,
 } from "lucide-react";
 
 import {
@@ -75,12 +73,6 @@ export default function CartDrawer() {
     discount,
     getFinalTotal,
     clearStockError,
-
-    giftWrapSelected,
-    giftMessage,
-    setGiftWrapSelected,
-    setGiftMessage,
-
   } = useCartStore();
 
 
@@ -358,7 +350,9 @@ export default function CartDrawer() {
 
   const finalTotal =
     getFinalTotal();
-/*
+
+
+  /*
    * =========================================================
    * STOCK LIMIT MESSAGE
    * =========================================================
@@ -720,136 +714,6 @@ export default function CartDrawer() {
 
   /*
    * =========================================================
-   * GIFT WRAP SETTINGS
-   * =========================================================
-   */
-
-  const {
-    data: giftWrapSettings,
-  } = useQuery({
-
-    queryKey: [
-      "gift-wrap-settings",
-    ],
-
-    queryFn: async () => {
-
-      const {
-        data,
-        error,
-      } = await supabase
-        .from(
-          "gift_wrap_settings"
-        )
-        .select(
-          "enabled, price, gift_message_enabled, max_message_length, title, description"
-        )
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-
-        throw error;
-
-      }
-
-      return {
-
-        enabled:
-          Boolean(
-            data?.enabled
-          ),
-
-        price:
-          Number(
-            data?.price ?? 0
-          ),
-
-        giftMessageEnabled:
-          Boolean(
-            data?.gift_message_enabled
-          ),
-
-        maxMessageLength:
-          Number(
-            data?.max_message_length ?? 180
-          ),
-
-        title:
-          data?.title ||
-          "Make it gift-ready",
-
-        description:
-          data?.description ||
-          "Premium gift wrapping for your order",
-
-      };
-
-    },
-
-    staleTime:
-      5 * 60 * 1000,
-
-    enabled:
-      isCartOpen,
-
-  });
-
-
-  const giftWrapEnabled =
-    Boolean(
-      giftWrapSettings?.enabled
-    );
-
-  const giftWrapPrice =
-    Number(
-      giftWrapSettings?.price ?? 0
-    );
-
-
-  const estimatedTotal =
-    finalTotal +
-    (
-      giftWrapSelected &&
-      giftWrapEnabled
-        ? giftWrapPrice
-        : 0
-    );
-
-
-  useEffect(() => {
-
-    if (
-      giftWrapSettings &&
-      !giftWrapSettings.enabled &&
-      giftWrapSelected
-    ) {
-
-      setGiftWrapSelected(
-        false
-      );
-
-    }
-
-  }, [
-    giftWrapSettings,
-    giftWrapSelected,
-    setGiftWrapSelected,
-  ]);
-
-
-  const giftWrapSectionRef =
-    useRef<HTMLDivElement | null>(null);
-
-
-  const [
-    showGiftWrapNavigator,
-    setShowGiftWrapNavigator,
-  ] = useState(true);
-
-
-  /*
-   * =========================================================
    * CHECKOUT COUPON REMINDER
    * =========================================================
    */
@@ -1162,98 +1026,6 @@ export default function CartDrawer() {
     isCartOpen,
     items.length,
   ]);
-
-
-  /*
-   * =========================================================
-   * GIFT WRAP NAVIGATOR
-   * =========================================================
-   *
-   * Keeps the gift-wrap option discoverable even when the
-   * customer has added several products and the gift-wrap
-   * card has moved below the fold.
-   * =========================================================
-   */
-
-  useEffect(() => {
-
-    if (
-      !isCartOpen ||
-      items.length === 0 ||
-      giftWrapSelected
-    ) {
-
-      setShowGiftWrapNavigator(false);
-      return;
-
-    }
-
-
-    const giftWrapSection =
-      giftWrapSectionRef.current;
-
-    const scrollContainer =
-      scrollContainerRef.current;
-
-
-    if (
-      !giftWrapSection ||
-      !scrollContainer
-    ) {
-
-      setShowGiftWrapNavigator(true);
-      return;
-
-    }
-
-
-    const observer =
-      new IntersectionObserver(
-        ([entry]) => {
-
-          setShowGiftWrapNavigator(
-            !entry.isIntersecting
-          );
-
-        },
-        {
-          root:
-            scrollContainer,
-
-          threshold:
-            0.15,
-        }
-      );
-
-
-    observer.observe(
-      giftWrapSection
-    );
-
-
-    return () => {
-
-      observer.disconnect();
-
-    };
-
-  }, [
-    isCartOpen,
-    items.length,
-    giftWrapSelected,
-  ]);
-
-
-  const scrollToGiftWrap = () => {
-
-    giftWrapSectionRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "center",
-    });
-
-    setShowGiftWrapNavigator(false);
-
-  };
 
 
   const [
@@ -2757,115 +2529,6 @@ export default function CartDrawer() {
 
 
           {/* =================================================
-              GIFT WRAP
-          ================================================== */}
-
-          {
-            items.length > 0 &&
-            giftWrapEnabled && (
-              <div
-                ref={giftWrapSectionRef}
-                className="
-                  mt-6 overflow-hidden rounded-2xl
-                  border border-[#C8A44D]/25
-                  bg-gradient-to-br from-[#FFFCF4] via-white to-[#FBF6E8]
-                  shadow-[0_4px_18px_rgba(0,0,0,0.05)]
-                "
-              >
-                <button
-                  type="button"
-                  onClick={() => setGiftWrapSelected(!giftWrapSelected)}
-                  aria-pressed={giftWrapSelected}
-                  className="flex w-full items-center gap-3 px-4 py-4 text-left transition active:scale-[0.995]"
-                >
-                  <div
-                    className={`
-                      flex h-11 w-11 shrink-0 items-center justify-center rounded-full
-                      transition-all duration-300
-                      ${
-                        giftWrapSelected
-                          ? "bg-[#C8A44D] text-white shadow-[0_6px_18px_rgba(200,164,77,0.28)]"
-                          : "bg-[#C8A44D]/10 text-[#A27B16]"
-                      }
-                    `}
-                  >
-                    <Gift size={21} strokeWidth={1.8} />
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-neutral-900">
-                          Make it gift-ready
-                        </p>
-                        <p className="mt-0.5 text-xs leading-4 text-neutral-500">
-                          Premium gift wrapping for your order
-                        </p>
-                      </div>
-                      <span className="shrink-0 text-sm font-semibold text-[#9A761C]">
-                        ₹{giftWrapPrice}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div
-                    className={`
-                      flex h-6 w-6 shrink-0 items-center justify-center rounded-full border
-                      transition-all duration-200
-                      ${
-                        giftWrapSelected
-                          ? "border-[#C8A44D] bg-[#C8A44D] text-white"
-                          : "border-neutral-300 bg-white"
-                      }
-                    `}
-                  >
-                    {giftWrapSelected && (
-                      <Check size={14} strokeWidth={2.8} />
-                    )}
-                  </div>
-                </button>
-
-                {giftWrapSelected &&
-                  giftWrapSettings?.giftMessageEnabled && (
-                  <div
-                    className="
-                      border-t border-[#C8A44D]/15 px-4 pb-4 pt-3
-                      animate-in fade-in slide-in-from-top-2 duration-200
-                    "
-                  >
-                    <div className="flex items-center gap-2 text-xs font-medium text-[#8A6D25]">
-                      <MessageCircle size={14} strokeWidth={1.8} />
-                      Add a personal gift message
-                      <span className="text-neutral-400">(optional)</span>
-                    </div>
-
-                    <textarea
-                      value={giftMessage}
-                      onChange={event =>
-                        setGiftMessage(event.target.value.slice(0, giftWrapSettings?.maxMessageLength ?? 180))
-                      }
-                      placeholder="Write a sweet note for the recipient..."
-                      rows={2}
-                      maxLength={giftWrapSettings?.maxMessageLength ?? 180}
-                      className="
-                        mt-2 w-full resize-none rounded-xl border border-neutral-200
-                        bg-white px-3 py-2.5 text-sm text-neutral-800 outline-none
-                        transition placeholder:text-neutral-400
-                        focus:border-[#C8A44D] focus:ring-2 focus:ring-[#C8A44D]/10
-                      "
-                    />
-
-                    <div className="mt-1 text-right text-[10px] text-neutral-400">
-                      {giftMessage.length}/180
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          }
-
-
-          {/* =================================================
               MORE FOR YOU CUE + RELATED PRODUCTS
           ================================================== */}
 
@@ -3784,125 +3447,6 @@ export default function CartDrawer() {
 
 
         {/* ===================================================
-            FLOATING GIFT WRAP CUE
-        ==================================================== */}
-
-        {
-          items.length > 0 &&
-          !giftWrapSelected &&
-          showGiftWrapNavigator && (
-
-            <button
-              type="button"
-              onClick={scrollToGiftWrap}
-              aria-label="Add gift wrapping"
-              className="
-                absolute
-                left-1/2
-                bottom-[calc(100px+env(safe-area-inset-bottom))]
-                z-40
-                -translate-x-1/2
-
-                flex
-                items-center
-                gap-2.5
-
-                rounded-full
-
-                border
-                border-[#C8A44D]/40
-
-                bg-white
-
-                px-4
-                py-2.5
-
-                text-left
-
-                shadow-[0_10px_30px_rgba(0,0,0,0.16)]
-                ring-1
-                ring-[#C8A44D]/10
-
-                transition-all
-                duration-300
-
-                hover:-translate-x-1/2
-                hover:-translate-y-0.5
-                hover:shadow-[0_14px_34px_rgba(0,0,0,0.2)]
-
-                active:scale-95
-
-                animate-in
-                fade-in
-                slide-in-from-bottom-3
-                duration-300
-              "
-            >
-
-              <span
-                className="
-                  flex
-                  h-8
-                  w-8
-                  shrink-0
-                  items-center
-                  justify-center
-                  rounded-full
-                  bg-[#FBF4DE]
-                  text-[#A27B16]
-                "
-              >
-                <Gift
-                  size={17}
-                  strokeWidth={1.9}
-                />
-              </span>
-
-              <span className="min-w-0">
-
-                <span
-                  className="
-                    block
-                    text-[11px]
-                    font-semibold
-                    leading-4
-                    text-neutral-900
-                  "
-                >
-                  Gift wrap your order
-                </span>
-
-                <span
-                  className="
-                    block
-                    text-[10px]
-                    font-medium
-                    leading-4
-                    text-[#A27B16]
-                  "
-                >
-                  Add for ₹{giftWrapPrice} · Tap to add
-                </span>
-
-              </span>
-
-              <ChevronDown
-                size={15}
-                strokeWidth={2.5}
-                className="
-                  shrink-0
-                  -rotate-90
-                  text-[#A27B16]
-                "
-              />
-
-            </button>
-
-          )
-        }
-
-
-        {/* ===================================================
             FIXED FOOTER
         ==================================================== */}
 
@@ -4096,23 +3640,6 @@ export default function CartDrawer() {
                     }
 
 
-                    {/* GIFT WRAP */}
-
-                    {giftWrapSelected && (
-                      <div className="flex items-center justify-between text-neutral-600">
-                        <span className="flex items-center gap-1.5">
-                          <Gift
-                            size={14}
-                            className="text-[#B28A20]"
-                            strokeWidth={1.8}
-                          />
-                          Gift Wrap
-                        </span>
-                        <span>₹{giftWrapPrice.toFixed(2)}</span>
-                      </div>
-                    )}
-
-
                     {/* SHIPPING */}
 
                     <div
@@ -4178,7 +3705,7 @@ export default function CartDrawer() {
 
                         ₹
                         {
-                          estimatedTotal.toFixed(2)
+                          finalTotal.toFixed(2)
                         }
 
                       </span>

@@ -81,23 +81,6 @@ interface CartStore {
   isCartOpen: boolean;
 
 
-  // Gift Wrap
-
-  giftWrapSelected: boolean;
-
-  giftMessage: string;
-
-  setGiftWrapSelected: (
-    selected: boolean
-  ) => void;
-
-  setGiftMessage: (
-    message: string
-  ) => void;
-
-  clearGiftWrap: () => void;
-
-
   // Coupon
 
   appliedCoupon:
@@ -284,11 +267,6 @@ export const useCartStore =
         items: [],
 
         isCartOpen: false,
-
-
-        giftWrapSelected: false,
-
-        giftMessage: "",
 
 
         appliedCoupon: null,
@@ -1222,71 +1200,6 @@ export const useCartStore =
               "",
 
             stockErrorMessage:
-              "",
-
-            giftWrapSelected:
-              false,
-
-            giftMessage:
-              "",
-
-          });
-
-        },
-
-
-        /*
-         * ===================================================
-         * GIFT WRAP
-         * ===================================================
-         */
-
-        setGiftWrapSelected: (
-          selected
-        ) => {
-
-          set({
-
-            giftWrapSelected:
-              selected,
-
-            /*
-             * A message without Gift Wrap has no meaning.
-             * Clear it when Gift Wrap is turned off.
-             */
-
-            giftMessage:
-              selected
-                ? get().giftMessage
-                : "",
-
-          });
-
-        },
-
-
-        setGiftMessage: (
-          message
-        ) => {
-
-          set({
-
-            giftMessage:
-              message,
-
-          });
-
-        },
-
-
-        clearGiftWrap: () => {
-
-          set({
-
-            giftWrapSelected:
-              false,
-
-            giftMessage:
               "",
 
           });

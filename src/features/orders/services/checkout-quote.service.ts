@@ -1,35 +1,150 @@
 import {
-  supabase
+  supabase,
 } from "@/shared/lib/supabase";
-
 
 
 export interface FinalizedCheckoutQuote {
 
-  quote_id:string;
+  quote_id: string;
 
-  subtotal:number;
+  subtotal: number;
 
-  discount:number;
+  discount: number;
 
-  shipping_charge:number;
+  shipping_charge: number;
 
-  tax:number;
+  gift_wrap: boolean;
 
-  total_amount:number;
+  gift_wrap_amount: number;
 
-  coupon_id:string | null;
+  gift_message: string | null;
 
-  coupon_code:string | null;
+  tax: number;
 
-  free_shipping:boolean;
+  total_amount: number;
 
-  free_gift:boolean;
+  coupon_id: string | null;
 
-  expires_at:string;
+  coupon_code: string | null;
+
+  free_shipping: boolean;
+
+  free_gift: boolean;
+
+  expires_at: string;
 
 }
 
+
+export async function setCheckoutQuoteGiftWrap({
+
+  quoteId,
+
+  customerId,
+
+  giftWrap,
+
+  giftMessage,
+
+}: {
+
+  quoteId: string;
+
+  customerId: string;
+
+  giftWrap: boolean;
+
+  giftMessage?: string | null;
+
+}) {
+
+  if (!quoteId) {
+
+    throw new Error(
+      "Checkout quote is missing."
+    );
+
+  }
+
+
+  if (!customerId) {
+
+    throw new Error(
+      "Customer is required."
+    );
+
+  }
+
+
+  const {
+    data,
+    error,
+  } = await supabase.rpc(
+
+    "set_checkout_quote_gift_wrap",
+
+    {
+
+      p_quote_id:
+        quoteId,
+
+      p_customer_id:
+        customerId,
+
+      p_gift_wrap:
+        giftWrap,
+
+      p_gift_message:
+        giftMessage ?? null,
+
+    }
+
+  );
+
+
+  if (error) {
+
+    throw error;
+
+  }
+
+
+  if (!data) {
+
+    throw new Error(
+      "Unable to update Gift Wrap."
+    );
+
+  }
+
+
+  return {
+
+    quoteId:
+      String(
+        data.quote_id
+      ),
+
+    giftWrap:
+      Boolean(
+        data.gift_wrap
+      ),
+
+    giftWrapAmount:
+      Number(
+        data.gift_wrap_amount ?? 0
+      ),
+
+    giftMessage:
+      data.gift_message
+        ? String(
+            data.gift_message
+          )
+        : null,
+
+  };
+
+}
 
 
 export async function finalizeCheckoutQuote({
@@ -40,17 +155,17 @@ export async function finalizeCheckoutQuote({
 
   couponId = null,
 
-}:{
+}: {
 
-  quoteId:string;
+  quoteId: string;
 
-  customerId:string;
+  customerId: string;
 
-  couponId?:string | null;
+  couponId?: string | null;
 
-}):Promise<FinalizedCheckoutQuote>{
+}): Promise<FinalizedCheckoutQuote> {
 
-  if(!quoteId){
+  if (!quoteId) {
 
     throw new Error(
       "Checkout quote is missing."
@@ -58,7 +173,8 @@ export async function finalizeCheckoutQuote({
 
   }
 
-  if(!customerId){
+
+  if (!customerId) {
 
     throw new Error(
       "Customer is required."
@@ -67,13 +183,9 @@ export async function finalizeCheckoutQuote({
   }
 
 
-
   const {
-
     data,
-
-    error
-
+    error,
   } = await supabase.rpc(
 
     "finalize_checkout_quote",
@@ -94,59 +206,99 @@ export async function finalizeCheckoutQuote({
   );
 
 
-
-  if(error)
+  if (error) {
 
     throw error;
 
+  }
 
 
-  if(!data)
+  if (!data) {
 
     throw new Error(
       "Unable to finalize checkout total."
     );
 
+  }
 
 
   return {
 
     quote_id:
-      String(data.quote_id),
+      String(
+        data.quote_id
+      ),
 
     subtotal:
-      Number(data.subtotal ?? 0),
+      Number(
+        data.subtotal ?? 0
+      ),
 
     discount:
-      Number(data.discount ?? 0),
+      Number(
+        data.discount ?? 0
+      ),
 
     shipping_charge:
-      Number(data.shipping_charge ?? 0),
+      Number(
+        data.shipping_charge ?? 0
+      ),
+
+    gift_wrap:
+      Boolean(
+        data.gift_wrap
+      ),
+
+    gift_wrap_amount:
+      Number(
+        data.gift_wrap_amount ?? 0
+      ),
+
+    gift_message:
+      data.gift_message
+        ? String(
+            data.gift_message
+          )
+        : null,
 
     tax:
-      Number(data.tax ?? 0),
+      Number(
+        data.tax ?? 0
+      ),
 
     total_amount:
-      Number(data.total_amount ?? 0),
+      Number(
+        data.total_amount ?? 0
+      ),
 
     coupon_id:
       data.coupon_id
-        ? String(data.coupon_id)
+        ? String(
+            data.coupon_id
+          )
         : null,
 
     coupon_code:
       data.coupon_code
-        ? String(data.coupon_code)
+        ? String(
+            data.coupon_code
+          )
         : null,
 
     free_shipping:
-      Boolean(data.free_shipping),
+      Boolean(
+        data.free_shipping
+      ),
 
     free_gift:
-      Boolean(data.free_gift),
+      Boolean(
+        data.free_gift
+      ),
 
     expires_at:
-      String(data.expires_at),
+      String(
+        data.expires_at
+      ),
 
   };
 
