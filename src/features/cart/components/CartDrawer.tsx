@@ -3799,27 +3799,29 @@ export default function CartDrawer() {
               className="
                 absolute
                 left-1/2
-                bottom-[calc(100px+env(safe-area-inset-bottom))]
+                bottom-[calc(92px+env(safe-area-inset-bottom))]
                 z-40
                 -translate-x-1/2
 
                 flex
+                w-max
+                max-w-[calc(100%-32px)]
                 items-center
-                gap-2.5
+                gap-2
 
                 rounded-full
 
                 border
-                border-[#C8A44D]/40
+                border-[#C8A44D]/35
 
                 bg-white
 
-                px-4
-                py-2.5
+                px-3
+                py-2
 
                 text-left
 
-                shadow-[0_10px_30px_rgba(0,0,0,0.16)]
+                shadow-[0_8px_24px_rgba(0,0,0,0.14)]
                 ring-1
                 ring-[#C8A44D]/10
 
@@ -3828,7 +3830,7 @@ export default function CartDrawer() {
 
                 hover:-translate-x-1/2
                 hover:-translate-y-0.5
-                hover:shadow-[0_14px_34px_rgba(0,0,0,0.2)]
+                hover:shadow-[0_12px_28px_rgba(0,0,0,0.18)]
 
                 active:scale-95
 
@@ -3836,6 +3838,10 @@ export default function CartDrawer() {
                 fade-in
                 slide-in-from-bottom-3
                 duration-300
+
+                sm:gap-2.5
+                sm:px-4
+                sm:py-2.5
               "
             >
 
@@ -3863,10 +3869,12 @@ export default function CartDrawer() {
                 <span
                   className="
                     block
-                    text-[11px]
+                    whitespace-nowrap
+                    text-[10px]
                     font-semibold
                     leading-4
                     text-neutral-900
+                    sm:text-[11px]
                   "
                 >
                   Gift wrap your order
@@ -3875,10 +3883,12 @@ export default function CartDrawer() {
                 <span
                   className="
                     block
-                    text-[10px]
+                    whitespace-nowrap
+                    text-[9px]
                     font-medium
                     leading-4
                     text-[#A27B16]
+                    sm:text-[10px]
                   "
                 >
                   Add for ₹{giftWrapPrice} · Tap to add
