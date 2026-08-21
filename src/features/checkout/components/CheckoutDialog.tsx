@@ -16,6 +16,14 @@ import {
   useEffect,
 } from "react";
 
+import {
+  useQuery,
+} from "@tanstack/react-query";
+
+import {
+  supabase,
+} from "@/shared/lib/supabase";
+
 import OrderSuccess from "./OrderSuccess";
 import PaymentStep from "./PaymentStep";
 import LoginStep from "./LoginStep";
@@ -268,6 +276,69 @@ export default function CheckoutDialog({
 
   const subtotal =
     getTotal();
+
+
+  /*
+   * =========================================================
+   * GIFT WRAP SETTINGS
+   * =========================================================
+   *
+   * Address step uses the current Admin-configured Gift Wrap
+   * price because shipping has not been calculated yet.
+   * Payment step uses the server-verified amount from the
+   * finalized checkout quote.
+   */
+
+  const {
+    data: giftWrapSettings,
+  } = useQuery({
+
+    queryKey: [
+      "gift-wrap-settings-checkout",
+    ],
+
+    queryFn: async () => {
+
+      const {
+        data,
+        error,
+      } = await supabase
+        .from("gift_wrap_settings")
+        .select("enabled, price")
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      return {
+        enabled: Boolean(data?.enabled),
+        price: Number(data?.price ?? 0),
+      };
+
+    },
+
+    staleTime: 5 * 60 * 1000,
+
+    enabled: open,
+
+  });
+
+
+  const addressStepGiftWrapAmount =
+    giftWrapSelected &&
+    giftWrapSettings?.enabled
+      ? Number(giftWrapSettings.price ?? 0)
+      : 0;
+
+
+  const addressStepTotal =
+    Math.max(
+      subtotal - discount,
+      0
+    ) +
+    addressStepGiftWrapAmount;
 
 
   /*
@@ -2728,10 +2799,13 @@ export default function CheckoutDialog({
 
 
                   {
-                    step === "payment" &&
                     (
-                      verifiedCheckoutPricing?.giftWrapAmount ??
-                      0
+                      step === "payment"
+                        ? (
+                            verifiedCheckoutPricing?.giftWrapAmount ??
+                            0
+                          )
+                        : addressStepGiftWrapAmount
                     ) > 0 && (
 
                       <div
@@ -2754,8 +2828,12 @@ export default function CheckoutDialog({
                           ₹
                           {
                             (
-                              verifiedCheckoutPricing?.giftWrapAmount ??
-                              0
+                              step === "payment"
+                                ? (
+                                    verifiedCheckoutPricing?.giftWrapAmount ??
+                                    0
+                                  )
+                                : addressStepGiftWrapAmount
                             ).toFixed(2)
                           }
                         </span>
@@ -2799,7 +2877,7 @@ export default function CheckoutDialog({
                                 verifiedCheckoutPricing?.totalAmount ??
                                 finalAmount
                               )
-                            : finalAmount
+                            : addressStepTotal
                         ).toFixed(2)
                       }
 
