@@ -48,26 +48,31 @@ export default function MobileStickyCart({
 
 
     /*
-     * If the original button cannot be found,
-     * don't show the sticky cart.
+     * If original ADD TO CART cannot be found,
+     * keep sticky cart hidden.
      */
+
     if (!originalAddButton) {
+
       setVisible(false);
+
       return;
+
     }
 
 
     let originalButtonVisible = true;
+
     let footerVisible = false;
 
 
     const updateVisibility = () => {
 
       /*
-       * Sticky cart should ONLY appear when:
+       * Show sticky cart ONLY when:
        *
-       * 1. Original ADD button is not visible
-       * 2. Footer is not visible
+       * 1. Original ADD TO CART is outside viewport
+       * 2. Footer is outside viewport
        */
 
       const shouldShow =
@@ -75,13 +80,16 @@ export default function MobileStickyCart({
         !footerVisible;
 
 
-      setVisible(shouldShow);
+      setVisible(
+        shouldShow
+      );
+
     };
 
 
-    /* =================================================
-       ORIGINAL ADD BUTTON OBSERVER
-    ================================================= */
+    /* ===================================================
+       ORIGINAL ADD TO CART OBSERVER
+    =================================================== */
 
     const addButtonObserver =
       new IntersectionObserver(
@@ -104,9 +112,9 @@ export default function MobileStickyCart({
     );
 
 
-    /* =================================================
+    /* ===================================================
        FOOTER OBSERVER
-    ================================================= */
+    =================================================== */
 
     let footerObserver:
       IntersectionObserver | null = null;
@@ -138,8 +146,9 @@ export default function MobileStickyCart({
 
 
     /*
-     * Initial state
+     * Set initial state.
      */
+
     updateVisibility();
 
 
@@ -197,11 +206,20 @@ export default function MobileStickyCart({
     <div
       className={`
         fixed
-        bottom-0
+
         left-0
         right-0
 
-        z-[90]
+        /*
+         * Keep the sticky cart ABOVE
+         * the mobile bottom navigation.
+         */
+        bottom-[76px]
+
+        /*
+         * Higher than mobile bottom nav.
+         */
+        z-[200]
 
         border-t
         border-[#D4AF37]/20
@@ -210,8 +228,7 @@ export default function MobileStickyCart({
 
         px-4
         pt-3
-
-        pb-[calc(env(safe-area-inset-bottom)+12px)]
+        pb-3
 
         backdrop-blur-xl
 
