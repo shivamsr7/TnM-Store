@@ -21,16 +21,29 @@ const stories: ReviewStory[] = [
 export default function CustomerLove() {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
+  const [isClosing, setIsClosing] = useState(false);
   const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
 
-  const next = () => setActive((v) => Math.min(v + 1, stories.length - 1));
-  const previous = () => setActive((v) => Math.max(v - 1, 0));
+  const close = () => {
+    setIsClosing(true);
+    window.setTimeout(() => {
+      setOpen(false);
+      setIsClosing(false);
+    }, 180);
+  };
+
+  const next = () =>
+    setActive((current) => Math.min(current + 1, stories.length - 1));
+
+  const previous = () =>
+    setActive((current) => Math.max(current - 1, 0));
 
   useEffect(() => {
     if (!open) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") close();
       if (event.key === "ArrowRight") next();
       if (event.key === "ArrowLeft") previous();
     };
@@ -45,296 +58,247 @@ export default function CustomerLove() {
     };
   }, [open]);
 
-  const storyDialog = open
-    ? createPortal(
-        <div
-          aria-hidden={false}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 2147483647,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "24px",
-            background: "rgba(0,0,0,0.78)",
-            backdropFilter: "blur(4px)",
-            WebkitBackdropFilter: "blur(4px)",
-          }}
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setOpen(false);
-          }}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="T&M Jewels customer reviews"
-            onMouseDown={(event) => event.stopPropagation()}
-            onTouchStart={(event) => {
-              touchStartX.current = event.changedTouches[0]?.clientX ?? null;
-            }}
-            onTouchEnd={(event) => {
-              if (touchStartX.current === null) return;
-              const endX =
-                event.changedTouches[0]?.clientX ?? touchStartX.current;
-              const delta = endX - touchStartX.current;
-              if (Math.abs(delta) >= 50) delta < 0 ? next() : previous();
-              touchStartX.current = null;
-            }}
-            style={{
-              position: "relative",
-              width: "min(92vw, 520px)",
-              height: "min(88vh, 760px)",
-              minHeight: "520px",
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
-              border: "1px solid rgba(214,173,77,0.45)",
-              borderRadius: "18px",
-              background: "#080808",
-              boxShadow: "0 30px 100px rgba(0,0,0,0.85)",
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                left: 16,
-                right: 16,
-                top: 12,
-                zIndex: 3,
-                display: "flex",
-                gap: 6,
-              }}
-            >
-              {stories.map((story, index) => (
-                <div
-                  key={story.image}
-                  style={{
-                    height: 3,
-                    flex: 1,
-                    borderRadius: 99,
-                    background: "rgba(255,255,255,0.28)",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      height: "100%",
-                      width: index <= active ? "100%" : "0%",
-                      background: "#fff",
-                      borderRadius: 99,
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    touchStartX.current = event.changedTouches[0]?.clientX ?? null;
+    touchStartY.current = event.changedTouches[0]?.clientY ?? null;
+  };
 
-            <div
-              style={{
-                position: "absolute",
-                left: 20,
-                right: 16,
-                top: 28,
-                zIndex: 3,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    color: "#fff",
-                    fontFamily: "Georgia, serif",
-                    fontSize: 22,
-                    lineHeight: 1.1,
-                  }}
-                >
-                  Customer Love
-                </div>
-                <div
-                  style={{
-                    marginTop: 5,
-                    color: "#e4c56b",
-                    fontSize: 9,
-                    letterSpacing: "0.16em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  T&M Jewels · Instagram Reviews
-                </div>
-              </div>
+  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
 
-              <button
-                type="button"
-                aria-label="Close customer reviews"
-                onClick={() => setOpen(false)}
-                style={{
-                  width: 40,
-                  height: 40,
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  borderRadius: "50%",
-                  background: "rgba(0,0,0,0.65)",
-                  color: "#fff",
-                  fontSize: 28,
-                  lineHeight: 1,
-                  cursor: "pointer",
-                }}
-              >
-                ×
-              </button>
-            </div>
+    const endX = event.changedTouches[0]?.clientX ?? touchStartX.current;
+    const endY = event.changedTouches[0]?.clientY ?? touchStartY.current;
+    const dx = endX - touchStartX.current;
+    const dy = endY - touchStartY.current;
 
-            <div
-              style={{
-                position: "relative",
-                flex: 1,
-                minHeight: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "#111",
-              }}
-            >
-              <img
-                src={stories[active].image}
-                alt={stories[active].label}
-                draggable={false}
-                style={{
-                  display: "block",
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "contain",
-                  userSelect: "none",
-                }}
-              />
+    // Only treat predominantly horizontal gestures as Story navigation.
+    if (Math.abs(dx) >= 50 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      dx < 0 ? next() : previous();
+    }
 
-              <button
-                type="button"
-                aria-label="Previous review"
-                disabled={active === 0}
-                onClick={previous}
-                style={{
-                  position: "absolute",
-                  left: 10,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  width: 44,
-                  height: 44,
-                  border: 0,
-                  borderRadius: "50%",
-                  background: "rgba(0,0,0,0.62)",
-                  color: "#fff",
-                  fontSize: 32,
-                  cursor: active === 0 ? "default" : "pointer",
-                  opacity: active === 0 ? 0.2 : 1,
-                }}
-              >
-                ‹
-              </button>
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
 
-              <button
-                type="button"
-                aria-label="Next review"
-                disabled={active === stories.length - 1}
-                onClick={next}
-                style={{
-                  position: "absolute",
-                  right: 10,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  width: 44,
-                  height: 44,
-                  border: 0,
-                  borderRadius: "50%",
-                  background: "rgba(0,0,0,0.62)",
-                  color: "#fff",
-                  fontSize: 32,
-                  cursor:
-                    active === stories.length - 1 ? "default" : "pointer",
-                  opacity: active === stories.length - 1 ? 0.2 : 1,
-                }}
-              >
-                ›
-              </button>
-            </div>
-
-            <div
-              style={{
-                height: 44,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "0 18px",
-                borderTop: "1px solid rgba(255,255,255,0.1)",
-                background: "#080808",
-                color: "rgba(255,255,255,0.45)",
-                fontSize: 10,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-              }}
-            >
-              <span>Swipe or use arrows</span>
-              <span style={{ color: "#d6ad4d" }}>
-                {active + 1} / {stories.length}
-              </span>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )
-    : null;
+  const openReviews = () => {
+    setActive(0);
+    setIsClosing(false);
+    setOpen(true);
+  };
 
   return (
     <>
-      <section className="bg-black px-5 py-16 text-white sm:px-8 lg:px-12 lg:py-20">
-        <div className="mx-auto flex max-w-6xl flex-col items-center text-center">
-          <p className="mb-3 text-xs font-medium uppercase tracking-[0.28em] text-[#d6ad4d]">
+      <section className="relative overflow-hidden bg-black px-5 py-16 text-white sm:px-8 lg:px-12 lg:py-20">
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#c9962d]/[0.035] blur-3xl" />
+
+        <div className="relative mx-auto flex max-w-6xl flex-col items-center text-center">
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.34em] text-[#d6ad4d] sm:text-xs">
             Customer Love
           </p>
-          <h2 className="font-serif text-3xl font-medium sm:text-4xl lg:text-5xl">
+
+          <h2 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl lg:text-5xl">
             What Our Customers Say
           </h2>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-white/60 sm:text-base">
+
+          <p className="mt-3 max-w-xl text-sm leading-6 text-white/55 sm:text-base">
             Real feedback from our beautiful customers on Instagram.
           </p>
 
           <button
             type="button"
-            aria-label="Open Customer Love reviews"
-            onClick={() => {
-              setActive(0);
-              setOpen(true);
-            }}
-            className="group relative mt-10 h-56 w-56 rounded-full p-[3px] transition-transform duration-300 hover:scale-[1.03] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4c56b] focus-visible:ring-offset-4 focus-visible:ring-offset-black sm:h-64 sm:w-64"
+            onClick={openReviews}
+            aria-label="Open Customer Love Instagram reviews"
+            className="group relative mt-10 h-60 w-60 rounded-full p-[3px] transition duration-500 hover:scale-[1.025] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4c56b] focus-visible:ring-offset-4 focus-visible:ring-offset-black sm:h-64 sm:w-64"
             style={{
               background:
-                "conic-gradient(from 180deg, #8a5b10, #f3d477, #fff1a8, #a8781b, #f3d477, #8a5b10)",
+                "conic-gradient(from 20deg, #8b5f16, #f4d77c 18%, #b68122 38%, #fff0a2 55%, #a87318 74%, #f4d77c 88%, #8b5f16)",
+              boxShadow:
+                "0 0 0 1px rgba(214,173,77,.12), 0 0 48px rgba(214,173,77,.12)",
             }}
           >
-            <span className="flex h-full w-full items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_25%,#25210f_0%,#0b0b0b_55%,#000_100%)] px-8 shadow-[0_0_45px_rgba(214,173,77,0.14)]">
+            <span className="absolute inset-[6px] rounded-full border border-[#e4c56b]/15" />
+            <span className="flex h-full w-full items-center justify-center rounded-full bg-[radial-gradient(circle_at_38%_24%,#272311_0%,#11110d_42%,#050505_78%,#000_100%)] px-8">
               <span>
-                <span className="block font-serif text-3xl text-[#f1d276] sm:text-4xl">
+                <span className="block font-serif text-[32px] leading-none text-[#f1d276] sm:text-[36px]">
                   Customer
                 </span>
-                <span className="mt-1 block font-serif text-3xl text-white sm:text-4xl">
+                <span className="mt-2 block font-serif text-[32px] leading-none text-white sm:text-[36px]">
                   Love
                 </span>
-                <span className="mt-3 block text-lg text-[#d6ad4d]">♥</span>
-                <span className="mt-2 block text-[10px] uppercase tracking-[0.24em] text-white/55">
+                <span className="mt-4 block text-base text-[#d6ad4d]">♥</span>
+                <span className="mt-3 block text-[9px] font-medium uppercase tracking-[0.28em] text-white/45">
                   Tap to view
                 </span>
               </span>
             </span>
           </button>
 
-          <p className="mt-5 text-xs uppercase tracking-[0.2em] text-white/40">
+          <p className="mt-5 text-[9px] font-medium uppercase tracking-[0.25em] text-white/30 sm:text-[10px]">
             Reviews shared via Instagram DM
           </p>
         </div>
       </section>
 
-      {storyDialog}
+      {open &&
+        createPortal(
+          <div
+            className={`fixed inset-0 z-[99999] flex items-center justify-center bg-black/75 p-3 backdrop-blur-md sm:p-6 ${
+              isClosing ? "animate-[fadeOut_.18s_ease-in_forwards]" : "animate-[fadeIn_.22s_ease-out]"
+            }`}
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) close();
+            }}
+            style={{
+              animation: isClosing
+                ? "fadeOut .18s ease-in forwards"
+                : "fadeIn .22s ease-out",
+            }}
+          >
+            <style>
+              {`
+                @keyframes fadeIn {
+                  from { opacity: 0; }
+                  to { opacity: 1; }
+                }
+                @keyframes fadeOut {
+                  from { opacity: 1; }
+                  to { opacity: 0; }
+                }
+                @keyframes storyIn {
+                  from { opacity: .45; transform: scale(.985); }
+                  to { opacity: 1; transform: scale(1); }
+                }
+                @media (prefers-reduced-motion: reduce) {
+                  .tnm-story-motion { animation: none !important; }
+                }
+              `}
+            </style>
+
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="customer-love-dialog-title"
+              className="relative flex h-[min(92vh,820px)] w-[min(94vw,520px)] flex-col overflow-hidden rounded-[24px] border border-[#d6ad4d]/35 bg-[#070707] shadow-[0_30px_120px_rgba(0,0,0,.82)]"
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
+              {/* Progress */}
+              <div className="absolute left-4 right-4 top-3 z-30 flex gap-1.5">
+                {stories.map((story, index) => (
+                  <div
+                    key={story.image}
+                    className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/25"
+                  >
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        index <= active ? "bg-white" : "bg-transparent"
+                      }`}
+                      style={{ width: index <= active ? "100%" : "0%" }}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Header */}
+              <div className="absolute left-4 right-4 top-6 z-30 flex items-center justify-between pt-1">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#d6ad4d]/60 bg-black/70 font-serif text-sm text-[#e4c56b] backdrop-blur-md">
+                    T&M
+                  </div>
+
+                  <div className="min-w-0 text-left">
+                    <p
+                      id="customer-love-dialog-title"
+                      className="truncate font-serif text-base text-white"
+                    >
+                      Customer Love
+                    </p>
+                    <p className="text-[8px] uppercase tracking-[0.18em] text-[#e4c56b]">
+                      T&M Jewels · Instagram Reviews
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  aria-label="Close customer reviews"
+                  onClick={close}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/60 text-2xl leading-none text-white backdrop-blur-md transition hover:border-[#d6ad4d]/50 hover:text-[#e4c56b] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4c56b]"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Story */}
+              <div
+                className="relative min-h-0 flex-1 bg-[#101010]"
+                style={{ touchAction: "pan-y" }}
+              >
+                <img
+                  key={stories[active].image}
+                  src={stories[active].image}
+                  alt={stories[active].label}
+                  draggable={false}
+                  className="tnm-story-motion h-full w-full select-none object-contain"
+                  style={{ animation: "storyIn .22s ease-out" }}
+                />
+
+                {/* Left/right tap zones */}
+                <button
+                  type="button"
+                  aria-label="Previous review"
+                  onClick={previous}
+                  className="absolute inset-y-0 left-0 w-[22%] cursor-pointer bg-transparent"
+                />
+                <button
+                  type="button"
+                  aria-label="Next review"
+                  onClick={next}
+                  className="absolute inset-y-0 right-0 w-[22%] cursor-pointer bg-transparent"
+                />
+
+                {/* Visible navigation */}
+                <button
+                  type="button"
+                  aria-label="Previous review"
+                  onClick={previous}
+                  disabled={active === 0}
+                  className="absolute left-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/55 text-3xl leading-none text-white/90 backdrop-blur-md transition hover:border-[#d6ad4d]/50 hover:text-[#e4c56b] disabled:pointer-events-none disabled:opacity-0"
+                >
+                  ‹
+                </button>
+
+                <button
+                  type="button"
+                  aria-label="Next review"
+                  onClick={next}
+                  disabled={active === stories.length - 1}
+                  className="absolute right-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/55 text-3xl leading-none text-white/90 backdrop-blur-md transition hover:border-[#d6ad4d]/50 hover:text-[#e4c56b] disabled:pointer-events-none disabled:opacity-0"
+                >
+                  ›
+                </button>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between border-t border-white/10 bg-[#070707] px-5 py-3.5">
+                <div className="text-left">
+                  <p className="text-[9px] font-medium uppercase tracking-[0.18em] text-white/35">
+                    Real customer feedback
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-white/55">
+                    Shared with T&M Jewels on Instagram
+                  </p>
+                </div>
+
+                <span className="rounded-full border border-[#d6ad4d]/25 px-2.5 py-1 text-[10px] text-[#e4c56b]">
+                  {active + 1} / {stories.length}
+                </span>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </>
   );
 }
