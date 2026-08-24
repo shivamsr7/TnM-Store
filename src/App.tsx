@@ -8,6 +8,8 @@ import PriceProductSection from "@/features/home/components/PriceProductSection"
 
 import InstagramReels from "@/features/instagram/components/InstagramReels";
 
+import CustomerLove from "@/features/reviews/components/CustomerLove";
+
 
 export default function App() {
   return (
@@ -61,7 +63,7 @@ export default function App() {
         subtitle="A little extra luxe, still at an easy price."
       />
 
-
+<CustomerLove />
       {/* =================================================
           INSTAGRAM
       ================================================== */}
