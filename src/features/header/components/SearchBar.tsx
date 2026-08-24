@@ -64,6 +64,441 @@ const MAX_SEARCH_RESULTS = 6;
 
 /*
  * =========================================================
+ * SEARCH NORMALIZATION
+ * =========================================================
+ *
+ * Makes:
+ *
+ * "Anti-Tarnish"
+ * "anti tarnish"
+ * "ANTI_TARNISH"
+ *
+ * behave similarly.
+ * =========================================================
+ */
+
+const normalizeSearchText = (
+  value: unknown
+): string => {
+
+  return String(
+    value ?? ""
+  )
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(
+      /[\u0300-\u036f]/g,
+      ""
+    )
+    .replace(
+      /[-_/]+/g,
+      " "
+    )
+    .replace(
+      /[^\p{L}\p{N}\s]+/gu,
+      " "
+    )
+    .replace(
+      /\s+/g,
+      " "
+    )
+    .trim();
+
+};
+
+
+/*
+ * =========================================================
+ * TOKENIZE SEARCH
+ * =========================================================
+ */
+
+const getSearchTokens = (
+  value: string
+): string[] => {
+
+  return normalizeSearchText(
+    value
+  )
+    .split(" ")
+    .filter(Boolean);
+
+};
+
+
+/*
+ * =========================================================
+ * WORD MATCH
+ * =========================================================
+ *
+ * Prevents weak substring matches from dominating.
+ *
+ * Example:
+ *
+ * "ring" matches:
+ * "ring"
+ * "rings"
+ *
+ * but gives better relevance to actual word matches.
+ * =========================================================
+ */
+
+const containsWord = (
+  text: string,
+  word: string
+): boolean => {
+
+  if (!text || !word) {
+    return false;
+  }
+
+  const escaped =
+    word.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&"
+    );
+
+  return new RegExp(
+    `(?:^|\\s)${escaped}(?:s)?(?:\\s|$)`,
+    "i"
+  ).test(text);
+
+};
+
+
+/*
+ * =========================================================
+ * TOKEN COVERAGE
+ * =========================================================
+ *
+ * Returns how many search words are actually present.
+ *
+ * Example:
+ *
+ * "gold anti tarnish ring"
+ *
+ * against:
+ *
+ * "Gold Anti Tarnish Ring"
+ *
+ * = 4/4
+ * =========================================================
+ */
+
+const getTokenCoverage = (
+  text: string,
+  tokens: string[]
+): number => {
+
+  if (
+    !text ||
+    tokens.length === 0
+  ) {
+
+    return 0;
+
+  }
+
+  let matched = 0;
+
+  tokens.forEach(
+    (token) => {
+
+      if (
+        containsWord(
+          text,
+          token
+        ) ||
+        text.includes(token)
+      ) {
+
+        matched += 1;
+
+      }
+
+    }
+  );
+
+  return matched;
+
+};
+
+
+/*
+ * =========================================================
+ * PRODUCT SEARCH SCORE
+ * =========================================================
+ *
+ * IMPORTANT:
+ *
+ * Product name is heavily prioritized.
+ *
+ * Description is deliberately very weak.
+ *
+ * This prevents:
+ *
+ * "Charm" search
+ *
+ * from showing watches merely because
+ * "charm" appears somewhere in a description.
+ * =========================================================
+ */
+
+const scoreProduct = (
+  product: SearchProduct,
+  searchTerm: string
+): number => {
+
+  const normalizedTerm =
+    normalizeSearchText(
+      searchTerm
+    );
+
+  const tokens =
+    getSearchTokens(
+      searchTerm
+    );
+
+
+  if (
+    !normalizedTerm ||
+    tokens.length === 0
+  ) {
+
+    return 0;
+
+  }
+
+
+  const name =
+    normalizeSearchText(
+      product.name
+    );
+
+  const sku =
+    normalizeSearchText(
+      product.sku
+    );
+
+  const slug =
+    normalizeSearchText(
+      product.slug
+    );
+
+  const shortDescription =
+    normalizeSearchText(
+      product.short_description
+    );
+
+  const description =
+    normalizeSearchText(
+      product.description
+    );
+
+
+  let score = 0;
+
+
+  /*
+   * =======================================================
+   * PRODUCT NAME
+   * =======================================================
+   */
+
+  if (
+    name === normalizedTerm
+  ) {
+
+    score += 2000;
+
+  }
+
+
+  /*
+   * Name starts with complete search
+   *
+   * "Charm Pendant"
+   * for "Charm"
+   */
+
+  if (
+    name.startsWith(
+      normalizedTerm
+    )
+  ) {
+
+    score += 1400;
+
+  }
+
+
+  /*
+   * Name contains complete phrase
+   */
+
+  if (
+    name.includes(
+      normalizedTerm
+    )
+  ) {
+
+    score += 1000;
+
+  }
+
+
+  /*
+   * Individual name tokens
+   */
+
+  const nameTokenCoverage =
+    getTokenCoverage(
+      name,
+      tokens
+    );
+
+
+  if (
+    nameTokenCoverage > 0
+  ) {
+
+    score +=
+      nameTokenCoverage * 300;
+
+  }
+
+
+  /*
+   * Exact word matches in name
+   */
+
+  tokens.forEach(
+    (token) => {
+
+      if (
+        containsWord(
+          name,
+          token
+        )
+      ) {
+
+        score += 180;
+
+      }
+
+    }
+  );
+
+
+  /*
+   * =======================================================
+   * SKU
+   * =======================================================
+   */
+
+  if (
+    sku === normalizedTerm
+  ) {
+
+    score += 900;
+
+  }
+
+  else if (
+    sku.includes(
+      normalizedTerm
+    )
+  ) {
+
+    score += 500;
+
+  }
+
+
+  /*
+   * =======================================================
+   * SLUG
+   * =======================================================
+   */
+
+  if (
+    slug === normalizedTerm
+  ) {
+
+    score += 700;
+
+  }
+
+  else if (
+    slug.includes(
+      normalizedTerm
+    )
+  ) {
+
+    score += 350;
+
+  }
+
+
+  /*
+   * =======================================================
+   * SHORT DESCRIPTION
+   *
+   * Useful, but intentionally much weaker.
+   * =======================================================
+   */
+
+  const shortDescriptionCoverage =
+    getTokenCoverage(
+      shortDescription,
+      tokens
+    );
+
+
+  if (
+    shortDescriptionCoverage > 0
+  ) {
+
+    score +=
+      shortDescriptionCoverage * 45;
+
+  }
+
+
+  /*
+   * =======================================================
+   * FULL DESCRIPTION
+   *
+   * VERY LOW WEIGHT.
+   *
+   * This is the important fix for your "Charm" issue.
+   * =======================================================
+   */
+
+  const descriptionCoverage =
+    getTokenCoverage(
+      description,
+      tokens
+    );
+
+
+  if (
+    descriptionCoverage > 0
+  ) {
+
+    score +=
+      descriptionCoverage * 10;
+
+  }
+
+
+  return score;
+
+};
+
+
+/*
+ * =========================================================
  * COMPONENT
  * =========================================================
  */
@@ -83,9 +518,9 @@ export default function SearchBar({
 
 
   /*
-   * =========================================================
+   * =======================================================
    * NAVIGATION
-   * =========================================================
+   * =======================================================
    */
 
   const navigate =
@@ -93,9 +528,9 @@ export default function SearchBar({
 
 
   /*
-   * =========================================================
+   * =======================================================
    * STATE
-   * =========================================================
+   * =======================================================
    */
 
   const [
@@ -135,9 +570,9 @@ export default function SearchBar({
 
 
   /*
-   * =========================================================
+   * =======================================================
    * REFS
-   * =========================================================
+   * =======================================================
    */
 
   const searchRef =
@@ -163,9 +598,9 @@ export default function SearchBar({
 
 
   /*
-   * =========================================================
+   * =======================================================
    * VOICE SEARCH
-   * =========================================================
+   * =======================================================
    */
 
   const {
@@ -193,9 +628,9 @@ export default function SearchBar({
 
 
   /*
-   * =========================================================
+   * =======================================================
    * LOAD PRODUCTS
-   * =========================================================
+   * =======================================================
    */
 
   const loadProducts =
@@ -304,9 +739,9 @@ export default function SearchBar({
 
 
   /*
-   * =========================================================
+   * =======================================================
    * LOAD RECENT SEARCHES
-   * =========================================================
+   * =======================================================
    */
 
   useEffect(() => {
@@ -367,9 +802,9 @@ export default function SearchBar({
 
 
   /*
-   * =========================================================
+   * =======================================================
    * SAVE RECENT SEARCH
-   * =========================================================
+   * =======================================================
    */
 
   const saveRecentSearch = (
@@ -445,9 +880,9 @@ export default function SearchBar({
 
 
   /*
-   * =========================================================
-   * SEARCH PRODUCTS
-   * =========================================================
+   * =======================================================
+   * SMART SEARCH PRODUCTS
+   * =======================================================
    */
 
   const searchProducts = (
@@ -455,76 +890,97 @@ export default function SearchBar({
     searchTerm: string
   ): SearchProduct[] => {
 
-    const term =
-      searchTerm
-        .trim()
-        .toLowerCase();
+    const normalizedTerm =
+      normalizeSearchText(
+        searchTerm
+      );
 
 
-    if (!term) {
+    if (!normalizedTerm) {
 
       return [];
 
     }
 
 
-    const matchedProducts =
-      products.filter(
+    /*
+     * -------------------------------------------------------
+     * SCORE EVERY PRODUCT
+     * -------------------------------------------------------
+     */
+
+    const scoredProducts =
+      products
+        .map(
+          (
+            product,
+            index
+          ) => ({
+
+            product,
+
+            score:
+              scoreProduct(
+                product,
+                normalizedTerm
+              ),
+
+            originalIndex:
+              index,
+
+          })
+        )
+        .filter(
+          (
+            item
+          ) =>
+            item.score > 0
+        );
+
+
+    /*
+     * -------------------------------------------------------
+     * IMPORTANT RELEVANCE RULE
+     *
+     * If we have strong matches in the product name,
+     * don't allow weak description-only matches to
+     * occupy the top results.
+     *
+     * This specifically fixes:
+     *
+     * Search: "Charm"
+     *
+     * Actual Charm products should win over watches
+     * whose description happens to contain "charm".
+     * -------------------------------------------------------
+     */
+
+    const strongNameMatches =
+      scoredProducts.filter(
         (
-          product
+          item
         ) => {
 
           const name =
-            String(
-              product.name ?? ""
-            ).toLowerCase();
-
-
-          const sku =
-            String(
-              product.sku ?? ""
-            ).toLowerCase();
-
-
-          const slug =
-            String(
-              product.slug ?? ""
-            ).toLowerCase();
-
-
-          const description =
-            String(
-              product.description ?? ""
-            ).toLowerCase();
-
-
-          const shortDescription =
-            String(
-              product.short_description ?? ""
-            ).toLowerCase();
-
+            normalizeSearchText(
+              item.product.name
+            );
 
           return (
 
+            name ===
+              normalizedTerm ||
+
             name.includes(
-              term
+              normalizedTerm
             ) ||
 
-            sku.includes(
-              term
-            ) ||
-
-            slug.includes(
-              term
-            ) ||
-
-            description.includes(
-              term
-            ) ||
-
-            shortDescription.includes(
-              term
-            )
+            getTokenCoverage(
+              name,
+              getSearchTokens(
+                normalizedTerm
+              )
+            ) > 0
 
           );
 
@@ -532,18 +988,104 @@ export default function SearchBar({
       );
 
 
-    return matchedProducts.slice(
-      0,
-      MAX_SEARCH_RESULTS
+    let finalProducts;
+
+
+    if (
+      strongNameMatches.length > 0
+    ) {
+
+      /*
+       * Strong name matches exist.
+       *
+       * Prioritize those first and don't flood
+       * the dropdown with weak description matches.
+       */
+
+      finalProducts =
+        strongNameMatches;
+
+    }
+
+    else {
+
+      /*
+       * No product-name match.
+       *
+       * Allow SKU, slug, short description and
+       * description to help.
+       */
+
+      finalProducts =
+        scoredProducts;
+
+    }
+
+
+    /*
+     * -------------------------------------------------------
+     * SORT BY RELEVANCE
+     *
+     * Higher score first.
+     *
+     * Original index is used only as a stable
+     * tie-breaker.
+     * -------------------------------------------------------
+     */
+
+    finalProducts.sort(
+      (
+        a,
+        b
+      ) => {
+
+        if (
+          b.score !==
+          a.score
+        ) {
+
+          return (
+            b.score -
+            a.score
+          );
+
+        }
+
+
+        return (
+          a.originalIndex -
+          b.originalIndex
+        );
+
+      }
     );
+
+
+    /*
+     * -------------------------------------------------------
+     * RETURN TOP RESULTS
+     * -------------------------------------------------------
+     */
+
+    return finalProducts
+      .slice(
+        0,
+        MAX_SEARCH_RESULTS
+      )
+      .map(
+        (
+          item
+        ) =>
+          item.product
+      );
 
   };
 
 
   /*
-   * =========================================================
+   * =======================================================
    * LIVE SEARCH
-   * =========================================================
+   * =======================================================
    */
 
   useEffect(() => {
@@ -631,9 +1173,9 @@ export default function SearchBar({
 
 
   /*
-   * =========================================================
+   * =======================================================
    * CLOSE DROPDOWN ON OUTSIDE CLICK
-   * =========================================================
+   * =======================================================
    */
 
   useEffect(() => {
@@ -677,9 +1219,9 @@ export default function SearchBar({
 
 
   /*
-   * =========================================================
+   * =======================================================
    * SELECT RECENT / TRENDING
-   * =========================================================
+   * =======================================================
    */
 
   const handleSelectSearch = (
@@ -699,9 +1241,9 @@ export default function SearchBar({
 
 
   /*
-   * =========================================================
+   * =======================================================
    * REMOVE RECENT SEARCH
-   * =========================================================
+   * =======================================================
    */
 
   const handleRemoveRecent = (
@@ -758,9 +1300,9 @@ export default function SearchBar({
 
 
   /*
-   * =========================================================
+   * =======================================================
    * CLEAR RECENT SEARCHES
-   * =========================================================
+   * =======================================================
    */
 
   const handleClearRecent =
@@ -794,9 +1336,9 @@ export default function SearchBar({
 
 
   /*
-   * =========================================================
+   * =======================================================
    * PRODUCT CLICK
-   * =========================================================
+   * =======================================================
    */
 
   const handleProductClick = (
@@ -821,20 +1363,9 @@ export default function SearchBar({
 
 
   /*
-   * =========================================================
+   * =======================================================
    * SEARCH / VIEW ALL
-   * =========================================================
-   *
-   * IMPORTANT:
-   *
-   * View All now opens:
-   *
-   * /shop?search=Earrings
-   *
-   * instead of relying on the header's
-   * generic onSearch callback.
-   *
-   * =========================================================
+   * =======================================================
    */
 
   const handleSearch = () => {
@@ -867,20 +1398,15 @@ export default function SearchBar({
     );
 
 
-    /*
-     * Keep the existing callback
-     * for any parent-level behavior.
-     */
-
     onSearch?.();
 
   };
 
 
   /*
-   * =========================================================
+   * =======================================================
    * CLEAR SEARCH
-   * =========================================================
+   * =======================================================
    */
 
   const handleClear = () => {
@@ -900,9 +1426,9 @@ export default function SearchBar({
 
 
   /*
-   * =========================================================
+   * =======================================================
    * KEYBOARD
-   * =========================================================
+   * =======================================================
    */
 
   const handleKeyDown = (
@@ -938,9 +1464,9 @@ export default function SearchBar({
 
 
   /*
-   * =========================================================
+   * =======================================================
    * RENDER
-   * =========================================================
+   * =======================================================
    */
 
   return (
