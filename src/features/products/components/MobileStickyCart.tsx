@@ -1,136 +1,255 @@
-import { ShoppingBag } from "lucide-react";
-import { useEffect, useState } from "react";
+import {
+  ShoppingBag,
+} from "lucide-react";
 
-import { useCartActions } from "@/features/cart/hooks/useCartActions";
+import {
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  useCartActions,
+} from "@/features/cart/hooks/useCartActions";
+
 
 interface Props {
   product: any;
 }
 
+
 export default function MobileStickyCart({
   product,
 }: Props) {
-  const [visible, setVisible] = useState(false);
-  const [added, setAdded] = useState(false);
 
-  const { addToCart } = useCartActions();
+  const [visible, setVisible] =
+    useState(false);
+
+  const [added, setAdded] =
+    useState(false);
+
+  const {
+    addToCart,
+  } = useCartActions();
+
+
+  /* =====================================================
+     STICKY CART VISIBILITY
+  ===================================================== */
 
   useEffect(() => {
-    const checkStickyVisibility = () => {
-      const addButton = document.querySelector(
-        "[data-product-add-to-cart]"
-      ) as HTMLElement | null;
+
+    let ticking = false;
+
+
+    const checkVisibility = () => {
+
+      const addButton =
+        document.querySelector(
+          "[data-product-add-to-cart]"
+        ) as HTMLElement | null;
+
 
       if (!addButton) {
+
         setVisible(false);
+
+        ticking = false;
+
         return;
+
       }
 
-      const rect = addButton.getBoundingClientRect();
+
+      const rect =
+        addButton.getBoundingClientRect();
+
 
       /*
-       * IMPORTANT:
+       * IMPORTANT
        *
-       * If the original Add to Cart button is still
-       * somewhere above the viewport OR currently visible,
-       * sticky cart should NOT appear.
+       * The sticky cart must NOT appear simply because
+       * the original ADD button is below the viewport.
        *
-       * Only show after the user has actually scrolled
-       * BELOW the original Add to Cart button.
+       * It appears ONLY after the user has scrolled
+       * past the original ADD button.
+       *
+       * Therefore:
+       *
+       * rect.bottom < 0
        */
 
-      const hasScrolledBelowAddButton =
+      const passedAddButton =
         rect.bottom < 0;
 
-      /*
-       * Footer should stop the sticky cart.
-       */
+
+      /* =================================================
+         FOOTER
+      ================================================= */
 
       const footer =
-        document.querySelector("footer");
+        document.querySelector(
+          "footer"
+        );
 
-      let footerVisible = false;
+
+      let footerStarted = false;
+
 
       if (footer) {
+
         const footerRect =
           footer.getBoundingClientRect();
 
-        footerVisible =
+
+        /*
+         * As soon as the footer enters the viewport,
+         * hide the sticky cart.
+         */
+
+        footerStarted =
           footerRect.top < window.innerHeight;
+
       }
 
+
+      /*
+       * SHOW ONLY WHEN:
+       *
+       * 1. User has passed original ADD button
+       * 2. Footer has not started
+       */
+
       setVisible(
-        hasScrolledBelowAddButton &&
-        !footerVisible
+        passedAddButton &&
+        !footerStarted
       );
+
+
+      ticking = false;
+
     };
 
-    /*
-     * Check immediately.
-     */
-    checkStickyVisibility();
+
+    const handleScroll = () => {
+
+      if (!ticking) {
+
+        window.requestAnimationFrame(
+          checkVisibility
+        );
+
+        ticking = true;
+
+      }
+
+    };
+
+
+    const handleResize = () => {
+
+      checkVisibility();
+
+    };
+
 
     /*
-     * Check while scrolling.
+     * Initial check
      */
+
+    checkVisibility();
+
+
     window.addEventListener(
       "scroll",
-      checkStickyVisibility,
-      { passive: true }
+      handleScroll,
+      {
+        passive: true,
+      }
     );
 
-    /*
-     * Check after resize/orientation change.
-     */
+
     window.addEventListener(
       "resize",
-      checkStickyVisibility
+      handleResize
     );
 
+
     return () => {
+
       window.removeEventListener(
         "scroll",
-        checkStickyVisibility
+        handleScroll
       );
 
       window.removeEventListener(
         "resize",
-        checkStickyVisibility
+        handleResize
       );
+
     };
+
   }, []);
 
+
+  /* =====================================================
+     ADD TO CART
+  ===================================================== */
+
   const handleAdd = () => {
+
     addToCart(product);
 
     setAdded(true);
 
-    setTimeout(() => {
+
+    window.setTimeout(() => {
+
       setAdded(false);
+
     }, 1200);
+
   };
+
+
+  /* =====================================================
+     PRODUCT IMAGE
+  ===================================================== */
 
   const image =
     product.product_images?.find(
-      (item: any) => item.is_primary
-    )?.image_url ||
-    product.product_images?.[0]?.image_url;
+      (item: any) =>
+        item.is_primary
+    )?.image_url
+    ||
+    product.product_images?.[0]
+      ?.image_url;
+
+
+  /* =====================================================
+     RENDER
+  ===================================================== */
 
   return (
+
     <div
       className={`
         fixed
+
         left-0
         right-0
 
         /*
-         * IMPORTANT:
-         * This places the sticky cart directly
-         * above the mobile bottom navigation.
+         * MobileBottomNav:
+         * min-h-16 = 64px
+         *
+         * Plus iPhone safe-area.
+         *
+         * This makes the sticky cart sit directly
+         * ABOVE the bottom navigation with NO GAP.
          */
-        bottom-[76px]
+        bottom-[calc(4rem+env(safe-area-inset-bottom))]
 
-        z-[200]
+        z-[60]
 
         border-t
         border-[#D4AF37]/20
@@ -140,6 +259,8 @@ export default function MobileStickyCart({
         px-4
         pt-3
         pb-3
+
+        shadow-[0_-8px_25px_rgba(0,0,0,0.35)]
 
         backdrop-blur-xl
 
@@ -156,6 +277,7 @@ export default function MobileStickyCart({
         }
       `}
     >
+
       <div
         className="
           flex
@@ -163,9 +285,13 @@ export default function MobileStickyCart({
           gap-3
         "
       >
-        {/* PRODUCT IMAGE */}
+
+        {/* =================================================
+            PRODUCT IMAGE
+        ================================================= */}
 
         {image && (
+
           <img
             src={image}
             alt={product.name}
@@ -176,15 +302,19 @@ export default function MobileStickyCart({
 
               rounded-xl
 
-              object-cover
-
               border
               border-[#D4AF37]/20
+
+              object-cover
             "
           />
+
         )}
 
-        {/* PRODUCT INFORMATION */}
+
+        {/* =================================================
+            PRODUCT INFO
+        ================================================= */}
 
         <div
           className="
@@ -192,9 +322,11 @@ export default function MobileStickyCart({
             flex-1
           "
         >
+
           <p
             className="
               truncate
+
               text-xs
               text-neutral-400
             "
@@ -202,14 +334,17 @@ export default function MobileStickyCart({
             {product.name}
           </p>
 
+
           <div
             className="
               mt-1
+
               flex
               items-center
               gap-2
             "
           >
+
             <p
               className="
                 font-semibold
@@ -219,7 +354,9 @@ export default function MobileStickyCart({
               ₹{product.price}
             </p>
 
+
             {product.compare_price && (
+
               <p
                 className="
                   text-xs
@@ -229,15 +366,22 @@ export default function MobileStickyCart({
               >
                 ₹{product.compare_price}
               </p>
+
             )}
+
           </div>
+
         </div>
 
-        {/* ADD BUTTON */}
+
+        {/* =================================================
+            ADD BUTTON
+        ================================================= */}
 
         <button
           type="button"
           onClick={handleAdd}
+
           className={`
             flex
             shrink-0
@@ -256,6 +400,7 @@ export default function MobileStickyCart({
             font-semibold
 
             transition-all
+            duration-200
 
             active:scale-95
 
@@ -266,11 +411,21 @@ export default function MobileStickyCart({
             }
           `}
         >
-          <ShoppingBag size={17} />
 
-          {added ? "ADDED" : "ADD"}
+          <ShoppingBag
+            size={17}
+          />
+
+          {added
+            ? "ADDED"
+            : "ADD"
+          }
+
         </button>
+
       </div>
+
     </div>
+
   );
 }
