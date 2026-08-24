@@ -10,7 +10,6 @@ import InstagramReels from "@/features/instagram/components/InstagramReels";
 
 import CustomerLove from "@/features/reviews/components/CustomerLove";
 
-
 export default function App() {
   return (
     <main>
@@ -18,7 +17,6 @@ export default function App() {
       <HeroSection />
 
       <HangingCategories />
-
 
       {/* =================================================
           BEST SELLERS
@@ -30,7 +28,6 @@ export default function App() {
         subtitle="The pieces our customers can't get enough of."
       />
 
-
       {/* =================================================
           NEW ARRIVALS
       ================================================== */}
@@ -40,7 +37,6 @@ export default function App() {
         title="New Arrivals"
         subtitle="Fresh pieces, made to become your next favourite."
       />
-
 
       {/* =================================================
           UNDER ₹299
@@ -52,7 +48,6 @@ export default function App() {
         subtitle="Beautiful pieces that don't break the budget."
       />
 
-
       {/* =================================================
           UNDER ₹499
       ================================================== */}
@@ -63,7 +58,8 @@ export default function App() {
         subtitle="A little extra luxe, still at an easy price."
       />
 
-<CustomerLove />
+      <CustomerLove />
+
       {/* =================================================
           INSTAGRAM
       ================================================== */}

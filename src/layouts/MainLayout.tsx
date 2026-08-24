@@ -2,29 +2,26 @@ import {
   Outlet,
 } from "react-router-dom";
 
-
 import Header
   from "@/features/header/components/Header";
-
 
 import Footer
   from "@/shared/components/footer/Footer";
 
-
 import ScrollToTopButton
   from "@/shared/components/ScrollToTopButton";
-
 
 import CartDrawer
   from "@/features/cart/components/CartDrawer";
 
-
 import MobileBottomNav
   from "@/features/header/components/MobileBottomNav";
 
-
 import PageTransition
   from "@/shared/components/animations/PageTransition";
+
+import WhatsAppSupportChat
+  from "@/features/Support/components/WhatsAppSupportChat";
 
 
 export default function MainLayout() {
@@ -82,6 +79,13 @@ export default function MainLayout() {
       ====================================================== */}
 
       <MobileBottomNav />
+
+
+      {/* =====================================================
+          WHATSAPP SUPPORT
+      ====================================================== */}
+
+      <WhatsAppSupportChat />
 
     </>
 
