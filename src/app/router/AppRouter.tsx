@@ -20,7 +20,7 @@ import AboutUs
   from "@/pages/static/AboutUs";
 
 import ContactUs
-  from "@/pages/static/ContactUs";
+  from "@/features/contact/pages/ContactUs";
 
 import FAQ
   from "@/pages/static/FAQ";

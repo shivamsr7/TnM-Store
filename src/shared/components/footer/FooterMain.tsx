@@ -11,11 +11,16 @@ import {
 
 import logo from "@/assets/logo/mainLogo.png";
 
+import {
+  useStoreSettings,
+} from "@/shared/hooks/useStoreSettings";
+
 
 const columns = [
 
   {
     title: "SHOP",
+
     links: [
       {
         name: "All Jewellery",
@@ -58,6 +63,7 @@ const columns = [
 
   {
     title: "QUICK LINKS",
+
     links: [
       "Track Your Order",
       "Shipping & Delivery",
@@ -71,6 +77,7 @@ const columns = [
 
   {
     title: "INFORMATION",
+
     links: [
       "Privacy Policy",
       "Terms & Conditions",
@@ -157,6 +164,91 @@ export default function FooterMain() {
   );
 
 
+  /* =====================================================
+     ADMIN SETTINGS
+  ===================================================== */
+
+  const {
+    data: settings,
+  } = useStoreSettings();
+console.log("FOOTER SOCIAL SETTINGS", settings);
+
+  /* =====================================================
+     SOCIAL VALUES
+  ===================================================== */
+
+  const instagram =
+    settings?.instagram?.trim() || "";
+
+  const facebook =
+    settings?.facebook?.trim() || "";
+
+  const whatsapp =
+    settings?.whatsapp?.trim() || "";
+
+
+  /* =====================================================
+     INSTAGRAM URL
+  ===================================================== */
+
+  const instagramUrl =
+    instagram
+      ? instagram.startsWith("http://") ||
+        instagram.startsWith("https://")
+        ? instagram
+        : `https://instagram.com/${instagram.replace(
+            /^@/,
+            ""
+          )}`
+      : "";
+
+
+  /* =====================================================
+     FACEBOOK URL
+  ===================================================== */
+
+  const facebookUrl =
+    facebook
+      ? facebook.startsWith("http://") ||
+        facebook.startsWith("https://")
+        ? facebook
+        : `https://facebook.com/${facebook.replace(
+            /^@/,
+            ""
+          )}`
+      : "";
+
+
+  /* =====================================================
+     WHATSAPP URL
+  ===================================================== */
+
+  let whatsappNumber =
+    whatsapp.replace(/\D/g, "");
+
+
+  /*
+   * If Admin stores a normal
+   * 10-digit Indian number,
+   * automatically add 91.
+   */
+
+  if (
+    whatsappNumber.length === 10
+  ) {
+
+    whatsappNumber =
+      `91${whatsappNumber}`;
+
+  }
+
+
+  const whatsappUrl =
+    whatsappNumber
+      ? `https://wa.me/${whatsappNumber}`
+      : "";
+
+
   return (
 
     <div
@@ -176,23 +268,29 @@ export default function FooterMain() {
         "
       >
 
-        {/* Brand */}
+        {/* =================================================
+            BRAND
+        ================================================= */}
 
         <motion.div
           initial={{
             opacity: 0,
             y: 25,
           }}
+
           whileInView={{
             opacity: 1,
             y: 0,
           }}
+
           viewport={{
             once: true,
           }}
+
           transition={{
             duration: 0.6,
           }}
+
           className="
             min-w-0
             text-center
@@ -204,12 +302,14 @@ export default function FooterMain() {
           <img
             src={logo}
             alt="T&M Jewels"
+
             className="
               mx-auto
               w-44
               md:mx-0
             "
           />
+
 
           <p
             className="
@@ -227,6 +327,10 @@ export default function FooterMain() {
           </p>
 
 
+          {/* =================================================
+              SOCIAL ICONS
+          ================================================= */}
+
           <div
             className="
               mt-6
@@ -237,68 +341,205 @@ export default function FooterMain() {
             "
           >
 
-            {[
-              {
-                icon: FaInstagram,
-              },
-              {
-                icon: FaWhatsapp,
-              },
-              {
-                icon: FaFacebookF,
-              },
-            ].map(
-              (
-                item,
-                index
-              ) => {
+            {/* =================================================
+                INSTAGRAM
+            ================================================= */}
 
-                const Icon =
-                  item.icon;
-
-                return (
-
-                  <a
-                    key={index}
-                    href="#"
-                    className="
-                      flex
-                      h-10
-                      w-10
-                      items-center
-                      justify-center
-
-                      rounded-full
-
-                      border
-                      border-[#C8A44D]/50
-
-                      text-[#C8A44D]
-
-                      transition-all
-                      duration-300
-
-                      hover:-translate-y-1
-                      hover:bg-[#C8A44D]
-                      hover:text-black
-                    "
-                  >
-                    <Icon
-                      size={18}
-                    />
-                  </a>
-
-                );
-
+            <a
+              href={
+                instagramUrl ||
+                undefined
               }
-            )}
+
+              target={
+                instagramUrl
+                  ? "_blank"
+                  : undefined
+              }
+
+              rel={
+                instagramUrl
+                  ? "noopener noreferrer"
+                  : undefined
+              }
+
+              aria-label="Instagram"
+
+              onClick={(event) => {
+
+                if (!instagramUrl) {
+                  event.preventDefault();
+                }
+
+              }}
+
+              className="
+                flex
+                h-10
+                w-10
+                items-center
+                justify-center
+
+                rounded-full
+
+                border
+                border-[#C8A44D]/50
+
+                text-[#C8A44D]
+
+                transition-all
+                duration-300
+
+                hover:-translate-y-1
+
+                hover:bg-[#C8A44D]
+
+                hover:text-black
+              "
+            >
+
+              <FaInstagram
+                size={18}
+              />
+
+            </a>
+
+
+            {/* =================================================
+                WHATSAPP
+            ================================================= */}
+
+            <a
+              href={
+                whatsappUrl ||
+                undefined
+              }
+
+              target={
+                whatsappUrl
+                  ? "_blank"
+                  : undefined
+              }
+
+              rel={
+                whatsappUrl
+                  ? "noopener noreferrer"
+                  : undefined
+              }
+
+              aria-label="WhatsApp"
+
+              onClick={(event) => {
+
+                if (!whatsappUrl) {
+                  event.preventDefault();
+                }
+
+              }}
+
+              className="
+                flex
+                h-10
+                w-10
+                items-center
+                justify-center
+
+                rounded-full
+
+                border
+                border-[#C8A44D]/50
+
+                text-[#C8A44D]
+
+                transition-all
+                duration-300
+
+                hover:-translate-y-1
+
+                hover:bg-[#C8A44D]
+
+                hover:text-black
+              "
+            >
+
+              <FaWhatsapp
+                size={18}
+              />
+
+            </a>
+
+
+            {/* =================================================
+                FACEBOOK
+            ================================================= */}
+
+            <a
+              href={
+                facebookUrl ||
+                undefined
+              }
+
+              target={
+                facebookUrl
+                  ? "_blank"
+                  : undefined
+              }
+
+              rel={
+                facebookUrl
+                  ? "noopener noreferrer"
+                  : undefined
+              }
+
+              aria-label="Facebook"
+
+              onClick={(event) => {
+
+                if (!facebookUrl) {
+                  event.preventDefault();
+                }
+
+              }}
+
+              className="
+                flex
+                h-10
+                w-10
+                items-center
+                justify-center
+
+                rounded-full
+
+                border
+                border-[#C8A44D]/50
+
+                text-[#C8A44D]
+
+                transition-all
+                duration-300
+
+                hover:-translate-y-1
+
+                hover:bg-[#C8A44D]
+
+                hover:text-black
+              "
+            >
+
+              <FaFacebookF
+                size={18}
+              />
+
+            </a>
 
           </div>
 
         </motion.div>
 
 
-        {/* Desktop Columns */}
+        {/* =================================================
+            DESKTOP COLUMNS
+        ================================================= */}
 
         {
           columns.map(
@@ -309,21 +550,26 @@ export default function FooterMain() {
 
               <motion.div
                 key={column.title}
+
                 initial={{
                   opacity: 0,
                   y: 25,
                 }}
+
                 whileInView={{
                   opacity: 1,
                   y: 0,
                 }}
+
                 viewport={{
                   once: true,
                 }}
+
                 transition={{
                   duration: 0.5,
                   delay: index * 0.1,
                 }}
+
                 className="
                   hidden
                   min-w-0
@@ -362,6 +608,7 @@ export default function FooterMain() {
                               link
                             )
                           }
+
                           className="
                             transition
                             hover:text-[#C8A44D]
@@ -375,11 +622,13 @@ export default function FooterMain() {
                               )
                             }
                           >
+
                             {
                               getColumnLinkName(
                                 link
                               )
                             }
+
                           </Link>
 
                         </li>
@@ -397,24 +646,30 @@ export default function FooterMain() {
         }
 
 
-        {/* Newsletter Desktop */}
+        {/* =================================================
+            NEWSLETTER DESKTOP
+        ================================================= */}
 
         <motion.div
           initial={{
             opacity: 0,
             y: 25,
           }}
+
           whileInView={{
             opacity: 1,
             y: 0,
           }}
+
           viewport={{
             once: true,
           }}
+
           transition={{
             duration: 0.6,
             delay: 0.3,
           }}
+
           className="
             hidden
             min-w-0
@@ -463,6 +718,7 @@ export default function FooterMain() {
 
             <input
               placeholder="Enter your email"
+
               className="
                 min-w-0
                 flex-1
@@ -480,8 +736,11 @@ export default function FooterMain() {
                 from-[#B8862E]
                 via-[#D4AF37]
                 to-[#F7E3A3]
+
                 px-3
+
                 font-medium
+
                 text-black
               "
             >
@@ -495,7 +754,9 @@ export default function FooterMain() {
       </div>
 
 
-      {/* Mobile Accordion */}
+      {/* =================================================
+          MOBILE ACCORDION
+      ================================================= */}
 
       <div
         className="
@@ -512,6 +773,7 @@ export default function FooterMain() {
 
               <div
                 key={column.title}
+
                 className="
                   border-b
                   border-white/10
@@ -526,23 +788,30 @@ export default function FooterMain() {
                         : index
                     )
                   }
+
                   className="
                     flex
                     w-full
                     items-center
                     justify-between
+
                     py-5
+
                     text-sm
                     font-semibold
+
                     tracking-wider
+
                     text-[#C8A44D]
                   "
                 >
 
                   {column.title}
 
+
                   <ChevronDown
                     size={18}
+
                     className={
                       open === index
                         ? "rotate-180 transition"
@@ -584,11 +853,13 @@ export default function FooterMain() {
                                   )
                                 }
                               >
+
                                 {
                                   getColumnLinkName(
                                     link
                                   )
                                 }
+
                               </Link>
 
                             </li>
@@ -611,7 +882,9 @@ export default function FooterMain() {
       </div>
 
 
-      {/* Mobile Newsletter */}
+      {/* =================================================
+          MOBILE NEWSLETTER
+      ================================================= */}
 
       <div
         className="
@@ -659,6 +932,7 @@ export default function FooterMain() {
 
           <input
             placeholder="Enter your email"
+
             className="
               min-w-0
               flex-1
@@ -675,12 +949,16 @@ export default function FooterMain() {
           <button
             className="
               shrink-0
+
               bg-gradient-to-r
               from-[#B8862E]
               via-[#D4AF37]
               to-[#F7E3A3]
+
               px-5
+
               font-medium
+
               text-black
             "
           >

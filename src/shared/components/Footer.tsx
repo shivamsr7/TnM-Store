@@ -1,521 +1,667 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 
+import {
+  FaInstagram,
+  FaFacebookF,
+  FaWhatsapp,
+} from "react-icons/fa";
+
+import { useStoreSettings } from "@/shared/hooks/useStoreSettings";
+
 
 const navItems = [
   {
     title: "Shop",
+
     links: [
-      {name:"All Jewellery", path:"/shop"},
-      {name:"Necklaces", path:"/category/necklaces"},
-      {name:"Earrings", path:"/category/earrings"},
-      {name:"Rings", path:"/category/rings"},
-      {name:"Bracelets", path:"/category/bracelets"},
-      {name:"Watches", path:"/category/watches"},
-      {name:"Collections", path:"/collections"},
-      {name:"Best Sellers", path:"/shop?filter=best-sellers"},
-      {name:"New Arrivals", path:"/shop?filter=new-arrivals"},
-    ]
+      {
+        name: "All Jewellery",
+        path: "/shop",
+      },
+      {
+        name: "Necklaces",
+        path: "/category/necklaces",
+      },
+      {
+        name: "Earrings",
+        path: "/category/earrings",
+      },
+      {
+        name: "Rings",
+        path: "/category/rings",
+      },
+      {
+        name: "Bracelets",
+        path: "/category/bracelets",
+      },
+      {
+        name: "Watches",
+        path: "/category/watches",
+      },
+      {
+        name: "Collections",
+        path: "/collections",
+      },
+      {
+        name: "Best Sellers",
+        path: "/shop?filter=best-sellers",
+      },
+      {
+        name: "New Arrivals",
+        path: "/shop?filter=new-arrivals",
+      },
+    ],
   },
+
   {
-    title:"Support",
-    links:[
-      {name:"Contact Us", path:"/contact"},
-      {name:"Shipping Policy", path:"/shipping-policy"},
-      {name:"Returns", path:"/return-policy"},
-      {name:"FAQs", path:"/faq"},
-    ]
-  }
+    title: "Support",
+
+    links: [
+      {
+        name: "Contact Us",
+        path: "/contact-us",
+      },
+      {
+        name: "Shipping Policy",
+        path: "/shipping-policy",
+      },
+      {
+        name: "Returns",
+        path: "/return-policy",
+      },
+      {
+        name: "FAQs",
+        path: "/faq",
+      },
+    ],
+  },
 ];
 
 
+export default function Footer() {
 
-export default function Footer(){
+  /* =====================================================
+     ADMIN SETTINGS
+  ===================================================== */
 
+  const {
+    data: settings,
+  } = useStoreSettings();
 
-return (
+console.log("FOOTER SETTINGS:", settings);
+  /* =====================================================
+     SOCIAL VALUES
+  ===================================================== */
 
-<footer
+  const instagram =
+    settings?.instagram?.trim() || "";
 
-className="
-relative
-overflow-hidden
+  const facebook =
+    settings?.facebook?.trim() || "";
 
-bg-black
+  const whatsapp =
+    settings?.whatsapp?.trim() || "";
 
-px-6
-py-16
 
-text-white
+  /* =====================================================
+     INSTAGRAM URL
+  ===================================================== */
 
-md:px-10
+  const instagramUrl =
+    instagram
+      ? instagram.startsWith("http://") ||
+        instagram.startsWith("https://")
+        ? instagram
+        : `https://instagram.com/${instagram.replace(
+            /^@/,
+            ""
+          )}`
+      : "";
 
-"
 
->
+  /* =====================================================
+     FACEBOOK URL
+  ===================================================== */
 
+  const facebookUrl =
+    facebook
+      ? facebook.startsWith("http://") ||
+        facebook.startsWith("https://")
+        ? facebook
+        : `https://facebook.com/${facebook.replace(
+            /^@/,
+            ""
+          )}`
+      : "";
 
-{/* Animated Gold Glow */}
 
-<motion.div
+  /* =====================================================
+     WHATSAPP URL
+  ===================================================== */
 
-animate={{
+  let whatsappNumber =
+    whatsapp.replace(/\D/g, "");
 
-scale:[1,1.15,1],
 
-opacity:[0.15,0.25,0.15]
+  /*
+   * If Admin stores a normal
+   * 10-digit Indian number,
+   * automatically add country code.
+   */
 
-}}
+  if (
+    whatsappNumber.length === 10
+  ) {
+    whatsappNumber =
+      `91${whatsappNumber}`;
+  }
 
-transition={{
 
-duration:8,
+  const whatsappUrl =
+    whatsappNumber
+      ? `https://wa.me/${whatsappNumber}`
+      : "";
 
-repeat:Infinity,
 
-ease:"easeInOut"
+  return (
 
-}}
+    <footer
+      className="
+        relative
+        overflow-hidden
 
-className="
-absolute
+        bg-black
 
-left-1/2
-top-1/2
+        px-6
+        py-16
 
-h-[500px]
-w-[500px]
+        text-white
 
--translate-x-1/2
--translate-y-1/2
+        md:px-10
+      "
+    >
 
-rounded-full
+      {/* =================================================
+          ANIMATED GOLD GLOW
+      ================================================= */}
 
-bg-[#C8A44D]
+      <motion.div
+        animate={{
+          scale: [1, 1.15, 1],
+          opacity: [0.15, 0.25, 0.15],
+        }}
 
-blur-[150px]
+        transition={{
+          duration: 8,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
 
-"
+        className="
+          absolute
+          left-1/2
+          top-1/2
 
-/>
+          h-[500px]
+          w-[500px]
 
+          -translate-x-1/2
+          -translate-y-1/2
 
+          rounded-full
 
+          bg-[#C8A44D]
 
+          blur-[150px]
+        "
+      />
 
 
-{/* Floating particles */}
+      {/* =================================================
+          FLOATING PARTICLES
+      ================================================= */}
 
-<div className="
-absolute
-inset-0
-pointer-events-none
-">
+      <div
+        className="
+          pointer-events-none
+          absolute
+          inset-0
+        "
+      >
 
+        {[1, 2, 3, 4, 5].map(
+          (item) => (
 
-{[1,2,3,4,5].map((item)=>(
+            <motion.span
+              key={item}
 
-<motion.span
+              animate={{
+                y: [0, -40, 0],
+                opacity: [0.3, 0.8, 0.3],
+              }}
 
-key={item}
+              transition={{
+                duration: 5 + item,
+                repeat: Infinity,
+                delay: item,
+              }}
 
-animate={{
+              className="
+                absolute
 
-y:[0,-40,0],
+                h-1
+                w-1
 
-opacity:[0.3,0.8,0.3]
+                rounded-full
 
-}}
+                bg-[#C8A44D]
+              "
 
-transition={{
+              style={{
+                left: `${15 * item}%`,
+                top: `${20 + item * 10}%`,
+              }}
+            />
 
-duration:5+item,
+          )
+        )}
 
-repeat:Infinity,
+      </div>
 
-delay:item
 
-}}
+      {/* =================================================
+          CONTENT
+      ================================================= */}
 
-className="
-absolute
+      <div
+        className="
+          relative
+          z-10
 
-h-1
-w-1
+          mx-auto
 
-rounded-full
+          max-w-6xl
 
-bg-[#C8A44D]
+          text-center
+        "
+      >
 
-"
+        {/* =================================================
+            BRAND
+        ================================================= */}
 
-style={{
+        <motion.h2
+          initial={{
+            opacity: 0,
+            y: 20,
+          }}
 
-left:`${15*item}%`,
+          whileInView={{
+            opacity: 1,
+            y: 0,
+          }}
 
-top:`${20+item*10}%`
+          transition={{
+            duration: 0.8,
+          }}
 
-}}
+          className="
+            text-3xl
+            font-semibold
 
-/>
+            tracking-[0.3em]
 
-))}
+            bg-gradient-to-r
 
+            from-[#b8860b]
+            via-[#fff1b8]
+            to-[#b8860b]
 
+            bg-clip-text
 
-</div>
+            text-transparent
 
+            md:text-5xl
+          "
+        >
+          T&M JEWELS
+        </motion.h2>
 
 
+        {/* =================================================
+            DESCRIPTION
+        ================================================= */}
 
+        <p
+          className="
+            mx-auto
 
+            mt-5
 
+            max-w-md
 
+            text-sm
+            leading-relaxed
 
+            text-neutral-400
 
-<div
+            md:text-base
+          "
+        >
+          Create your own style,
+          create your own trend.
 
-className="
-relative
-z-10
+          <br />
 
-mx-auto
+          Premium jewellery designed
+          for everyday elegance.
+        </p>
 
-max-w-6xl
 
-text-center
+        {/* =================================================
+            NAVIGATION
+        ================================================= */}
 
-"
+        <div
+          className="
+            mt-12
 
->
+            grid
+            gap-10
 
+            md:grid-cols-2
+          "
+        >
 
+          {navItems.map(
+            (
+              section,
+              index
+            ) => (
 
+              <motion.div
+                key={section.title}
 
+                initial={{
+                  opacity: 0,
+                  y: 20,
+                }}
 
-{/* Brand */}
+                whileInView={{
+                  opacity: 1,
+                  y: 0,
+                }}
 
-<motion.h2
+                transition={{
+                  delay: index * 0.2,
+                }}
+              >
 
-initial={{
+                <h3
+                  className="
+                    mb-5
 
-opacity:0,
-y:20
+                    text-sm
+                    uppercase
 
-}}
+                    tracking-[0.25em]
 
-whileInView={{
+                    text-[#C8A44D]
+                  "
+                >
+                  {section.title}
+                </h3>
 
-opacity:1,
-y:0
 
-}}
+                <div
+                  className="
+                    flex
+                    flex-wrap
 
-transition={{
+                    justify-center
 
-duration:.8
+                    gap-5
+                  "
+                >
 
-}}
+                  {section.links.map(
+                    (link) => (
 
-className="
+                      <Link
+                        key={link.name}
 
-text-3xl
+                        to={link.path}
 
-font-semibold
+                        className="
+                          text-sm
 
-tracking-[0.3em]
+                          text-neutral-300
 
-bg-gradient-to-r
+                          transition
 
-from-[#b8860b]
+                          hover:text-[#C8A44D]
+                        "
+                      >
+                        {link.name}
+                      </Link>
 
-via-[#fff1b8]
+                    )
+                  )}
 
-to-[#b8860b]
+                </div>
 
-bg-clip-text
+              </motion.div>
 
-text-transparent
+            )
+          )}
 
-md:text-5xl
+        </div>
 
-"
 
->
+        {/* =================================================
+            SOCIAL MEDIA
+        ================================================= */}
 
-T&M JEWELS
+        <div
+          className="
+            mt-12
 
-</motion.h2>
+            flex
+            items-center
+            justify-center
 
+            gap-5
+          "
+        >
 
+          {/* =================================================
+              INSTAGRAM
+          ================================================= */}
 
+          {instagramUrl && (
 
+            <a
+              href={instagramUrl}
 
-<p
+              target="_blank"
 
-className="
-mx-auto
+              rel="noopener noreferrer"
 
-mt-5
+              aria-label="Instagram"
 
-max-w-md
+              className="
+                flex
 
-text-sm
+                h-12
+                w-12
 
-leading-relaxed
+                items-center
+                justify-center
 
-text-neutral-400
+                rounded-full
 
-md:text-base
+                border
+                border-[#C8A44D]
 
-"
+                text-[#C8A44D]
 
->
+                transition-all
+                duration-300
 
-Create your own style,
-create your own trend.
+                hover:bg-[#C8A44D]
+                hover:text-black
 
-Premium jewellery designed
-for everyday elegance.
+                hover:scale-105
+              "
+            >
 
-</p>
+              <FaInstagram
+                size={20}
+              />
 
+            </a>
 
+          )}
 
 
+          {/* =================================================
+              WHATSAPP
+          ================================================= */}
 
+          {whatsappUrl && (
 
+            <a
+              href={whatsappUrl}
 
+              target="_blank"
 
-{/* Navigation */}
+              rel="noopener noreferrer"
 
-<div
+              aria-label="WhatsApp"
 
-className="
-mt-12
+              className="
+                flex
 
-grid
+                h-12
+                w-12
 
-gap-10
+                items-center
+                justify-center
 
-md:grid-cols-2
+                rounded-full
 
-"
+                border
+                border-[#C8A44D]
 
->
+                text-[#C8A44D]
 
+                transition-all
+                duration-300
 
-{
+                hover:bg-[#C8A44D]
+                hover:text-black
 
-navItems.map((section,index)=>(
+                hover:scale-105
+              "
+            >
 
+              <FaWhatsapp
+                size={21}
+              />
 
-<motion.div
+            </a>
 
-key={section.title}
+          )}
 
-initial={{
 
-opacity:0,
-y:20
+          {/* =================================================
+              FACEBOOK
+          ================================================= */}
 
-}}
+          {facebookUrl && (
 
-whileInView={{
+            <a
+              href={facebookUrl}
 
-opacity:1,
-y:0
+              target="_blank"
 
-}}
+              rel="noopener noreferrer"
 
-transition={{
+              aria-label="Facebook"
 
-delay:index*0.2
+              className="
+                flex
 
-}}
+                h-12
+                w-12
 
->
+                items-center
+                justify-center
 
-<h3
+                rounded-full
 
-className="
-mb-5
+                border
+                border-[#C8A44D]
 
-text-sm
+                text-[#C8A44D]
 
-uppercase
+                transition-all
+                duration-300
 
-tracking-[0.25em]
+                hover:bg-[#C8A44D]
+                hover:text-black
 
-text-[#C8A44D]
+                hover:scale-105
+              "
+            >
 
-"
+              <FaFacebookF
+                size={19}
+              />
 
->
+            </a>
 
-{section.title}
+          )}
 
-</h3>
+        </div>
 
 
+        {/* =================================================
+            BOTTOM
+        ================================================= */}
 
+        <div
+          className="
+            mt-12
 
-<div
+            border-t
+            border-white/10
 
-className="
-flex
+            pt-6
 
-flex-wrap
+            text-xs
 
-justify-center
+            tracking-wide
 
-gap-5
+            text-neutral-500
+          "
+        >
 
-"
+          ✦ Crafted with elegance ✦
 
->
+          <br />
 
-{
+          © {new Date().getFullYear()}
+          {" "}
+          T&M Jewels.
+          All rights reserved.
 
-section.links.map(link=>(
+        </div>
 
+      </div>
 
-<Link
+    </footer>
 
-key={link.name}
-
-to={link.path}
-
-className="
-text-sm
-
-text-neutral-300
-
-transition
-
-hover:text-[#C8A44D]
-
-"
-
->
-
-{link.name}
-
-</Link>
-
-
-))
-
-}
-
-</div>
-
-
-</motion.div>
-
-
-))
-
-}
-
-
-
-</div>
-
-
-
-
-
-
-
-
-{/* Social */}
-
-<div
-
-className="
-mt-12
-
-flex
-
-justify-center
-
-gap-8
-
-text-sm
-
-text-neutral-300
-
-"
-
->
-
-<span>
-Instagram
-</span>
-
-<span>
-WhatsApp
-</span>
-
-<span>
-Email
-</span>
-
-
-</div>
-
-
-
-
-
-
-
-
-{/* Bottom */}
-
-<div
-
-className="
-mt-12
-
-border-t
-
-border-white/10
-
-pt-6
-
-text-xs
-
-tracking-wide
-
-text-neutral-500
-
-"
-
->
-
-✦ Crafted with elegance ✦
-
-<br/>
-
-© {new Date().getFullYear()} T&M Jewels. All rights reserved.
-
-</div>
-
-
-
-
-
-
-</div>
-
-
-
-
-
-</footer>
-
-);
-
+  );
 }
