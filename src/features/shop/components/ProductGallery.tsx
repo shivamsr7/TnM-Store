@@ -20,6 +20,10 @@ import {
   RotateCcw,
 } from "lucide-react";
 
+import {
+  useParams,
+} from "react-router-dom";
+
 import WishlistButton from "@/features/wishlist/components/WishlistButton";
 
 
@@ -46,6 +50,30 @@ export default function ProductGallery({
   productName,
 
 }: ProductGalleryProps) {
+
+
+  /*
+   * =========================================================
+   * CURRENT PRODUCT ROUTE
+   * =========================================================
+   *
+   * Example:
+   *
+   * /product/crystal-drop-mangalsutra
+   *
+   * useParams() gives:
+   *
+   * slug = "crystal-drop-mangalsutra"
+   *
+   * This is more reliable than passing productSlug
+   * from ProductDetails.
+   */
+
+  const {
+    slug,
+  } = useParams<{
+    slug?: string;
+  }>();
 
 
   /*
@@ -125,6 +153,20 @@ export default function ProductGallery({
     zoomLevel,
     setZoomLevel,
   ] = useState(1);
+
+
+  /*
+   * =========================================================
+   * SHARE STATE
+   * =========================================================
+   */
+
+  const [
+    shareStatus,
+    setShareStatus,
+  ] = useState<
+    "idle" | "copied"
+  >("idle");
 
 
   /*
@@ -730,6 +772,250 @@ export default function ProductGallery({
 
   /*
    * =========================================================
+   * SHARE PRODUCT
+   * =========================================================
+   */
+
+  const handleShare = async (
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
+
+    e.stopPropagation();
+
+
+    /*
+     * IMPORTANT:
+     *
+     * Use the current route slug.
+     *
+     * If the page is:
+     *
+     * /product/crystal-drop-mangalsutra
+     *
+     * slug will be:
+     *
+     * crystal-drop-mangalsutra
+     */
+
+    const currentSlug =
+      slug?.trim();
+
+
+    /*
+     * Extra fallback:
+     *
+     * If for any reason React Router doesn't
+     * provide the slug, take it directly from
+     * the current pathname.
+     */
+
+    const pathname =
+      window.location.pathname;
+
+
+    const pathnameParts =
+      pathname
+        .split("/")
+        .filter(Boolean);
+
+
+    const pathnameSlug =
+      pathnameParts.length >= 2 &&
+      pathnameParts[0] === "product"
+        ? pathnameParts[1]
+        : "";
+
+
+    const finalSlug =
+      currentSlug ||
+      pathnameSlug;
+
+
+    /*
+     * Safety check.
+     *
+     * We NEVER want:
+     *
+     * /product/undefined
+     */
+
+    if (
+      !finalSlug ||
+      finalSlug === "undefined" ||
+      finalSlug === "null"
+    ) {
+
+      console.error(
+        "Unable to create product share URL. Product slug is missing."
+      );
+
+      return;
+
+    }
+
+
+    const shareUrl =
+      `${window.location.origin}/product/${encodeURIComponent(
+        finalSlug
+      )}`;
+
+
+    const shareData: ShareData = {
+
+      title:
+        productName,
+
+      text:
+        `Check out ${productName} at T&M Jewels.`,
+
+      url:
+        shareUrl,
+
+    };
+
+
+    try {
+
+      /*
+       * =====================================================
+       * MOBILE / SUPPORTED BROWSERS
+       * =====================================================
+       *
+       * Opens the native share sheet.
+       */
+
+      if (
+        typeof navigator.share ===
+        "function"
+      ) {
+
+        await navigator.share(
+          shareData
+        );
+
+        return;
+
+      }
+
+
+      /*
+       * =====================================================
+       * DESKTOP FALLBACK
+       * =====================================================
+       *
+       * Copy product URL.
+       */
+
+      if (
+        navigator.clipboard &&
+        window.isSecureContext
+      ) {
+
+        await navigator.clipboard.writeText(
+          shareUrl
+        );
+
+      } else {
+
+        const textarea =
+          document.createElement(
+            "textarea"
+          );
+
+
+        textarea.value =
+          shareUrl;
+
+
+        textarea.style.position =
+          "fixed";
+
+
+        textarea.style.left =
+          "-9999px";
+
+
+        textarea.style.top =
+          "0";
+
+
+        textarea.style.opacity =
+          "0";
+
+
+        document.body.appendChild(
+          textarea
+        );
+
+
+        textarea.focus();
+
+        textarea.select();
+
+
+        document.execCommand(
+          "copy"
+        );
+
+
+        document.body.removeChild(
+          textarea
+        );
+
+      }
+
+
+      /*
+       * Show copied state.
+       */
+
+      setShareStatus(
+        "copied"
+      );
+
+
+      window.setTimeout(() => {
+
+        setShareStatus(
+          "idle"
+        );
+
+      }, 1800);
+
+    }
+
+    catch (
+      error
+    ) {
+
+      /*
+       * User closing the native share
+       * sheet is completely normal.
+       */
+
+      if (
+        error instanceof DOMException &&
+        error.name ===
+          "AbortError"
+      ) {
+
+        return;
+
+      }
+
+
+      console.error(
+        "Product share failed:",
+        error
+      );
+
+    }
+
+  };
+
+
+  /*
+   * =========================================================
    * KEYBOARD CONTROLS
    * =========================================================
    */
@@ -789,9 +1075,9 @@ export default function ProductGallery({
 
       if (
         event.key ===
-        "+" ||
+          "+" ||
         event.key ===
-        "="
+          "="
       ) {
 
         zoomIn();
@@ -1035,9 +1321,7 @@ export default function ProductGallery({
 
           }}
 
-          aria-label="
-            Zoom image
-          "
+          aria-label="Zoom image"
 
           className="
             absolute
@@ -1069,17 +1353,27 @@ export default function ProductGallery({
 
 
         {/* =================================================
-            SHARE
+            SHARE BUTTON
         ================================================== */}
 
         <button
 
           type="button"
 
-          onClick={(
-            e
-          ) =>
-            e.stopPropagation()
+          onClick={
+            handleShare
+          }
+
+          aria-label={
+            shareStatus === "copied"
+              ? "Product link copied"
+              : "Share product"
+          }
+
+          title={
+            shareStatus === "copied"
+              ? "Link copied"
+              : "Share product"
           }
 
           className="
@@ -1096,17 +1390,36 @@ export default function ProductGallery({
             bg-black/45
             text-white
             backdrop-blur-md
-            transition
+            transition-all
+            duration-200
             hover:bg-[#D4AF37]
             hover:text-black
             active:scale-95
+            focus:outline-none
+            focus:ring-2
+            focus:ring-[#D4AF37]/60
           "
 
         >
 
-          <Share2
-            size={18}
-          />
+          {shareStatus === "copied" ? (
+
+            <span
+              className="
+                text-xs
+                font-bold
+              "
+            >
+              ✓
+            </span>
+
+          ) : (
+
+            <Share2
+              size={18}
+            />
+
+          )}
 
         </button>
 
@@ -1124,6 +1437,8 @@ export default function ProductGallery({
             onClick={
               previousImage
             }
+
+            aria-label="Previous image"
 
             className="
               absolute
@@ -1170,6 +1485,8 @@ export default function ProductGallery({
             onClick={
               nextImage
             }
+
+            aria-label="Next image"
 
             className="
               absolute
@@ -1350,6 +1667,10 @@ export default function ProductGallery({
                   )
                 }
 
+                aria-label={
+                  `View image ${index + 1}`
+                }
+
                 className={`
 
                   h-20
@@ -1474,7 +1795,9 @@ export default function ProductGallery({
             >
 
               {activeImage + 1}
+
               {" / "}
+
               {imageList.length}
 
             </div>
@@ -1501,6 +1824,8 @@ export default function ProductGallery({
                   zoomOut();
 
                 }}
+
+                aria-label="Zoom out"
 
                 className="
                   flex
@@ -1540,6 +1865,8 @@ export default function ProductGallery({
 
                 }}
 
+                aria-label="Reset zoom"
+
                 className="
                   flex
                   h-10
@@ -1558,7 +1885,7 @@ export default function ProductGallery({
               >
 
                 <RotateCcw
-                  size={17}
+                  size={18}
                 />
 
               </button>
@@ -1577,6 +1904,8 @@ export default function ProductGallery({
                   zoomIn();
 
                 }}
+
+                aria-label="Zoom in"
 
                 className="
                   flex
@@ -1616,8 +1945,9 @@ export default function ProductGallery({
 
                 }}
 
+                aria-label="Close zoom"
+
                 className="
-                  ml-1
                   flex
                   h-10
                   w-10
@@ -1735,6 +2065,8 @@ export default function ProductGallery({
 
               }}
 
+              aria-label="Previous image"
+
               className="
                 absolute
                 left-3
@@ -1788,6 +2120,8 @@ export default function ProductGallery({
                 resetZoom();
 
               }}
+
+              aria-label="Next image"
 
               className="
                 absolute
