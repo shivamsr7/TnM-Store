@@ -21,8 +21,11 @@ export default function MobileStickyCart({
   product,
 }: Props) {
 
-  const [visible, setVisible] = useState(false);
-  const [added, setAdded] = useState(false);
+  const [visible, setVisible] =
+    useState(false);
+
+  const [added, setAdded] =
+    useState(false);
 
   const {
     addToCart,
@@ -30,8 +33,7 @@ export default function MobileStickyCart({
 
 
   /* =====================================================
-     SHOW STICKY CART ONLY WHEN ORIGINAL ADD BUTTON
-     IS NO LONGER VISIBLE
+     OBSERVE ORIGINAL ADD BUTTON + FOOTER
   ===================================================== */
 
   useEffect(() => {
@@ -41,34 +43,54 @@ export default function MobileStickyCart({
         "[data-product-add-to-cart]"
       );
 
+    const footer =
+      document.querySelector("footer");
+
+
+    /*
+     * If the original button cannot be found,
+     * don't show the sticky cart.
+     */
     if (!originalAddButton) {
+      setVisible(false);
       return;
     }
 
 
-    const observer =
+    let originalButtonVisible = true;
+    let footerVisible = false;
+
+
+    const updateVisibility = () => {
+
+      /*
+       * Sticky cart should ONLY appear when:
+       *
+       * 1. Original ADD button is not visible
+       * 2. Footer is not visible
+       */
+
+      const shouldShow =
+        !originalButtonVisible &&
+        !footerVisible;
+
+
+      setVisible(shouldShow);
+    };
+
+
+    /* =================================================
+       ORIGINAL ADD BUTTON OBSERVER
+    ================================================= */
+
+    const addButtonObserver =
       new IntersectionObserver(
         ([entry]) => {
 
-          /*
-           * Original Add button visible
-           * → hide sticky cart
-           */
-          if (entry.isIntersecting) {
+          originalButtonVisible =
+            entry.isIntersecting;
 
-            setVisible(false);
-
-          }
-
-          /*
-           * Original Add button has left viewport
-           * → show sticky cart
-           */
-          else {
-
-            setVisible(true);
-
-          }
+          updateVisibility();
 
         },
         {
@@ -77,12 +99,55 @@ export default function MobileStickyCart({
       );
 
 
-    observer.observe(originalAddButton);
+    addButtonObserver.observe(
+      originalAddButton
+    );
+
+
+    /* =================================================
+       FOOTER OBSERVER
+    ================================================= */
+
+    let footerObserver:
+      IntersectionObserver | null = null;
+
+
+    if (footer) {
+
+      footerObserver =
+        new IntersectionObserver(
+          ([entry]) => {
+
+            footerVisible =
+              entry.isIntersecting;
+
+            updateVisibility();
+
+          },
+          {
+            threshold: 0,
+          }
+        );
+
+
+      footerObserver.observe(
+        footer
+      );
+
+    }
+
+
+    /*
+     * Initial state
+     */
+    updateVisibility();
 
 
     return () => {
 
-      observer.disconnect();
+      addButtonObserver.disconnect();
+
+      footerObserver?.disconnect();
 
     };
 
@@ -123,6 +188,10 @@ export default function MobileStickyCart({
       ?.image_url;
 
 
+  /* =====================================================
+     RENDER
+  ===================================================== */
+
   return (
 
     <div
@@ -140,7 +209,6 @@ export default function MobileStickyCart({
         bg-[#080808]/95
 
         px-4
-
         pt-3
 
         pb-[calc(env(safe-area-inset-bottom)+12px)]
@@ -209,7 +277,6 @@ export default function MobileStickyCart({
           <p
             className="
               truncate
-
               text-xs
               text-neutral-400
             "
@@ -221,7 +288,6 @@ export default function MobileStickyCart({
           <div
             className="
               mt-1
-
               flex
               items-center
               gap-2
@@ -258,7 +324,7 @@ export default function MobileStickyCart({
 
 
         {/* =================================================
-            CTA
+            ADD BUTTON
         ================================================= */}
 
         <button
@@ -296,10 +362,10 @@ export default function MobileStickyCart({
             size={17}
           />
 
-
           {added
             ? "ADDED"
-            : "ADD"}
+            : "ADD"
+          }
 
         </button>
 
