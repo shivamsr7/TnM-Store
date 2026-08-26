@@ -144,7 +144,24 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * MOBILE DRAG REFS
+   * QUICK VIEW IMAGE SWIPE REFS
+   * =========================================================
+   */
+
+  const imageSwipeStartX =
+    useRef<number | null>(null);
+
+  const imageSwipeStartY =
+    useRef<number | null>(null);
+
+
+  /*
+   * =========================================================
+   * MOBILE SHEET DRAG REFS
+   *
+   * IMPORTANT:
+   * These are ONLY used by the top drag handle.
+   * They are NOT attached to the whole drawer.
    * =========================================================
    */
 
@@ -284,6 +301,13 @@ export default function QuickViewModal({
         null;
 
 
+      imageSwipeStartX.current =
+        null;
+
+      imageSwipeStartY.current =
+        null;
+
+
       dragStartRef.current =
         null;
 
@@ -341,6 +365,12 @@ export default function QuickViewModal({
       false;
 
     pinchStartDistance.current =
+      null;
+
+    imageSwipeStartX.current =
+      null;
+
+    imageSwipeStartY.current =
       null;
 
     dragStartRef.current =
@@ -655,12 +685,206 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
+   * QUICK VIEW IMAGE TOUCH START
+   *
+   * Horizontal swipe is handled only on the image.
+   * The drawer itself does NOT receive this handler.
+   * =========================================================
+   */
+
+  const handleImageTouchStart = (
+    e: TouchEvent
+  ) => {
+
+    if (
+      images.length <= 1
+    ) {
+
+      return;
+
+    }
+
+
+    if (
+      e.touches.length !== 1
+    ) {
+
+      return;
+
+    }
+
+
+    const touch =
+      e.touches[0];
+
+    if (!touch) {
+
+      return;
+
+    }
+
+
+    imageSwipeStartX.current =
+      touch.clientX;
+
+    imageSwipeStartY.current =
+      touch.clientY;
+
+  };
+
+
+  /*
+   * =========================================================
+   * QUICK VIEW IMAGE TOUCH MOVE
+   *
+   * Prevent browser horizontal navigation while the
+   * customer is clearly swiping horizontally.
+   * =========================================================
+   */
+
+  const handleImageTouchMove = (
+    e: TouchEvent
+  ) => {
+
+    if (
+      imageSwipeStartX.current ===
+        null ||
+      imageSwipeStartY.current ===
+        null ||
+      e.touches.length !== 1
+    ) {
+
+      return;
+
+    }
+
+
+    const touch =
+      e.touches[0];
+
+    if (!touch) {
+
+      return;
+
+    }
+
+
+    const deltaX =
+      touch.clientX -
+      imageSwipeStartX.current;
+
+    const deltaY =
+      touch.clientY -
+      imageSwipeStartY.current;
+
+
+    if (
+      Math.abs(deltaX) > 15 &&
+      Math.abs(deltaX) >
+        Math.abs(deltaY)
+    ) {
+
+      if (
+        e.cancelable
+      ) {
+
+        e.preventDefault();
+
+      }
+
+    }
+
+  };
+
+
+  /*
+   * =========================================================
+   * QUICK VIEW IMAGE TOUCH END
+   * =========================================================
+   */
+
+  const handleImageTouchEnd = (
+    e: TouchEvent
+  ) => {
+
+    if (
+      imageSwipeStartX.current ===
+        null ||
+      imageSwipeStartY.current ===
+        null
+    ) {
+
+      return;
+
+    }
+
+
+    const touch =
+      e.changedTouches[0];
+
+    if (!touch) {
+
+      imageSwipeStartX.current =
+        null;
+
+      imageSwipeStartY.current =
+        null;
+
+      return;
+
+    }
+
+
+    const deltaX =
+      touch.clientX -
+      imageSwipeStartX.current;
+
+    const deltaY =
+      touch.clientY -
+      imageSwipeStartY.current;
+
+
+    const horizontalDistance =
+      Math.abs(deltaX);
+
+    const verticalDistance =
+      Math.abs(deltaY);
+
+
+    if (
+      images.length > 1 &&
+      horizontalDistance >= 50 &&
+      horizontalDistance >
+        verticalDistance
+    ) {
+
+      if (
+        deltaX < 0
+      ) {
+
+        nextImage();
+
+      } else {
+
+        previousImage();
+
+      }
+
+    }
+
+
+    imageSwipeStartX.current =
+      null;
+
+    imageSwipeStartY.current =
+      null;
+
+  };
+
+
+  /*
+   * =========================================================
    * ZOOM TOUCH START
-   *
-   * Handles BOTH:
-   *
-   * 1. Pinch zoom
-   * 2. Horizontal image swipe
    * =========================================================
    */
 
@@ -703,8 +927,6 @@ export default function QuickViewModal({
 
     /*
      * ONE FINGER
-     *
-     * Start horizontal swipe tracking.
      */
 
     if (
@@ -738,8 +960,6 @@ export default function QuickViewModal({
   /*
    * =========================================================
    * ZOOM TOUCH MOVE
-   *
-   * Handles pinch zoom.
    * =========================================================
    */
 
@@ -816,8 +1036,6 @@ export default function QuickViewModal({
 
     /*
      * ONE FINGER
-     *
-     * Detect whether movement is horizontal.
      */
 
     if (
@@ -845,10 +1063,6 @@ export default function QuickViewModal({
         zoomSwipeStartY.current;
 
 
-      /*
-       * Mark as horizontal movement.
-       */
-
       if (
         Math.abs(deltaX) > 15 &&
         Math.abs(deltaX) >
@@ -868,18 +1082,12 @@ export default function QuickViewModal({
   /*
    * =========================================================
    * ZOOM TOUCH END
-   *
-   * Handles horizontal swipe.
    * =========================================================
    */
 
   const handleZoomTouchEnd = (
     e: TouchEvent
   ) => {
-
-    /*
-     * End pinch.
-     */
 
     if (
       pinchStartDistance.current !==
@@ -891,10 +1099,6 @@ export default function QuickViewModal({
 
     }
 
-
-    /*
-     * No swipe started.
-     */
 
     if (
       zoomSwipeStartX.current === null ||
@@ -940,15 +1144,6 @@ export default function QuickViewModal({
     const verticalDistance =
       Math.abs(deltaY);
 
-
-    /*
-     * Only navigate when:
-     *
-     * - There is more than one image
-     * - Zoom is at 100%
-     * - Movement is at least 50px
-     * - Horizontal movement is dominant
-     */
 
     const isHorizontalSwipe =
       images.length > 1 &&
@@ -1083,9 +1278,9 @@ export default function QuickViewModal({
 
       if (
         event.key ===
-        "+" ||
+          "+" ||
         event.key ===
-        "="
+          "="
       ) {
 
         zoomIn();
@@ -1131,6 +1326,12 @@ export default function QuickViewModal({
   /*
    * =========================================================
    * MOBILE SHEET DRAG
+   *
+   * IMPORTANT:
+   * These handlers are attached ONLY to the small
+   * top drag-handle area.
+   *
+   * They are NOT attached to the body/details area.
    * =========================================================
    */
 
@@ -1170,24 +1371,8 @@ export default function QuickViewModal({
     }
 
 
-    const target =
-      e.target as HTMLElement;
-
-
-    if (
-      target.closest("button") ||
-      target.closest("a") ||
-      target.closest("input")
-    ) {
-
-      return;
-
-    }
-
-
     const touch =
       e.touches[0];
-
 
     if (!touch) {
 
@@ -1234,7 +1419,6 @@ export default function QuickViewModal({
     const touch =
       e.touches[0];
 
-
     if (!touch) {
 
       return;
@@ -1252,6 +1436,15 @@ export default function QuickViewModal({
     ) {
 
       return;
+
+    }
+
+
+    if (
+      e.cancelable
+    ) {
+
+      e.preventDefault();
 
     }
 
@@ -2044,7 +2237,9 @@ export default function QuickViewModal({
       }
     >
 
-      {/* MODAL SHEET */}
+      {/* =====================================================
+          MODAL SHEET
+      ====================================================== */}
 
       <div
         ref={
@@ -2053,18 +2248,6 @@ export default function QuickViewModal({
 
         onClick={
           handleSheetClick
-        }
-
-        onTouchStart={
-          handleSheetTouchStart
-        }
-
-        onTouchMove={
-          handleSheetTouchMove
-        }
-
-        onTouchEnd={
-          handleSheetTouchEnd
         }
 
         style={{
@@ -2120,30 +2303,65 @@ export default function QuickViewModal({
         `}
       >
 
-        {/* MOBILE HANDLE */}
+        {/* =================================================
+            MOBILE DRAG HANDLE AREA
+
+            ONLY THIS AREA CAN DRAG THE DRAWER.
+            The product content below will NOT move the
+            drawer when the customer scrolls.
+        ================================================== */}
 
         <div
           className="
             absolute
-            left-1/2
-            top-2.5
-            z-30
+            left-0
+            right-0
+            top-0
+            z-[45]
 
-            h-1
-            w-11
+            flex
+            h-9
 
-            -translate-x-1/2
-
-            rounded-full
-
-            bg-white/20
+            items-start
+            justify-center
 
             sm:hidden
+
+            touch-none
           "
-        />
+
+          onTouchStart={
+            handleSheetTouchStart
+          }
+
+          onTouchMove={
+            handleSheetTouchMove
+          }
+
+          onTouchEnd={
+            handleSheetTouchEnd
+          }
+        >
+
+          <div
+            className="
+              mt-2.5
+
+              h-1
+              w-11
+
+              rounded-full
+
+              bg-white/20
+            "
+          />
+
+        </div>
 
 
-        {/* CLOSE BUTTON */}
+        {/* =================================================
+            CLOSE BUTTON
+        ================================================== */}
 
         <button
           type="button"
@@ -2158,7 +2376,7 @@ export default function QuickViewModal({
             absolute
             right-3
             top-3
-            z-40
+            z-50
 
             flex
             h-9
@@ -2242,6 +2460,23 @@ export default function QuickViewModal({
 
               sm:rounded-2xl
             "
+
+            style={{
+              touchAction:
+                "pan-y",
+            }}
+
+            onTouchStart={
+              handleImageTouchStart
+            }
+
+            onTouchMove={
+              handleImageTouchMove
+            }
+
+            onTouchEnd={
+              handleImageTouchEnd
+            }
           >
 
             {images.length > 0 ? (
@@ -2769,7 +3004,10 @@ export default function QuickViewModal({
 
 
         {/* =================================================
-            DETAILS
+            DETAILS / SCROLLABLE BODY
+
+            THIS IS NOW COMPLETELY SEPARATE FROM THE
+            DRAWER DRAG GESTURE.
         ================================================= */}
 
         <div
@@ -2779,18 +3017,24 @@ export default function QuickViewModal({
             flex-1
 
             overflow-y-auto
+            overflow-x-hidden
 
             overscroll-contain
+
+            touch-pan-y
 
             px-5
 
             pb-[calc(100px+env(safe-area-inset-bottom))]
 
-            pt-1
+            pt-3
 
             sm:px-7
             sm:py-7
             sm:pb-7
+
+            [scrollbar-width:none]
+            [&::-webkit-scrollbar]:hidden
           "
         >
 
