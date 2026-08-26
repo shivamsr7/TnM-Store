@@ -8,7 +8,12 @@ import type {
   TouchEvent,
   TouchList,
   WheelEvent,
+  MouseEvent,
 } from "react";
+
+import {
+  createPortal,
+} from "react-dom";
 
 import {
   ChevronLeft,
@@ -56,17 +61,6 @@ export default function ProductGallery({
    * =========================================================
    * CURRENT PRODUCT ROUTE
    * =========================================================
-   *
-   * Example:
-   *
-   * /product/crystal-drop-mangalsutra
-   *
-   * useParams() gives:
-   *
-   * slug = "crystal-drop-mangalsutra"
-   *
-   * This is more reliable than passing productSlug
-   * from ProductDetails.
    */
 
   const {
@@ -269,14 +263,26 @@ export default function ProductGallery({
       document.body.style.overflow;
 
 
+    const previousOverscroll =
+      document.body.style.overscrollBehavior;
+
+
     document.body.style.overflow =
       "hidden";
+
+
+    document.body.style.overscrollBehavior =
+      "none";
 
 
     return () => {
 
       document.body.style.overflow =
         previousOverflow;
+
+
+      document.body.style.overscrollBehavior =
+        previousOverscroll;
 
     };
 
@@ -777,37 +783,15 @@ export default function ProductGallery({
    */
 
   const handleShare = async (
-    e: React.MouseEvent<HTMLButtonElement>
+    e: MouseEvent<HTMLButtonElement>
   ) => {
 
     e.stopPropagation();
 
 
-    /*
-     * IMPORTANT:
-     *
-     * Use the current route slug.
-     *
-     * If the page is:
-     *
-     * /product/crystal-drop-mangalsutra
-     *
-     * slug will be:
-     *
-     * crystal-drop-mangalsutra
-     */
-
     const currentSlug =
       slug?.trim();
 
-
-    /*
-     * Extra fallback:
-     *
-     * If for any reason React Router doesn't
-     * provide the slug, take it directly from
-     * the current pathname.
-     */
 
     const pathname =
       window.location.pathname;
@@ -830,14 +814,6 @@ export default function ProductGallery({
       currentSlug ||
       pathnameSlug;
 
-
-    /*
-     * Safety check.
-     *
-     * We NEVER want:
-     *
-     * /product/undefined
-     */
 
     if (
       !finalSlug ||
@@ -876,14 +852,6 @@ export default function ProductGallery({
 
     try {
 
-      /*
-       * =====================================================
-       * MOBILE / SUPPORTED BROWSERS
-       * =====================================================
-       *
-       * Opens the native share sheet.
-       */
-
       if (
         typeof navigator.share ===
         "function"
@@ -897,14 +865,6 @@ export default function ProductGallery({
 
       }
 
-
-      /*
-       * =====================================================
-       * DESKTOP FALLBACK
-       * =====================================================
-       *
-       * Copy product URL.
-       */
 
       if (
         navigator.clipboard &&
@@ -965,10 +925,6 @@ export default function ProductGallery({
       }
 
 
-      /*
-       * Show copied state.
-       */
-
       setShareStatus(
         "copied"
       );
@@ -987,11 +943,6 @@ export default function ProductGallery({
     catch (
       error
     ) {
-
-      /*
-       * User closing the native share
-       * sheet is completely normal.
-       */
 
       if (
         error instanceof DOMException &&
@@ -1133,9 +1084,7 @@ export default function ProductGallery({
     return (
 
       <section
-        className="
-          w-full
-        "
+        className="w-full"
       >
 
         <div
@@ -1167,9 +1116,502 @@ export default function ProductGallery({
 
   /*
    * =========================================================
-   * RENDER
+   * FULLSCREEN ZOOM VIEWER
+   *
+   * IMPORTANT:
+   *
+   * This is rendered into document.body.
+   * It is NOT rendered inside ProductGallery.
    * =========================================================
    */
+
+  const zoomViewer = zoomOpen && (
+
+    <div
+
+      className="
+        fixed
+        inset-0
+        z-[2147483647]
+        flex
+        h-[100dvh]
+        w-[100vw]
+        items-center
+        justify-center
+        overflow-hidden
+        bg-black
+        touch-none
+      "
+
+      style={{
+        isolation: "isolate",
+      }}
+
+      onClick={
+        closeZoom
+      }
+
+      onTouchStart={
+        handleZoomTouchStart
+      }
+
+      onTouchMove={
+        handleZoomTouchMove
+      }
+
+      onTouchEnd={
+        handleZoomTouchEnd
+      }
+
+      onWheel={
+        handleZoomWheel
+      }
+
+    >
+
+      {/* =====================================================
+          TOP CONTROLS
+      ====================================================== */}
+
+      <div
+
+        className="
+          absolute
+          left-0
+          right-0
+          top-0
+          z-30
+          flex
+          items-center
+          justify-between
+          px-4
+          pb-4
+          pt-[max(16px,env(safe-area-inset-top))]
+          sm:px-6
+        "
+
+      >
+
+        <div
+          className="
+            rounded-full
+            bg-white/10
+            px-3
+            py-1.5
+            text-xs
+            text-white
+            backdrop-blur-md
+          "
+        >
+
+          {activeImage + 1}
+
+          {" / "}
+
+          {imageList.length}
+
+        </div>
+
+
+        <div
+          className="
+            flex
+            items-center
+            gap-2
+          "
+        >
+
+          <button
+
+            type="button"
+
+            onClick={(
+              e
+            ) => {
+
+              e.stopPropagation();
+
+              zoomOut();
+
+            }}
+
+            aria-label="Zoom out"
+
+            className="
+              flex
+              h-10
+              w-10
+              items-center
+              justify-center
+              rounded-full
+              bg-white/10
+              text-white
+              backdrop-blur-md
+              transition
+              hover:bg-[#D4AF37]
+              hover:text-black
+              active:scale-95
+            "
+
+          >
+
+            <ZoomOut
+              size={18}
+            />
+
+          </button>
+
+
+          <button
+
+            type="button"
+
+            onClick={(
+              e
+            ) => {
+
+              e.stopPropagation();
+
+              resetZoom();
+
+            }}
+
+            aria-label="Reset zoom"
+
+            className="
+              flex
+              h-10
+              w-10
+              items-center
+              justify-center
+              rounded-full
+              bg-white/10
+              text-white
+              backdrop-blur-md
+              transition
+              hover:bg-[#D4AF37]
+              hover:text-black
+              active:scale-95
+            "
+
+          >
+
+            <RotateCcw
+              size={18}
+            />
+
+          </button>
+
+
+          <button
+
+            type="button"
+
+            onClick={(
+              e
+            ) => {
+
+              e.stopPropagation();
+
+              zoomIn();
+
+            }}
+
+            aria-label="Zoom in"
+
+            className="
+              flex
+              h-10
+              w-10
+              items-center
+              justify-center
+              rounded-full
+              bg-white/10
+              text-white
+              backdrop-blur-md
+              transition
+              hover:bg-[#D4AF37]
+              hover:text-black
+              active:scale-95
+            "
+
+          >
+
+            <ZoomIn
+              size={18}
+            />
+
+          </button>
+
+
+          <button
+
+            type="button"
+
+            onClick={(
+              e
+            ) => {
+
+              e.stopPropagation();
+
+              closeZoom();
+
+            }}
+
+            aria-label="Close zoom"
+
+            className="
+              flex
+              h-10
+              w-10
+              items-center
+              justify-center
+              rounded-full
+              bg-white/10
+              text-white
+              backdrop-blur-md
+              transition
+              hover:bg-[#D4AF37]
+              hover:text-black
+              active:scale-95
+            "
+
+          >
+
+            <X
+              size={20}
+            />
+
+          </button>
+
+        </div>
+
+      </div>
+
+
+      {/* =====================================================
+          IMAGE AREA
+      ====================================================== */}
+
+      <div
+
+        className="
+          flex
+          h-[100dvh]
+          w-full
+          items-center
+          justify-center
+          overflow-hidden
+          px-4
+          pb-[max(72px,env(safe-area-inset-bottom))]
+          pt-[90px]
+          sm:px-16
+        "
+
+        onClick={(
+          e
+        ) =>
+          e.stopPropagation()
+        }
+
+      >
+
+        <img
+
+          src={
+            imageList[activeImage]
+              .image_url
+          }
+
+          alt={
+            productName
+          }
+
+          draggable={
+            false
+          }
+
+          className="
+            block
+            max-h-full
+            max-w-full
+            select-none
+            object-contain
+            transition-transform
+            duration-200
+            ease-out
+          "
+
+          style={{
+            transform: `
+              translate(
+                ${zoomX}px,
+                ${zoomY}px
+              )
+              scale(
+                ${zoomLevel}
+              )
+            `,
+
+            WebkitUserSelect:
+              "none",
+
+            WebkitTouchCallout:
+              "none",
+
+          }}
+
+        />
+
+      </div>
+
+
+      {/* =====================================================
+          PREVIOUS
+      ====================================================== */}
+
+      {imageList.length > 1 && (
+
+        <button
+
+          type="button"
+
+          onClick={(
+            e
+          ) => {
+
+            e.stopPropagation();
+
+            previousImage();
+
+            resetZoom();
+
+          }}
+
+          aria-label="Previous image"
+
+          className="
+            absolute
+            left-3
+            top-1/2
+            z-40
+            flex
+            h-11
+            w-11
+            -translate-y-1/2
+            items-center
+            justify-center
+            rounded-full
+            bg-white/10
+            text-white
+            backdrop-blur-md
+            transition
+            hover:bg-[#D4AF37]
+            hover:text-black
+            active:scale-95
+            sm:left-5
+          "
+
+        >
+
+          <ChevronLeft
+            size={22}
+          />
+
+        </button>
+
+      )}
+
+
+      {/* =====================================================
+          NEXT
+      ====================================================== */}
+
+      {imageList.length > 1 && (
+
+        <button
+
+          type="button"
+
+          onClick={(
+            e
+          ) => {
+
+            e.stopPropagation();
+
+            nextImage();
+
+            resetZoom();
+
+          }}
+
+          aria-label="Next image"
+
+          className="
+            absolute
+            right-3
+            top-1/2
+            z-40
+            flex
+            h-11
+            w-11
+            -translate-y-1/2
+            items-center
+            justify-center
+            rounded-full
+            bg-white/10
+            text-white
+            backdrop-blur-md
+            transition
+            hover:bg-[#D4AF37]
+            hover:text-black
+            active:scale-95
+            sm:right-5
+          "
+
+        >
+
+          <ChevronRight
+            size={22}
+          />
+
+        </button>
+
+      )}
+
+
+      {/* =====================================================
+          MOBILE HINT
+      ====================================================== */}
+
+      <div
+
+        className="
+          absolute
+          bottom-[max(16px,env(safe-area-inset-bottom))]
+          left-1/2
+          z-30
+          -translate-x-1/2
+          rounded-full
+          bg-black/60
+          px-4
+          py-2
+          text-[10px]
+          text-white/70
+          backdrop-blur-md
+          sm:hidden
+        "
+
+      >
+
+        Pinch or use + / − to zoom
+
+      </div>
+
+    </div>
+
+  );
+
 
   return (
 
@@ -1180,7 +1622,7 @@ export default function ProductGallery({
     >
 
       {/* =====================================================
-          MAIN 4:5 IMAGE
+          MAIN IMAGE
       ====================================================== */}
 
       <div
@@ -1199,8 +1641,8 @@ export default function ProductGallery({
 
         className="
           relative
-          w-full
           aspect-[4/5]
+          w-full
           overflow-hidden
           rounded-3xl
           bg-neutral-900
@@ -1229,7 +1671,6 @@ export default function ProductGallery({
 
             h-full
             w-full
-
             object-contain
 
             transition-all
@@ -1304,7 +1745,7 @@ export default function ProductGallery({
 
 
         {/* =================================================
-            ZOOM BUTTON
+            ZOOM
         ================================================== */}
 
         <button
@@ -1353,7 +1794,7 @@ export default function ProductGallery({
 
 
         {/* =================================================
-            SHARE BUTTON
+            SHARE
         ================================================== */}
 
         <button
@@ -1720,471 +2161,15 @@ export default function ProductGallery({
 
 
       {/* =====================================================
-          FULLSCREEN ZOOM VIEWER
+          PORTAL ZOOM VIEWER
       ====================================================== */}
 
-      {zoomOpen && (
-
-        <div
-
-          className="
-            fixed
-            inset-0
-            z-[9999]
-            flex
-            items-center
-            justify-center
-            bg-black/95
-            backdrop-blur-sm
-          "
-
-          onClick={
-            closeZoom
-          }
-
-          onTouchStart={
-            handleZoomTouchStart
-          }
-
-          onTouchMove={
-            handleZoomTouchMove
-          }
-
-          onTouchEnd={
-            handleZoomTouchEnd
-          }
-
-          onWheel={
-            handleZoomWheel
-          }
-
-        >
-
-          {/* =================================================
-              TOP CONTROLS
-          ================================================== */}
-
-          <div
-
-            className="
-              absolute
-              left-0
-              right-0
-              top-0
-              z-20
-              flex
-              items-center
-              justify-between
-              px-4
-              py-4
-              sm:px-6
-            "
-
-          >
-
-            <div
-              className="
-                rounded-full
-                bg-white/10
-                px-3
-                py-1.5
-                text-xs
-                text-white
-                backdrop-blur-md
-              "
-            >
-
-              {activeImage + 1}
-
-              {" / "}
-
-              {imageList.length}
-
-            </div>
-
-
-            <div
-              className="
-                flex
-                items-center
-                gap-2
-              "
-            >
-
-              <button
-
-                type="button"
-
-                onClick={(
-                  e
-                ) => {
-
-                  e.stopPropagation();
-
-                  zoomOut();
-
-                }}
-
-                aria-label="Zoom out"
-
-                className="
-                  flex
-                  h-10
-                  w-10
-                  items-center
-                  justify-center
-                  rounded-full
-                  bg-white/10
-                  text-white
-                  backdrop-blur-md
-                  transition
-                  hover:bg-[#D4AF37]
-                  hover:text-black
-                "
-
-              >
-
-                <ZoomOut
-                  size={18}
-                />
-
-              </button>
-
-
-              <button
-
-                type="button"
-
-                onClick={(
-                  e
-                ) => {
-
-                  e.stopPropagation();
-
-                  resetZoom();
-
-                }}
-
-                aria-label="Reset zoom"
-
-                className="
-                  flex
-                  h-10
-                  w-10
-                  items-center
-                  justify-center
-                  rounded-full
-                  bg-white/10
-                  text-white
-                  backdrop-blur-md
-                  transition
-                  hover:bg-[#D4AF37]
-                  hover:text-black
-                "
-
-              >
-
-                <RotateCcw
-                  size={18}
-                />
-
-              </button>
-
-
-              <button
-
-                type="button"
-
-                onClick={(
-                  e
-                ) => {
-
-                  e.stopPropagation();
-
-                  zoomIn();
-
-                }}
-
-                aria-label="Zoom in"
-
-                className="
-                  flex
-                  h-10
-                  w-10
-                  items-center
-                  justify-center
-                  rounded-full
-                  bg-white/10
-                  text-white
-                  backdrop-blur-md
-                  transition
-                  hover:bg-[#D4AF37]
-                  hover:text-black
-                "
-
-              >
-
-                <ZoomIn
-                  size={18}
-                />
-
-              </button>
-
-
-              <button
-
-                type="button"
-
-                onClick={(
-                  e
-                ) => {
-
-                  e.stopPropagation();
-
-                  closeZoom();
-
-                }}
-
-                aria-label="Close zoom"
-
-                className="
-                  flex
-                  h-10
-                  w-10
-                  items-center
-                  justify-center
-                  rounded-full
-                  bg-white/10
-                  text-white
-                  backdrop-blur-md
-                  transition
-                  hover:bg-[#D4AF37]
-                  hover:text-black
-                "
-
-              >
-
-                <X
-                  size={20}
-                />
-
-              </button>
-
-            </div>
-
-          </div>
-
-
-          {/* =================================================
-              ZOOMED IMAGE
-          ================================================== */}
-
-          <div
-
-            className="
-              flex
-              h-full
-              w-full
-              items-center
-              justify-center
-              overflow-hidden
-              px-4
-              py-20
-              sm:px-16
-            "
-
-            onClick={(
-              e
-            ) =>
-              e.stopPropagation()
-            }
-
-          >
-
-            <img
-
-              src={
-                imageList[activeImage]
-                  .image_url
-              }
-
-              alt={
-                productName
-              }
-
-              draggable={
-                false
-              }
-
-              className="
-                max-h-full
-                max-w-full
-                select-none
-                object-contain
-                transition-transform
-                duration-200
-                ease-out
-              "
-
-              style={{
-                transform: `
-                  translate(
-                    ${zoomX}px,
-                    ${zoomY}px
-                  )
-                  scale(
-                    ${zoomLevel}
-                  )
-                `,
-              }}
-
-            />
-
-          </div>
-
-
-          {/* =================================================
-              PREVIOUS
-          ================================================== */}
-
-          {imageList.length > 1 && (
-
-            <button
-
-              type="button"
-
-              onClick={(
-                e
-              ) => {
-
-                e.stopPropagation();
-
-                previousImage();
-
-                resetZoom();
-
-              }}
-
-              aria-label="Previous image"
-
-              className="
-                absolute
-                left-3
-                top-1/2
-                z-20
-                flex
-                h-11
-                w-11
-                -translate-y-1/2
-                items-center
-                justify-center
-                rounded-full
-                bg-white/10
-                text-white
-                backdrop-blur-md
-                transition
-                hover:bg-[#D4AF37]
-                hover:text-black
-                sm:left-5
-              "
-
-            >
-
-              <ChevronLeft
-                size={22}
-              />
-
-            </button>
-
-          )}
-
-
-          {/* =================================================
-              NEXT
-          ================================================== */}
-
-          {imageList.length > 1 && (
-
-            <button
-
-              type="button"
-
-              onClick={(
-                e
-              ) => {
-
-                e.stopPropagation();
-
-                nextImage();
-
-                resetZoom();
-
-              }}
-
-              aria-label="Next image"
-
-              className="
-                absolute
-                right-3
-                top-1/2
-                z-20
-                flex
-                h-11
-                w-11
-                -translate-y-1/2
-                items-center
-                justify-center
-                rounded-full
-                bg-white/10
-                text-white
-                backdrop-blur-md
-                transition
-                hover:bg-[#D4AF37]
-                hover:text-black
-                sm:right-5
-              "
-
-            >
-
-              <ChevronRight
-                size={22}
-              />
-
-            </button>
-
-          )}
-
-
-          {/* =================================================
-              MOBILE HINT
-          ================================================== */}
-
-          <div
-
-            className="
-              absolute
-              bottom-5
-              left-1/2
-              -translate-x-1/2
-              rounded-full
-              bg-black/50
-              px-4
-              py-2
-              text-[10px]
-              text-white/70
-              backdrop-blur-md
-              sm:hidden
-            "
-
-          >
-
-            Pinch or use + / − to zoom
-
-          </div>
-
-        </div>
-
-      )}
+      {typeof document !== "undefined" &&
+        zoomViewer &&
+        createPortal(
+          zoomViewer,
+          document.body
+        )}
 
     </section>
 
