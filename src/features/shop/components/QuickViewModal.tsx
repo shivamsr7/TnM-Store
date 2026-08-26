@@ -5,20 +5,24 @@ import {
   useState,
 } from "react";
 
-import {
-  createPortal,
-} from "react-dom";
+import { createPortal } from "react-dom";
 
 import {
   X,
   Star,
   ChevronLeft,
   ChevronRight,
-  Coins,
-  ShieldCheck,
-  Sparkles,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
   ShoppingBag,
 } from "lucide-react";
+
+import type {
+  TouchEvent,
+  TouchList,
+  WheelEvent,
+} from "react";
 
 import type {
   Product,
@@ -30,36 +34,24 @@ import {
 
 
 interface QuickViewModalProps {
-
   product: Product & {
-
     product_images?: {
-
       image_url: string;
-
       sort_order: number;
-
     }[];
-
   };
 
   open: boolean;
 
   onClose: () => void;
-
 }
 
 
 export default function QuickViewModal({
-
   product,
-
   open,
-
   onClose,
-
 }: QuickViewModalProps) {
-
 
   /*
    * =========================================================
@@ -92,30 +84,64 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
+   * ZOOM STATE
+   * =========================================================
+   */
+
+  const [
+    zoomOpen,
+    setZoomOpen,
+  ] = useState(false);
+
+
+  const [
+    zoomLevel,
+    setZoomLevel,
+  ] = useState(1);
+
+
+  const [
+    zoomX,
+    setZoomX,
+  ] = useState(0);
+
+
+  const [
+    zoomY,
+    setZoomY,
+  ] = useState(0);
+
+
+  /*
+   * =========================================================
+   * PINCH STATE
+   * =========================================================
+   */
+
+  const pinchStartDistance =
+    useRef<number | null>(null);
+
+  const pinchStartZoom =
+    useRef(1);
+
+
+  /*
+   * =========================================================
    * MOBILE DRAG REFS
    * =========================================================
    */
 
   const dragStartRef =
-    useRef<number | null>(
-      null
-    );
-
+    useRef<number | null>(null);
 
   const dragYRef =
     useRef(0);
 
-
   const sheetRef =
-    useRef<HTMLDivElement | null>(
-      null
-    );
-
+    useRef<HTMLDivElement | null>(null);
 
   const closeTimerRef =
-    useRef<number | null>(
-      null
-    );
+    useRef<number | null>(null);
 
 
   /*
@@ -124,25 +150,24 @@ export default function QuickViewModal({
    * =========================================================
    */
 
-  const images =
-    useMemo(() => {
+  const images = useMemo(() => {
 
-      return [
-        ...(product.product_images ?? []),
-      ]
-        .sort(
-          (a, b) =>
-            a.sort_order -
-            b.sort_order
-        )
-        .map(
-          (item) =>
-            item.image_url
-        );
+    return [
+      ...(product.product_images ?? []),
+    ]
+      .sort(
+        (a, b) =>
+          a.sort_order -
+          b.sort_order
+      )
+      .map(
+        (item) =>
+          item.image_url
+      );
 
-    }, [
-      product.product_images,
-    ]);
+  }, [
+    product.product_images,
+  ]);
 
 
   /*
@@ -152,7 +177,6 @@ export default function QuickViewModal({
    */
 
   const discount =
-
     product.compare_price &&
     product.compare_price >
       product.price
@@ -178,7 +202,6 @@ export default function QuickViewModal({
    */
 
   const isOutOfStock =
-
     Boolean(
       product.track_inventory &&
       product.stock <= 0 &&
@@ -221,10 +244,17 @@ export default function QuickViewModal({
 
       setActiveImage(0);
 
+      setZoomOpen(false);
+
+      setZoomLevel(1);
+
+      setZoomX(0);
+
+      setZoomY(0);
+
 
       dragStartRef.current =
         null;
-
 
       dragYRef.current =
         0;
@@ -262,14 +292,19 @@ export default function QuickViewModal({
 
     setShow(false);
 
+    setZoomOpen(false);
+
+    setZoomLevel(1);
+
+    setZoomX(0);
+
+    setZoomY(0);
 
     dragStartRef.current =
       null;
 
-
     dragYRef.current =
       0;
-
 
     document.body.style.overflow =
       "";
@@ -308,7 +343,6 @@ export default function QuickViewModal({
 
       }
 
-
       document.body.style.overflow =
         "";
 
@@ -332,7 +366,6 @@ export default function QuickViewModal({
       return;
 
     }
-
 
     addToCart(
       product
@@ -361,7 +394,6 @@ export default function QuickViewModal({
 
     }
 
-
     setActiveImage(
       index
     );
@@ -385,14 +417,11 @@ export default function QuickViewModal({
 
     }
 
-
     setActiveImage(
       (current) =>
         current ===
           images.length - 1
-
           ? 0
-
           : current + 1
     );
 
@@ -415,13 +444,10 @@ export default function QuickViewModal({
 
     }
 
-
     setActiveImage(
       (current) =>
         current === 0
-
           ? images.length - 1
-
           : current - 1
     );
 
@@ -430,7 +456,416 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * MOBILE DRAG TRANSFORM
+   * RESET ZOOM
+   * =========================================================
+   */
+
+  const resetZoom = () => {
+
+    setZoomLevel(1);
+
+    setZoomX(0);
+
+    setZoomY(0);
+
+  };
+
+
+  /*
+   * =========================================================
+   * OPEN ZOOM
+   * =========================================================
+   */
+
+  const openZoom = () => {
+
+    resetZoom();
+
+    setZoomOpen(true);
+
+  };
+
+
+  /*
+   * =========================================================
+   * CLOSE ZOOM
+   * =========================================================
+   */
+
+  const closeZoom = () => {
+
+    resetZoom();
+
+    setZoomOpen(false);
+
+  };
+
+
+  /*
+   * =========================================================
+   * ZOOM IN
+   * =========================================================
+   */
+
+  const zoomIn = () => {
+
+    setZoomLevel(
+      (current) =>
+        Math.min(
+          current + 0.5,
+          3
+        )
+    );
+
+  };
+
+
+  /*
+   * =========================================================
+   * ZOOM OUT
+   * =========================================================
+   */
+
+  const zoomOut = () => {
+
+    setZoomLevel(
+      (current) => {
+
+        const next =
+          Math.max(
+            current - 0.5,
+            1
+          );
+
+
+        if (
+          next === 1
+        ) {
+
+          setZoomX(0);
+
+          setZoomY(0);
+
+        }
+
+
+        return next;
+
+      }
+    );
+
+  };
+
+
+  /*
+   * =========================================================
+   * TOUCH DISTANCE
+   * =========================================================
+   */
+
+  const getTouchDistance = (
+    touches: TouchList
+  ) => {
+
+    if (
+      touches.length < 2
+    ) {
+
+      return 0;
+
+    }
+
+
+    const first =
+      touches[0];
+
+    const second =
+      touches[1];
+
+
+    if (
+      !first ||
+      !second
+    ) {
+
+      return 0;
+
+    }
+
+
+    const dx =
+      first.clientX -
+      second.clientX;
+
+    const dy =
+      first.clientY -
+      second.clientY;
+
+
+    return Math.sqrt(
+      dx * dx +
+      dy * dy
+    );
+
+  };
+
+
+  /*
+   * =========================================================
+   * ZOOM TOUCH START
+   * =========================================================
+   */
+
+  const handleZoomTouchStart = (
+    e: TouchEvent
+  ) => {
+
+    if (
+      e.touches.length !== 2
+    ) {
+
+      return;
+
+    }
+
+
+    pinchStartDistance.current =
+      getTouchDistance(
+        e.touches
+      );
+
+    pinchStartZoom.current =
+      zoomLevel;
+
+  };
+
+
+  /*
+   * =========================================================
+   * ZOOM TOUCH MOVE
+   * =========================================================
+   */
+
+  const handleZoomTouchMove = (
+    e: TouchEvent
+  ) => {
+
+    if (
+      e.touches.length !== 2
+    ) {
+
+      return;
+
+    }
+
+
+    if (
+      pinchStartDistance.current ===
+      null
+    ) {
+
+      return;
+
+    }
+
+
+    const currentDistance =
+      getTouchDistance(
+        e.touches
+      );
+
+
+    if (
+      currentDistance <= 0
+    ) {
+
+      return;
+
+    }
+
+
+    const ratio =
+      currentDistance /
+      pinchStartDistance.current;
+
+
+    const nextZoom =
+      Math.min(
+        Math.max(
+          pinchStartZoom.current *
+            ratio,
+          1
+        ),
+        3
+      );
+
+
+    setZoomLevel(
+      nextZoom
+    );
+
+
+    if (
+      e.cancelable
+    ) {
+
+      e.preventDefault();
+
+    }
+
+  };
+
+
+  /*
+   * =========================================================
+   * ZOOM TOUCH END
+   * =========================================================
+   */
+
+  const handleZoomTouchEnd = () => {
+
+    pinchStartDistance.current =
+      null;
+
+  };
+
+
+  /*
+   * =========================================================
+   * ZOOM WHEEL
+   * =========================================================
+   */
+
+  const handleZoomWheel = (
+    e: WheelEvent
+  ) => {
+
+    e.preventDefault();
+
+
+    if (
+      e.deltaY < 0
+    ) {
+
+      zoomIn();
+
+    } else {
+
+      zoomOut();
+
+    }
+
+  };
+
+
+  /*
+   * =========================================================
+   * ZOOM KEYBOARD
+   * =========================================================
+   */
+
+  useEffect(() => {
+
+    if (
+      !zoomOpen
+    ) {
+
+      return;
+
+    }
+
+
+    const handleKeyDown = (
+      event: KeyboardEvent
+    ) => {
+
+      if (
+        event.key ===
+        "Escape"
+      ) {
+
+        closeZoom();
+
+        return;
+
+      }
+
+
+      if (
+        event.key ===
+        "ArrowRight"
+      ) {
+
+        nextImage();
+
+        resetZoom();
+
+        return;
+
+      }
+
+
+      if (
+        event.key ===
+        "ArrowLeft"
+      ) {
+
+        previousImage();
+
+        resetZoom();
+
+        return;
+
+      }
+
+
+      if (
+        event.key === "+" ||
+        event.key === "="
+      ) {
+
+        zoomIn();
+
+        return;
+
+      }
+
+
+      if (
+        event.key === "-"
+      ) {
+
+        zoomOut();
+
+      }
+
+    };
+
+
+    window.addEventListener(
+      "keydown",
+      handleKeyDown
+    );
+
+
+    return () => {
+
+      window.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
+
+    };
+
+  }, [
+    zoomOpen,
+    activeImage,
+  ]);
+
+
+  /*
+   * =========================================================
+   * MOBILE SHEET DRAG
    * =========================================================
    */
 
@@ -456,12 +891,6 @@ export default function QuickViewModal({
 
   };
 
-
-  /*
-   * =========================================================
-   * MOBILE SWIPE START
-   * =========================================================
-   */
 
   const handleSheetTouchStart = (
     e: React.TouchEvent
@@ -505,7 +934,6 @@ export default function QuickViewModal({
     dragStartRef.current =
       touch.clientY;
 
-
     dragYRef.current =
       0;
 
@@ -523,12 +951,6 @@ export default function QuickViewModal({
 
   };
 
-
-  /*
-   * =========================================================
-   * MOBILE SWIPE MOVE
-   * =========================================================
-   */
 
   const handleSheetTouchMove = (
     e: React.TouchEvent
@@ -571,9 +993,7 @@ export default function QuickViewModal({
 
     const resistance =
       distance < 120
-
         ? distance
-
         : 120 +
           (
             (distance - 120) *
@@ -598,12 +1018,6 @@ export default function QuickViewModal({
 
   };
 
-
-  /*
-   * =========================================================
-   * MOBILE SWIPE END
-   * =========================================================
-   */
 
   const handleSheetTouchEnd = () => {
 
@@ -695,6 +1109,605 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
+   * ZOOM VIEWER
+   * =========================================================
+   */
+
+  const zoomViewer =
+    zoomOpen &&
+    images.length > 0
+      ? (
+
+        <div
+          className="
+            fixed
+            inset-0
+            z-[10000]
+
+            flex
+            items-center
+            justify-center
+
+            bg-black/95
+
+            backdrop-blur-sm
+          "
+
+          style={{
+            height: "100dvh",
+            touchAction: "none",
+          }}
+
+          onClick={
+            closeZoom
+          }
+
+          onTouchStart={
+            handleZoomTouchStart
+          }
+
+          onTouchMove={
+            handleZoomTouchMove
+          }
+
+          onTouchEnd={
+            handleZoomTouchEnd
+          }
+
+          onWheel={
+            handleZoomWheel
+          }
+
+          role="dialog"
+
+          aria-modal="true"
+
+          aria-label={
+            `Zoomed image of ${product.name}`
+          }
+        >
+
+          {/* TOP BAR */}
+
+          <div
+            className="
+              absolute
+              left-0
+              right-0
+              top-0
+              z-30
+
+              flex
+              items-center
+              justify-between
+
+              px-4
+              py-4
+
+              sm:px-6
+              sm:py-5
+            "
+          >
+
+            <div
+              className="
+                rounded-full
+
+                bg-black/50
+
+                px-3
+                py-1.5
+
+                text-xs
+
+                text-white
+              "
+            >
+
+              {activeImage + 1}
+              {" / "}
+              {images.length}
+
+            </div>
+
+
+            <button
+              type="button"
+
+              onClick={(e) => {
+
+                e.stopPropagation();
+
+                closeZoom();
+
+              }}
+
+              aria-label="Close image viewer"
+
+              className="
+                flex
+                h-10
+                w-10
+
+                items-center
+                justify-center
+
+                rounded-full
+
+                border
+                border-white/10
+
+                bg-black/60
+
+                text-white
+
+                transition
+
+                hover:bg-[#D4AF37]
+                hover:text-black
+
+                active:scale-95
+              "
+            >
+
+              <X
+                size={19}
+              />
+
+            </button>
+
+          </div>
+
+
+          {/* IMAGE */}
+
+          <div
+            className="
+              relative
+
+              flex
+              h-full
+              w-full
+
+              items-center
+              justify-center
+
+              overflow-hidden
+
+              px-4
+              py-20
+
+              sm:px-20
+              sm:py-24
+            "
+          >
+
+            <img
+              key={
+                images[activeImage]
+              }
+
+              src={
+                images[activeImage]
+              }
+
+              alt={
+                `${product.name} enlarged`
+              }
+
+              draggable={false}
+
+              onClick={(e) =>
+                e.stopPropagation()
+              }
+
+              className="
+                max-h-full
+                max-w-full
+
+                select-none
+
+                object-contain
+
+                transition-transform
+                duration-150
+                ease-out
+              "
+
+              style={{
+                transform:
+                  `translate3d(${zoomX}px, ${zoomY}px, 0) scale(${zoomLevel})`,
+
+                transformOrigin:
+                  "center center",
+              }}
+            />
+
+          </div>
+
+
+          {/* PREVIOUS */}
+
+          {images.length > 1 && (
+
+            <button
+              type="button"
+
+              onClick={(e) => {
+
+                e.stopPropagation();
+
+                previousImage();
+
+                resetZoom();
+
+              }}
+
+              aria-label="Previous image"
+
+              className="
+                absolute
+                left-3
+                top-1/2
+                z-30
+
+                hidden
+
+                h-11
+                w-11
+
+                -translate-y-1/2
+
+                items-center
+                justify-center
+
+                rounded-full
+
+                bg-black/60
+
+                text-white
+
+                transition
+
+                hover:bg-[#D4AF37]
+                hover:text-black
+
+                sm:flex
+              "
+            >
+
+              <ChevronLeft
+                size={22}
+              />
+
+            </button>
+
+          )}
+
+
+          {/* NEXT */}
+
+          {images.length > 1 && (
+
+            <button
+              type="button"
+
+              onClick={(e) => {
+
+                e.stopPropagation();
+
+                nextImage();
+
+                resetZoom();
+
+              }}
+
+              aria-label="Next image"
+
+              className="
+                absolute
+                right-3
+                top-1/2
+                z-30
+
+                hidden
+
+                h-11
+                w-11
+
+                -translate-y-1/2
+
+                items-center
+                justify-center
+
+                rounded-full
+
+                bg-black/60
+
+                text-white
+
+                transition
+
+                hover:bg-[#D4AF37]
+                hover:text-black
+
+                sm:flex
+              "
+            >
+
+              <ChevronRight
+                size={22}
+              />
+
+            </button>
+
+          )}
+
+
+          {/* ZOOM CONTROLS */}
+
+          <div
+            className="
+              absolute
+
+              bottom-5
+              left-1/2
+
+              z-30
+
+              flex
+
+              -translate-x-1/2
+
+              items-center
+              gap-1.5
+
+              rounded-full
+
+              border
+              border-white/10
+
+              bg-black/70
+
+              p-1.5
+
+              shadow-xl
+            "
+          >
+
+            <button
+              type="button"
+
+              onClick={(e) => {
+
+                e.stopPropagation();
+
+                zoomOut();
+
+              }}
+
+              disabled={
+                zoomLevel <= 1
+              }
+
+              aria-label="Zoom out"
+
+              className="
+                flex
+                h-9
+                w-9
+
+                items-center
+                justify-center
+
+                rounded-full
+
+                text-white
+
+                transition
+
+                hover:bg-white/10
+
+                disabled:cursor-not-allowed
+                disabled:opacity-30
+              "
+            >
+
+              <ZoomOut
+                size={18}
+              />
+
+            </button>
+
+
+            <button
+              type="button"
+
+              onClick={(e) => {
+
+                e.stopPropagation();
+
+                resetZoom();
+
+              }}
+
+              aria-label="Reset zoom"
+
+              className="
+                flex
+                h-9
+                w-9
+
+                items-center
+                justify-center
+
+                rounded-full
+
+                text-white
+
+                transition
+
+                hover:bg-white/10
+              "
+            >
+
+              <RotateCcw
+                size={17}
+              />
+
+            </button>
+
+
+            <span
+              className="
+                min-w-[42px]
+
+                text-center
+
+                text-xs
+                font-medium
+
+                text-white
+              "
+            >
+
+              {Math.round(
+                zoomLevel * 100
+              )}%
+
+            </span>
+
+
+            <button
+              type="button"
+
+              onClick={(e) => {
+
+                e.stopPropagation();
+
+                zoomIn();
+
+              }}
+
+              disabled={
+                zoomLevel >= 3
+              }
+
+              aria-label="Zoom in"
+
+              className="
+                flex
+                h-9
+                w-9
+
+                items-center
+                justify-center
+
+                rounded-full
+
+                text-white
+
+                transition
+
+                hover:bg-white/10
+
+                disabled:cursor-not-allowed
+                disabled:opacity-30
+              "
+            >
+
+              <ZoomIn
+                size={18}
+              />
+
+            </button>
+
+          </div>
+
+
+          {/* MOBILE IMAGE NAVIGATION */}
+
+          {images.length > 1 && (
+
+            <div
+              className="
+                absolute
+                bottom-20
+                left-1/2
+
+                z-30
+
+                flex
+
+                -translate-x-1/2
+
+                gap-1.5
+
+                sm:hidden
+              "
+            >
+
+              {images.map(
+                (
+                  image,
+                  index
+                ) => (
+
+                  <button
+                    key={
+                      `${image}-zoom-${index}`
+                    }
+
+                    type="button"
+
+                    onClick={(e) => {
+
+                      e.stopPropagation();
+
+                      changeImage(
+                        index
+                      );
+
+                      resetZoom();
+
+                    }}
+
+                    aria-label={
+                      `View image ${index + 1}`
+                    }
+
+                    className={`
+                      h-1.5
+                      rounded-full
+
+                      transition-all
+
+                      ${
+                        activeImage ===
+                        index
+
+                          ? "w-5 bg-[#D4AF37]"
+
+                          : "w-1.5 bg-white/40"
+                      }
+                    `}
+                  />
+
+                )
+              )}
+
+            </div>
+
+          )}
+
+        </div>
+
+      )
+      : null;
+
+
+  /*
+   * =========================================================
    * DON'T RENDER WHEN CLOSED
    * =========================================================
    */
@@ -721,9 +1734,11 @@ export default function QuickViewModal({
         fixed
         inset-0
         z-[999]
+
         flex
         items-end
         justify-center
+
         bg-black/75
         p-0
 
@@ -748,9 +1763,7 @@ export default function QuickViewModal({
       }
     >
 
-      {/* ===================================================
-          MODAL SHEET
-      ==================================================== */}
+      {/* MODAL SHEET */}
 
       <div
         ref={
@@ -783,12 +1796,15 @@ export default function QuickViewModal({
 
         className={`
           relative
+
           flex
+
           w-full
 
           max-h-[calc(100dvh-8px)]
 
           flex-col
+
           overflow-hidden
 
           rounded-t-[28px]
@@ -813,16 +1829,17 @@ export default function QuickViewModal({
           sm:h-[650px]
           sm:max-h-none
           sm:max-w-5xl
+
           sm:flex-row
           sm:items-stretch
+
           sm:rounded-[28px]
+
           sm:translate-y-0
         `}
       >
 
-        {/* =================================================
-            MOBILE HANDLE
-        ================================================== */}
+        {/* MOBILE HANDLE */}
 
         <div
           className="
@@ -830,19 +1847,22 @@ export default function QuickViewModal({
             left-1/2
             top-2.5
             z-30
+
             h-1
             w-11
+
             -translate-x-1/2
+
             rounded-full
+
             bg-white/20
+
             sm:hidden
           "
         />
 
 
-        {/* =================================================
-            CLOSE BUTTON
-        ================================================== */}
+        {/* CLOSE BUTTON */}
 
         <button
           type="button"
@@ -862,6 +1882,7 @@ export default function QuickViewModal({
             flex
             h-9
             w-9
+
             items-center
             justify-center
 
@@ -898,7 +1919,7 @@ export default function QuickViewModal({
 
         {/* =================================================
             IMAGE SIDE
-        ================================================== */}
+        ================================================= */}
 
         <div
           className="
@@ -909,15 +1930,19 @@ export default function QuickViewModal({
             sm:w-1/2
             sm:flex-col
             sm:p-5
+
+            sm:min-h-0
           "
         >
 
-          {/* Main Image */}
+          {/* MAIN IMAGE */}
 
           <div
             className="
               relative
+
               aspect-[4/5]
+
               w-full
 
               max-h-[48dvh]
@@ -927,8 +1952,13 @@ export default function QuickViewModal({
               bg-neutral-900
 
               sm:aspect-auto
+
               sm:h-full
+
+              sm:min-h-0
+
               sm:max-h-none
+
               sm:rounded-2xl
             "
           >
@@ -959,8 +1989,11 @@ export default function QuickViewModal({
                 className="
                   h-full
                   w-full
+
                   select-none
+
                   object-cover
+
                   transition-opacity
                   duration-150
                 "
@@ -973,19 +2006,86 @@ export default function QuickViewModal({
                   flex
                   h-full
                   w-full
+
                   items-center
                   justify-center
+
                   text-xs
                   text-neutral-600
                 "
               >
+
                 No image available
+
               </div>
 
             )}
 
 
-            {/* Desktop arrows */}
+            {/* ZOOM / PLUS BUTTON */}
+
+            {images.length > 0 && (
+
+              <button
+                type="button"
+
+                onClick={(e) => {
+
+                  e.stopPropagation();
+
+                  openZoom();
+
+                }}
+
+                aria-label="Zoom image"
+
+                className="
+                  absolute
+
+                  bottom-3
+                  left-3
+
+                  z-20
+
+                  flex
+                  h-11
+                  w-11
+
+                  items-center
+                  justify-center
+
+                  rounded-full
+
+                  bg-black/55
+
+                  text-white
+
+                  shadow-lg
+
+                  backdrop-blur-sm
+
+                  transition-all
+
+                  hover:bg-[#D4AF37]
+                  hover:text-black
+
+                  active:scale-95
+
+                  sm:bottom-4
+                  sm:left-4
+                "
+              >
+
+                <ZoomIn
+                  size={21}
+                />
+
+              </button>
+
+            )}
+
+
+            {/* DESKTOP ARROWS */}
 
             {images.length > 1 && (
 
@@ -1087,13 +2187,14 @@ export default function QuickViewModal({
             )}
 
 
-            {/* Mobile image counter */}
+            {/* MOBILE IMAGE COUNTER */}
 
             {images.length > 1 && (
 
               <div
                 className="
                   absolute
+
                   bottom-3
                   left-1/2
 
@@ -1128,16 +2229,22 @@ export default function QuickViewModal({
 
           {/* =================================================
               MOBILE THUMBNAILS
-          ================================================== */}
+          ================================================= */}
 
           {images.length > 1 && (
 
             <div
               className="
                 flex
+
+                w-full
+
+                min-w-0
+
                 gap-2
 
                 overflow-x-auto
+                overflow-y-hidden
 
                 px-3
                 py-3
@@ -1179,6 +2286,10 @@ export default function QuickViewModal({
                     className={`
                       h-14
                       w-14
+
+                      min-h-14
+                      min-w-14
+
                       shrink-0
 
                       overflow-hidden
@@ -1230,6 +2341,7 @@ export default function QuickViewModal({
                       className="
                         h-full
                         w-full
+
                         object-cover
                       "
                     />
@@ -1246,7 +2358,8 @@ export default function QuickViewModal({
 
           {/* =================================================
               DESKTOP THUMBNAILS
-          ================================================== */}
+              FIXED: NO VERTICAL SCROLLBAR
+          ================================================= */}
 
           {images.length > 1 && (
 
@@ -1256,9 +2369,18 @@ export default function QuickViewModal({
 
                 hidden
 
+                w-full
+
+                min-w-0
+
+                shrink-0
+
+                flex-nowrap
+
                 gap-2
 
                 overflow-x-auto
+                overflow-y-hidden
 
                 scrollbar-hide
 
@@ -1289,9 +2411,18 @@ export default function QuickViewModal({
                       `View image ${index + 1}`
                     }
 
+                    aria-pressed={
+                      activeImage ===
+                      index
+                    }
+
                     className={`
                       h-16
                       w-16
+
+                      min-h-16
+                      min-w-16
+
                       shrink-0
 
                       overflow-hidden
@@ -1299,6 +2430,8 @@ export default function QuickViewModal({
                       rounded-lg
 
                       border-2
+
+                      bg-neutral-900
 
                       transition
 
@@ -1338,6 +2471,7 @@ export default function QuickViewModal({
                       className="
                         h-full
                         w-full
+
                         object-cover
                       "
                     />
@@ -1356,11 +2490,12 @@ export default function QuickViewModal({
 
         {/* =================================================
             DETAILS
-        ================================================== */}
+        ================================================= */}
 
         <div
           className="
             min-h-0
+
             flex-1
 
             overflow-y-auto
@@ -1379,7 +2514,7 @@ export default function QuickViewModal({
           "
         >
 
-          {/* Product name */}
+          {/* PRODUCT NAME */}
 
           <h2
             className="
@@ -1400,7 +2535,7 @@ export default function QuickViewModal({
           </h2>
 
 
-          {/* Rating */}
+          {/* RATING */}
 
           {product.rating > 0 && (
 
@@ -1452,7 +2587,7 @@ export default function QuickViewModal({
           )}
 
 
-          {/* Price */}
+          {/* PRICE */}
 
           <div
             className="
@@ -1483,7 +2618,9 @@ export default function QuickViewModal({
               <span
                 className="
                   text-sm
+
                   text-neutral-500
+
                   line-through
                 "
               >
@@ -1524,84 +2661,7 @@ export default function QuickViewModal({
           </div>
 
 
-          {/* Reward section */}
-
-          <div
-            className="
-              mt-4
-
-              flex
-              items-center
-              gap-2
-
-              rounded-xl
-
-              border
-              border-[#D4AF37]/15
-
-              bg-[#D4AF37]/[0.035]
-
-              px-3
-              py-3
-
-              text-sm
-
-              text-yellow-400
-            "
-          >
-
-            <Coins
-              size={17}
-              className="shrink-0"
-            />
-
-            <div>
-
-              <p
-                className="
-                  font-medium
-                  text-yellow-400
-                "
-              >
-
-                +{product.price} Reward Points
-
-              </p>
-
-              <p
-                className="
-                  mt-1
-
-                  text-[11px]
-                  leading-5
-
-                  text-neutral-500
-                "
-              >
-
-                Earn{" "}
-
-                <span
-                  className="
-                    font-medium
-                    text-[#D4AF37]
-                  "
-                >
-
-                  +{product.price}
-
-                </span>{" "}
-
-                reward points on this purchase.
-
-              </p>
-
-            </div>
-
-          </div>
-
-
-          {/* Short description */}
+          {/* SHORT DESCRIPTION */}
 
           {product.short_description && (
 
@@ -1615,6 +2675,7 @@ export default function QuickViewModal({
                 className="
                   text-sm
                   leading-6
+
                   text-neutral-400
                 "
               >
@@ -1630,105 +2691,7 @@ export default function QuickViewModal({
           )}
 
 
-          {/* Trust features */}
-
-          <div
-            className="
-              mt-5
-
-              grid
-              grid-cols-2
-              gap-2
-            "
-          >
-
-            <div
-              className="
-                flex
-                items-center
-                gap-2.5
-
-                rounded-xl
-
-                border
-                border-white/[0.06]
-
-                bg-white/[0.025]
-
-                px-3
-                py-3
-              "
-            >
-
-              <ShieldCheck
-                size={16}
-                className="
-                  shrink-0
-                  text-[#D4AF37]
-                "
-              />
-
-              <span
-                className="
-                  text-[10px]
-                  font-medium
-                  text-neutral-400
-                  sm:text-xs
-                "
-              >
-
-                Premium Quality
-
-              </span>
-
-            </div>
-
-
-            <div
-              className="
-                flex
-                items-center
-                gap-2.5
-
-                rounded-xl
-
-                border
-                border-white/[0.06]
-
-                bg-white/[0.025]
-
-                px-3
-                py-3
-              "
-            >
-
-              <Sparkles
-                size={16}
-                className="
-                  shrink-0
-                  text-[#D4AF37]
-                "
-              />
-
-              <span
-                className="
-                  text-[10px]
-                  font-medium
-                  text-neutral-400
-                  sm:text-xs
-                "
-              >
-
-                Crafted to Impress
-
-              </span>
-
-            </div>
-
-          </div>
-
-
-          {/* Care instructions */}
+          {/* CARE INSTRUCTIONS */}
 
           {product.care_instructions && (
 
@@ -1751,6 +2714,7 @@ export default function QuickViewModal({
                 className="
                   text-xs
                   font-semibold
+
                   text-[#D4AF37]
                 "
               >
@@ -1782,7 +2746,7 @@ export default function QuickViewModal({
           )}
 
 
-          {/* Desktop Actions */}
+          {/* DESKTOP ACTIONS */}
 
           <div
             className="
@@ -1835,8 +2799,11 @@ export default function QuickViewModal({
                 active:scale-[0.99]
 
                 disabled:cursor-not-allowed
+
                 disabled:bg-neutral-800
+
                 disabled:text-neutral-500
+
                 disabled:shadow-none
               "
             >
@@ -1892,13 +2859,15 @@ export default function QuickViewModal({
 
         {/* =================================================
             MOBILE STICKY CTA
-        ================================================== */}
+        ================================================= */}
 
         <div
           className="
             absolute
+
             inset-x-0
             bottom-0
+
             z-30
 
             border-t
@@ -1919,7 +2888,9 @@ export default function QuickViewModal({
           <div
             className="
               flex
+
               items-center
+
               gap-3
             "
           >
@@ -1927,6 +2898,7 @@ export default function QuickViewModal({
             <div
               className="
                 min-w-0
+
                 flex-1
               "
             >
@@ -2001,7 +2973,9 @@ export default function QuickViewModal({
                 active:scale-[0.98]
 
                 disabled:cursor-not-allowed
+
                 disabled:bg-neutral-800
+
                 disabled:text-neutral-500
               "
             >
@@ -2029,9 +3003,30 @@ export default function QuickViewModal({
   );
 
 
-  return createPortal(
-    content,
-    document.body
+  /*
+   * =========================================================
+   * RENDER
+   * =========================================================
+   */
+
+  return (
+
+    <>
+
+      {createPortal(
+        content,
+        document.body
+      )}
+
+
+      {zoomViewer &&
+        createPortal(
+          zoomViewer,
+          document.body
+        )}
+
+    </>
+
   );
 
 }
