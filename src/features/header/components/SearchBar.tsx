@@ -22,6 +22,10 @@ import {
   productService,
 } from "@/features/products/services/product.service";
 
+import {
+  collectionSearchService,
+} from "@/features/collections/services/collectionSearch.service";
+
 import SearchDropdown, {
   type SearchProduct,
 } from "@/features/search/components/SearchDropdown";
@@ -162,6 +166,96 @@ const containsWord = (
     `(?:^|\\s)${escaped}(?:s)?(?:\\s|$)`,
     "i"
   ).test(text);
+
+};
+
+
+
+/*
+ * =========================================================
+ * ALL-TOKEN SEARCH
+ * =========================================================
+ *
+ * Every search token must exist somewhere in the product's
+ * searchable data. Tokens may be distributed across fields.
+ *
+ * Example:
+ * "Minimal Necklace" requires BOTH "minimal" and
+ * "necklace" to exist somewhere in the product data.
+ * =========================================================
+ */
+
+const productMatchesAllSearchTokens = (
+  product: SearchProduct,
+  searchTerm: string
+): boolean => {
+
+  const tokens =
+    getSearchTokens(
+      searchTerm
+    );
+
+
+  if (
+    tokens.length === 0
+  ) {
+
+    return false;
+
+  }
+
+
+  const searchableText =
+    normalizeSearchText(
+      [
+        product.name,
+        product.sku,
+        product.slug,
+        product.short_description,
+        product.description,
+        getSpecificationsSearchText(
+          product.specifications
+        ),
+      ]
+        .filter(Boolean)
+        .join(" ")
+    );
+
+
+  const compactText =
+    searchableText.replace(
+      /\s+/g,
+      ""
+    );
+
+
+  return tokens.every(
+    (
+      token
+    ) => {
+
+      const compactToken =
+        token.replace(
+          /\s+/g,
+          ""
+        );
+
+
+      return (
+        containsWord(
+          searchableText,
+          token
+        ) ||
+        searchableText.includes(
+          token
+        ) ||
+        compactText.includes(
+          compactToken
+        )
+      );
+
+    }
+  );
 
 };
 
@@ -354,6 +448,24 @@ const scoreProduct = (
   if (
     !normalizedTerm ||
     tokens.length === 0
+  ) {
+
+    return 0;
+
+  }
+
+
+  /*
+   * A product must contain ALL search tokens somewhere in
+   * its searchable data. This prevents partial multi-word
+   * matches such as "Minimal Necklace" matching products
+   * that only contain "Necklace".
+   */
+  if (
+    !productMatchesAllSearchTokens(
+      product,
+      normalizedTerm
+    )
   ) {
 
     return 0;
@@ -1260,6 +1372,45 @@ export default function SearchBar({
           }
 
 
+          const collection =
+            await collectionSearchService
+              .findCollection(
+                term
+              );
+
+
+          if (
+            collection
+          ) {
+
+            const productIdSet =
+              new Set(
+                collection.productIds
+              );
+
+
+            setResults(
+              products
+                .filter(
+                  (
+                    product
+                  ) =>
+                    productIdSet.has(
+                      product.id
+                    )
+                )
+                .slice(
+                  0,
+                  MAX_SEARCH_RESULTS
+                )
+            );
+
+
+            return;
+
+          }
+
+
           const matchedProducts =
             searchProducts(
               products,
@@ -1515,14 +1666,72 @@ export default function SearchBar({
     );
 
 
-    navigate(
-      `/shop?search=${encodeURIComponent(
-        term
-      )}`
-    );
+    /*
+     * Collection navigation is resolved from the real
+     * collections table. We resolve it asynchronously so
+     * names/slugs stay database-driven.
+     */
+    void (
+      async () => {
+
+        try {
+
+          const collection =
+            await collectionSearchService
+              .findCollection(
+                term
+              );
 
 
-    onSearch?.();
+          if (
+            collection
+          ) {
+
+            navigate(
+              `/shop?collection=${encodeURIComponent(
+                collection.slug
+              )}`
+            );
+
+          } else {
+
+            navigate(
+              `/shop?search=${encodeURIComponent(
+                term
+              )}`
+            );
+
+          }
+
+
+          onSearch?.();
+
+        }
+
+        catch (
+          error
+        ) {
+
+          console.error(
+            "Collection search navigation failed:",
+            error
+          );
+
+
+          navigate(
+            `/shop?search=${encodeURIComponent(
+              term
+            )}`
+          );
+
+
+          onSearch?.();
+
+        }
+
+      }
+    )();
+
 
   };
 

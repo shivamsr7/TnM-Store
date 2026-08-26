@@ -3,6 +3,8 @@ import {
   useState,
 } from "react";
 
+import { createPortal } from "react-dom";
+
 import {
   X,
   SlidersHorizontal,
@@ -268,28 +270,35 @@ export default function ShopFilterDrawer({
   }
 
 
-  return (
+  return createPortal(
 
-    <>
+    <div
+      className="
+        fixed
+        inset-0
+        z-[9998]
 
-      {/* =====================================================
-          Backdrop
-      ====================================================== */}
+        flex
+        items-end
+        justify-center
 
-      <div
-        className="
-          fixed
-          inset-0
-          z-[9998]
-          bg-black/55
-          backdrop-blur-[3px]
-        "
-        onClick={onClose}
-      />
+        bg-black/55
+        backdrop-blur-[3px]
 
+        sm:items-center
+      "
+      onClick={onClose}
+    >
 
       {/* =====================================================
           Drawer
+
+          Mobile:
+          - Bottom sheet
+
+          Desktop:
+          - Truly centered in the viewport
+          - No top/bottom/translate positioning conflict
       ====================================================== */}
 
       <div
@@ -298,14 +307,12 @@ export default function ShopFilterDrawer({
         aria-label="Product filters"
 
         className="
-          fixed
-          inset-x-0
-          bottom-0
-          z-[9999]
+          pointer-events-auto
 
           flex
           h-[90vh]
           max-h-[760px]
+          w-full
           flex-col
 
           overflow-hidden
@@ -319,20 +326,13 @@ export default function ShopFilterDrawer({
 
           shadow-[0_-20px_70px_rgba(0,0,0,0.25)]
 
-          sm:left-1/2
-          sm:top-1/2
-          sm:right-auto
-          sm:bottom-auto
-
           sm:h-[720px]
           sm:max-h-[86vh]
-
           sm:w-[460px]
 
-          sm:-translate-x-1/2
-          sm:-translate-y-1/2
-
           sm:rounded-[24px]
+
+          sm:shadow-[0_25px_80px_rgba(0,0,0,0.25)]
         "
         onClick={(event) =>
           event.stopPropagation()
@@ -909,7 +909,9 @@ export default function ShopFilterDrawer({
 
       </div>
 
-    </>
+    </div>,
+
+    document.body
 
   );
 }

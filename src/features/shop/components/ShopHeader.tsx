@@ -52,7 +52,6 @@ interface Props {
 export default function ShopHeader({
   search,
   setSearch,
-  productCount,
   visibleProductCount,
   categories,
   activeCategory,
@@ -183,9 +182,7 @@ export default function ShopHeader({
               lg:text-6xl
             "
           >
-
             Shop Collection
-
           </h1>
 
 
@@ -205,10 +202,8 @@ export default function ShopHeader({
               md:text-base
             "
           >
-
             Luxury inspired jewellery you'll love to wear.
             Crafted for every occasion.
-
           </p>
 
         </div>
@@ -235,7 +230,6 @@ export default function ShopHeader({
             px-0.5
             pb-1
             scrollbar-hide
-
             sm:justify-center
             sm:overflow-visible
             sm:pb-0
@@ -252,22 +246,12 @@ export default function ShopHeader({
               return (
 
                 <button
-                  key={
-                    item
-                  }
-
+                  key={item}
                   type="button"
-
                   onClick={() =>
-                    setCategory(
-                      item
-                    )
+                    setCategory(item)
                   }
-
-                  aria-pressed={
-                    isActive
-                  }
-
+                  aria-pressed={isActive}
                   className={`
                     shrink-0
                     rounded-full
@@ -303,9 +287,7 @@ export default function ShopHeader({
                     }
                   `}
                 >
-
                   {item}
-
                 </button>
 
               );
@@ -347,18 +329,12 @@ export default function ShopHeader({
 
               <button
                 type="button"
-
                 onClick={() =>
-                  setSubcategory(
-                    null
-                  )
+                  setSubcategory(null)
                 }
-
                 aria-pressed={
-                  activeSubcategory ===
-                  null
+                  activeSubcategory === null
                 }
-
                 className={`
                   shrink-0
                   rounded-full
@@ -371,8 +347,7 @@ export default function ShopHeader({
                   duration-200
 
                   ${
-                    activeSubcategory ===
-                    null
+                    activeSubcategory === null
                       ? `
                         border-[#D4AF37]/70
                         bg-[#D4AF37]/10
@@ -388,43 +363,30 @@ export default function ShopHeader({
                   }
                 `}
               >
-
                 All
-
               </button>
 
 
               {/* DATABASE SUBCATEGORIES */}
 
               {subcategories.map(
-                (
-                  subcategory
-                ) => {
+                (subcategory) => {
 
                   const isActive =
                     activeSubcategory ===
                     subcategory;
 
-
                   return (
 
                     <button
-                      key={
-                        subcategory
-                      }
-
+                      key={subcategory}
                       type="button"
-
                       onClick={() =>
                         setSubcategory(
                           subcategory
                         )
                       }
-
-                      aria-pressed={
-                        isActive
-                      }
-
+                      aria-pressed={isActive}
                       className={`
                         shrink-0
                         rounded-full
@@ -455,9 +417,7 @@ export default function ShopHeader({
                         }
                       `}
                     >
-
                       {subcategory}
-
                     </button>
 
                   );
@@ -511,7 +471,6 @@ export default function ShopHeader({
 
           <Search
             size={17}
-
             className="
               shrink-0
               text-[#D4AF37]
@@ -525,20 +484,14 @@ export default function ShopHeader({
 
 
           <input
-            value={
-              search
-            }
-
+            value={search}
             onChange={(event) =>
               setSearch(
                 event.target.value
               )
             }
-
             placeholder="Search jewellery..."
-
             aria-label="Search jewellery"
-
             className="
               min-w-0
               flex-1
@@ -556,13 +509,10 @@ export default function ShopHeader({
 
             <button
               type="button"
-
               onClick={() =>
                 setSearch("")
               }
-
               aria-label="Clear search"
-
               className="
                 flex
                 h-7
@@ -616,103 +566,105 @@ export default function ShopHeader({
           "
         >
 
-          {/* Result count */}
+          {/* =================================================
+              PREMIUM RESULT COUNT
+          ================================================== */}
 
           <div
             className="
               flex
               min-w-0
               items-center
-              gap-2.5
+              gap-3
             "
           >
 
+            {/* Count badge */}
+
             <div
               className="
+                relative
                 flex
-                h-8
-                min-w-8
+                h-10
+                min-w-10
                 items-center
                 justify-center
                 rounded-full
                 border
-                border-[#D4AF37]/15
-                bg-[#D4AF37]/[0.04]
-                px-2
+                border-[#D4AF37]/30
+                bg-[#D4AF37]/[0.045]
+                shadow-[0_0_20px_rgba(212,175,55,0.06)]
+                sm:h-11
+                sm:min-w-11
               "
             >
 
+              {/* Inner ring */}
+
               <span
                 className="
-                  text-[11px]
+                  absolute
+                  inset-[3px]
+                  rounded-full
+                  border
+                  border-[#D4AF37]/[0.08]
+                "
+              />
+
+              {/* Count */}
+
+              <span
+                className="
+                  relative
+                  text-sm
                   font-semibold
-                  text-[#D4AF37]
+                  leading-none
+                  tracking-tight
+                  text-[#E5C35B]
+                  sm:text-base
                 "
               >
-
                 {visibleProductCount}
-
               </span>
 
             </div>
 
 
+            {/* Showing text */}
+
             <div
               className="
                 flex
-                flex-col
-                leading-none
+                items-baseline
+                gap-1.5
+                whitespace-nowrap
               "
             >
 
               <span
                 className="
-                  text-xs
-                  font-medium
-                  text-white
-                  sm:text-sm
+                  text-[9px]
+                  font-semibold
+                  uppercase
+                  tracking-[0.22em]
+                  text-[#C8A44D]
+                  sm:text-[10px]
                 "
               >
-
-                {visibleProductCount}
-
-                <span
-                  className="
-                    mx-1
-                    text-neutral-600
-                  "
-                >
-
-                  of
-
-                </span>
-
-                <span
-                  className="
-                    text-neutral-400
-                  "
-                >
-
-                  {productCount}
-
-                </span>
-
+                Showing
               </span>
 
 
               <span
                 className="
-                  mt-1
-                  text-[9px]
+                  text-[13px]
                   font-medium
-                  uppercase
-                  tracking-[0.18em]
-                  text-neutral-600
+                  tracking-[-0.01em]
+                  text-neutral-200
+                  sm:text-sm
                 "
               >
-
-                Collection
-
+                {visibleProductCount} pieces
               </span>
 
             </div>
@@ -720,7 +672,9 @@ export default function ShopHeader({
           </div>
 
 
-          {/* Controls */}
+          {/* =================================================
+              CONTROLS
+          ================================================== */}
 
           <div
             className="
@@ -735,11 +689,9 @@ export default function ShopHeader({
 
             <button
               type="button"
-
               onClick={
                 onFilterOpen
               }
-
               className="
                 inline-flex
                 h-9
@@ -770,7 +722,6 @@ export default function ShopHeader({
                 className="text-[#D4AF37]"
               />
 
-
               <span>
                 Filter
               </span>
@@ -793,9 +744,7 @@ export default function ShopHeader({
                     text-black
                   "
                 >
-
                   {filterCount}
-
                 </span>
 
               )}
@@ -812,19 +761,14 @@ export default function ShopHeader({
             >
 
               <select
-                value={
-                  sort
-                }
-
+                value={sort}
                 onChange={(event) =>
                   setSort(
                     event.target
                       .value as SortOption
                   )
                 }
-
                 aria-label="Sort products"
-
                 className="
                   h-9
                   max-w-[112px]
@@ -913,7 +857,6 @@ export default function ShopHeader({
 
               <ChevronDown
                 size={13}
-
                 className="
                   pointer-events-none
                   absolute
@@ -931,7 +874,9 @@ export default function ShopHeader({
         </div>
 
 
-        {/* Active context */}
+        {/* =================================================
+            ACTIVE CONTEXT
+        ================================================== */}
 
         {(activeCategory !== "All" ||
           activeSubcategory ||
@@ -959,9 +904,7 @@ export default function ShopHeader({
                 text-neutral-700
               "
             >
-
               Showing
-
             </span>
 
 
@@ -970,13 +913,11 @@ export default function ShopHeader({
 
               <button
                 type="button"
-
                 onClick={() =>
                   setCategory(
                     "All"
                   )
                 }
-
                 className="
                   inline-flex
                   shrink-0
@@ -1009,13 +950,11 @@ export default function ShopHeader({
 
               <button
                 type="button"
-
                 onClick={() =>
                   setSubcategory?.(
                     null
                   )
                 }
-
                 className="
                   inline-flex
                   shrink-0
@@ -1048,11 +987,9 @@ export default function ShopHeader({
 
               <button
                 type="button"
-
                 onClick={() =>
                   setSearch("")
                 }
-
                 className="
                   inline-flex
                   max-w-[190px]
@@ -1074,11 +1011,8 @@ export default function ShopHeader({
                 <span
                   className="truncate"
                 >
-
                   "{search.trim()}"
-
                 </span>
-
 
                 <X
                   size={11}

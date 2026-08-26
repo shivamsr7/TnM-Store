@@ -37,6 +37,12 @@ export interface SearchProduct {
    */
   specifications?: Record<string, unknown> | null;
 
+  best_seller?: boolean | null;
+  new_arrival?: boolean | null;
+  trending?: boolean | null;
+  editors_pick?: boolean | null;
+  featured?: boolean | null;
+
   product_images?: {
 
     image_url: string;

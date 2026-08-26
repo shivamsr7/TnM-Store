@@ -97,6 +97,22 @@ function getDiscount(
  * =========================================================
  * SPECIFICATIONS SEARCH HELPER
  * =========================================================
+ *
+ * specifications is a JSONB field in products.
+ *
+ * Example:
+ *
+ * {
+ *   "Material": "Stainless Steel",
+ *   "Finish": "18K Gold Plated",
+ *   "Features": [
+ *      "Anti Tarnish",
+ *      "Water Resistant"
+ *   ]
+ * }
+ *
+ * This helper recursively converts all keys and values
+ * into searchable text.
  */
 
 function getSpecificationsSearchText(
@@ -177,6 +193,15 @@ function getSpecificationsSearchText(
  * =========================================================
  * NORMALIZED SEARCH
  * =========================================================
+ *
+ * Makes search tolerant of:
+ *
+ * Anti Tarnish
+ * Anti-Tarnish
+ * anti_tarnish
+ * ANTITARNISH
+ *
+ * It also collapses repeated whitespace.
  */
 
 function normalizeSearchText(
@@ -214,9 +239,13 @@ function normalizeSearchText(
 
 
 /*
- * =========================================================
- * COMPACT SEARCH
- * =========================================================
+ * Compact version used as a fallback so:
+ *
+ * anti tarnish
+ * anti-tarnish
+ * antitarnish
+ *
+ * can all match one another.
  */
 
 function compactSearchText(
@@ -234,9 +263,8 @@ function compactSearchText(
 
 
 /*
- * =========================================================
- * SEARCH MATCH
- * =========================================================
+ * Search a product field using both normal and compact
+ * normalized forms.
  */
 
 function matchesSearch(
@@ -330,15 +358,11 @@ export default function Shop() {
    * DATABASE COLLECTION MAPPINGS
    * =======================================================
    *
-   * Source of truth:
+   * Curated collections are the source of truth for: 
+   * Best Sellers, New Arrivals, Trending, Editor's Pick
+   * and Featured. Products are mapped through:
    *
-   * collections
-   *      ↓
-   * product_collections
-   *      ↓
-   * products
-   *
-   * No hardcoded collection names are used for display.
+   * collections -> product_collections -> products
    */
 
   const [
@@ -347,7 +371,6 @@ export default function Shop() {
   ] = useState<
     Record<string, SearchCollection | null>
   >({});
-
 
   const [
     areCollectionsLoading,
@@ -404,7 +427,7 @@ export default function Shop() {
 
   /*
    * =======================================================
-   * LOAD COLLECTIONS FROM DATABASE
+   * LOAD CURATED COLLECTIONS
    * =======================================================
    */
 
@@ -412,74 +435,63 @@ export default function Shop() {
 
     let cancelled = false;
 
-
     const loadCollections = async () => {
 
-      setAreCollectionsLoading(
-        true
-      );
-
+      setAreCollectionsLoading(true);
 
       try {
 
-        const collections =
-          await collectionSearchService
-            .getAllCollections();
+        const collectionNames = [
+          "Best Sellers",
+          "New Arrivals",
+          "Trending",
+          "Editor's Pick",
+          "Featured",
+        ];
 
+        const entries = await Promise.all(
+          collectionNames.map(
+            async (name) => {
+              try {
+                const collection =
+                  await collectionSearchService.findCollection(
+                    name
+                  );
 
-        const entries =
-          collections.map(
-            (
-              collection
-            ) => [
+                return [
+                  slugify(name),
+                  collection,
+                ] as const;
+              } catch {
+                return [
+                  slugify(name),
+                  null,
+                ] as const;
+              }
+            }
+          )
+        );
 
-              slugify(
-                collection.slug ||
-                collection.name
-              ),
-
-              collection,
-
-            ] as const
-          );
-
-
-        if (
-          !cancelled
-        ) {
-
+        if (!cancelled) {
           setCollectionMappings(
-            Object.fromEntries(
-              entries
-            )
+            Object.fromEntries(entries)
           );
-
         }
 
       } finally {
 
-        if (
-          !cancelled
-        ) {
-
-          setAreCollectionsLoading(
-            false
-          );
-
+        if (!cancelled) {
+          setAreCollectionsLoading(false);
         }
 
       }
 
     };
 
-
     void loadCollections();
 
-
     return () => {
-
       cancelled = true;
-
     };
 
   }, []);
@@ -494,73 +506,40 @@ export default function Shop() {
   const [
     activeUrlCollection,
     setActiveUrlCollection,
-  ] = useState<SearchCollection | null>(
-    null
-  );
-
+  ] = useState<SearchCollection | null>(null);
 
   useEffect(() => {
 
     let cancelled = false;
 
-
     const loadUrlCollection = async () => {
 
-      if (
-        !collectionParam
-      ) {
-
-        setActiveUrlCollection(
-          null
-        );
-
+      if (!collectionParam) {
+        setActiveUrlCollection(null);
         return;
-
       }
 
-
       try {
-
         const collection =
           await collectionSearchService.findCollection(
             collectionParam
           );
 
-
-        if (
-          !cancelled
-        ) {
-
-          setActiveUrlCollection(
-            collection
-          );
-
+        if (!cancelled) {
+          setActiveUrlCollection(collection);
         }
-
       } catch {
-
-        if (
-          !cancelled
-        ) {
-
-          setActiveUrlCollection(
-            null
-          );
-
+        if (!cancelled) {
+          setActiveUrlCollection(null);
         }
-
       }
 
     };
 
-
     void loadUrlCollection();
 
-
     return () => {
-
       cancelled = true;
-
     };
 
   }, [
@@ -575,12 +554,10 @@ export default function Shop() {
    */
 
   const getMappedCollection = (
-    slugOrName: string
+    name: string
   ) =>
     collectionMappings[
-      slugify(
-        slugOrName
-      )
+      slugify(name)
     ] ?? null;
 
 
@@ -668,7 +645,7 @@ export default function Shop() {
    * =======================================================
    * SUBCATEGORY PARAM
    * =======================================================
-   */
+ */
 
   const subcategoryParam =
     searchParams.get(
@@ -739,7 +716,7 @@ export default function Shop() {
    * =======================================================
    * ACTIVE SUBCATEGORY
    * =======================================================
- */
+   */
 
   const activeSubcategory =
     useMemo(() => {
@@ -799,10 +776,12 @@ export default function Shop() {
 
 
               return (
+
                 slugify(
                   subcategory.name
                 ) ===
                 normalizedValue
+
               );
 
             }
@@ -837,6 +816,7 @@ export default function Shop() {
 
 
       return (
+
         activeShopCategory
           .subcategories
           .map(
@@ -845,6 +825,7 @@ export default function Shop() {
             ) =>
               subcategory.name
           )
+
       );
 
     }, [
@@ -948,12 +929,8 @@ export default function Shop() {
 
   /*
    * =======================================================
-   * COLLECTION FILTER FLAGS
+   * COLLECTION FLAGS
    * =======================================================
-   *
-   * These are only URL flags.
-   *
-   * Actual membership comes from DB collections.
    */
 
   const bestSeller =
@@ -1546,7 +1523,6 @@ export default function Shop() {
       search
     );
 
-
   const compactSearchValue =
     compactSearchText(
       search
@@ -1569,9 +1545,19 @@ export default function Shop() {
           ) => {
 
             /*
-             * ===============================================
+             * =================================================
              * SEARCH
-             * ===============================================
+             * =================================================
+             *
+             * Search across:
+             *
+             * 1. Product name
+             * 2. SKU
+             * 3. Slug
+             * 4. Short description
+             * 5. Full description
+             * 6. Care instructions
+             * 7. Specifications JSONB
              */
 
             const specificationSearchText =
@@ -1581,13 +1567,11 @@ export default function Shop() {
 
 
             /*
-             * Collection URL should not also use
-             * an old/stale text-search parameter.
+             * A database collection URL is a dedicated
+             * collection view, so it must not also be narrowed
+             * by a stale/previous text-search value.
              */
-
-            if (
-              !collectionParam
-            ) {
+            if (!collectionParam) {
 
               const searchMatch =
                 !searchValue ||
@@ -1635,21 +1619,17 @@ export default function Shop() {
                 );
 
 
-              if (
-                !searchMatch
-              ) {
-
+              if (!searchMatch) {
                 return false;
-
               }
 
             }
 
 
             /*
-             * ===============================================
+             * =================================================
              * URL COLLECTION
-             * ===============================================
+             * =================================================
              */
 
             if (
@@ -1662,18 +1642,16 @@ export default function Shop() {
                   product.id
                 )
               ) {
-
                 return false;
-
               }
 
             }
 
 
             /*
-             * ===============================================
+             * =================================================
              * CATEGORY
-             * ===============================================
+             * =================================================
              */
 
             if (
@@ -1735,7 +1713,9 @@ export default function Shop() {
 
                 }
 
-              } else {
+              }
+
+              else {
 
                 const productCategoryId =
                   product
@@ -1792,9 +1772,9 @@ export default function Shop() {
 
 
             /*
-             * ===============================================
+             * =================================================
              * PRICE
-             * ===============================================
+             * =================================================
              */
 
             if (
@@ -1819,9 +1799,9 @@ export default function Shop() {
 
 
             /*
-             * ===============================================
+             * =================================================
              * STOCK
-             * ===============================================
+             * =================================================
              */
 
             if (
@@ -1837,9 +1817,9 @@ export default function Shop() {
 
 
             /*
-             * ===============================================
+             * =================================================
              * DISCOUNT
-             * ===============================================
+             * =================================================
              */
 
             const discount =
@@ -1870,9 +1850,9 @@ export default function Shop() {
 
 
             /*
-             * ===============================================
+             * =================================================
              * RATING
-             * ===============================================
+             * =================================================
              */
 
             if (
@@ -1887,46 +1867,41 @@ export default function Shop() {
 
 
             /*
-             * ===============================================
+             * =================================================
              * DATABASE COLLECTION FILTERS
-             * ===============================================
+             * =================================================
              *
-             * Membership is controlled by:
+             * Do NOT use products.best_seller, new_arrival,
+             * trending, editors_pick or featured here.
              *
-             * product_collections
-             *
-             * No sales_count ranking is used.
+             * Curated membership is controlled by the
+             * product_collections junction table.
              */
 
             const bestSellerCollection =
               getMappedCollection(
-                "best-sellers"
+                "Best Sellers"
               );
-
 
             const newArrivalCollection =
               getMappedCollection(
-                "new-arrivals"
+                "New Arrivals"
               );
-
 
             const trendingCollection =
               getMappedCollection(
-                "trending"
+                "Trending"
               );
-
 
             const editorsPickCollection =
               getMappedCollection(
-                "editors-pick"
+                "Editor's Pick"
               );
-
 
             const featuredCollection =
               getMappedCollection(
-                "featured"
+                "Featured"
               );
-
 
             if (
               bestSeller &&
@@ -1935,11 +1910,8 @@ export default function Shop() {
                 bestSellerCollection
               )
             ) {
-
               return false;
-
             }
-
 
             if (
               newArrival &&
@@ -1948,11 +1920,8 @@ export default function Shop() {
                 newArrivalCollection
               )
             ) {
-
               return false;
-
             }
-
 
             if (
               trending &&
@@ -1961,11 +1930,8 @@ export default function Shop() {
                 trendingCollection
               )
             ) {
-
               return false;
-
             }
-
 
             if (
               editorsPick &&
@@ -1974,11 +1940,8 @@ export default function Shop() {
                 editorsPickCollection
               )
             ) {
-
               return false;
-
             }
-
 
             if (
               featured &&
@@ -1987,9 +1950,7 @@ export default function Shop() {
                 featuredCollection
               )
             ) {
-
               return false;
-
             }
 
 
@@ -2000,9 +1961,9 @@ export default function Shop() {
 
 
       /*
-       * ===============================================
+       * =======================================================
        * SORT
-       * ===============================================
+       * =======================================================
        */
 
       result = [
@@ -2035,35 +1996,27 @@ export default function Shop() {
         case "best-selling": {
 
           /*
-           * Best Selling is a DB collection.
-           *
-           * We do NOT use sales_count.
+           * Best Selling is a curated collection, not a
+           * sales_count calculation. There is no customer
+           * sales history to rank by yet.
            */
 
           const bestSellerIds =
             new Set(
               getMappedCollection(
-                "best-sellers"
+                "Best Sellers"
               )?.productIds ?? []
             );
 
-
-          result =
-            result.filter(
-              (
-                product
-              ) =>
-                bestSellerIds.has(
-                  product.id
-                )
-            );
-
+          result = result.filter(
+            (product) =>
+              bestSellerIds.has(
+                product.id
+              )
+          );
 
           result.sort(
-            (
-              a,
-              b
-            ) =>
+            (a, b) =>
               new Date(
                 b.created_at
               ).getTime() -
@@ -2082,27 +2035,19 @@ export default function Shop() {
           const trendingIds =
             new Set(
               getMappedCollection(
-                "trending"
+                "Trending"
               )?.productIds ?? []
             );
 
-
-          result =
-            result.filter(
-              (
-                product
-              ) =>
-                trendingIds.has(
-                  product.id
-                )
-            );
-
+          result = result.filter(
+            (product) =>
+              trendingIds.has(
+                product.id
+              )
+          );
 
           result.sort(
-            (
-              a,
-              b
-            ) =>
+            (a, b) =>
               new Date(
                 b.created_at
               ).getTime() -
@@ -2178,15 +2123,7 @@ export default function Shop() {
 
         case "featured":
 
-        default: {
-
-          const featuredIds =
-            new Set(
-              getMappedCollection(
-                "featured"
-              )?.productIds ?? []
-            );
-
+        default:
 
           result.sort(
             (
@@ -2194,17 +2131,22 @@ export default function Shop() {
               b
             ) => {
 
+              const featuredIds =
+                new Set(
+                  getMappedCollection(
+                    "Featured"
+                  )?.productIds ?? []
+                );
+
               const aFeatured =
                 featuredIds.has(
                   a.id
                 );
 
-
               const bFeatured =
                 featuredIds.has(
                   b.id
                 );
-
 
               if (
                 aFeatured !==
@@ -2216,7 +2158,6 @@ export default function Shop() {
                   : 1;
 
               }
-
 
               return (
                 new Date(
@@ -2231,8 +2172,6 @@ export default function Shop() {
           );
 
           break;
-
-        }
 
       }
 
@@ -2278,145 +2217,6 @@ export default function Shop() {
       collectionParam,
 
       activeUrlCollection,
-
-      collectionMappings,
-
-    ]);
-
-
-  /*
-   * =======================================================
-   * IMPORTANT FIX:
-   *
-   * Attach ALL database collections to every product.
-   *
-   * ProductCard.tsx already supports:
-   *
-   * product.collections
-   *
-   * and
-   *
-   * product.product_collections
-   *
-   *
-   * We use product.collections here.
-   *
-   * A product can therefore have:
-   *
-   * New Arrivals
-   * Best Sellers
-   * Trending
-   * etc.
-   *
-   * at the same time.
-   * =======================================================
-   */
-
-  const productsWithCollections =
-    useMemo(() => {
-
-      return filteredProducts.map(
-        (
-          product
-        ) => {
-
-          const collections =
-  Object.values(
-    collectionMappings
-  )
-    .filter(
-      (
-        collection
-      ): collection is SearchCollection => {
-
-        if (
-          !collection
-        ) {
-          return false;
-        }
-
-        return collection.productIds.includes(
-          product.id
-        );
-      }
-    )
-    .map(
-      (
-        collection
-      ) => ({
-        id:
-          collection.id,
-
-        name:
-          collection.name,
-
-        slug:
-          collection.slug,
-      })
-    );
-
-          /*
-           * Remove duplicate collections
-           * just in case the service returns
-           * duplicate mapping entries.
-           */
-
-          const uniqueCollections =
-            collections.filter(
-              (
-                collection,
-                index,
-                array
-              ) =>
-                array.findIndex(
-                  (
-                    item
-                  ) =>
-                    item.id ===
-                    collection.id
-                ) === index
-            );
-
-          /*
-           * Keep the collection badges compact and aesthetic.
-           *
-           * A product may belong to many collections in the DB.
-           * We show up to 3 real collection badges and then a
-           * non-navigational "+N more" badge for the remaining ones.
-           *
-           * This keeps all DB collection membership intact while
-           * preventing the badges from covering the product image.
-           */
-          const displayCollections =
-            uniqueCollections.length <= 3
-              ? uniqueCollections
-              : [
-                  ...uniqueCollections.slice(0, 3),
-                  {
-                    id:
-                      `more-${product.id}`,
-                    name:
-                      `+${uniqueCollections.length - 3} more`,
-                    slug:
-                      "",
-                  },
-                ];
-
-          return {
-
-            ...product,
-
-            collections:
-              displayCollections,
-
-          };
-
-        }
-      );
-
-    }, [
-
-      filteredProducts,
 
       collectionMappings,
 
@@ -2763,25 +2563,12 @@ export default function Shop() {
 
         {/* =================================================
             PRODUCT GRID
-         ================================================= */}
+        ================================================== */}
 
         <ProductGrid
 
-          /*
-           * IMPORTANT:
-           *
-           * Previously this was:
-           *
-           * products={filteredProducts}
-           *
-           * That meant ProductCard received no
-           * database collection information.
-           *
-           * Now we pass the collection-enriched products.
-           */
-
           products={
-            productsWithCollections
+            filteredProducts
           }
 
           hasSearch={
@@ -2804,11 +2591,14 @@ export default function Shop() {
 
         />
 
-      </div>
 
+      </div>
 
       {/* =================================================
           FILTER DRAWER
+          Keep the drawer OUTSIDE the max-width content
+          container so its overlay/dialog is positioned
+          relative to the viewport, not the Shop content.
       ================================================== */}
 
       <ShopFilterDrawer

@@ -27,9 +27,34 @@ import QuickViewModal from "./QuickViewModal";
 import NotifyDialog from "@/features/notify/components/NotifyDialog";
 
 
-interface ProductCardProps {
+/*
+ * =========================================================
+ * Collection Types
+ * =========================================================
+ */
 
-  product: Product & {
+interface ProductCollection {
+  id: string;
+  name: string;
+  slug?: string | null;
+}
+
+interface ProductCollectionRelation {
+  collections?:
+    | ProductCollection
+    | ProductCollection[]
+    | null;
+}
+
+
+/*
+ * =========================================================
+ * Product Card Product Type
+ * =========================================================
+ */
+
+type ProductCardProduct =
+  Product & {
 
     product_images?: {
 
@@ -41,15 +66,62 @@ interface ProductCardProps {
 
     }[];
 
+    /*
+     * Direct collection relationship.
+     *
+     * Example:
+     *
+     * collections: [
+     *   {
+     *     id,
+     *     name: "Best Sellers",
+     *     slug: "best-sellers"
+     *   },
+     *   {
+     *     id,
+     *     name: "New Arrivals",
+     *     slug: "new-arrivals"
+     *   }
+     * ]
+     */
+    collections?: ProductCollection[];
+
+    /*
+     * Junction-table relationship.
+     *
+     * Example:
+     *
+     * product_collections: [
+     *   {
+     *     collections: {
+     *       id,
+     *       name,
+     *       slug
+     *     }
+     *   }
+     * ]
+     */
+    product_collections?:
+      ProductCollectionRelation[];
+
   };
+
+
+interface ProductCardProps {
+
+  product: ProductCardProduct;
 
 }
 
 
+/*
+ * =========================================================
+ * Component
+ * =========================================================
+ */
+
 export default function ProductCard({
-
   product,
-
 }: ProductCardProps) {
 
 
@@ -73,7 +145,9 @@ export default function ProductCard({
 
     product.product_images
 
-      ?.sort(
+      ?.slice()
+
+      .sort(
         (a, b) =>
           a.sort_order -
           b.sort_order
@@ -203,29 +277,115 @@ export default function ProductCard({
 
   /*
    * =========================================================
-   * Product Badge
+   * PRODUCT COLLECTIONS
+   *
+   * IMPORTANT:
+   * Collections now come from the database relationship.
+   *
+   * We support both:
+   *
+   * 1. product.collections
+   *
+   * 2. product.product_collections[].collections
+   *
+   * No hardcoded collection names are used here.
    * =========================================================
    */
 
-  const badge =
+  const productCollections: ProductCollection[] =
+    (() => {
 
-    product.best_seller
+      const directCollections =
+        Array.isArray(
+          product.collections
+        )
+          ? product.collections
+          : [];
 
-      ? "Best Seller"
 
-      : product.new_arrival
+      const relationCollections =
+        Array.isArray(
+          product.product_collections
+        )
+          ? product.product_collections.flatMap(
+              (
+                relation
+              ) => {
 
-        ? "New Arrival"
+                if (
+                  !relation.collections
+                ) {
 
-        : product.trending
+                  return [];
 
-          ? "Trending"
+                }
 
-          : product.editors_pick
 
-            ? "Editor's Pick"
+                return Array.isArray(
+                  relation.collections
+                )
 
-            : null;
+                  ? relation.collections
+
+                  : [
+                      relation.collections,
+                    ];
+
+              }
+            )
+
+          : [];
+
+
+      /*
+       * Combine both sources.
+       */
+
+      const combined = [
+        ...directCollections,
+        ...relationCollections,
+      ];
+
+
+      /*
+       * Remove duplicate collections.
+       */
+
+      const unique =
+        combined.filter(
+          (
+            collection,
+            index,
+            array
+          ) => {
+
+            const collectionKey =
+              collection.id ||
+              collection.slug ||
+              collection.name;
+
+
+            return (
+              array.findIndex(
+                (
+                  item
+                ) =>
+                  (
+                    item.id ||
+                    item.slug ||
+                    item.name
+                  ) ===
+                  collectionKey
+              ) === index
+            );
+
+          }
+        );
+
+
+      return unique;
+
+    })();
 
 
   /*
@@ -756,31 +916,99 @@ export default function ProductCard({
           </div>
 
 
-          {/* Product Badge */}
+          {/* =================================================
+              COLLECTION BADGES
+              Compact single-line DB collection strip.
+              All assigned collections remain available and can
+              be horizontally scrolled on smaller screens.
+          ================================================== */}
 
-          {badge && (
+          {productCollections.length > 0 && (
 
             <div
               className="
+                pointer-events-none
                 absolute
-                bottom-4
-                left-4
+                inset-x-0
+                bottom-0
                 z-20
-                hidden
-                rounded-full
-                border
-                border-[#D4AF37]/40
-                bg-black/80
-                px-3
-                py-1
-                text-xs
-                font-medium
-                text-[#D4AF37]
-                sm:block
               "
             >
 
-              {badge}
+              {/* Small readability gradient */}
+
+              <div
+                className="
+                  pointer-events-none
+                  absolute
+                  inset-x-0
+                  bottom-0
+                  h-12
+                  bg-gradient-to-t
+                  from-black/60
+                  via-black/20
+                  to-transparent
+                "
+              />
+
+              {/* Horizontal collection strip */}
+
+              <div
+                className="
+                  relative
+                  flex
+                  items-center
+                  gap-1.5
+                  overflow-x-auto
+                  px-3
+                  pb-2.5
+                  scrollbar-none
+                  [-ms-overflow-style:none]
+                  [scrollbar-width:none]
+                  [&::-webkit-scrollbar]:hidden
+                "
+              >
+
+                {productCollections.map(
+                  (
+                    collection
+                  ) => (
+
+                    <span
+                      key={
+                        collection.id ||
+                        collection.slug ||
+                        collection.name
+                      }
+
+                      className="
+                        inline-flex
+                        shrink-0
+                        items-center
+                        whitespace-nowrap
+                        rounded-full
+                        border
+                        border-[#D4AF37]/50
+                        bg-black/70
+                        px-2.5
+                        py-1
+                        text-[9px]
+                        font-medium
+                        leading-none
+                        tracking-wide
+                        text-[#E7C75B]
+                        backdrop-blur-sm
+                      "
+                    >
+
+                      {collection.name}
+
+                    </span>
+
+                  )
+                )}
+
+              </div>
 
             </div>
 
@@ -1092,7 +1320,6 @@ export default function ProductCard({
                   duration-300
                   hover:bg-[#E3C45F]
                   active:scale-[0.98]
-
                   sm:min-h-12
                   sm:text-sm
                 "
@@ -1129,7 +1356,6 @@ export default function ProductCard({
                   duration-300
                   hover:bg-[#D4AF37]
                   active:scale-[0.98]
-
                   sm:min-h-12
                   sm:text-sm
                 "
@@ -1176,7 +1402,6 @@ export default function ProductCard({
                   hover:border-[#D4AF37]
                   hover:text-[#D4AF37]
                   active:scale-95
-
                   sm:h-12
                   sm:w-12
                 "
@@ -1241,7 +1466,9 @@ export default function ProductCard({
 
           image:
             product.product_images?.find(
-              (image) =>
+              (
+                image
+              ) =>
                 image.is_primary
             )?.image_url ??
 

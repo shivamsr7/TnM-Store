@@ -2377,37 +2377,13 @@ export default function Shop() {
                 ) === index
             );
 
-          /*
-           * Keep the collection badges compact and aesthetic.
-           *
-           * A product may belong to many collections in the DB.
-           * We show up to 3 real collection badges and then a
-           * non-navigational "+N more" badge for the remaining ones.
-           *
-           * This keeps all DB collection membership intact while
-           * preventing the badges from covering the product image.
-           */
-          const displayCollections =
-            uniqueCollections.length <= 3
-              ? uniqueCollections
-              : [
-                  ...uniqueCollections.slice(0, 3),
-                  {
-                    id:
-                      `more-${product.id}`,
-                    name:
-                      `+${uniqueCollections.length - 3} more`,
-                    slug:
-                      "",
-                  },
-                ];
 
           return {
 
             ...product,
 
             collections:
-              displayCollections,
+              uniqueCollections,
 
           };
 
