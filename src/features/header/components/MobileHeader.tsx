@@ -355,22 +355,37 @@ export default function MobileHeader({
         ==================================================== */}
 
         <div
-          className="
-            pointer-events-none
-            absolute
-            left-1/2
-            top-1/2
-            flex
-            -translate-x-1/2
-            -translate-y-1/2
-            items-center
-            justify-center
-          "
-        >
+  className="
+    pointer-events-none
+    absolute
+    left-1/2
+    top-1/2
 
-          <Logo />
+    flex
+    h-14
+    w-24
 
-        </div>
+    -translate-x-1/2
+    -translate-y-1/2
+
+    items-center
+    justify-center
+
+    overflow-visible
+  "
+>
+  <div
+    className="
+      flex
+      items-center
+      justify-center
+      scale-[1.4]
+      origin-center
+    "
+  >
+    <Logo />
+  </div>
+</div>
 
 
         {/* ===================================================
