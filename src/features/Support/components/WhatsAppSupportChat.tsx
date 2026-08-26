@@ -1,23 +1,84 @@
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import {
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  createPortal,
+} from "react-dom";
+
 import {
   MessageCircle,
   X,
   ArrowUpRight,
 } from "lucide-react";
 
-import { useWhatsAppNumber } from "../hooks/useWhatsAppNumber";
+import {
+  useLocation,
+} from "react-router-dom";
+
+import {
+  useWhatsAppNumber,
+} from "../hooks/useWhatsAppNumber";
+
 
 interface WhatsAppSupportChatProps {
   productName?: string;
 }
 
+
 export default function WhatsAppSupportChat({
   productName,
 }: WhatsAppSupportChatProps) {
-  const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [showSupport, setShowSupport] = useState(false);
+
+  /*
+   * =====================================================
+   * STATE
+   * =====================================================
+   */
+
+  const [
+    open,
+    setOpen,
+  ] = useState(false);
+
+
+  const [
+    mounted,
+    setMounted,
+  ] = useState(false);
+
+
+  const [
+    showSupport,
+    setShowSupport,
+  ] = useState(false);
+
+
+  const [
+    closing,
+    setClosing,
+  ] = useState(false);
+
+
+  /*
+   * =====================================================
+   * CURRENT PAGE
+   *
+   * This allows the 4-second timer to restart whenever
+   * the customer navigates to another webpage.
+   * =====================================================
+   */
+
+  const location =
+    useLocation();
+
+
+  /*
+   * =====================================================
+   * WHATSAPP NUMBER
+   * =====================================================
+   */
 
   const {
     data: whatsappNumber = "",
@@ -25,224 +86,476 @@ export default function WhatsAppSupportChat({
     isError,
   } = useWhatsAppNumber();
 
-  /* =====================================================
-     MOUNT
-  ===================================================== */
+
+  /*
+   * =====================================================
+   * MOUNT
+   * =====================================================
+   */
 
   useEffect(() => {
+
     setMounted(true);
 
+
     return () => {
+
       setMounted(false);
+
     };
+
   }, []);
 
-  /* =====================================================
-     SHOW AFTER 58% PAGE SCROLL
-  ===================================================== */
+
+  /*
+   * =====================================================
+   * SHOW NEED HELP AFTER 4 SECONDS
+   *
+   * The timer starts whenever the pathname changes.
+   *
+   * Therefore:
+   *
+   * Page A → wait 4 sec → show
+   *
+   * Page B → timer resets → wait 4 sec → show
+   * =====================================================
+   */
 
   useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop = window.scrollY;
 
-      const documentHeight =
-        document.documentElement.scrollHeight;
+    /*
+     * Reset everything when customer enters
+     * another page.
+     */
 
-      const viewportHeight =
-        window.innerHeight;
+    setShowSupport(false);
 
-      const scrollableHeight =
-        documentHeight - viewportHeight;
+    setClosing(false);
 
-      if (scrollableHeight <= 0) {
-        setShowSupport(false);
-        return;
-      }
 
-      const scrollPercentage =
-        (scrollTop / scrollableHeight) * 100;
+    /*
+     * Also close the popup when navigating to
+     * another page.
+     *
+     * This prevents the old page's support popup
+     * from remaining open on the new page.
+     */
 
-      setShowSupport(scrollPercentage >= 58);
-    };
+    setOpen(false);
 
-    handleScroll();
 
-    window.addEventListener("scroll", handleScroll, {
-      passive: true,
-    });
+    /*
+     * Wait exactly 4 seconds.
+     */
 
-    window.addEventListener("resize", handleScroll);
+    const timer =
+      window.setTimeout(() => {
+
+        setShowSupport(true);
+
+      }, 4000);
+
+
+    /*
+     * If the customer changes page before 4 seconds,
+     * cancel the previous timer.
+     */
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleScroll);
+
+      window.clearTimeout(
+        timer
+      );
+
     };
-  }, []);
 
-  /* =====================================================
-     WHATSAPP
-  ===================================================== */
+  }, [
+    location.pathname,
+  ]);
 
-  const cleanNumber = whatsappNumber.replace(/\D/g, "");
 
-  const message = productName
-    ? `Hi T&M Jewels! 👋 I'm interested in ${productName}. Can you help me with this?`
-    : `Hi T&M Jewels! 👋 I need help with a product/order.`;
+  /*
+   * =====================================================
+   * CLOSE NEED HELP BUBBLE
+   *
+   * This only closes the small floating bubble.
+   *
+   * It does NOT disable WhatsApp support permanently.
+   * When the customer navigates to another page,
+   * the timer starts again.
+   * =====================================================
+   */
 
-  const whatsappUrl = cleanNumber
-    ? `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`
-    : "";
+  const handleCloseSupport = (
+    event: React.MouseEvent
+  ) => {
+
+    event.stopPropagation();
+
+
+    /*
+     * Start exit animation.
+     */
+
+    setClosing(true);
+
+
+    window.setTimeout(() => {
+
+      setShowSupport(false);
+
+      setClosing(false);
+
+    }, 220);
+
+  };
+
+
+  /*
+   * =====================================================
+   * OPEN SUPPORT
+   * =====================================================
+   */
+
+  const handleOpenSupport = () => {
+
+    setOpen(true);
+
+  };
+
+
+  /*
+   * =====================================================
+   * WHATSAPP
+   * =====================================================
+   */
+
+  const cleanNumber =
+    whatsappNumber.replace(
+      /\D/g,
+      ""
+    );
+
+
+  const message =
+    productName
+
+      ? `Hi T&M Jewels! 👋 I'm interested in ${productName}. Can you help me with this?`
+
+      : `Hi T&M Jewels! 👋 I need help with a product/order.`;
+
+
+  const whatsappUrl =
+    cleanNumber
+
+      ? `https://wa.me/${cleanNumber}?text=${encodeURIComponent(
+          message
+        )}`
+
+      : "";
+
 
   const handleWhatsApp = () => {
-    if (!whatsappUrl) return;
+
+    if (!whatsappUrl) {
+
+      return;
+
+    }
+
 
     window.open(
       whatsappUrl,
       "_blank",
       "noopener,noreferrer"
     );
+
   };
 
-  /* =====================================================
-     PORTAL
-  ===================================================== */
+
+  /*
+   * =====================================================
+   * PORTAL
+   * =====================================================
+   */
 
   if (!mounted) {
+
     return null;
+
   }
 
+
   return createPortal(
+
     <>
-      {/* ===================================================
-          FLOATING SUPPORT BUTTON
-      =================================================== */}
+
+      {/* =================================================
+          FLOATING SUPPORT BUBBLE
+      ================================================== */}
 
       {showSupport && (
+
         <div
-          className="
+          className={`
             fixed
             right-3
             top-[62%]
+
             z-[9990]
 
             sm:right-5
             sm:top-[58%]
-          "
+
+            transition-all
+            duration-300
+            ease-out
+
+            ${
+              closing
+                ? "translate-x-4 scale-90 opacity-0"
+                : "translate-x-0 scale-100 opacity-100"
+            }
+          `}
         >
-          <button
-            type="button"
-            aria-label="Open T&M Jewels customer support"
-            onClick={() => setOpen(true)}
+
+          {/* =================================================
+              NEED HELP LABEL + CHAT BUTTON
+          ================================================= */}
+
+          <div
             className="
-              group
               relative
-
               flex
-              h-11
-              w-11
-
               items-center
-              justify-center
-
-              overflow-hidden
-              rounded-full
-
-              border
-              border-[#d6ad4d]/70
-
-              bg-[#080808]
-
-              text-[#e4c56b]
-
-              shadow-[0_8px_30px_rgba(0,0,0,.5)]
-
-              transition-all
-              duration-300
-
-              hover:border-[#f1d276]
-              hover:shadow-[0_8px_35px_rgba(214,173,77,.25)]
-
-              focus:outline-none
-              focus-visible:ring-2
-              focus-visible:ring-[#e4c56b]
-
-              sm:h-12
-              sm:w-12
             "
           >
-            {/* Icon */}
-            <span
+
+            {/* =================================================
+                NEED HELP TEXT
+            ================================================= */}
+
+            <button
+
+              type="button"
+
+              onClick={
+                handleOpenSupport
+              }
+
+              aria-label="
+                Open T&M Jewels customer support
+              "
+
               className="
+                group
+
+                relative
+
                 flex
-                h-7
-                w-7
+                h-11
+                w-11
+
                 items-center
                 justify-center
-                rounded-full
-                bg-[#d6ad4d]/10
 
-                sm:h-8
-                sm:w-8
-              "
-            >
-              <MessageCircle
-                className="
-                  h-[18px]
-                  w-[18px]
-
-                  sm:h-5
-                  sm:w-5
-                "
-                strokeWidth={1.7}
-              />
-            </span>
-
-            {/* Desktop hover text */}
-            <span
-              className="
-                pointer-events-none
-                absolute
-
-                hidden
-                whitespace-nowrap
+                overflow-visible
 
                 rounded-full
+
                 border
-                border-[#d6ad4d]/50
+                border-[#d6ad4d]/70
+
                 bg-[#080808]
 
-                px-3
-                py-2
-
-                text-xs
-                font-medium
                 text-[#e4c56b]
 
-                opacity-0
-
-                shadow-[0_8px_25px_rgba(0,0,0,.4)]
+                shadow-[0_8px_30px_rgba(0,0,0,.5)]
 
                 transition-all
                 duration-300
 
-                group-hover:block
-                group-hover:-translate-x-[115%]
-                group-hover:opacity-100
+                hover:border-[#f1d276]
 
-                sm:block
+                hover:shadow-[0_8px_35px_rgba(214,173,77,.25)]
+
+                focus:outline-none
+
+                focus-visible:ring-2
+                focus-visible:ring-[#e4c56b]
+
+                sm:h-12
+                sm:w-12
               "
             >
-              Need Help?
-            </span>
-          </button>
+
+              {/* =================================================
+                  ICON
+              ================================================== */}
+
+              <span
+                className="
+                  flex
+                  h-7
+                  w-7
+
+                  items-center
+                  justify-center
+
+                  rounded-full
+
+                  bg-[#d6ad4d]/10
+
+                  sm:h-8
+                  sm:w-8
+                "
+              >
+
+                <MessageCircle
+                  className="
+                    h-[18px]
+                    w-[18px]
+
+                    sm:h-5
+                    sm:w-5
+                  "
+                  strokeWidth={1.7}
+                />
+
+              </span>
+
+
+              {/* =================================================
+                  NEED HELP TEXT
+              ================================================== */}
+
+              <span
+                className="
+                  pointer-events-none
+
+                  absolute
+
+                  right-[calc(100%+10px)]
+
+                  top-1/2
+
+                  -translate-y-1/2
+
+                  whitespace-nowrap
+
+                  rounded-full
+
+                  border
+                  border-[#d6ad4d]/50
+
+                  bg-[#080808]
+
+                  px-3
+                  py-2
+
+                  text-xs
+                  font-medium
+
+                  text-[#e4c56b]
+
+                  shadow-[0_8px_25px_rgba(0,0,0,.4)]
+
+                  opacity-100
+
+                  transition-all
+                  duration-300
+
+                  sm:px-3
+                  sm:py-2
+                "
+              >
+
+                Need Help?
+
+              </span>
+
+            </button>
+
+
+            {/* =================================================
+                CLOSE BUTTON
+            ================================================== */}
+
+            <button
+
+              type="button"
+
+              onClick={
+                handleCloseSupport
+              }
+
+              aria-label="
+                Close Need Help
+              "
+
+              className="
+                absolute
+
+                -right-1
+                -top-2
+
+                z-20
+
+                flex
+
+                h-5
+                w-5
+
+                items-center
+                justify-center
+
+                rounded-full
+
+                border
+                border-[#d6ad4d]/60
+
+                bg-[#111111]
+
+                text-white/70
+
+                shadow-md
+
+                transition-all
+                duration-200
+
+                hover:border-[#e4c56b]
+
+                hover:bg-[#d6ad4d]
+
+                hover:text-black
+
+                active:scale-90
+              "
+            >
+
+              <X
+                className="
+                  h-3
+                  w-3
+                "
+                strokeWidth={2}
+              />
+
+            </button>
+
+          </div>
+
         </div>
+
       )}
+
 
       {/* ===================================================
           SUPPORT POPUP
       =================================================== */}
 
       {open && (
+
         <div
           style={{
             position: "fixed",
@@ -251,15 +564,22 @@ export default function WhatsAppSupportChat({
             pointerEvents: "none",
           }}
         >
+
           {/* =================================================
-              BACKDROP / CLOSE AREA
+              BACKDROP
           ================================================= */}
 
           <button
+
             type="button"
-            aria-label="Close support popup"
+
+            aria-label="
+              Close support popup
+            "
+
             className="
               pointer-events-auto
+
               absolute
               inset-0
 
@@ -269,22 +589,22 @@ export default function WhatsAppSupportChat({
 
               sm:bg-black/10
             "
-            onClick={() => setOpen(false)}
+
+            onClick={() =>
+              setOpen(false)
+            }
+
           />
+
 
           {/* =================================================
               CHAT BOX
-
-              Mobile:
-              bottom aligned with safe margins
-
-              Desktop:
-              centered vertically
           ================================================= */}
 
           <div
             className="
               pointer-events-auto
+
               absolute
 
               left-3
@@ -319,6 +639,7 @@ export default function WhatsAppSupportChat({
               sm:-translate-y-1/2
             "
           >
+
             {/* =================================================
                 HEADER
             ================================================= */}
@@ -340,7 +661,15 @@ export default function WhatsAppSupportChat({
                 sm:px-5
               "
             >
-              <div className="flex items-center gap-3">
+
+              <div
+                className="
+                  flex
+                  items-center
+                  gap-3
+                "
+              >
+
                 <div
                   className="
                     flex
@@ -360,6 +689,7 @@ export default function WhatsAppSupportChat({
 
                     font-serif
                     text-[10px]
+
                     text-[#e4c56b]
 
                     sm:h-10
@@ -367,13 +697,25 @@ export default function WhatsAppSupportChat({
                     sm:text-xs
                   "
                 >
+
                   T&M
+
                 </div>
 
+
                 <div>
-                  <p className="font-serif text-sm sm:text-base">
+
+                  <p
+                    className="
+                      font-serif
+                      text-sm
+
+                      sm:text-base
+                    "
+                  >
                     T&M Jewels
                   </p>
+
 
                   <p
                     className="
@@ -390,13 +732,24 @@ export default function WhatsAppSupportChat({
                   >
                     Customer Support
                   </p>
+
                 </div>
+
               </div>
 
+
               <button
+
                 type="button"
-                aria-label="Close support chat"
-                onClick={() => setOpen(false)}
+
+                aria-label="
+                  Close support chat
+                "
+
+                onClick={() =>
+                  setOpen(false)
+                }
+
                 className="
                   flex
                   h-8
@@ -415,16 +768,37 @@ export default function WhatsAppSupportChat({
                   hover:text-white
                 "
               >
-                <X className="h-4 w-4" />
+
+                <X
+                  className="
+                    h-4
+                    w-4
+                  "
+                />
+
               </button>
+
             </div>
+
 
             {/* =================================================
                 BODY
             ================================================= */}
 
-            <div className="px-4 py-5 sm:px-5 sm:py-6">
-              {/* Welcome */}
+            <div
+              className="
+                px-4
+                py-5
+
+                sm:px-5
+                sm:py-6
+              "
+            >
+
+              {/* =================================================
+                  WELCOME
+              ================================================= */}
+
               <div
                 className="
                   rounded-2xl
@@ -439,9 +813,17 @@ export default function WhatsAppSupportChat({
                   py-4
                 "
               >
-                <p className="text-sm leading-6 text-white/90">
+
+                <p
+                  className="
+                    text-sm
+                    leading-6
+                    text-white/90
+                  "
+                >
                   Hi! 👋
                 </p>
+
 
                 <p
                   className="
@@ -460,10 +842,16 @@ export default function WhatsAppSupportChat({
                   about a product, order, delivery or anything
                   else? We&apos;re happy to help. 💛
                 </p>
+
               </div>
 
-              {/* Product context */}
+
+              {/* =================================================
+                  PRODUCT CONTEXT
+              ================================================== */}
+
               {productName && (
+
                 <div
                   className="
                     mt-3
@@ -479,6 +867,7 @@ export default function WhatsAppSupportChat({
                     py-2.5
                   "
                 >
+
                   <p
                     className="
                       text-[8px]
@@ -493,21 +882,41 @@ export default function WhatsAppSupportChat({
                     You&apos;re viewing
                   </p>
 
-                  <p className="mt-1 truncate text-xs text-white/75">
+
+                  <p
+                    className="
+                      mt-1
+                      truncate
+                      text-xs
+                      text-white/75
+                    "
+                  >
                     {productName}
                   </p>
+
                 </div>
+
               )}
 
-              {/* WhatsApp */}
+
+              {/* =================================================
+                  WHATSAPP BUTTON
+              ================================================== */}
+
               <button
+
                 type="button"
-                onClick={handleWhatsApp}
+
+                onClick={
+                  handleWhatsApp
+                }
+
                 disabled={
                   isLoading ||
                   isError ||
                   !cleanNumber
                 }
+
                 className="
                   mt-5
 
@@ -537,29 +946,67 @@ export default function WhatsAppSupportChat({
                   disabled:opacity-50
                 "
               >
-                <MessageCircle className="h-5 w-5" />
+
+                <MessageCircle
+                  className="
+                    h-5
+                    w-5
+                  "
+                />
+
 
                 {isLoading
                   ? "Loading..."
                   : "Chat with us on WhatsApp"}
 
-                <ArrowUpRight className="h-4 w-4" />
+
+                <ArrowUpRight
+                  className="
+                    h-4
+                    w-4
+                  "
+                />
+
               </button>
 
-              {/* Error */}
+
+              {/* =================================================
+                  ERROR
+              ================================================== */}
+
               {isError && (
-                <p className="mt-3 text-center text-[10px] text-red-400">
+
+                <p
+                  className="
+                    mt-3
+                    text-center
+                    text-[10px]
+                    text-red-400
+                  "
+                >
                   Unable to load WhatsApp support right now.
                 </p>
+
               )}
+
 
               {!isLoading &&
                 !isError &&
                 !cleanNumber && (
-                  <p className="mt-3 text-center text-[10px] text-red-400">
+
+                  <p
+                    className="
+                      mt-3
+                      text-center
+                      text-[10px]
+                      text-red-400
+                    "
+                  >
                     WhatsApp support is currently unavailable.
                   </p>
+
                 )}
+
 
               <p
                 className="
@@ -578,11 +1025,19 @@ export default function WhatsAppSupportChat({
               >
                 Our team will reply on WhatsApp
               </p>
+
             </div>
+
           </div>
+
         </div>
+
       )}
+
     </>,
+
     document.body
+
   );
+
 }
