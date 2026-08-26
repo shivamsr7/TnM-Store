@@ -127,6 +127,23 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
+   * ZOOM SWIPE REFS
+   * =========================================================
+   */
+
+  const zoomSwipeStartX =
+    useRef<number | null>(null);
+
+  const zoomSwipeStartY =
+    useRef<number | null>(null);
+
+
+  const zoomSwipeMoved =
+    useRef(false);
+
+
+  /*
+   * =========================================================
    * MOBILE DRAG REFS
    * =========================================================
    */
@@ -253,6 +270,20 @@ export default function QuickViewModal({
       setZoomY(0);
 
 
+      zoomSwipeStartX.current =
+        null;
+
+      zoomSwipeStartY.current =
+        null;
+
+      zoomSwipeMoved.current =
+        false;
+
+
+      pinchStartDistance.current =
+        null;
+
+
       dragStartRef.current =
         null;
 
@@ -299,6 +330,18 @@ export default function QuickViewModal({
     setZoomX(0);
 
     setZoomY(0);
+
+    zoomSwipeStartX.current =
+      null;
+
+    zoomSwipeStartY.current =
+      null;
+
+    zoomSwipeMoved.current =
+      false;
+
+    pinchStartDistance.current =
+      null;
 
     dragStartRef.current =
       null;
@@ -613,6 +656,11 @@ export default function QuickViewModal({
   /*
    * =========================================================
    * ZOOM TOUCH START
+   *
+   * Handles BOTH:
+   *
+   * 1. Pinch zoom
+   * 2. Horizontal image swipe
    * =========================================================
    */
 
@@ -620,22 +668,69 @@ export default function QuickViewModal({
     e: TouchEvent
   ) => {
 
+    /*
+     * TWO FINGERS
+     *
+     * Start pinch zoom and cancel swipe.
+     */
+
     if (
-      e.touches.length !== 2
+      e.touches.length >= 2
     ) {
+
+      zoomSwipeStartX.current =
+        null;
+
+      zoomSwipeStartY.current =
+        null;
+
+      zoomSwipeMoved.current =
+        false;
+
+
+      pinchStartDistance.current =
+        getTouchDistance(
+          e.touches
+        );
+
+      pinchStartZoom.current =
+        zoomLevel;
 
       return;
 
     }
 
 
-    pinchStartDistance.current =
-      getTouchDistance(
-        e.touches
-      );
+    /*
+     * ONE FINGER
+     *
+     * Start horizontal swipe tracking.
+     */
 
-    pinchStartZoom.current =
-      zoomLevel;
+    if (
+      e.touches.length === 1
+    ) {
+
+      const touch =
+        e.touches[0];
+
+      if (!touch) {
+
+        return;
+
+      }
+
+
+      zoomSwipeStartX.current =
+        touch.clientX;
+
+      zoomSwipeStartY.current =
+        touch.clientY;
+
+      zoomSwipeMoved.current =
+        false;
+
+    }
 
   };
 
@@ -643,6 +738,8 @@ export default function QuickViewModal({
   /*
    * =========================================================
    * ZOOM TOUCH MOVE
+   *
+   * Handles pinch zoom.
    * =========================================================
    */
 
@@ -650,66 +747,118 @@ export default function QuickViewModal({
     e: TouchEvent
   ) => {
 
-    if (
-      e.touches.length !== 2
-    ) {
-
-      return;
-
-    }
-
+    /*
+     * PINCH ZOOM
+     */
 
     if (
-      pinchStartDistance.current ===
-      null
+      e.touches.length >= 2
     ) {
 
-      return;
+      if (
+        pinchStartDistance.current ===
+        null
+      ) {
 
-    }
+        return;
+
+      }
 
 
-    const currentDistance =
-      getTouchDistance(
-        e.touches
+      const currentDistance =
+        getTouchDistance(
+          e.touches
+        );
+
+
+      if (
+        currentDistance <= 0
+      ) {
+
+        return;
+
+      }
+
+
+      const ratio =
+        currentDistance /
+        pinchStartDistance.current;
+
+
+      const nextZoom =
+        Math.min(
+          Math.max(
+            pinchStartZoom.current *
+              ratio,
+            1
+          ),
+          3
+        );
+
+
+      setZoomLevel(
+        nextZoom
       );
 
 
-    if (
-      currentDistance <= 0
-    ) {
+      if (
+        e.cancelable
+      ) {
+
+        e.preventDefault();
+
+      }
 
       return;
 
     }
 
 
-    const ratio =
-      currentDistance /
-      pinchStartDistance.current;
-
-
-    const nextZoom =
-      Math.min(
-        Math.max(
-          pinchStartZoom.current *
-            ratio,
-          1
-        ),
-        3
-      );
-
-
-    setZoomLevel(
-      nextZoom
-    );
-
+    /*
+     * ONE FINGER
+     *
+     * Detect whether movement is horizontal.
+     */
 
     if (
-      e.cancelable
+      e.touches.length === 1 &&
+      zoomSwipeStartX.current !== null &&
+      zoomSwipeStartY.current !== null
     ) {
 
-      e.preventDefault();
+      const touch =
+        e.touches[0];
+
+      if (!touch) {
+
+        return;
+
+      }
+
+
+      const deltaX =
+        touch.clientX -
+        zoomSwipeStartX.current;
+
+      const deltaY =
+        touch.clientY -
+        zoomSwipeStartY.current;
+
+
+      /*
+       * Mark as horizontal movement.
+       */
+
+      if (
+        Math.abs(deltaX) > 15 &&
+        Math.abs(deltaX) >
+          Math.abs(deltaY)
+      ) {
+
+        zoomSwipeMoved.current =
+          true;
+
+      }
 
     }
 
@@ -719,13 +868,126 @@ export default function QuickViewModal({
   /*
    * =========================================================
    * ZOOM TOUCH END
+   *
+   * Handles horizontal swipe.
    * =========================================================
    */
 
-  const handleZoomTouchEnd = () => {
+  const handleZoomTouchEnd = (
+    e: TouchEvent
+  ) => {
 
-    pinchStartDistance.current =
+    /*
+     * End pinch.
+     */
+
+    if (
+      pinchStartDistance.current !==
+      null
+    ) {
+
+      pinchStartDistance.current =
+        null;
+
+    }
+
+
+    /*
+     * No swipe started.
+     */
+
+    if (
+      zoomSwipeStartX.current === null ||
+      zoomSwipeStartY.current === null
+    ) {
+
+      return;
+
+    }
+
+
+    const touch =
+      e.changedTouches[0];
+
+    if (!touch) {
+
+      zoomSwipeStartX.current =
+        null;
+
+      zoomSwipeStartY.current =
+        null;
+
+      zoomSwipeMoved.current =
+        false;
+
+      return;
+
+    }
+
+
+    const deltaX =
+      touch.clientX -
+      zoomSwipeStartX.current;
+
+    const deltaY =
+      touch.clientY -
+      zoomSwipeStartY.current;
+
+
+    const horizontalDistance =
+      Math.abs(deltaX);
+
+    const verticalDistance =
+      Math.abs(deltaY);
+
+
+    /*
+     * Only navigate when:
+     *
+     * - There is more than one image
+     * - Zoom is at 100%
+     * - Movement is at least 50px
+     * - Horizontal movement is dominant
+     */
+
+    const isHorizontalSwipe =
+      images.length > 1 &&
+      zoomLevel <= 1.01 &&
+      horizontalDistance >= 50 &&
+      horizontalDistance >
+        verticalDistance;
+
+
+    if (
+      isHorizontalSwipe
+    ) {
+
+      if (
+        deltaX < 0
+      ) {
+
+        nextImage();
+
+      } else {
+
+        previousImage();
+
+      }
+
+
+      resetZoom();
+
+    }
+
+
+    zoomSwipeStartX.current =
       null;
+
+    zoomSwipeStartY.current =
+      null;
+
+    zoomSwipeMoved.current =
+      false;
 
   };
 
@@ -820,8 +1082,10 @@ export default function QuickViewModal({
 
 
       if (
-        event.key === "+" ||
-        event.key === "="
+        event.key ===
+        "+" ||
+        event.key ===
+        "="
       ) {
 
         zoomIn();
@@ -832,7 +1096,8 @@ export default function QuickViewModal({
 
 
       if (
-        event.key === "-"
+        event.key ===
+        "-"
       ) {
 
         zoomOut();
@@ -1351,7 +1616,7 @@ export default function QuickViewModal({
                 top-1/2
                 z-30
 
-                hidden
+                flex
 
                 h-11
                 w-11
@@ -1367,12 +1632,20 @@ export default function QuickViewModal({
 
                 text-white
 
+                shadow-lg
+
+                backdrop-blur-sm
+
                 transition
 
                 hover:bg-[#D4AF37]
                 hover:text-black
 
-                sm:flex
+                active:scale-90
+
+                sm:left-5
+                sm:h-11
+                sm:w-11
               "
             >
 
@@ -1410,7 +1683,7 @@ export default function QuickViewModal({
                 top-1/2
                 z-30
 
-                hidden
+                flex
 
                 h-11
                 w-11
@@ -1426,12 +1699,20 @@ export default function QuickViewModal({
 
                 text-white
 
+                shadow-lg
+
+                backdrop-blur-sm
+
                 transition
 
                 hover:bg-[#D4AF37]
                 hover:text-black
 
-                sm:flex
+                active:scale-90
+
+                sm:right-5
+                sm:h-11
+                sm:w-11
               "
             >
 
@@ -1625,7 +1906,7 @@ export default function QuickViewModal({
           </div>
 
 
-          {/* MOBILE IMAGE NAVIGATION */}
+          {/* MOBILE IMAGE INDICATORS */}
 
           {images.length > 1 && (
 
@@ -2358,7 +2639,6 @@ export default function QuickViewModal({
 
           {/* =================================================
               DESKTOP THUMBNAILS
-              FIXED: NO VERTICAL SCROLLBAR
           ================================================= */}
 
           {images.length > 1 && (
