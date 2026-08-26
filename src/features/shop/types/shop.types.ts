@@ -26,4 +26,12 @@ export interface ShopProduct extends Product {
   subcategories: ShopSubcategory | null;
   brands: ShopBrand | null;
   product_images: ShopProductImage[];
+
+  /**
+   * Product specifications stored in the
+   * products.specifications JSONB column.
+   *
+   * Supports nested objects and arrays.
+   */
+  specifications?: Record<string, unknown> | null;
 }

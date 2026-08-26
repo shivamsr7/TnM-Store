@@ -226,6 +226,97 @@ const getTokenCoverage = (
 
 /*
  * =========================================================
+ * SPECIFICATIONS SEARCH TEXT
+ * =========================================================
+ *
+ * Recursively converts the complete specifications JSONB
+ * object into searchable text.
+ *
+ * This searches all specification keys and values without
+ * hardcoding any specific specification names.
+ * =========================================================
+ */
+
+const getSpecificationsSearchText = (
+  specifications: unknown
+): string => {
+
+  if (
+    specifications === null ||
+    specifications === undefined
+  ) {
+
+    return "";
+
+  }
+
+
+  if (
+    typeof specifications === "string" ||
+    typeof specifications === "number" ||
+    typeof specifications === "boolean"
+  ) {
+
+    return String(
+      specifications
+    );
+
+  }
+
+
+  if (
+    Array.isArray(
+      specifications
+    )
+  ) {
+
+    return specifications
+      .map(
+        (
+          item
+        ) =>
+          getSpecificationsSearchText(
+            item
+          )
+      )
+      .join(" ");
+
+  }
+
+
+  if (
+    typeof specifications === "object"
+  ) {
+
+    return Object.entries(
+      specifications as Record<
+        string,
+        unknown
+      >
+    )
+      .map(
+        (
+          [
+            key,
+            value,
+          ]
+        ) =>
+          `${key} ${getSpecificationsSearchText(
+            value
+          )}`
+      )
+      .join(" ");
+
+  }
+
+
+  return "";
+
+};
+
+
+/*
+ * =========================================================
  * PRODUCT SEARCH SCORE
  * =========================================================
  *
@@ -293,6 +384,13 @@ const scoreProduct = (
   const description =
     normalizeSearchText(
       product.description
+    );
+
+  const specifications =
+    normalizeSearchText(
+      getSpecificationsSearchText(
+        product.specifications
+      )
     );
 
 
@@ -488,6 +586,32 @@ const scoreProduct = (
 
     score +=
       descriptionCoverage * 10;
+
+  }
+
+
+  /*
+   * =======================================================
+   * SPECIFICATIONS
+   *
+   * Stronger than generic full description, but weaker
+   * than product name, SKU and slug.
+   * =======================================================
+   */
+
+  const specificationsCoverage =
+    getTokenCoverage(
+      specifications,
+      tokens
+    );
+
+
+  if (
+    specificationsCoverage > 0
+  ) {
+
+    score +=
+      specificationsCoverage * 80;
 
   }
 

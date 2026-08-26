@@ -31,6 +31,12 @@ export interface SearchProduct {
 
   short_description?: string | null;
 
+  /**
+   * Product specifications stored in the products.specifications JSONB field.
+   * Supports nested objects and arrays.
+   */
+  specifications?: Record<string, unknown> | null;
+
   product_images?: {
 
     image_url: string;

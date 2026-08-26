@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import logo from "@/assets/logo/mainLogo.png";
 import {
   FaInstagram,
@@ -7,8 +8,9 @@ import {
 
 export default function AboutUs() {
 
+  const navigate = useNavigate();
 
-return (
+  return (
 
 <main
 
@@ -2019,6 +2021,10 @@ create your own trend.
 
 
 <button
+
+type="button"
+
+onClick={() => navigate("/shop")}
 
 className="
 mt-8

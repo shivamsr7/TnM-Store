@@ -51,7 +51,6 @@ type SortOption =
 function slugify(
   value?: string | null
 ) {
-
   return (
     value
       ?.trim()
@@ -61,24 +60,18 @@ function slugify(
         "-"
       ) ?? ""
   );
-
 }
 
 
 function getDiscount(
   product: ShopProduct
 ) {
-
   if (
     !product.compare_price ||
-    product.compare_price <=
-      product.price
+    product.compare_price <= product.price
   ) {
-
     return 0;
-
   }
-
 
   return Math.round(
     (
@@ -88,6 +81,216 @@ function getDiscount(
       ) /
       product.compare_price
     ) * 100
+  );
+}
+
+
+/*
+ * =========================================================
+ * SPECIFICATIONS SEARCH HELPER
+ * =========================================================
+ *
+ * specifications is a JSONB field in products.
+ *
+ * Example:
+ *
+ * {
+ *   "Material": "Stainless Steel",
+ *   "Finish": "18K Gold Plated",
+ *   "Features": [
+ *      "Anti Tarnish",
+ *      "Water Resistant"
+ *   ]
+ * }
+ *
+ * This helper recursively converts all keys and values
+ * into searchable text.
+ */
+
+function getSpecificationsSearchText(
+  specifications: unknown
+): string {
+
+  if (
+    specifications === null ||
+    specifications === undefined
+  ) {
+    return "";
+  }
+
+
+  if (
+    typeof specifications === "string" ||
+    typeof specifications === "number" ||
+    typeof specifications === "boolean"
+  ) {
+    return String(
+      specifications
+    );
+  }
+
+
+  if (
+    Array.isArray(
+      specifications
+    )
+  ) {
+
+    return specifications
+      .map(
+        (
+          item
+        ) =>
+          getSpecificationsSearchText(
+            item
+          )
+      )
+      .join(" ");
+
+  }
+
+
+  if (
+    typeof specifications === "object"
+  ) {
+
+    return Object.entries(
+      specifications as Record<
+        string,
+        unknown
+      >
+    )
+      .map(
+        (
+          [
+            key,
+            value,
+          ]
+        ) =>
+          `${key} ${getSpecificationsSearchText(
+            value
+          )}`
+      )
+      .join(" ");
+
+  }
+
+
+  return "";
+
+}
+
+
+/*
+ * =========================================================
+ * NORMALIZED SEARCH
+ * =========================================================
+ *
+ * Makes search tolerant of:
+ *
+ * Anti Tarnish
+ * Anti-Tarnish
+ * anti_tarnish
+ * ANTITARNISH
+ *
+ * It also collapses repeated whitespace.
+ */
+
+function normalizeSearchText(
+  value?: unknown
+): string {
+
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "";
+  }
+
+
+  return String(
+    value
+  )
+    .toLowerCase()
+    .normalize("NFKC")
+    .replace(
+      /[-_]+/g,
+      " "
+    )
+    .replace(
+      /[^\p{L}\p{N}]+/gu,
+      " "
+    )
+    .replace(
+      /\s+/g,
+      " "
+    )
+    .trim();
+
+}
+
+
+/*
+ * Compact version used as a fallback so:
+ *
+ * anti tarnish
+ * anti-tarnish
+ * antitarnish
+ *
+ * can all match one another.
+ */
+
+function compactSearchText(
+  value?: unknown
+): string {
+
+  return normalizeSearchText(
+    value
+  ).replace(
+    /\s+/g,
+    ""
+  );
+
+}
+
+
+/*
+ * Search a product field using both normal and compact
+ * normalized forms.
+ */
+
+function matchesSearch(
+  field: unknown,
+  normalizedQuery: string,
+  compactQuery: string
+): boolean {
+
+  const normalizedField =
+    normalizeSearchText(
+      field
+    );
+
+
+  if (
+    !normalizedField
+  ) {
+    return false;
+  }
+
+
+  if (
+    normalizedField.includes(
+      normalizedQuery
+    )
+  ) {
+    return true;
+  }
+
+
+  return compactSearchText(
+    normalizedField
+  ).includes(
+    compactQuery
   );
 
 }
@@ -249,7 +452,7 @@ export default function Shop() {
    * =======================================================
    * SUBCATEGORY PARAM
    * =======================================================
-   */
+ */
 
   const subcategoryParam =
     searchParams.get(
@@ -1123,9 +1326,14 @@ export default function Shop() {
    */
 
   const searchValue =
-    search
-      .trim()
-      .toLowerCase();
+    normalizeSearchText(
+      search
+    );
+
+  const compactSearchValue =
+    compactSearchText(
+      search
+    );
 
 
   /*
@@ -1143,26 +1351,72 @@ export default function Shop() {
             product
           ) => {
 
+            /*
+             * =================================================
+             * SEARCH
+             * =================================================
+             *
+             * Search across:
+             *
+             * 1. Product name
+             * 2. SKU
+             * 3. Slug
+             * 4. Short description
+             * 5. Full description
+             * 6. Care instructions
+             * 7. Specifications JSONB
+             */
+
+            const specificationSearchText =
+              getSpecificationsSearchText(
+                product.specifications
+              );
+
+
             const searchMatch =
               !searchValue ||
 
-              product.name
-                ?.toLowerCase()
-                .includes(
-                  searchValue
-                ) ||
+              matchesSearch(
+                product.name,
+                searchValue,
+                compactSearchValue
+              ) ||
 
-              product.short_description
-                ?.toLowerCase()
-                .includes(
-                  searchValue
-                ) ||
+              matchesSearch(
+                product.short_description,
+                searchValue,
+                compactSearchValue
+              ) ||
 
-              product.sku
-                ?.toLowerCase()
-                .includes(
-                  searchValue
-                );
+              matchesSearch(
+                product.description,
+                searchValue,
+                compactSearchValue
+              ) ||
+
+              matchesSearch(
+                product.care_instructions,
+                searchValue,
+                compactSearchValue
+              ) ||
+
+              matchesSearch(
+                product.sku,
+                searchValue,
+                compactSearchValue
+              ) ||
+
+              matchesSearch(
+                product.slug,
+                searchValue,
+                compactSearchValue
+              ) ||
+
+              matchesSearch(
+                specificationSearchText,
+                searchValue,
+                compactSearchValue
+              );
 
 
             if (
@@ -1173,6 +1427,12 @@ export default function Shop() {
 
             }
 
+
+            /*
+             * =================================================
+             * CATEGORY
+             * =================================================
+             */
 
             if (
               activeShopCategory
@@ -1291,6 +1551,12 @@ export default function Shop() {
             }
 
 
+            /*
+             * =================================================
+             * PRICE
+             * =================================================
+             */
+
             if (
               product.price <
               minPrice
@@ -1312,6 +1578,12 @@ export default function Shop() {
             }
 
 
+            /*
+             * =================================================
+             * STOCK
+             * =================================================
+             */
+
             if (
               inStock &&
               product.track_inventory &&
@@ -1323,6 +1595,12 @@ export default function Shop() {
 
             }
 
+
+            /*
+             * =================================================
+             * DISCOUNT
+             * =================================================
+             */
 
             const discount =
               getDiscount(
@@ -1351,6 +1629,12 @@ export default function Shop() {
             }
 
 
+            /*
+             * =================================================
+             * RATING
+             * =================================================
+             */
+
             if (
               minRating > 0 &&
               product.rating <
@@ -1361,6 +1645,12 @@ export default function Shop() {
 
             }
 
+
+            /*
+             * =================================================
+             * COLLECTION FLAGS
+             * =================================================
+             */
 
             if (
               bestSeller &&
@@ -1419,7 +1709,9 @@ export default function Shop() {
 
 
       /*
+       * =======================================================
        * SORT
+       * =======================================================
        */
 
       result = [
@@ -1584,6 +1876,8 @@ export default function Shop() {
 
       searchValue,
 
+      compactSearchValue,
+
       activeShopCategory,
 
       activeSubcategory,
@@ -1629,7 +1923,6 @@ export default function Shop() {
     return (
 
       <div
-
         className="
           min-h-screen
           bg-black
@@ -1638,7 +1931,6 @@ export default function Shop() {
           sm:px-5
           lg:py-16
         "
-
       >
 
         <div
