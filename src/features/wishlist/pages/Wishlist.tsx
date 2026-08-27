@@ -858,14 +858,33 @@ function WishlistCard({
 
     try {
 
+      /*
+       * Add the wishlist product to the cart first.
+       *
+       * Only remove it from the wishlist after the cart
+       * action completes successfully.
+       */
       await addToCart(
         product
       );
 
+
+      /*
+       * A product that has been moved from Wishlist to Cart
+       * should no longer remain in Wishlist.
+       */
+      await removeFromWishlist(
+        item.product_id
+      );
+
     } catch (error) {
 
+      /*
+       * If adding to cart fails, keep the product in the
+       * wishlist so the customer does not lose the saved item.
+       */
       console.error(
-        "Failed to add wishlist product to cart:",
+        "Failed to move wishlist product to cart:",
         error
       );
 

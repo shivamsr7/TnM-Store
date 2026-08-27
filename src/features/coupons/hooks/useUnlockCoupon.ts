@@ -35,11 +35,14 @@ export function useUnlockCoupon(
    * CUSTOMER ELIGIBILITY CONTEXT
    * =========================================================
    *
-   * Unlock offers must respect the same customer restrictions
-   * used by the coupon system.
+   * Used for:
    *
-   * This prevents customer-only coupons such as SPECIAL20
-   * from appearing to new customers.
+   * - New customer
+   * - Existing customer
+   * - First order
+   * - Previous order limits
+   * - Lifetime spend limits
+   * - Membership tier
    * =========================================================
    */
 
@@ -323,11 +326,138 @@ export function useUnlockCoupon(
   });
 
 
+  /*
+   * =========================================================
+   * ONE-USE COUPON USAGE
+   * =========================================================
+   *
+   * IMPORTANT:
+   *
+   * A coupon with one_use_per_customer = true must NOT be
+   * shown as an unlock offer after the customer has already
+   * used it.
+   *
+   * validateCoupon() already enforces this rule when the
+   * customer actually applies the coupon.
+   *
+   * This query makes the unlock banner follow the same rule.
+   * =========================================================
+   */
+
+  const oneUseCouponIds =
+    coupons
+      .filter(
+        (coupon: any) =>
+          coupon.one_use_per_customer ===
+          true
+      )
+      .map(
+        (coupon: any) =>
+          coupon.id
+      );
+
+
+  const {
+    data: usedCouponRows = [],
+    isLoading: usageLoading,
+  } = useQuery({
+
+    queryKey: [
+      "unlock-coupon-usage",
+      customer?.id,
+      oneUseCouponIds
+        .sort()
+        .join(","),
+    ],
+
+    queryFn: async () => {
+
+      if (
+        !customer?.id ||
+        oneUseCouponIds.length === 0
+      ) {
+        return [];
+      }
+
+
+      const {
+        data,
+        error,
+      } = await supabase
+
+        .from(
+          "coupon_usage"
+        )
+
+        .select(
+          "coupon_id"
+        )
+
+        .eq(
+          "customer_id",
+          customer.id
+        )
+
+        .in(
+          "coupon_id",
+          oneUseCouponIds
+        );
+
+
+      if (error) {
+        throw error;
+      }
+
+
+      return data ?? [];
+
+    },
+
+    enabled:
+      !!customer?.id &&
+      oneUseCouponIds.length > 0,
+
+    /*
+     * Keep this relatively fresh because coupon usage can
+     * change immediately after an order/coupon redemption.
+     */
+
+    staleTime:
+      10 * 1000,
+
+    refetchOnWindowFocus:
+      true,
+
+  });
+
+
+  /*
+   * =========================================================
+   * USED COUPON SET
+   * =========================================================
+   */
+
+  const usedCouponIds =
+    new Set(
+      usedCouponRows.map(
+        (row: any) =>
+          row.coupon_id
+      )
+    );
+
+
+  /*
+   * =========================================================
+   * LOADING
+   * =========================================================
+   */
+
   const isLoading =
     couponsLoading ||
     customerLoading ||
     customerRulesLoading ||
-    membershipRulesLoading;
+    membershipRulesLoading ||
+    usageLoading;
 
 
   /*
@@ -341,26 +471,48 @@ export function useUnlockCoupon(
   ) => {
 
     /*
-     * No customer:
+     * -------------------------------------------------------
+     * GUEST CUSTOMER
+     * -------------------------------------------------------
      *
-     * Do not show customer-restricted unlock offers.
+     * Customer-specific coupons cannot be safely shown to a
+     * guest.
+     *
+     * Also, one-use-per-customer coupons require login in
+     * validateCoupon(), so do not show those to guests.
+     * -------------------------------------------------------
      */
 
     if (!customer?.id) {
 
       return (
-        coupon.customer_scope === "all" &&
+        coupon.customer_scope ===
+          "all" &&
+
         !coupon.first_order_only &&
+
         !coupon.new_customer_only &&
+
         !coupon.existing_customer_only &&
+
         coupon.min_previous_orders == null &&
+
         coupon.max_previous_orders == null &&
+
         coupon.min_lifetime_spend == null &&
-        coupon.max_lifetime_spend == null
+
+        coupon.max_lifetime_spend == null &&
+
+        !coupon.one_use_per_customer
       );
 
     }
 
+
+    /*
+     * Customer context is required for logged-in customer
+     * restrictions.
+     */
 
     if (!customerContext) {
       return false;
@@ -368,7 +520,37 @@ export function useUnlockCoupon(
 
 
     /*
-     * Customer scope
+     * -------------------------------------------------------
+     * ONE USE PER CUSTOMER
+     * -------------------------------------------------------
+     *
+     * This is the main fix.
+     *
+     * If the customer has already redeemed this coupon,
+     * it must never appear as an unlock offer again.
+     * -------------------------------------------------------
+     */
+
+    if (
+      coupon.one_use_per_customer ===
+      true
+    ) {
+
+      if (
+        usedCouponIds.has(
+          coupon.id
+        )
+      ) {
+        return false;
+      }
+
+    }
+
+
+    /*
+     * -------------------------------------------------------
+     * CUSTOMER SCOPE
+     * -------------------------------------------------------
      */
 
     if (
@@ -393,18 +575,26 @@ export function useUnlockCoupon(
     }
 
 
+    /*
+     * New customer scope
+     */
+
     if (
       coupon.customer_scope ===
-      "new" &&
+        "new" &&
       !customerContext.isNewCustomer
     ) {
       return false;
     }
 
 
+    /*
+     * Existing customer scope
+     */
+
     if (
       coupon.customer_scope ===
-      "existing" &&
+        "existing" &&
       customerContext.isNewCustomer
     ) {
       return false;
@@ -412,7 +602,9 @@ export function useUnlockCoupon(
 
 
     /*
-     * Explicit customer flags
+     * -------------------------------------------------------
+     * EXPLICIT CUSTOMER FLAGS
+     * -------------------------------------------------------
      */
 
     if (
@@ -440,11 +632,14 @@ export function useUnlockCoupon(
 
 
     /*
-     * Previous order limits
+     * -------------------------------------------------------
+     * PREVIOUS ORDER LIMITS
+     * -------------------------------------------------------
      */
 
     if (
-      coupon.min_previous_orders != null &&
+      coupon.min_previous_orders !=
+        null &&
       customerContext.previousOrders <
         Number(
           coupon.min_previous_orders
@@ -455,7 +650,8 @@ export function useUnlockCoupon(
 
 
     if (
-      coupon.max_previous_orders != null &&
+      coupon.max_previous_orders !=
+        null &&
       customerContext.previousOrders >
         Number(
           coupon.max_previous_orders
@@ -466,11 +662,14 @@ export function useUnlockCoupon(
 
 
     /*
-     * Lifetime spend limits
+     * -------------------------------------------------------
+     * LIFETIME SPEND LIMITS
+     * -------------------------------------------------------
      */
 
     if (
-      coupon.min_lifetime_spend != null &&
+      coupon.min_lifetime_spend !=
+        null &&
       customerContext.lifetimeSpend <
         Number(
           coupon.min_lifetime_spend
@@ -481,7 +680,8 @@ export function useUnlockCoupon(
 
 
     if (
-      coupon.max_lifetime_spend != null &&
+      coupon.max_lifetime_spend !=
+        null &&
       customerContext.lifetimeSpend >
         Number(
           coupon.max_lifetime_spend
@@ -492,7 +692,9 @@ export function useUnlockCoupon(
 
 
     /*
-     * Membership restrictions
+     * -------------------------------------------------------
+     * MEMBERSHIP RESTRICTIONS
+     * -------------------------------------------------------
      */
 
     const membershipRows =
@@ -535,12 +737,24 @@ export function useUnlockCoupon(
       .filter(
         (coupon: any) => {
 
+          /*
+           * -------------------------------------------------
+           * ACTIVE
+           * -------------------------------------------------
+           */
+
           if (
             !coupon.is_active
           ) {
             return false;
           }
 
+
+          /*
+           * -------------------------------------------------
+           * START DATE
+           * -------------------------------------------------
+           */
 
           if (
             coupon.starts_at &&
@@ -553,6 +767,12 @@ export function useUnlockCoupon(
           }
 
 
+          /*
+           * -------------------------------------------------
+           * EXPIRY DATE
+           * -------------------------------------------------
+           */
+
           if (
             coupon.expires_at &&
             now >
@@ -564,6 +784,12 @@ export function useUnlockCoupon(
           }
 
 
+          /*
+           * -------------------------------------------------
+           * GLOBAL USAGE LIMIT
+           * -------------------------------------------------
+           */
+
           if (
             coupon.usage_limit &&
             coupon.used_count >=
@@ -573,6 +799,15 @@ export function useUnlockCoupon(
           }
 
 
+          /*
+           * -------------------------------------------------
+           * CUSTOMER ELIGIBILITY
+           * -------------------------------------------------
+           *
+           * Includes the one-use-per-customer check above.
+           * -------------------------------------------------
+           */
+
           if (
             !isCustomerEligible(
               coupon
@@ -581,6 +816,16 @@ export function useUnlockCoupon(
             return false;
           }
 
+
+          /*
+           * -------------------------------------------------
+           * MINIMUM ORDER
+           * -------------------------------------------------
+           *
+           * Only show the offer when the customer's current
+           * cart is below the required amount.
+           * -------------------------------------------------
+           */
 
           return (
             Number(
@@ -605,9 +850,21 @@ export function useUnlockCoupon(
       );
 
 
+  /*
+   * =========================================================
+   * NEAREST COUPON
+   * =========================================================
+   */
+
   const nearestCoupon =
     lockedCoupons[0];
 
+
+  /*
+   * =========================================================
+   * NO ELIGIBLE UNLOCK OFFER
+   * =========================================================
+   */
 
   if (
     !nearestCoupon
@@ -627,6 +884,12 @@ export function useUnlockCoupon(
 
   }
 
+
+  /*
+   * =========================================================
+   * RETURN
+   * =========================================================
+   */
 
   return {
 
