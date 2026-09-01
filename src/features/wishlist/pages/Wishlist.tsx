@@ -422,7 +422,6 @@ export default function Wishlist() {
                 sm:text-sm
               "
             >
-
               Explore Collection
 
               <ArrowRight
@@ -892,10 +891,6 @@ function WishlistCard({
       );
 
 
-      /*
-       * Close only after successful deletion.
-       */
-
       setIsClosingDialog(true);
 
       window.setTimeout(() => {
@@ -1189,9 +1184,9 @@ function WishlistCard({
             }}
           >
 
-            {/* =============================================
+            {/* =================================================
                 GOLD TOP LINE
-            ============================================== */}
+            ================================================== */}
 
             <div
               className="
@@ -1205,9 +1200,9 @@ function WishlistCard({
             />
 
 
-            {/* =============================================
+            {/* =================================================
                 CLOSE
-            ============================================== */}
+            ================================================== */}
 
             <button
               type="button"
@@ -1247,9 +1242,9 @@ function WishlistCard({
             </button>
 
 
-            {/* =============================================
+            {/* =================================================
                 CONTENT
-            ============================================== */}
+            ================================================== */}
 
             <div
               className="
@@ -1345,19 +1340,24 @@ function WishlistCard({
               </p>
 
 
-              {/* Buttons */}
+              {/* =================================================
+                  BUTTONS
+              ================================================== */}
 
               <div
                 className="
                   mt-7
                   flex
+                  w-full
                   flex-col-reverse
                   gap-2.5
                   sm:flex-row
                 "
               >
 
-                {/* Keep */}
+                {/* =================================================
+                    KEEP IN WISHLIST
+                ================================================== */}
 
                 <button
                   type="button"
@@ -1370,6 +1370,7 @@ function WishlistCard({
                   className="
                     flex
                     h-12
+                    w-full
                     flex-1
                     items-center
                     justify-center
@@ -1394,13 +1395,25 @@ function WishlistCard({
 
                     disabled:cursor-not-allowed
                     disabled:opacity-50
+
+                    sm:h-12
                   "
                 >
-                  Keep in Wishlist
+
+                  <span
+                    className="
+                      text-center
+                    "
+                  >
+                    Keep in Wishlist
+                  </span>
+
                 </button>
 
 
-                {/* Remove */}
+                {/* =================================================
+                    REMOVE
+                ================================================== */}
 
                 <button
                   type="button"
@@ -1413,10 +1426,10 @@ function WishlistCard({
                   className="
                     flex
                     h-12
+                    w-full
                     flex-1
                     items-center
                     justify-center
-                    gap-2
                     rounded-full
                     bg-[#D4AF37]
                     px-4
@@ -1437,12 +1450,22 @@ function WishlistCard({
 
                     disabled:cursor-not-allowed
                     disabled:opacity-60
+
+                    sm:h-12
                   "
                 >
 
                   {isRemoving ? (
 
-                    <>
+                    <span
+                      className="
+                        flex
+                        items-center
+                        justify-center
+                        gap-2
+                      "
+                    >
+
                       <span
                         className="
                           h-4
@@ -1455,18 +1478,50 @@ function WishlistCard({
                         "
                       />
 
-                      Removing...
-                    </>
+                      <span>
+                        Removing...
+                      </span>
+
+                    </span>
 
                   ) : (
 
-                    <>
+                    /*
+                     * The wrapper is full width so the
+                     * "Remove" text remains mathematically
+                     * centered. The icon is positioned
+                     * independently from the label.
+                     */
+
+                    <span
+                      className="
+                        relative
+                        flex
+                        w-full
+                        items-center
+                        justify-center
+                      "
+                    >
+
                       <Trash2
-                        size={15}
+                        size={16}
+                        strokeWidth={2.2}
+                        className="
+                          absolute
+                          left-1/2
+                          -translate-x-[48px]
+                        "
                       />
 
-                      Remove
-                    </>
+                      <span
+                        className="
+                          text-center
+                        "
+                      >
+                        Remove
+                      </span>
+
+                    </span>
 
                   )}
 
@@ -1475,7 +1530,9 @@ function WishlistCard({
               </div>
 
 
-              {/* Small note */}
+              {/* =================================================
+                  SMALL NOTE
+              ================================================== */}
 
               <p
                 className="
