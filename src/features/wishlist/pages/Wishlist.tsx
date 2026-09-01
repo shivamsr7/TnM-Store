@@ -4,11 +4,21 @@ import {
   Trash2,
   ArrowRight,
   Check,
+  X,
 } from "lucide-react";
 
 import {
   Link,
 } from "react-router-dom";
+
+import {
+  createPortal,
+} from "react-dom";
+
+import {
+  useEffect,
+  useState,
+} from "react";
 
 import {
   useWishlist,
@@ -26,6 +36,10 @@ import type {
   WishlistWithProduct,
 } from "../types/wishlist.types";
 
+
+/* ============================================================
+   Wishlist
+============================================================ */
 
 export default function Wishlist() {
 
@@ -87,12 +101,7 @@ export default function Wishlist() {
             "
           >
 
-            {[
-              1,
-              2,
-              3,
-              4,
-            ].map((item) => (
+            {[1, 2, 3, 4].map((item) => (
 
               <div
                 key={item}
@@ -211,9 +220,7 @@ export default function Wishlist() {
 
             <Heart
               size={22}
-              className="
-                text-red-400
-              "
+              className="text-red-400"
             />
 
           </div>
@@ -343,9 +350,7 @@ export default function Wishlist() {
               <Heart
                 size={29}
                 strokeWidth={1.4}
-                className="
-                  text-[#D4AF37]
-                "
+                className="text-[#D4AF37]"
               />
 
             </div>
@@ -467,9 +472,7 @@ export default function Wishlist() {
       >
 
         <WishlistHeader
-          count={
-            wishlist.length
-          }
+          count={wishlist.length}
         />
 
 
@@ -490,23 +493,19 @@ export default function Wishlist() {
           "
         >
 
-          {wishlist.map(
-            (item) => (
+          {wishlist.map((item) => (
 
-              <WishlistCard
-                key={item.id}
-                item={item}
-              />
+            <WishlistCard
+              key={item.id}
+              item={item}
+            />
 
-            )
-          )}
+          ))}
 
         </div>
 
 
-        {/* ===================================================
-            Bottom Shopping CTA
-        =================================================== */}
+        {/* Bottom Shopping CTA */}
 
         <div
           className="
@@ -678,8 +677,7 @@ function WishlistHeader({
                 text-[#E6C96A]
               "
             >
-              {count}
-              {" "}
+              {count}{" "}
               {count === 1
                 ? "saved item"
                 : "saved items"}
@@ -740,6 +738,24 @@ function WishlistCard({
   const {
     addToCart,
   } = useCartActions();
+
+
+  /*
+   * =========================================================
+   * Remove Confirmation State
+   * =========================================================
+   */
+
+  const [
+    showRemoveDialog,
+    setShowRemoveDialog,
+  ] = useState(false);
+
+
+  const [
+    isClosingDialog,
+    setIsClosingDialog,
+  ] = useState(false);
 
 
   /*
@@ -819,17 +835,75 @@ function WishlistCard({
 
   /*
    * =========================================================
-   * Remove
+   * OPEN REMOVE DIALOG
    * =========================================================
    */
 
-  async function handleRemove() {
+  function handleRemoveClick() {
+
+    if (isRemoving) {
+      return;
+    }
+
+    setIsClosingDialog(false);
+    setShowRemoveDialog(true);
+  }
+
+
+  /*
+   * =========================================================
+   * CLOSE REMOVE DIALOG
+   * =========================================================
+   */
+
+  function closeRemoveDialog() {
+
+    if (isRemoving) {
+      return;
+    }
+
+    setIsClosingDialog(true);
+
+    window.setTimeout(() => {
+
+      setShowRemoveDialog(false);
+      setIsClosingDialog(false);
+
+    }, 280);
+  }
+
+
+  /*
+   * =========================================================
+   * CONFIRM REMOVE
+   * =========================================================
+   */
+
+  async function confirmRemove() {
+
+    if (isRemoving) {
+      return;
+    }
 
     try {
 
       await removeFromWishlist(
         item.product_id
       );
+
+
+      /*
+       * Close only after successful deletion.
+       */
+
+      setIsClosingDialog(true);
+
+      window.setTimeout(() => {
+
+        setShowRemoveDialog(false);
+        setIsClosingDialog(false);
+
+      }, 280);
 
     } catch (error) {
 
@@ -845,7 +919,7 @@ function WishlistCard({
 
   /*
    * =========================================================
-   * Add To Cart
+   * ADD TO CART
    * =========================================================
    */
 
@@ -855,34 +929,18 @@ function WishlistCard({
       return;
     }
 
-
     try {
 
-      /*
-       * Add the wishlist product to the cart first.
-       *
-       * Only remove it from the wishlist after the cart
-       * action completes successfully.
-       */
       await addToCart(
         product
       );
 
-
-      /*
-       * A product that has been moved from Wishlist to Cart
-       * should no longer remain in Wishlist.
-       */
       await removeFromWishlist(
         item.product_id
       );
 
     } catch (error) {
 
-      /*
-       * If adding to cart fails, keep the product in the
-       * wishlist so the customer does not lose the saved item.
-       */
       console.error(
         "Failed to move wishlist product to cart:",
         error
@@ -895,457 +953,1001 @@ function WishlistCard({
 
   /*
    * =========================================================
-   * Render
+   * ESCAPE KEY
+   * =========================================================
+   */
+
+  useEffect(() => {
+
+    if (!showRemoveDialog) {
+      return;
+    }
+
+
+    const handleKeyDown = (
+      event: KeyboardEvent
+    ) => {
+
+      if (
+        event.key === "Escape"
+      ) {
+
+        closeRemoveDialog();
+
+      }
+
+    };
+
+
+    window.addEventListener(
+      "keydown",
+      handleKeyDown
+    );
+
+
+    return () => {
+
+      window.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
+
+    };
+
+  }, [
+    showRemoveDialog,
+    isRemoving,
+  ]);
+
+
+  /*
+   * =========================================================
+   * CONFIRMATION DIALOG
+   * =========================================================
+   */
+
+  const removeDialog =
+    showRemoveDialog && (
+
+      <>
+        <style>
+          {`
+
+            @keyframes tnmWishlistOverlayIn {
+
+              from {
+                opacity: 0;
+              }
+
+              to {
+                opacity: 1;
+              }
+
+            }
+
+
+            @keyframes tnmWishlistOverlayOut {
+
+              from {
+                opacity: 1;
+              }
+
+              to {
+                opacity: 0;
+              }
+
+            }
+
+
+            @keyframes tnmWishlistDialogIn {
+
+              from {
+                opacity: 0;
+                transform:
+                  translateY(14px)
+                  scale(.94);
+              }
+
+              to {
+                opacity: 1;
+                transform:
+                  translateY(0)
+                  scale(1);
+              }
+
+            }
+
+
+            @keyframes tnmWishlistDialogOut {
+
+              from {
+                opacity: 1;
+                transform:
+                  translateY(0)
+                  scale(1);
+              }
+
+              to {
+                opacity: 0;
+                transform:
+                  translateY(8px)
+                  scale(.96);
+              }
+
+            }
+
+
+            .tnm-wishlist-overlay-in {
+              animation:
+                tnmWishlistOverlayIn
+                .28s
+                ease-out
+                both;
+            }
+
+
+            .tnm-wishlist-overlay-out {
+              animation:
+                tnmWishlistOverlayOut
+                .28s
+                ease-in
+                both;
+            }
+
+
+            .tnm-wishlist-dialog-in {
+              animation:
+                tnmWishlistDialogIn
+                .42s
+                cubic-bezier(.16,1,.3,1)
+                both;
+            }
+
+
+            .tnm-wishlist-dialog-out {
+              animation:
+                tnmWishlistDialogOut
+                .28s
+                cubic-bezier(.4,0,.2,1)
+                both;
+            }
+
+
+            @media (prefers-reduced-motion: reduce) {
+
+              .tnm-wishlist-overlay-in,
+              .tnm-wishlist-overlay-out,
+              .tnm-wishlist-dialog-in,
+              .tnm-wishlist-dialog-out {
+                animation: none !important;
+              }
+
+            }
+
+          `}
+        </style>
+
+
+        <div
+          className={`
+            fixed
+            inset-0
+            z-[2147483647]
+            flex
+            items-center
+            justify-center
+            overflow-y-auto
+            bg-black/75
+            px-4
+            py-6
+            backdrop-blur-md
+
+            ${
+              isClosingDialog
+                ? "tnm-wishlist-overlay-out"
+                : "tnm-wishlist-overlay-in"
+            }
+          `}
+          role="presentation"
+          onMouseDown={(event) => {
+
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+
+              closeRemoveDialog();
+
+            }
+
+          }}
+        >
+
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`remove-wishlist-title-${item.id}`}
+            className={`
+              relative
+              w-full
+              max-w-[400px]
+              overflow-hidden
+              rounded-[26px]
+              border
+              border-[#D4AF37]/25
+              bg-[#0b0b0b]
+              shadow-[0_30px_100px_rgba(0,0,0,.75)]
+
+              ${
+                isClosingDialog
+                  ? "tnm-wishlist-dialog-out"
+                  : "tnm-wishlist-dialog-in"
+              }
+            `}
+            onMouseDown={(event) => {
+              event.stopPropagation();
+            }}
+          >
+
+            {/* =============================================
+                GOLD TOP LINE
+            ============================================== */}
+
+            <div
+              className="
+                h-[2px]
+                w-full
+                bg-gradient-to-r
+                from-transparent
+                via-[#D4AF37]
+                to-transparent
+              "
+            />
+
+
+            {/* =============================================
+                CLOSE
+            ============================================== */}
+
+            <button
+              type="button"
+              onClick={
+                closeRemoveDialog
+              }
+              disabled={
+                isRemoving
+              }
+              aria-label="Close"
+              className="
+                absolute
+                right-4
+                top-4
+                z-10
+                flex
+                h-9
+                w-9
+                items-center
+                justify-center
+                rounded-full
+                text-white/35
+                transition
+                hover:bg-white/10
+                hover:text-white
+                focus:outline-none
+                focus-visible:ring-2
+                focus-visible:ring-[#D4AF37]
+                disabled:opacity-40
+              "
+            >
+
+              <X
+                size={17}
+              />
+
+            </button>
+
+
+            {/* =============================================
+                CONTENT
+            ============================================== */}
+
+            <div
+              className="
+                px-6
+                pb-7
+                pt-9
+                text-center
+                sm:px-8
+                sm:pb-8
+              "
+            >
+
+              {/* Heart */}
+
+              <div
+                className="
+                  mx-auto
+                  flex
+                  h-16
+                  w-16
+                  items-center
+                  justify-center
+                  rounded-full
+                  border
+                  border-[#D4AF37]/25
+                  bg-[#D4AF37]/10
+                  shadow-[0_0_35px_rgba(212,175,55,.08)]
+                "
+              >
+
+                <Heart
+                  size={27}
+                  strokeWidth={1.6}
+                  className="
+                    fill-[#D4AF37]
+                    text-[#D4AF37]
+                  "
+                />
+
+              </div>
+
+
+              {/* Title */}
+
+              <h2
+                id={`remove-wishlist-title-${item.id}`}
+                className="
+                  mt-5
+                  font-serif
+                  text-2xl
+                  font-medium
+                  tracking-tight
+                  text-white
+                "
+              >
+                Remove from Wishlist?
+              </h2>
+
+
+              {/* Product */}
+
+              <p
+                className="
+                  mt-2
+                  truncate
+                  px-3
+                  text-xs
+                  font-medium
+                  uppercase
+                  tracking-[0.14em]
+                  text-[#D4AF37]
+                "
+              >
+                {product.name}
+              </p>
+
+
+              {/* Description */}
+
+              <p
+                className="
+                  mx-auto
+                  mt-3
+                  max-w-[310px]
+                  text-sm
+                  leading-6
+                  text-white/50
+                "
+              >
+                Are you sure you want to remove
+                this beautiful piece from your
+                wishlist?
+              </p>
+
+
+              {/* Buttons */}
+
+              <div
+                className="
+                  mt-7
+                  flex
+                  flex-col-reverse
+                  gap-2.5
+                  sm:flex-row
+                "
+              >
+
+                {/* Keep */}
+
+                <button
+                  type="button"
+                  onClick={
+                    closeRemoveDialog
+                  }
+                  disabled={
+                    isRemoving
+                  }
+                  className="
+                    flex
+                    h-12
+                    flex-1
+                    items-center
+                    justify-center
+                    rounded-full
+                    border
+                    border-[#D4AF37]/40
+                    bg-transparent
+                    px-4
+                    text-sm
+                    font-medium
+                    text-[#E4C56B]
+                    transition-all
+
+                    hover:border-[#D4AF37]/70
+                    hover:bg-[#D4AF37]/10
+
+                    active:scale-[.98]
+
+                    focus:outline-none
+                    focus-visible:ring-2
+                    focus-visible:ring-[#D4AF37]
+
+                    disabled:cursor-not-allowed
+                    disabled:opacity-50
+                  "
+                >
+                  Keep in Wishlist
+                </button>
+
+
+                {/* Remove */}
+
+                <button
+                  type="button"
+                  onClick={
+                    confirmRemove
+                  }
+                  disabled={
+                    isRemoving
+                  }
+                  className="
+                    flex
+                    h-12
+                    flex-1
+                    items-center
+                    justify-center
+                    gap-2
+                    rounded-full
+                    bg-[#D4AF37]
+                    px-4
+                    text-sm
+                    font-semibold
+                    text-black
+                    transition-all
+
+                    hover:bg-[#E3C45F]
+
+                    active:scale-[.98]
+
+                    focus:outline-none
+                    focus-visible:ring-2
+                    focus-visible:ring-[#D4AF37]
+                    focus-visible:ring-offset-2
+                    focus-visible:ring-offset-[#0b0b0b]
+
+                    disabled:cursor-not-allowed
+                    disabled:opacity-60
+                  "
+                >
+
+                  {isRemoving ? (
+
+                    <>
+                      <span
+                        className="
+                          h-4
+                          w-4
+                          animate-spin
+                          rounded-full
+                          border-2
+                          border-black/30
+                          border-t-black
+                        "
+                      />
+
+                      Removing...
+                    </>
+
+                  ) : (
+
+                    <>
+                      <Trash2
+                        size={15}
+                      />
+
+                      Remove
+                    </>
+
+                  )}
+
+                </button>
+
+              </div>
+
+
+              {/* Small note */}
+
+              <p
+                className="
+                  mt-4
+                  text-[9px]
+                  uppercase
+                  tracking-[0.18em]
+                  text-white/20
+                "
+              >
+                You can always add it again later
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+      </>
+    );
+
+
+  /*
+   * =========================================================
+   * Render Card
    * =========================================================
    */
 
   return (
 
-    <article
-      className="
-        group
-        overflow-hidden
-        rounded-2xl
-        border
-        border-white/[0.07]
-        bg-[#0a0a0a]
-        shadow-[0_8px_30px_rgba(0,0,0,0.18)]
-        transition-all
-        duration-300
-        sm:hover:-translate-y-1
-        sm:hover:border-[#D4AF37]/30
-        sm:hover:shadow-[0_15px_45px_rgba(0,0,0,0.3)]
-      "
-    >
+    <>
 
-      {/* =====================================================
-          Image
-      ====================================================== */}
-
-      <div
+      <article
         className="
-          relative
-          aspect-[4/5]
+          group
           overflow-hidden
-          bg-neutral-900
+          rounded-2xl
+          border
+          border-white/[0.07]
+          bg-[#0a0a0a]
+          shadow-[0_8px_30px_rgba(0,0,0,0.18)]
+          transition-all
+          duration-300
+          sm:hover:-translate-y-1
+          sm:hover:border-[#D4AF37]/30
+          sm:hover:shadow-[0_15px_45px_rgba(0,0,0,0.3)]
         "
       >
 
-        {image ? (
-
-          <img
-            src={image}
-            alt={product.name}
-            loading="lazy"
-            className="
-              h-full
-              w-full
-              object-cover
-              transition-transform
-              duration-700
-              sm:group-hover:scale-[1.035]
-            "
-          />
-
-        ) : (
-
-          <div
-            className="
-              flex
-              h-full
-              items-center
-              justify-center
-              text-neutral-700
-            "
-          >
-
-            <ShoppingBag
-              size={28}
-            />
-
-          </div>
-
-        )}
-
-
-        {/* Soft image overlay */}
+        {/* ===================================================
+            Image
+        ==================================================== */}
 
         <div
           className="
-            pointer-events-none
-            absolute
-            inset-x-0
-            bottom-0
-            h-24
-            bg-gradient-to-t
-            from-black/35
-            to-transparent
-          "
-        />
-
-
-        {/* Discount */}
-
-        {discount > 0 && (
-
-          <span
-            className="
-              absolute
-              left-3
-              top-3
-              rounded-full
-              bg-[#D4AF37]
-              px-2.5
-              py-1
-              text-[9px]
-              font-bold
-              tracking-wide
-              text-black
-              shadow-sm
-              sm:text-[10px]
-            "
-          >
-            {discount}% OFF
-          </span>
-
-        )}
-
-
-        {/* Saved badge */}
-
-        <div
-          className="
-            absolute
-            bottom-3
-            left-3
-            inline-flex
-            items-center
-            gap-1
-            rounded-full
-            border
-            border-white/10
-            bg-black/55
-            px-2.5
-            py-1.5
-            text-[9px]
-            font-medium
-            text-white/90
-            backdrop-blur-md
+            relative
+            aspect-[4/5]
+            overflow-hidden
+            bg-neutral-900
           "
         >
 
-          <Check
-            size={11}
+          {image ? (
+
+            <img
+              src={image}
+              alt={product.name}
+              loading="lazy"
+              className="
+                h-full
+                w-full
+                object-cover
+                transition-transform
+                duration-700
+                sm:group-hover:scale-[1.035]
+              "
+            />
+
+          ) : (
+
+            <div
+              className="
+                flex
+                h-full
+                items-center
+                justify-center
+                text-neutral-700
+              "
+            >
+
+              <ShoppingBag
+                size={28}
+              />
+
+            </div>
+
+          )}
+
+
+          {/* Overlay */}
+
+          <div
             className="
-              text-[#D4AF37]
+              pointer-events-none
+              absolute
+              inset-x-0
+              bottom-0
+              h-24
+              bg-gradient-to-t
+              from-black/35
+              to-transparent
             "
           />
 
-          Saved
+
+          {/* Discount */}
+
+          {discount > 0 && (
+
+            <span
+              className="
+                absolute
+                left-3
+                top-3
+                rounded-full
+                bg-[#D4AF37]
+                px-2.5
+                py-1
+                text-[9px]
+                font-bold
+                tracking-wide
+                text-black
+                shadow-sm
+                sm:text-[10px]
+              "
+            >
+              {discount}% OFF
+            </span>
+
+          )}
+
+
+          {/* Saved */}
+
+          <div
+            className="
+              absolute
+              bottom-3
+              left-3
+              inline-flex
+              items-center
+              gap-1
+              rounded-full
+              border
+              border-white/10
+              bg-black/55
+              px-2.5
+              py-1.5
+              text-[9px]
+              font-medium
+              text-white/90
+              backdrop-blur-md
+            "
+          >
+
+            <Check
+              size={11}
+              className="text-[#D4AF37]"
+            />
+
+            Saved
+
+          </div>
+
+
+          {/* Delete */}
+
+          <button
+            type="button"
+            onClick={
+              handleRemoveClick
+            }
+            disabled={
+              isRemoving
+            }
+            aria-label="Remove from wishlist"
+            className="
+              absolute
+              right-3
+              top-3
+              flex
+              h-9
+              w-9
+              items-center
+              justify-center
+              rounded-full
+              border
+              border-white/10
+              bg-black/60
+              text-white/90
+              shadow-lg
+              backdrop-blur-md
+              transition-all
+
+              hover:border-red-400/30
+              hover:bg-red-500
+              hover:text-white
+
+              active:scale-95
+
+              disabled:cursor-not-allowed
+              disabled:opacity-50
+            "
+          >
+
+            <Trash2
+              size={14}
+            />
+
+          </button>
 
         </div>
 
 
-        {/* Remove */}
+        {/* ===================================================
+            Details
+        ==================================================== */}
 
-        <button
-          type="button"
-          onClick={
-            handleRemove
-          }
-          disabled={
-            isRemoving
-          }
-          aria-label="Remove from wishlist"
+        <div
           className="
-            absolute
-            right-3
-            top-3
-            flex
-            h-9
-            w-9
-            items-center
-            justify-center
-            rounded-full
-            border
-            border-white/10
-            bg-black/60
-            text-white/90
-            shadow-lg
-            backdrop-blur-md
-            transition-all
-            hover:border-red-400/30
-            hover:bg-red-500
-            hover:text-white
-            active:scale-95
-            disabled:cursor-not-allowed
-            disabled:opacity-50
+            p-3.5
+            sm:p-4
           "
         >
 
-          <Trash2
-            size={14}
-          />
-
-        </button>
-
-      </div>
-
-
-      {/* =====================================================
-          Details
-      ====================================================== */}
-
-      <div
-        className="
-          p-3.5
-          sm:p-4
-        "
-      >
-
-        <Link
-          to={`/product/${product.slug}`}
-          className="
-            block
-          "
-        >
-
-          <h2
-            className="
-              line-clamp-2
-              min-h-[40px]
-              text-[13px]
-              font-medium
-              leading-5
-              text-[#F3DFA0]
-              transition-colors
-              hover:text-[#D4AF37]
-              sm:text-sm
-              sm:text-base
-            "
+          <Link
+            to={`/product/${product.slug}`}
+            className="block"
           >
-            {product.name}
-          </h2>
 
-        </Link>
+            <h2
+              className="
+                line-clamp-2
+                min-h-[40px]
+                text-[13px]
+                font-medium
+                leading-5
+                text-[#F3DFA0]
+                transition-colors
+                hover:text-[#D4AF37]
+                sm:text-sm
+                sm:text-base
+              "
+            >
+              {product.name}
+            </h2>
+
+          </Link>
 
 
-        {/* Rating */}
+          {/* Rating */}
 
-        {product.rating > 0 && (
+          {product.rating > 0 && (
+
+            <div
+              className="
+                mt-2
+                flex
+                items-center
+                gap-1.5
+                text-[10px]
+                sm:text-[11px]
+              "
+            >
+
+              <span
+                className="text-[#D4AF37]"
+              >
+                ★ {product.rating}
+              </span>
+
+
+              {product.review_count > 0 && (
+
+                <span
+                  className="text-neutral-600"
+                >
+                  ({product.review_count})
+                </span>
+
+              )}
+
+            </div>
+
+          )}
+
+
+          {/* Stock */}
 
           <div
             className="
               mt-2
-              flex
-              items-center
-              gap-1.5
               text-[10px]
-              sm:text-[11px]
+              font-medium
             "
           >
 
-            <span
-              className="
-                text-[#D4AF37]
-              "
-            >
-              ★ {product.rating}
-            </span>
+            {isOutOfStock ? (
 
+              <span className="text-red-400">
+                Currently unavailable
+              </span>
 
-            {product.review_count > 0 && (
+            ) : (
 
-              <span
-                className="
-                  text-neutral-600
-                "
-              >
-                ({product.review_count})
+              <span className="text-emerald-400/80">
+                In stock
               </span>
 
             )}
 
           </div>
 
-        )}
 
+          {/* Price */}
 
-        {/* Stock */}
-
-        <div
-          className="
-            mt-2
-            text-[10px]
-            font-medium
-          "
-        >
-
-          {isOutOfStock ? (
-
-            <span
-              className="
-                text-red-400
-              "
-            >
-              Currently unavailable
-            </span>
-
-          ) : (
-
-            <span
-              className="
-                text-emerald-400/80
-              "
-            >
-              In stock
-            </span>
-
-          )}
-
-        </div>
-
-
-        {/* Price */}
-
-        <div
-          className="
-            mt-2.5
-            flex
-            flex-wrap
-            items-baseline
-            gap-2
-          "
-        >
-
-          <span
+          <div
             className="
-              text-lg
-              font-semibold
-              tracking-tight
-              text-white
-              sm:text-xl
+              mt-2.5
+              flex
+              flex-wrap
+              items-baseline
+              gap-2
             "
           >
-            ₹{product.price}
-          </span>
-
-
-          {product.compare_price && (
 
             <span
               className="
-                text-[11px]
-                text-neutral-600
-                line-through
+                text-lg
+                font-semibold
+                tracking-tight
+                text-white
+                sm:text-xl
+              "
+            >
+              ₹{product.price}
+            </span>
+
+
+            {product.compare_price && (
+
+              <span
+                className="
+                  text-[11px]
+                  text-neutral-600
+                  line-through
+                  sm:text-xs
+                "
+              >
+                ₹{product.compare_price}
+              </span>
+
+            )}
+
+          </div>
+
+
+          {/* Actions */}
+
+          <div
+            className="
+              mt-4
+              grid
+              grid-cols-[0.8fr_1.2fr]
+              gap-2
+            "
+          >
+
+            <Link
+              to={`/product/${product.slug}`}
+              className="
+                inline-flex
+                min-h-10
+                items-center
+                justify-center
+                gap-1
+                rounded-full
+                border
+                border-white/10
+                px-2
+                text-[10px]
+                font-medium
+                text-neutral-300
+                transition-all
+                hover:border-[#D4AF37]/35
+                hover:bg-[#D4AF37]/[0.04]
+                hover:text-[#D4AF37]
                 sm:text-xs
               "
             >
-              ₹{product.compare_price}
-            </span>
 
-          )}
+              View
 
-        </div>
+              <ArrowRight
+                size={12}
+              />
 
-
-        {/* =================================================
-            Actions
-        ================================================== */}
-
-        <div
-          className="
-            mt-4
-            grid
-            grid-cols-[0.8fr_1.2fr]
-            gap-2
-          "
-        >
-
-          {/* View */}
-
-          <Link
-            to={`/product/${product.slug}`}
-            className="
-              inline-flex
-              min-h-10
-              items-center
-              justify-center
-              gap-1
-              rounded-full
-              border
-              border-white/10
-              px-2
-              text-[10px]
-              font-medium
-              text-neutral-300
-              transition-all
-              hover:border-[#D4AF37]/35
-              hover:bg-[#D4AF37]/[0.04]
-              hover:text-[#D4AF37]
-              sm:text-xs
-            "
-          >
-
-            View
-
-            <ArrowRight
-              size={12}
-            />
-
-          </Link>
+            </Link>
 
 
-          {/* Add To Cart */}
+            <button
+              type="button"
+              onClick={
+                handleAddToCart
+              }
+              disabled={
+                isOutOfStock
+              }
+              className="
+                inline-flex
+                min-h-10
+                items-center
+                justify-center
+                gap-1.5
+                rounded-full
+                bg-[#D4AF37]
+                px-2
+                text-[10px]
+                font-semibold
+                text-black
+                shadow-[0_5px_18px_rgba(212,175,55,0.08)]
+                transition-all
+                hover:bg-[#E3C45F]
+                hover:shadow-[0_7px_22px_rgba(212,175,55,0.14)]
+                active:scale-[0.98]
+                disabled:cursor-not-allowed
+                disabled:bg-neutral-800
+                disabled:text-neutral-500
+                disabled:shadow-none
+                sm:text-xs
+              "
+            >
 
-          <button
-            type="button"
-            onClick={
-              handleAddToCart
-            }
-            disabled={
-              isOutOfStock
-            }
-            className="
-              inline-flex
-              min-h-10
-              items-center
-              justify-center
-              gap-1.5
-              rounded-full
-              bg-[#D4AF37]
-              px-2
-              text-[10px]
-              font-semibold
-              text-black
-              shadow-[0_5px_18px_rgba(212,175,55,0.08)]
-              transition-all
-              hover:bg-[#E3C45F]
-              hover:shadow-[0_7px_22px_rgba(212,175,55,0.14)]
-              active:scale-[0.98]
-              disabled:cursor-not-allowed
-              disabled:bg-neutral-800
-              disabled:text-neutral-500
-              disabled:shadow-none
-              sm:text-xs
-            "
-          >
+              <ShoppingBag
+                size={13}
+              />
 
-            <ShoppingBag
-              size={13}
-            />
+              {isOutOfStock
+                ? "Out of Stock"
+                : "Add to Cart"}
 
-            {isOutOfStock
-              ? "Out of Stock"
-              : "Add to Cart"}
+            </button>
 
-          </button>
+          </div>
 
         </div>
 
-      </div>
+      </article>
 
-    </article>
+
+      {/* =====================================================
+          PORTAL
+      ====================================================== */}
+
+      {typeof document !== "undefined" &&
+        removeDialog &&
+        createPortal(
+          removeDialog,
+          document.body
+        )}
+
+    </>
 
   );
 }

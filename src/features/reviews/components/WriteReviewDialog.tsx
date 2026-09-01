@@ -1,4 +1,10 @@
-import { useState } from "react";
+import {
+  useState,
+} from "react";
+
+import {
+  createPortal,
+} from "react-dom";
 
 import {
   Loader2,
@@ -231,22 +237,6 @@ export default function WriteReviewDialog({
       setIsSubmitting(true);
 
 
-      /*
-       * We intentionally send only:
-       *
-       * product_id
-       * customer_id
-       * rating
-       * title
-       * review
-       *
-       * The database controls:
-       *
-       * order_id
-       * is_verified
-       * status
-       */
-
       await reviewService.createReview({
 
         product_id:
@@ -288,18 +278,7 @@ export default function WriteReviewDialog({
 
       /*
        * =====================================================
-       * IMPORTANT:
-       *
-       * Supabase errors are not always native Error objects.
-       *
-       * Supabase can return:
-       *
-       * {
-       *   code: "P0001",
-       *   message: "You have already reviewed this product."
-       * }
-       *
-       * So we must explicitly read the `message` property.
+       * SUPABASE ERROR HANDLING
        * =====================================================
        */
 
@@ -497,25 +476,37 @@ export default function WriteReviewDialog({
 
   /*
    * =========================================================
-   * RENDER
+   * DIALOG CONTENT
+   *
+   * IMPORTANT:
+   *
+   * Render directly into document.body.
+   *
+   * This prevents ProductDetails/ProductReviews parent
+   * stacking contexts from affecting the modal.
    * =========================================================
    */
 
-  return (
+  const dialog = (
 
     <div
       className="
         fixed
         inset-0
-        z-[100]
+        z-[99999]
         flex
         items-center
         justify-center
-        bg-black/75
+        overflow-y-auto
+        bg-black/80
         px-4
         py-6
         backdrop-blur-sm
+
+        sm:px-6
+        sm:py-8
       "
+      role="presentation"
       onMouseDown={(event) => {
 
         if (
@@ -535,8 +526,12 @@ export default function WriteReviewDialog({
       ====================================================== */}
 
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="write-review-title"
         className="
           relative
+          my-auto
           max-h-[90vh]
           w-full
           max-w-lg
@@ -545,8 +540,11 @@ export default function WriteReviewDialog({
           border
           border-neutral-200
           bg-white
-          shadow-2xl
+          shadow-[0_25px_100px_rgba(0,0,0,.65)]
         "
+        onMouseDown={(event) => {
+          event.stopPropagation();
+        }}
       >
 
         {/* ===================================================
@@ -561,15 +559,15 @@ export default function WriteReviewDialog({
           disabled={
             isSubmitting
           }
-          aria-label="Close"
+          aria-label="Close review dialog"
           className="
             absolute
             right-4
             top-4
             z-20
             flex
-            h-9
-            w-9
+            h-10
+            w-10
             items-center
             justify-center
             rounded-full
@@ -581,6 +579,10 @@ export default function WriteReviewDialog({
 
             hover:bg-neutral-200
             hover:text-black
+
+            focus:outline-none
+            focus-visible:ring-2
+            focus-visible:ring-[#C8A44D]
 
             disabled:cursor-not-allowed
             disabled:opacity-50
@@ -636,6 +638,7 @@ export default function WriteReviewDialog({
 
 
                 <h2
+                  id="write-review-title"
                   className="
                     mt-2
                     text-2xl
@@ -729,6 +732,9 @@ export default function WriteReviewDialog({
                               p-1
                               transition
                               hover:scale-110
+                              focus:outline-none
+                              focus-visible:ring-2
+                              focus-visible:ring-[#C8A44D]
                             "
                           >
 
@@ -1013,6 +1019,11 @@ export default function WriteReviewDialog({
 
                     active:scale-[0.99]
 
+                    focus:outline-none
+                    focus-visible:ring-2
+                    focus-visible:ring-[#C8A44D]
+                    focus-visible:ring-offset-2
+
                     disabled:cursor-not-allowed
                     disabled:opacity-60
                   "
@@ -1137,6 +1148,10 @@ export default function WriteReviewDialog({
 
                   hover:bg-[#C8A44D]
                   hover:text-black
+
+                  focus:outline-none
+                  focus-visible:ring-2
+                  focus-visible:ring-[#C8A44D]
                 "
               >
                 Done
@@ -1151,5 +1166,20 @@ export default function WriteReviewDialog({
       </div>
 
     </div>
+  );
+
+
+  /*
+   * =========================================================
+   * PORTAL
+   *
+   * IMPORTANT:
+   * The modal is mounted directly under document.body.
+   * =========================================================
+   */
+
+  return createPortal(
+    dialog,
+    document.body
   );
 }

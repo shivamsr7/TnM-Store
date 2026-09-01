@@ -104,22 +104,43 @@ export default function CategoryMegaMenu({
               "
             >
 
+              {/* =================================================
+                  SHOP BY CATEGORY
+              ================================================== */}
+
               <MenuColumn
+
                 categories={
                   categories
                 }
+
                 loading={
                   isLoading
                 }
-              />
 
-
-              <FeaturedColumn
                 onClose={
                   onClose
                 }
+
               />
 
+
+              {/* =================================================
+                  FEATURED
+              ================================================== */}
+
+              <FeaturedColumn
+
+                onClose={
+                  onClose
+                }
+
+              />
+
+
+              {/* =================================================
+                  SHOP MORE
+              ================================================== */}
 
               <ShopMoreColumn />
 

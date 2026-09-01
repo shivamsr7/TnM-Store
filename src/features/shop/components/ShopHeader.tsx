@@ -156,9 +156,7 @@ export default function ShopHeader({
                 sm:text-[9px]
               "
             >
-
               T&M Jewels
-
             </span>
 
           </div>
@@ -557,12 +555,23 @@ export default function ShopHeader({
         "
       >
 
+        {/* ===================================================
+            MOBILE:
+            COUNT ON ITS OWN ROW
+
+            DESKTOP:
+            EVERYTHING ON ONE ROW
+        ==================================================== */}
+
         <div
           className="
             flex
-            items-center
-            justify-between
+            flex-col
             gap-3
+            sm:flex-row
+            sm:items-center
+            sm:justify-between
+            sm:gap-3
           "
         >
 
@@ -573,9 +582,10 @@ export default function ShopHeader({
           <div
             className="
               flex
-              min-w-0
+              w-full
               items-center
               gap-3
+              sm:w-auto
             "
           >
 
@@ -585,8 +595,9 @@ export default function ShopHeader({
               className="
                 relative
                 flex
-                h-10
-                min-w-10
+                h-11
+                min-w-11
+                shrink-0
                 items-center
                 justify-center
                 rounded-full
@@ -594,8 +605,6 @@ export default function ShopHeader({
                 border-[#D4AF37]/30
                 bg-[#D4AF37]/[0.045]
                 shadow-[0_0_20px_rgba(212,175,55,0.06)]
-                sm:h-11
-                sm:min-w-11
               "
             >
 
@@ -635,6 +644,7 @@ export default function ShopHeader({
             <div
               className="
                 flex
+                min-w-0
                 items-baseline
                 gap-1.5
                 whitespace-nowrap
@@ -643,10 +653,10 @@ export default function ShopHeader({
 
               <span
                 className="
-                  text-[9px]
+                  text-[10px]
                   font-semibold
                   uppercase
-                  tracking-[0.22em]
+                  tracking-[0.24em]
                   text-[#C8A44D]
                   sm:text-[10px]
                 "
@@ -657,7 +667,7 @@ export default function ShopHeader({
 
               <span
                 className="
-                  text-[13px]
+                  text-sm
                   font-medium
                   tracking-[-0.01em]
                   text-neutral-200
@@ -674,14 +684,22 @@ export default function ShopHeader({
 
           {/* =================================================
               CONTROLS
+
+              Mobile:
+              aligned right on second row
+
+              Desktop:
+              remains beside result count
           ================================================== */}
 
           <div
             className="
               flex
-              shrink-0
+              w-full
               items-center
+              justify-end
               gap-2
+              sm:w-auto
             "
           >
 
@@ -695,6 +713,7 @@ export default function ShopHeader({
               className="
                 inline-flex
                 h-9
+                shrink-0
                 items-center
                 gap-1.5
                 rounded-full
@@ -710,6 +729,7 @@ export default function ShopHeader({
                 hover:bg-[#D4AF37]/[0.05]
                 hover:text-[#F5E6B8]
                 active:scale-[0.98]
+
                 sm:h-10
                 sm:gap-2
                 sm:px-4
@@ -757,6 +777,7 @@ export default function ShopHeader({
             <div
               className="
                 relative
+                shrink-0
               "
             >
 
@@ -771,7 +792,7 @@ export default function ShopHeader({
                 aria-label="Sort products"
                 className="
                   h-9
-                  max-w-[112px]
+                  max-w-[135px]
                   appearance-none
                   rounded-full
                   border
@@ -788,6 +809,7 @@ export default function ShopHeader({
                   hover:border-[#D4AF37]/30
                   focus:border-[#D4AF37]/40
                   focus:bg-[#D4AF37]/[0.05]
+
                   sm:h-10
                   sm:max-w-none
                   sm:pl-4
