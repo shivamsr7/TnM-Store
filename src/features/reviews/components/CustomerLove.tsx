@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 
 import { usePublishedInstagramCustomerReviews } from "@/features/reviews/hooks/usePublishedInstagramCustomerReviews";
 
-
 // =========================================================
 // EXISTING HARDCODED REVIEWS — KEEP THESE
 // =========================================================
@@ -48,14 +47,17 @@ const hardcodedStories: Story[] = [
   },
 ];
 
+// =========================================================
+// MAIN COMPONENT
+// =========================================================
+
 export default function CustomerLove() {
   // =========================================================
   // ADMIN / SUPABASE REVIEWS
   // =========================================================
 
-  const {
-    data: adminReviews = [],
-  } = usePublishedInstagramCustomerReviews();
+  const { data: adminReviews = [] } =
+    usePublishedInstagramCustomerReviews();
 
   // =========================================================
   // COMBINE:
@@ -70,26 +72,38 @@ export default function CustomerLove() {
           new Date(b.created_at).getTime() -
             new Date(a.created_at).getTime()
       )
-     .map((review) => ({
-  id: review.id,
-  image: review.screenshot_url,
-  customerName: review.customer_name,
-  reviewText: review.review_text ?? "",
-  source: "supabase" as const,
-}));
+      .map((review) => ({
+        id: review.id,
+        image: review.screenshot_url,
+        customerName: review.customer_name,
+        reviewText: review.review_text ?? "",
+        source: "supabase" as const,
+      }));
 
     return [...hardcodedStories, ...supabaseStories];
   }, [adminReviews]);
+
+  // =========================================================
+  // STATE
+  // =========================================================
 
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const [isClosing, setIsClosing] = useState(false);
 
+  const [pageDirection, setPageDirection] = useState<
+    "next" | "previous"
+  >("next");
+
+  const [isPageTurning, setIsPageTurning] = useState(false);
+
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
 
+  const pageTurnTimer = useRef<number | null>(null);
+
   // =========================================================
-  // KEEP ACTIVE STORY VALID
+  // KEEP ACTIVE REVIEW VALID
   // =========================================================
 
   useEffect(() => {
@@ -99,30 +113,74 @@ export default function CustomerLove() {
   }, [active, stories.length]);
 
   // =========================================================
+  // CLEANUP PAGE TIMER
+  // =========================================================
+
+  useEffect(() => {
+    return () => {
+      if (pageTurnTimer.current !== null) {
+        window.clearTimeout(pageTurnTimer.current);
+      }
+    };
+  }, []);
+
+  // =========================================================
   // CLOSE
   // =========================================================
 
   const close = () => {
+    if (isClosing) return;
+
     setIsClosing(true);
 
     window.setTimeout(() => {
       setOpen(false);
       setIsClosing(false);
-    }, 180);
+      setIsPageTurning(false);
+    }, 420);
   };
 
   // =========================================================
-  // NAVIGATION
+  // PAGE TURN
   // =========================================================
 
+  const turnPage = (direction: "next" | "previous") => {
+    if (
+      isPageTurning ||
+      stories.length <= 1
+    ) {
+      return;
+    }
+
+    const nextIndex =
+      direction === "next"
+        ? Math.min(active + 1, stories.length - 1)
+        : Math.max(active - 1, 0);
+
+    if (nextIndex === active) return;
+
+    setPageDirection(direction);
+    setIsPageTurning(true);
+
+    if (pageTurnTimer.current !== null) {
+      window.clearTimeout(pageTurnTimer.current);
+    }
+
+    pageTurnTimer.current = window.setTimeout(() => {
+      setActive(nextIndex);
+
+      pageTurnTimer.current = window.setTimeout(() => {
+        setIsPageTurning(false);
+      }, 70);
+    }, 280);
+  };
+
   const next = () => {
-    setActive((current) =>
-      Math.min(current + 1, stories.length - 1)
-    );
+    turnPage("next");
   };
 
   const previous = () => {
-    setActive((current) => Math.max(current - 1, 0));
+    turnPage("previous");
   };
 
   // =========================================================
@@ -160,7 +218,7 @@ export default function CustomerLove() {
         onKeyDown
       );
     };
-  }, [open, stories.length]);
+  }, [open, active, stories.length, isPageTurning]);
 
   // =========================================================
   // MOBILE SWIPE
@@ -197,10 +255,9 @@ export default function CustomerLove() {
     const dx = endX - touchStartX.current;
     const dy = endY - touchStartY.current;
 
-    // Only horizontal swipes
     if (
-      Math.abs(dx) >= 50 &&
-      Math.abs(dx) > Math.abs(dy) * 1.2
+      Math.abs(dx) >= 45 &&
+      Math.abs(dx) > Math.abs(dy) * 1.15
     ) {
       if (dx < 0) {
         next();
@@ -214,7 +271,7 @@ export default function CustomerLove() {
   };
 
   // =========================================================
-  // OPEN STORY
+  // OPEN BOOK
   // =========================================================
 
   const openReviews = () => {
@@ -222,6 +279,7 @@ export default function CustomerLove() {
 
     setActive(0);
     setIsClosing(false);
+    setIsPageTurning(false);
     setOpen(true);
   };
 
@@ -234,89 +292,138 @@ export default function CustomerLove() {
   return (
     <>
       <section className="relative overflow-hidden bg-black px-5 py-16 text-white sm:px-8 lg:px-12 lg:py-20">
-        {/* Subtle gold glow */}
-        <div className="pointer-events-none absolute left-1/2 top-1/2 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#c9962d]/[0.035] blur-3xl" />
+        {/* Subtle ambient glow */}
+        <div
+          className="pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(201,150,45,.07) 0%, rgba(201,150,45,.025) 42%, transparent 72%)",
+          }}
+        />
 
         <div className="relative mx-auto flex max-w-6xl flex-col items-center text-center">
+          {/* =================================================
+              LABEL
+          ================================================= */}
 
-          {/* Label */}
-          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.34em] text-[#d6ad4d] sm:text-xs">
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.36em] text-[#d6ad4d] sm:text-xs">
             Customer Love
           </p>
 
-          {/* Heading */}
+          {/* =================================================
+              HEADING
+          ================================================= */}
+
           <h2 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl lg:text-5xl">
-            What Our Customers Say
+            A Note From Our Customers
           </h2>
 
-          {/* Subtitle */}
+          {/* =================================================
+              SUBTITLE
+          ================================================= */}
+
           <p className="mt-3 max-w-xl text-sm leading-6 text-white/55 sm:text-base">
-            Real feedback from our beautiful customers on Instagram.
+            Real experiences, beautifully shared.
           </p>
 
           {/* =================================================
-              BIG INSTAGRAM-HIGHLIGHT STYLE CIRCLE
+              BOOK
           ================================================= */}
 
           <button
             type="button"
             onClick={openReviews}
-            aria-label="Open Customer Love Instagram reviews"
-            className="group relative mt-10 h-60 w-60 rounded-full p-[3px] transition duration-500 hover:scale-[1.025] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4c56b] focus-visible:ring-offset-4 focus-visible:ring-offset-black sm:h-64 sm:w-64"
-            style={{
-              background:
-                "conic-gradient(from 20deg, #8b5f16, #f4d77c 18%, #b68122 38%, #fff0a2 55%, #a87318 74%, #f4d77c 88%, #8b5f16)",
-
-              boxShadow:
-                "0 0 0 1px rgba(214,173,77,.12), 0 0 48px rgba(214,173,77,.12)",
-            }}
+            aria-label="Open customer reviews book"
+            className="group relative mt-10 block outline-none"
           >
-            {/* Inner ring */}
-            <span className="absolute inset-[6px] rounded-full border border-[#e4c56b]/15" />
+            {/* Book shadow */}
+            <span
+              className="absolute -bottom-5 left-1/2 h-8 w-[82%] -translate-x-1/2 rounded-[50%] blur-xl transition duration-700 group-hover:w-[88%]"
+              style={{
+                background:
+                  "rgba(0,0,0,.85)",
+              }}
+            />
 
-            {/* Circle content */}
-            <span className="flex h-full w-full items-center justify-center rounded-full bg-[radial-gradient(circle_at_38%_24%,#272311_0%,#11110d_42%,#050505_78%,#000_100%)] px-8">
+            {/* Outer book */}
+            <span
+              className="relative block h-[270px] w-[205px] rounded-r-[13px] rounded-l-[7px] border border-[#d6ad4d]/35 transition duration-700 ease-out group-hover:-translate-y-2 group-hover:rotate-[1deg] sm:h-[300px] sm:w-[230px]"
+              style={{
+                background:
+                  "linear-gradient(135deg, #080808 0%, #17130b 48%, #050505 100%)",
+                boxShadow:
+                  "inset -10px 0 0 rgba(255,255,255,.025), inset 2px 0 0 rgba(214,173,77,.16), 0 22px 45px rgba(0,0,0,.6)",
+              }}
+            >
+              {/* Spine */}
+              <span
+                className="absolute bottom-3 left-3 top-3 w-[3px] rounded-full"
+                style={{
+                  background:
+                    "linear-gradient(to bottom, transparent, rgba(214,173,77,.65), transparent)",
+                }}
+              />
 
-              <span>
-                <span className="block font-serif text-[32px] leading-none text-[#f1d276] sm:text-[36px]">
+              {/* Gold frame */}
+              <span className="absolute inset-4 rounded-[5px] border border-[#d6ad4d]/35" />
+
+              {/* Inner frame */}
+              <span className="absolute inset-6 rounded-[4px] border border-[#d6ad4d]/10" />
+
+              {/* Cover content */}
+              <span className="absolute inset-0 flex flex-col items-center justify-center px-7">
+                <span className="text-[9px] font-medium uppercase tracking-[0.38em] text-[#d6ad4d]">
+                  T&M JEWELS
+                </span>
+
+                <span className="my-7 h-px w-16 bg-[#d6ad4d]/45" />
+
+                <span className="font-serif text-[29px] leading-tight text-[#f2d889] sm:text-[32px]">
                   Customer
                 </span>
 
-                <span className="mt-2 block font-serif text-[32px] leading-none text-white sm:text-[36px]">
+                <span className="font-serif text-[29px] leading-tight text-white sm:text-[32px]">
                   Love
                 </span>
 
-                <span className="mt-4 block text-base text-[#d6ad4d]">
-                  ♥
-                </span>
-
-                <span className="mt-3 block text-[9px] font-medium uppercase tracking-[0.28em] text-white/45">
-                  Tap to view
+                <span className="mt-6 text-[8px] uppercase tracking-[0.28em] text-white/35">
+                  Real words · Real moments
                 </span>
               </span>
 
+              {/* Cover corner detail */}
+              <span className="absolute bottom-5 right-5 h-4 w-4 border-b border-r border-[#d6ad4d]/40" />
             </span>
           </button>
 
-          {/* Bottom label */}
-          <p className="mt-5 text-[9px] font-medium uppercase tracking-[0.25em] text-white/30 sm:text-[10px]">
-            Reviews shared via Instagram DM
-          </p>
+          {/* =================================================
+              CTA
+          ================================================= */}
+
+          <div className="mt-7 flex flex-col items-center">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.34em] text-[#e4c56b]">
+              Tap to Read
+            </span>
+
+            <span className="mt-2 text-xs text-white/30">
+              Flip through our customer stories
+            </span>
+          </div>
         </div>
       </section>
 
       {/* =====================================================
-          STORY DIALOG
+          BOOK DIALOG
       ===================================================== */}
 
       {open &&
         activeStory &&
         createPortal(
           <div
-            className={`fixed inset-0 z-[99999] flex items-center justify-center bg-black/75 p-3 backdrop-blur-md sm:p-6 ${
+            className={`tnm-book-overlay fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 p-3 backdrop-blur-md sm:p-6 ${
               isClosing
-                ? "tnm-fade-out"
-                : "tnm-fade-in"
+                ? "tnm-overlay-closing"
+                : "tnm-overlay-opening"
             }`}
             role="presentation"
             onMouseDown={(event) => {
@@ -330,54 +437,186 @@ export default function CustomerLove() {
           >
             <style>
               {`
-                @keyframes tnmFadeIn {
+                @keyframes tnmOverlayOpening {
                   from {
                     opacity: 0;
+                    backdrop-filter: blur(0);
                   }
-
                   to {
                     opacity: 1;
+                    backdrop-filter: blur(14px);
                   }
                 }
 
-                @keyframes tnmFadeOut {
+                @keyframes tnmOverlayClosing {
                   from {
                     opacity: 1;
+                    backdrop-filter: blur(14px);
                   }
-
                   to {
                     opacity: 0;
+                    backdrop-filter: blur(0);
                   }
                 }
 
-                @keyframes tnmStoryIn {
-                  from {
-                    opacity: .45;
-                    transform: scale(.985);
+                @keyframes tnmBookOpening {
+                  0% {
+                    opacity: 0;
+                    transform:
+                      perspective(1800px)
+                      rotateX(8deg)
+                      rotateY(-9deg)
+                      scale(.92);
                   }
 
-                  to {
+                  55% {
                     opacity: 1;
-                    transform: scale(1);
+                    transform:
+                      perspective(1800px)
+                      rotateX(1deg)
+                      rotateY(2deg)
+                      scale(1.01);
+                  }
+
+                  100% {
+                    opacity: 1;
+                    transform:
+                      perspective(1800px)
+                      rotateX(0)
+                      rotateY(0)
+                      scale(1);
                   }
                 }
 
-                .tnm-fade-in {
-                  animation: tnmFadeIn .22s ease-out;
+                @keyframes tnmBookClosing {
+                  0% {
+                    opacity: 1;
+                    transform:
+                      perspective(1800px)
+                      rotateX(0)
+                      rotateY(0)
+                      scale(1);
+                  }
+
+                  100% {
+                    opacity: 0;
+                    transform:
+                      perspective(1800px)
+                      rotateX(7deg)
+                      rotateY(-8deg)
+                      scale(.93);
+                  }
                 }
 
-                .tnm-fade-out {
-                  animation: tnmFadeOut .18s ease-in forwards;
+                @keyframes tnmPageNext {
+                  0% {
+                    opacity: 1;
+                    transform:
+                      perspective(1500px)
+                      rotateY(0deg)
+                      translateX(0);
+                  }
+
+                  45% {
+                    opacity: .55;
+                    transform:
+                      perspective(1500px)
+                      rotateY(-70deg)
+                      translateX(-3%);
+                  }
+
+                  100% {
+                    opacity: 1;
+                    transform:
+                      perspective(1500px)
+                      rotateY(0deg)
+                      translateX(0);
+                  }
                 }
 
-                .tnm-story-image {
-                  animation: tnmStoryIn .22s ease-out;
+                @keyframes tnmPagePrevious {
+                  0% {
+                    opacity: 1;
+                    transform:
+                      perspective(1500px)
+                      rotateY(0deg)
+                      translateX(0);
+                  }
+
+                  45% {
+                    opacity: .55;
+                    transform:
+                      perspective(1500px)
+                      rotateY(70deg)
+                      translateX(3%);
+                  }
+
+                  100% {
+                    opacity: 1;
+                    transform:
+                      perspective(1500px)
+                      rotateY(0deg)
+                      translateX(0);
+                  }
+                }
+
+                .tnm-overlay-opening {
+                  animation:
+                    tnmOverlayOpening
+                    .45s
+                    cubic-bezier(.22,1,.36,1)
+                    both;
+                }
+
+                .tnm-overlay-closing {
+                  animation:
+                    tnmOverlayClosing
+                    .42s
+                    cubic-bezier(.4,0,.2,1)
+                    both;
+                }
+
+                .tnm-book-opening {
+                  animation:
+                    tnmBookOpening
+                    .78s
+                    cubic-bezier(.16,1,.3,1)
+                    both;
+                }
+
+                .tnm-book-closing {
+                  animation:
+                    tnmBookClosing
+                    .42s
+                    cubic-bezier(.4,0,.2,1)
+                    both;
+                }
+
+                .tnm-page-next {
+                  animation:
+                    tnmPageNext
+                    .58s
+                    cubic-bezier(.22,.61,.36,1)
+                    both;
+                  transform-origin: left center;
+                }
+
+                .tnm-page-previous {
+                  animation:
+                    tnmPagePrevious
+                    .58s
+                    cubic-bezier(.22,.61,.36,1)
+                    both;
+                  transform-origin: right center;
                 }
 
                 @media (prefers-reduced-motion: reduce) {
-                  .tnm-fade-in,
-                  .tnm-fade-out,
-                  .tnm-story-image {
+                  .tnm-overlay-opening,
+                  .tnm-overlay-closing,
+                  .tnm-book-opening,
+                  .tnm-book-closing,
+                  .tnm-page-next,
+                  .tnm-page-previous {
                     animation: none !important;
                   }
                 }
@@ -385,143 +624,231 @@ export default function CustomerLove() {
             </style>
 
             {/* =================================================
-                ACTUAL DIALOG
+                BOOK
             ================================================= */}
 
             <div
               role="dialog"
               aria-modal="true"
               aria-labelledby="customer-love-dialog-title"
-              className="relative flex h-[min(92vh,820px)] w-[min(94vw,520px)] flex-col overflow-hidden rounded-[24px] border border-[#d6ad4d]/35 bg-[#070707] shadow-[0_30px_120px_rgba(0,0,0,.82)]"
+              className={`tnm-book-shell relative flex h-[min(92vh,820px)] w-[min(96vw,1080px)] flex-col overflow-hidden ${
+                isClosing
+                  ? "tnm-book-closing"
+                  : "tnm-book-opening"
+              }`}
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
             >
-
               {/* =================================================
-                  PROGRESS BARS
+                  TOP CONTROLS
               ================================================= */}
 
-              <div className="absolute left-4 right-4 top-3 z-30 flex gap-1.5">
-                {stories.map((story, index) => (
-                  <div
-                    key={story.id}
-                    className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/25"
-                  >
-                    <div
-                      className="h-full rounded-full bg-white transition-all duration-300"
-                      style={{
-                        width:
-                          index <= active
-                            ? "100%"
-                            : "0%",
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-
-              {/* =================================================
-                  STORY HEADER
-              ================================================= */}
-
-              <div className="absolute left-4 right-4 top-6 z-30 flex items-center justify-between pt-1">
-
-                <div className="flex min-w-0 items-center gap-3">
-
-                  {/* T&M Logo Circle */}
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#d6ad4d]/60 bg-black/70 font-serif text-sm text-[#e4c56b] backdrop-blur-md">
-                    T&M
-                  </div>
-
-                  <div className="min-w-0 text-left">
-
-                    <p
-                      id="customer-love-dialog-title"
-                      className="truncate font-serif text-base text-white"
-                    >
-                      Customer Love
-                    </p>
-
-                    <p className="text-[8px] uppercase tracking-[0.18em] text-[#e4c56b]">
-                      T&M Jewels · Instagram Reviews
-                    </p>
-
-                  </div>
+              <div className="absolute left-0 right-0 top-0 z-40 flex items-center justify-between px-2 py-2 sm:px-3">
+                <div className="rounded-full border border-[#d6ad4d]/20 bg-black/55 px-3 py-1.5 text-[9px] uppercase tracking-[0.2em] text-[#e4c56b] backdrop-blur-md">
+                  T&M Jewels · Customer Love
                 </div>
 
-                {/* Close */}
                 <button
                   type="button"
                   aria-label="Close customer reviews"
                   onClick={close}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/60 text-2xl leading-none text-white backdrop-blur-md transition hover:border-[#d6ad4d]/50 hover:text-[#e4c56b] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4c56b]"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-black/60 text-2xl leading-none text-white backdrop-blur-md transition hover:border-[#d6ad4d]/50 hover:text-[#e4c56b] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e4c56b]"
                 >
                   ×
                 </button>
-
               </div>
 
               {/* =================================================
-                  STORY IMAGE
+                  OPEN BOOK
               ================================================= */}
 
               <div
-                className="relative min-h-0 flex-1 bg-[#101010]"
+                className="relative min-h-0 flex-1 px-0 pb-0 pt-12 sm:px-5 sm:pt-14"
                 style={{
+                  perspective: "1800px",
                   touchAction: "pan-y",
                 }}
               >
+                <div className="relative mx-auto flex h-full w-full max-w-[960px] items-stretch justify-center">
+                  {/* LEFT PAGE */}
+                  <div
+                    className="relative hidden w-1/2 overflow-hidden rounded-l-[5px] border-y border-l border-[#b99954]/35 sm:block"
+                    style={{
+                      background:
+                        "linear-gradient(105deg, #d8c59a 0%, #f2e9d0 8%, #fffdf5 52%, #e9dec2 100%)",
+                      boxShadow:
+                        "inset -18px 0 28px rgba(70,48,20,.09), -8px 0 30px rgba(0,0,0,.35)",
+                    }}
+                  >
+                    {/* Paper texture */}
+                    <div className="pointer-events-none absolute inset-0 opacity-[.16]">
+                      <div
+                        className="h-full w-full"
+                        style={{
+                          backgroundImage:
+                            "radial-gradient(rgba(70,45,15,.18) .55px, transparent .55px)",
+                          backgroundSize:
+                            "7px 7px",
+                        }}
+                      />
+                    </div>
 
-                <img
-                  key={activeStory.id}
-                  src={activeStory.image}
-                  alt={
-                    activeStory.reviewText ||
-                    `Instagram review from ${activeStory.customerName}`
+                    <div className="relative flex h-full flex-col items-center justify-center px-8 text-center">
+                      <p className="text-[9px] font-semibold uppercase tracking-[0.34em] text-[#7e6330]">
+                        T&M JEWELS
+                      </p>
+
+                      <div className="my-7 h-px w-20 bg-[#9b7b3f]/40" />
+
+                      <p className="font-serif text-4xl leading-tight text-[#2a2419]">
+                        Customer
+                      </p>
+
+                      <p className="font-serif text-4xl leading-tight text-[#8a6b2f]">
+                        Love
+                      </p>
+
+                      <p className="mt-8 max-w-[250px] text-xs leading-6 text-[#655b49]">
+                        A collection of genuine words,
+                        messages and moments shared by
+                        our beautiful customers.
+                      </p>
+
+                      <div className="mt-10 text-[10px] uppercase tracking-[0.2em] text-[#8a6b2f]">
+                        {String(active + 1).padStart(2, "0")} /{" "}
+                        {String(stories.length).padStart(
+                          2,
+                          "0"
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Center binding shadow */}
+                    <div
+                      className="pointer-events-none absolute right-0 top-0 h-full w-8"
+                      style={{
+                        background:
+                          "linear-gradient(to left, rgba(0,0,0,.13), transparent)",
+                      }}
+                    />
+                  </div>
+
+                  {/* RIGHT PAGE */}
+                  <div
+                    className="relative h-full w-full overflow-hidden rounded-[5px] border border-[#b99954]/35 sm:w-1/2 sm:rounded-l-none"
+                    style={{
+                      background:
+                        "linear-gradient(105deg, #e4d6b8 0%, #fffdf6 10%, #fffefa 62%, #eadfc5 100%)",
+                      boxShadow:
+                        "inset 18px 0 28px rgba(70,48,20,.07), 8px 0 30px rgba(0,0,0,.35)",
+                    }}
+                  >
+                    {/* Paper texture */}
+                    <div className="pointer-events-none absolute inset-0 opacity-[.15]">
+                      <div
+                        className="h-full w-full"
+                        style={{
+                          backgroundImage:
+                            "radial-gradient(rgba(70,45,15,.18) .55px, transparent .55px)",
+                          backgroundSize:
+                            "7px 7px",
+                        }}
+                      />
+                    </div>
+
+                    {/* Top page heading */}
+                    <div className="absolute left-5 right-5 top-5 z-10 flex items-center justify-between sm:left-7 sm:right-7 sm:top-7">
+                      <span className="text-[8px] font-semibold uppercase tracking-[0.3em] text-[#8a6b2f]">
+                        A Note From Our Customers
+                      </span>
+
+                      <span className="text-[9px] text-[#8a6b2f]/70">
+                        {String(active + 1).padStart(
+                          2,
+                          "0"
+                        )}{" "}
+                        /{" "}
+                        {String(stories.length).padStart(
+                          2,
+                          "0"
+                        )}
+                      </span>
+                    </div>
+
+                    {/* Screenshot page */}
+                    <div
+                      className={`relative flex h-full items-center justify-center px-5 pb-14 pt-14 sm:px-8 sm:pb-16 sm:pt-16 ${
+                        isPageTurning
+                          ? pageDirection === "next"
+                            ? "tnm-page-next"
+                            : "tnm-page-previous"
+                          : ""
+                      }`}
+                    >
+                      <div
+                        className="relative flex h-full max-h-[calc(100%-8px)] w-full items-center justify-center overflow-hidden rounded-[3px] border border-[#9e8758]/20 bg-white/45 p-2 sm:p-3"
+                        style={{
+                          boxShadow:
+                            "0 8px 22px rgba(74,55,23,.13)",
+                        }}
+                      >
+                        <img
+                          key={activeStory.id}
+                          src={activeStory.image}
+                          alt={
+                            activeStory.reviewText ||
+                            `Instagram review from ${activeStory.customerName}`
+                          }
+                          draggable={false}
+                          className="max-h-full max-w-full select-none object-contain"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="absolute bottom-4 left-5 right-5 flex items-center justify-between sm:left-7 sm:right-7">
+                      <div className="min-w-0">
+                        <p className="truncate text-[8px] font-semibold uppercase tracking-[0.18em] text-[#80652f]">
+                          {activeStory.customerName}
+                        </p>
+
+                        <p className="mt-0.5 text-[8px] text-[#7b705c]">
+                          Shared via Instagram
+                        </p>
+                      </div>
+
+                      <span className="ml-3 text-[9px] italic text-[#80652f]/65">
+                        With love, T&M
+                      </span>
+                    </div>
+
+                    {/* Binding shadow */}
+                    <div
+                      className="pointer-events-none absolute left-0 top-0 h-full w-8"
+                      style={{
+                        background:
+                          "linear-gradient(to right, rgba(0,0,0,.10), transparent)",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* =================================================
+                    NAVIGATION
+                ================================================= */}
+
+                <button
+                  type="button"
+                  aria-label="Previous review"
+                  onClick={previous}
+                  disabled={
+                    active === 0 ||
+                    isPageTurning
                   }
-                  draggable={false}
-                  className="tnm-story-image h-full w-full select-none object-contain"
-                />
-
-                {/* =================================================
-                    LEFT TAP ZONE
-                ================================================= */}
-
-                <button
-                  type="button"
-                  aria-label="Previous review"
-                  onClick={previous}
-                  className="absolute inset-y-0 left-0 z-10 w-[22%] cursor-pointer bg-transparent"
-                />
-
-                {/* =================================================
-                    RIGHT TAP ZONE
-                ================================================= */}
-
-                <button
-                  type="button"
-                  aria-label="Next review"
-                  onClick={next}
-                  className="absolute inset-y-0 right-0 z-10 w-[22%] cursor-pointer bg-transparent"
-                />
-
-                {/* =================================================
-                    VISIBLE PREVIOUS BUTTON
-                ================================================= */}
-
-                <button
-                  type="button"
-                  aria-label="Previous review"
-                  onClick={previous}
-                  disabled={active === 0}
-                  className="absolute left-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/55 text-3xl leading-none text-white/90 backdrop-blur-md transition hover:border-[#d6ad4d]/50 hover:text-[#e4c56b] disabled:pointer-events-none disabled:opacity-0"
+                  className="absolute left-1 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#d6ad4d]/30 bg-black/65 text-3xl leading-none text-[#f0d77f] shadow-lg backdrop-blur-md transition hover:border-[#d6ad4d]/60 hover:bg-black/80 disabled:pointer-events-none disabled:opacity-20 sm:left-1"
                 >
                   ‹
                 </button>
-
-                {/* =================================================
-                    VISIBLE NEXT BUTTON
-                ================================================= */}
 
                 <button
                   type="button"
@@ -529,39 +856,24 @@ export default function CustomerLove() {
                   onClick={next}
                   disabled={
                     active ===
-                    stories.length - 1
+                      stories.length - 1 ||
+                    isPageTurning
                   }
-                  className="absolute right-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/55 text-3xl leading-none text-white/90 backdrop-blur-md transition hover:border-[#d6ad4d]/50 hover:text-[#e4c56b] disabled:pointer-events-none disabled:opacity-0"
+                  className="absolute right-1 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#d6ad4d]/30 bg-black/65 text-3xl leading-none text-[#f0d77f] shadow-lg backdrop-blur-md transition hover:border-[#d6ad4d]/60 hover:bg-black/80 disabled:pointer-events-none disabled:opacity-20 sm:right-1"
                 >
                   ›
                 </button>
-
               </div>
 
               {/* =================================================
-                  STORY FOOTER
+                  BOTTOM INSTRUCTION
               ================================================= */}
 
-              <div className="flex items-center justify-between border-t border-white/10 bg-[#070707] px-5 py-3.5">
-
-                <div className="text-left">
-
-                  <p className="text-[9px] font-medium uppercase tracking-[0.18em] text-white/35">
-                    {activeStory.customerName}
-                  </p>
-
-                  <p className="mt-0.5 text-[10px] text-white/55">
-                    Real customer feedback · Instagram
-                  </p>
-
-                </div>
-
-                <span className="rounded-full border border-[#d6ad4d]/25 px-2.5 py-1 text-[10px] text-[#e4c56b]">
-                  {active + 1} / {stories.length}
-                </span>
-
+              <div className="flex shrink-0 items-center justify-center pb-2 pt-1 sm:pb-3">
+                <p className="text-[8px] uppercase tracking-[0.25em] text-white/30">
+                  Swipe to turn the page · Use ← →
+                </p>
               </div>
-
             </div>
           </div>,
           document.body
