@@ -1075,12 +1075,6 @@ export default function ProductCard({
                   {
                     product.review_count
                   }
-                  {" "}
-                  {
-                    product.review_count === 1
-                      ? "Review"
-                      : "Reviews"
-                  }
                   )
 
                 </span>
