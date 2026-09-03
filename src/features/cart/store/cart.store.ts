@@ -10,6 +10,10 @@ import {
   supabase,
 } from "@/shared/lib/supabase";
 
+import {
+  getCustomerByPhone,
+} from "@/features/customers/services/customer.service";
+
 
 /*
  * =========================================================
@@ -77,6 +81,9 @@ export interface AppliedCoupon {
 interface CartStore {
 
   items: CartItem[];
+
+  /** Customer ID whose server cart is currently loaded. */
+  cartOwnerId: string | null;
 
   isCartOpen: boolean;
 
@@ -264,6 +271,638 @@ const getProductStock = async (
 
 /*
  * =========================================================
+ * SUPABASE CART SYNC
+ * =========================================================
+ */
+
+function normalizePhone(
+  phone?: string | null
+) {
+
+  if (!phone) {
+
+    return "";
+
+  }
+
+  return phone
+    .replace(/\D/g, "")
+    .slice(-10);
+
+}
+
+
+async function getCustomerIdFromSession(
+  phone?: string | null
+): Promise<string | null> {
+
+  const normalizedPhone =
+    normalizePhone(phone);
+
+  if (!normalizedPhone) {
+
+    return null;
+
+  }
+
+  try {
+
+    const customer =
+      await getCustomerByPhone(
+        normalizedPhone
+      );
+
+    return customer?.id ?? null;
+
+  } catch (error) {
+
+    console.error(
+      "Failed to resolve customer for cart sync:",
+      error
+    );
+
+    return null;
+
+  }
+
+}
+
+
+async function getOrCreateCart(
+  customerId: string
+): Promise<string | null> {
+
+  const {
+    data: existingCart,
+    error: existingError,
+  } =
+    await supabase
+      .from("carts")
+      .select("id")
+      .eq("customer_id", customerId)
+      .maybeSingle();
+
+  if (existingError) {
+
+    console.error(
+      "Failed to load customer cart:",
+      existingError
+    );
+
+    return null;
+
+  }
+
+  if (existingCart?.id) {
+
+    return existingCart.id;
+
+  }
+
+  const {
+    data: newCart,
+    error: createError,
+  } =
+    await supabase
+      .from("carts")
+      .insert({
+        customer_id: customerId,
+      })
+      .select("id")
+      .single();
+
+  if (createError) {
+
+    console.error(
+      "Failed to create customer cart:",
+      createError
+    );
+
+    return null;
+
+  }
+
+  return newCart?.id ?? null;
+
+}
+
+
+async function loadCustomerCart(
+  customerId: string
+): Promise<CartItem[] | null> {
+
+  const cartId =
+    await getOrCreateCart(
+      customerId
+    );
+
+  if (!cartId) {
+
+    return null;
+
+  }
+
+  const {
+    data,
+    error,
+  } =
+    await supabase
+      .from("cart_items")
+      .select(
+        "id, product_id, product_name, product_image, price, quantity"
+      )
+      .eq("cart_id", cartId)
+      .order("created_at", {
+        ascending: true,
+      });
+
+  if (error) {
+
+    console.error(
+      "Failed to load customer cart items:",
+      error
+    );
+
+    return null;
+
+  }
+
+  return (data ?? []).map(
+    (item) => ({
+
+      id:
+        item.id,
+
+      productId:
+        item.product_id,
+
+      name:
+        item.product_name,
+
+      price:
+        Number(
+          item.price
+        ),
+
+      image:
+        item.product_image ??
+        undefined,
+
+      quantity:
+        Math.max(
+          Number(
+            item.quantity
+          ),
+          1
+        ),
+
+      stock:
+        null,
+
+    })
+  );
+
+}
+
+
+function mergeCartItems(
+  serverItems: CartItem[],
+  localItems: CartItem[]
+): CartItem[] {
+
+  const merged =
+    serverItems.map(
+      (item) => ({
+        ...item,
+      })
+    );
+
+  localItems.forEach(
+    (localItem) => {
+
+      const existing =
+        merged.find(
+          (item) =>
+            item.productId ===
+            localItem.productId
+        );
+
+      if (existing) {
+
+        existing.quantity +=
+          localItem.quantity;
+
+        return;
+
+      }
+
+      merged.push({
+
+        ...localItem,
+
+        id:
+          localItem.id,
+
+        stock:
+          null,
+
+      });
+
+    }
+  );
+
+  return merged;
+
+}
+
+
+async function saveCustomerCart(
+  customerId: string,
+  items: CartItem[]
+): Promise<boolean> {
+
+  const cartId =
+    await getOrCreateCart(
+      customerId
+    );
+
+  if (!cartId) {
+
+    return false;
+
+  }
+
+  const {
+    data: existingItems,
+    error: existingError,
+  } =
+    await supabase
+      .from("cart_items")
+      .select(
+        "id, product_id"
+      )
+      .eq("cart_id", cartId);
+
+  if (existingError) {
+
+    console.error(
+      "Failed to read customer cart items:",
+      existingError
+    );
+
+    return false;
+
+  }
+
+  const desiredProductIds =
+    items.map(
+      (item) =>
+        item.productId
+    );
+
+  const itemsToDelete =
+    (existingItems ?? []).filter(
+      (existingItem) =>
+        !desiredProductIds.includes(
+          existingItem.product_id
+        )
+    );
+
+  if (itemsToDelete.length > 0) {
+
+    const idsToDelete =
+      itemsToDelete.map(
+        (item) =>
+          item.id
+      );
+
+    const {
+      error: deleteError,
+    } =
+      await supabase
+        .from("cart_items")
+        .delete()
+        .in(
+          "id",
+          idsToDelete
+        );
+
+    if (deleteError) {
+
+      console.error(
+        "Failed to remove old customer cart items:",
+        deleteError
+      );
+
+      return false;
+
+    }
+
+  }
+
+  for (const item of items) {
+
+    const existing =
+      (existingItems ?? []).find(
+        (existingItem) =>
+          existingItem.product_id ===
+          item.productId
+      );
+
+    if (existing) {
+
+      const {
+        error,
+      } =
+        await supabase
+          .from("cart_items")
+          .update({
+
+            product_name:
+              item.name,
+
+            product_image:
+              item.image ??
+              null,
+
+            price:
+              item.price,
+
+            quantity:
+              item.quantity,
+
+          })
+          .eq(
+            "id",
+            existing.id
+          );
+
+      if (error) {
+
+        console.error(
+          "Failed to update customer cart item:",
+          error
+        );
+
+        return false;
+
+      }
+
+    } else {
+
+      const {
+        error,
+      } =
+        await supabase
+          .from("cart_items")
+          .insert({
+
+            cart_id:
+              cartId,
+
+            product_id:
+              item.productId,
+
+            product_name:
+              item.name,
+
+            product_image:
+              item.image ??
+              null,
+
+            price:
+              item.price,
+
+            quantity:
+              item.quantity,
+
+          });
+
+      if (error) {
+
+        console.error(
+          "Failed to add customer cart item:",
+          error
+        );
+
+        return false;
+
+      }
+
+    }
+
+  }
+
+  return true;
+
+}
+
+
+async function syncCurrentCustomerCart() {
+
+  try {
+
+    const {
+      data,
+    } =
+      await supabase.auth.getSession();
+
+    const session =
+      data.session;
+
+    if (!session?.user) {
+
+      return;
+
+    }
+
+    const customerId =
+      await getCustomerIdFromSession(
+        session.user.phone
+      );
+
+    if (!customerId) {
+
+      return;
+
+    }
+
+    const {
+      items,
+    } =
+      useCartStore.getState();
+
+    await saveCustomerCart(
+      customerId,
+      items
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Failed to synchronize customer cart:",
+      error
+    );
+
+  }
+
+}
+
+
+async function synchronizeCartForSession(
+  phone?: string | null
+) {
+
+  const customerId =
+    await getCustomerIdFromSession(
+      phone
+    );
+
+  if (!customerId) {
+
+    return;
+
+  }
+
+  const state =
+    useCartStore.getState();
+
+  const localItems =
+    state.cartOwnerId === customerId
+      ? []
+      : state.items;
+
+  const serverItems =
+    await loadCustomerCart(
+      customerId
+    );
+
+  if (serverItems === null) {
+
+    return;
+
+  }
+
+  let finalItems =
+    serverItems;
+
+  /*
+   * If this is a different customer, or the
+   * current cart is a guest cart, merge it
+   * into the customer's server cart.
+   */
+
+  if (
+    state.cartOwnerId !==
+    customerId &&
+    localItems.length > 0
+  ) {
+
+    finalItems =
+      mergeCartItems(
+        serverItems,
+        localItems
+      );
+
+    const saved =
+      await saveCustomerCart(
+        customerId,
+        finalItems
+      );
+
+    if (!saved) {
+
+      return;
+
+    }
+
+  }
+
+  useCartStore.setState({
+
+    items:
+      finalItems,
+
+    cartOwnerId:
+      customerId,
+
+  });
+
+}
+
+
+let cartAuthListenerStarted =
+  false;
+
+
+function startCartAuthListener() {
+
+  if (
+    cartAuthListenerStarted
+  ) {
+
+    return;
+
+  }
+
+  cartAuthListenerStarted =
+    true;
+
+  supabase.auth.onAuthStateChange(
+    (
+      event,
+      session
+    ) => {
+
+      /*
+       * Defer database work until after the
+       * auth event callback has completed.
+       */
+
+      setTimeout(
+        async () => {
+
+          if (
+            event ===
+              "SIGNED_OUT" ||
+            !session
+          ) {
+
+            /*
+             * Clear the local cart on sign-out so a
+             * different customer can never see or merge
+             * the previous customer's cart.
+             */
+
+            useCartStore.setState({
+
+              items: [],
+
+              cartOwnerId:
+                null,
+
+            });
+
+            return;
+
+          }
+
+          await synchronizeCartForSession(
+            session.user.phone
+          );
+
+        },
+        0
+      );
+
+    }
+  );
+
+}
+
+
+/*
+ * =========================================================
  * STORE
  * =========================================================
  */
@@ -282,6 +921,8 @@ export const useCartStore =
          */
 
         items: [],
+
+        cartOwnerId: null,
 
         isCartOpen: false,
 
@@ -486,6 +1127,7 @@ export const useCartStore =
 
               });
 
+              void syncCurrentCustomerCart();
 
               return true;
 
@@ -517,6 +1159,7 @@ export const useCartStore =
 
             });
 
+            void syncCurrentCustomerCart();
 
             return true;
 
@@ -596,6 +1239,7 @@ export const useCartStore =
 
             });
 
+            void syncCurrentCustomerCart();
 
             return;
 
@@ -608,6 +1252,8 @@ export const useCartStore =
               updatedItems,
 
           });
+
+          void syncCurrentCustomerCart();
 
         },
 
@@ -732,6 +1378,7 @@ export const useCartStore =
 
             }
 
+            void syncCurrentCustomerCart();
 
             return true;
 
@@ -964,6 +1611,7 @@ export const useCartStore =
 
             }
 
+            void syncCurrentCustomerCart();
 
             return true;
 
@@ -1186,6 +1834,12 @@ export const useCartStore =
 
               });
 
+              if (hasStockAdjustment) {
+
+                void syncCurrentCustomerCart();
+
+              }
+
             } finally {
 
               set({
@@ -1231,6 +1885,8 @@ export const useCartStore =
               "",
 
           });
+
+          void syncCurrentCustomerCart();
 
         },
 
@@ -1488,3 +2144,15 @@ export const useCartStore =
     )
 
   );
+
+/*
+ * =========================================================
+ * START AUTH-BASED CART SYNCHRONIZATION
+ * =========================================================
+ *
+ * This keeps the Zustand cart and the customer's Supabase
+ * cart connected without changing the existing cart UI.
+ * =========================================================
+ */
+
+startCartAuthListener();
