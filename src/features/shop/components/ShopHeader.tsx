@@ -556,20 +556,16 @@ export default function ShopHeader({
       >
 
         {/* ===================================================
-            MOBILE:
-            COUNT ON ITS OWN ROW
-
-            DESKTOP:
-            EVERYTHING ON ONE ROW
+            RESULT ROW
+            EVERYTHING STAYS ON ONE ROW
         ==================================================== */}
 
         <div
           className="
             flex
-            flex-col
-            gap-3
-            sm:flex-row
-            sm:items-center
+            flex-nowrap
+            items-center
+            gap-2
             sm:justify-between
             sm:gap-3
           "
@@ -582,10 +578,13 @@ export default function ShopHeader({
           <div
             className="
               flex
-              w-full
+              min-w-0
+              flex-1
               items-center
-              gap-3
+              gap-2
               sm:w-auto
+              sm:flex-none
+              sm:gap-3
             "
           >
 
@@ -595,9 +594,11 @@ export default function ShopHeader({
               className="
                 relative
                 flex
-                h-11
-                min-w-11
+                h-9
+                min-w-9
                 shrink-0
+                sm:h-11
+                sm:min-w-11
                 items-center
                 justify-center
                 rounded-full
@@ -625,7 +626,7 @@ export default function ShopHeader({
               <span
                 className="
                   relative
-                  text-sm
+                  text-xs
                   font-semibold
                   leading-none
                   tracking-tight
@@ -645,21 +646,26 @@ export default function ShopHeader({
               className="
                 flex
                 min-w-0
+                flex-1
                 items-center
+                overflow-hidden
                 whitespace-nowrap
                 animate-[fadeInUp_0.7s_ease-out]
+                sm:flex-none
               "
             >
 
               <span
                 className="
                   font-serif
-                  text-[12px]
+                  truncate
+                  text-[10px]
                   font-medium
                   italic
-                  tracking-[0.08em]
+                  tracking-[0.05em]
                   text-[#D4AF37]
                   sm:text-[14px]
+                  sm:tracking-[0.08em]
                 "
               >
                 Find Your Next Favourite
@@ -672,22 +678,17 @@ export default function ShopHeader({
 
           {/* =================================================
               CONTROLS
-
-              Mobile:
-              aligned right on second row
-
-              Desktop:
-              remains beside result count
+              SAME ROW ON ALL SCREEN SIZES
           ================================================== */}
 
           <div
             className="
               flex
-              w-full
+              shrink-0
               items-center
               justify-end
-              gap-2
-              sm:w-auto
+              gap-1.5
+              sm:gap-2
             "
           >
 
@@ -703,13 +704,13 @@ export default function ShopHeader({
                 h-9
                 shrink-0
                 items-center
-                gap-1.5
+                gap-1
                 rounded-full
                 border
                 border-white/10
                 bg-white/[0.025]
-                px-3
-                text-[10px]
+                px-2
+                text-[9px]
                 font-medium
                 text-neutral-300
                 transition
@@ -726,8 +727,8 @@ export default function ShopHeader({
             >
 
               <SlidersHorizontal
-                size={14}
-                className="text-[#D4AF37]"
+                size={13}
+                className="text-[#D4AF37] sm:h-[14px] sm:w-[14px]"
               />
 
               <span>
@@ -780,16 +781,16 @@ export default function ShopHeader({
                 aria-label="Sort products"
                 className="
                   h-9
-                  max-w-[135px]
+                  max-w-[90px]
                   appearance-none
                   rounded-full
                   border
                   border-white/10
                   bg-white/[0.025]
                   py-0
-                  pl-3
-                  pr-8
-                  text-[10px]
+                  pl-2
+                  pr-6
+                  text-[9px]
                   font-medium
                   text-neutral-300
                   outline-none
@@ -870,10 +871,11 @@ export default function ShopHeader({
                 className="
                   pointer-events-none
                   absolute
-                  right-3
+                  right-2
                   top-1/2
                   -translate-y-1/2
                   text-neutral-500
+                  sm:right-3
                 "
               />
 
