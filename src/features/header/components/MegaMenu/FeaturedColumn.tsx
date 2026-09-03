@@ -40,14 +40,6 @@ const featured = [
       "/shop?trending=true",
   },
 
-  {
-    label:
-      "Gift Collection",
-
-    href:
-      "/shop?featured=true",
-  },
-
 ];
 
 

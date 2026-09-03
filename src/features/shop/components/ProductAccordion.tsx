@@ -197,12 +197,15 @@ export default function ProductAccordion({
        * Weight
        *
        * Stored in KG
+       *
+       * Zero is treated as empty.
        */
 
       if (
         product?.weight !== null &&
         product?.weight !== undefined &&
-        product?.weight !== ""
+        product?.weight !== "" &&
+        Number(product.weight) !== 0
       ) {
 
         values.push({
@@ -222,12 +225,15 @@ export default function ProductAccordion({
        * Length
        *
        * Stored in CM
+       *
+       * Zero is treated as empty.
        */
 
       if (
         product?.length !== null &&
         product?.length !== undefined &&
-        product?.length !== ""
+        product?.length !== "" &&
+        Number(product.length) !== 0
       ) {
 
         values.push({
@@ -245,12 +251,15 @@ export default function ProductAccordion({
 
       /*
        * Width
+       *
+       * Zero is treated as empty.
        */
 
       if (
         product?.width !== null &&
         product?.width !== undefined &&
-        product?.width !== ""
+        product?.width !== "" &&
+        Number(product.width) !== 0
       ) {
 
         values.push({
@@ -268,12 +277,15 @@ export default function ProductAccordion({
 
       /*
        * Height
+       *
+       * Zero is treated as empty.
        */
 
       if (
         product?.height !== null &&
         product?.height !== undefined &&
-        product?.height !== ""
+        product?.height !== "" &&
+        Number(product.height) !== 0
       ) {
 
         values.push({
@@ -444,6 +456,9 @@ export default function ProductAccordion({
        * =====================================================
        * WEIGHT & DIMENSIONS
        * =====================================================
+       *
+       * This section is only added when at least one
+       * weight/dimension field contains a non-zero value.
        */
 
       if (

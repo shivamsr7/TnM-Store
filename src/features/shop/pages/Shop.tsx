@@ -1888,52 +1888,25 @@ export default function Shop() {
 
             /*
              * ===============================================
-             * DATABASE COLLECTION FILTERS
+             * PRODUCT FLAG FILTERS
              * ===============================================
              *
-             * Membership is controlled by:
+             * These flags are saved directly on the product
+             * from the Admin Product Form.
              *
-             * product_collections
+             * Featured
+             * New Arrival
+             * Best Seller
+             * Trending
+             * Editor's Pick
              *
-             * No sales_count ranking is used.
+             * Collections are still used separately for
+             * explicit ?collection= URLs and product badges.
              */
-
-            const bestSellerCollection =
-              getMappedCollection(
-                "best-sellers"
-              );
-
-
-            const newArrivalCollection =
-              getMappedCollection(
-                "new-arrivals"
-              );
-
-
-            const trendingCollection =
-              getMappedCollection(
-                "trending"
-              );
-
-
-            const editorsPickCollection =
-              getMappedCollection(
-                "editors-pick"
-              );
-
-
-            const featuredCollection =
-              getMappedCollection(
-                "featured"
-              );
-
 
             if (
               bestSeller &&
-              !productInCollection(
-                product,
-                bestSellerCollection
-              )
+              !product.best_seller
             ) {
 
               return false;
@@ -1943,10 +1916,7 @@ export default function Shop() {
 
             if (
               newArrival &&
-              !productInCollection(
-                product,
-                newArrivalCollection
-              )
+              !product.new_arrival
             ) {
 
               return false;
@@ -1956,10 +1926,7 @@ export default function Shop() {
 
             if (
               trending &&
-              !productInCollection(
-                product,
-                trendingCollection
-              )
+              !product.trending
             ) {
 
               return false;
@@ -1969,10 +1936,7 @@ export default function Shop() {
 
             if (
               editorsPick &&
-              !productInCollection(
-                product,
-                editorsPickCollection
-              )
+              !product.editors_pick
             ) {
 
               return false;
@@ -1982,10 +1946,7 @@ export default function Shop() {
 
             if (
               featured &&
-              !productInCollection(
-                product,
-                featuredCollection
-              )
+              !product.featured
             ) {
 
               return false;
@@ -2035,26 +1996,17 @@ export default function Shop() {
         case "best-selling": {
 
           /*
-           * Best Selling is a DB collection.
-           *
-           * We do NOT use sales_count.
+           * Best Selling is controlled by the
+           * best_seller product flag set in Admin.
            */
-
-          const bestSellerIds =
-            new Set(
-              getMappedCollection(
-                "best-sellers"
-              )?.productIds ?? []
-            );
-
 
           result =
             result.filter(
               (
                 product
               ) =>
-                bestSellerIds.has(
-                  product.id
+                Boolean(
+                  product.best_seller
                 )
             );
 
@@ -2079,21 +2031,18 @@ export default function Shop() {
 
         case "trending": {
 
-          const trendingIds =
-            new Set(
-              getMappedCollection(
-                "trending"
-              )?.productIds ?? []
-            );
-
+          /*
+           * Trending is controlled by the
+           * trending product flag set in Admin.
+           */
 
           result =
             result.filter(
               (
                 product
               ) =>
-                trendingIds.has(
-                  product.id
+                Boolean(
+                  product.trending
                 )
             );
 
@@ -2180,13 +2129,10 @@ export default function Shop() {
 
         default: {
 
-          const featuredIds =
-            new Set(
-              getMappedCollection(
-                "featured"
-              )?.productIds ?? []
-            );
-
+          /*
+           * Featured sorting is controlled by the
+           * featured product flag set in Admin.
+           */
 
           result.sort(
             (
@@ -2194,24 +2140,12 @@ export default function Shop() {
               b
             ) => {
 
-              const aFeatured =
-                featuredIds.has(
-                  a.id
-                );
-
-
-              const bFeatured =
-                featuredIds.has(
-                  b.id
-                );
-
-
               if (
-                aFeatured !==
-                bFeatured
+                a.featured !==
+                b.featured
               ) {
 
-                return aFeatured
+                return a.featured
                   ? -1
                   : 1;
 

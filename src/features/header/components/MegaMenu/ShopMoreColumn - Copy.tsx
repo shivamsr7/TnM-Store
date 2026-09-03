@@ -4,6 +4,9 @@ import { Link } from "react-router-dom";
 const items = [
   "Under ₹299",
   "Under ₹499",
+  "Anti Tarnish",
+  "Premium Collection",
+  "Festive Collection",
 ];
 
 export default function ShopMoreColumn() {
