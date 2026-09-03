@@ -3,6 +3,10 @@ import {
   useState,
 } from "react";
 
+import {
+  createPortal,
+} from "react-dom";
+
 import type {
   FormEvent,
 } from "react";
@@ -695,7 +699,7 @@ export default function NotifyDialog({
    * =========================================================
    */
 
-  return (
+  return createPortal(
 
     <div
 
@@ -1653,7 +1657,9 @@ export default function NotifyDialog({
 
       </div>
 
-    </div>
+    </div>,
+
+    document.body
 
   );
 
