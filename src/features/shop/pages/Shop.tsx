@@ -574,26 +574,6 @@ export default function Shop() {
    * =======================================================
    */
 
-  const getMappedCollection = (
-    slugOrName: string
-  ) =>
-    collectionMappings[
-      slugify(
-        slugOrName
-      )
-    ] ?? null;
-
-
-  const productInCollection = (
-    product: ShopProduct,
-    collection: SearchCollection | null
-  ) =>
-    Boolean(
-      collection &&
-      collection.productIds.includes(
-        product.id
-      )
-    );
 
 
   /*
