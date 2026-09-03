@@ -959,8 +959,9 @@ export default function ProductCard({
               text-[#F7E3A3]
               transition
               group-hover:text-[#D4AF37]
-              sm:h-auto
+              sm:h-[56px]
               sm:text-lg
+              sm:leading-7
             "
           >
 
@@ -971,119 +972,130 @@ export default function ProductCard({
 
           {/* Rating */}
 
-          {product.rating > 0 && (
+          <div
+            className="
+              mt-2
+              flex
+              min-h-[18px]
+              items-center
+              sm:mt-3
+              sm:min-h-[22px]
+            "
+          >
 
-            <button
-              type="button"
-              onClick={(
-                e
-              ) => {
+            {product.rating > 0 && (
 
-                e.preventDefault();
+              <button
+                type="button"
+                onClick={(
+                  e
+                ) => {
 
-                e.stopPropagation();
+                  e.preventDefault();
 
-                openProductDetails();
+                  e.stopPropagation();
 
-              }}
-              aria-label="View product reviews"
-              className="
-                mt-2
-                flex
-                min-w-0
-                items-center
-                gap-1.5
-                text-left
-                text-xs
-                transition-opacity
-                duration-200
-                hover:opacity-80
-                focus:outline-none
-                focus-visible:ring-1
-                focus-visible:ring-[#D4AF37]
-                sm:mt-3
-                sm:text-sm
-              "
-            >
+                  openProductDetails();
 
-              <span
+                }}
+                aria-label="View product reviews"
                 className="
                   flex
-                  shrink-0
+                  min-w-0
                   items-center
-                  gap-0.5
-                  text-[#D4AF37]
-                "
-                aria-hidden="true"
-              >
-
-                {Array.from(
-                  {
-                    length: 5,
-                  }
-                ).map(
-                  (
-                    _,
-                    index
-                  ) => (
-
-                    <span
-                      key={
-                        index
-                      }
-                      className="
-                        leading-none
-                      "
-                    >
-                      ★
-                    </span>
-
-                  )
-                )}
-
-              </span>
-
-
-              <span
-                className="
-                  shrink-0
-                  font-medium
-                  text-white
+                  gap-1.5
+                  text-left
+                  text-xs
+                  transition-opacity
+                  duration-200
+                  hover:opacity-80
+                  focus:outline-none
+                  focus-visible:ring-1
+                  focus-visible:ring-[#D4AF37]
+                  sm:text-sm
                 "
               >
 
-                {
-                  Number(
-                    product.rating
-                  ).toFixed(1)
-                }
+                <span
+                  className="
+                    flex
+                    shrink-0
+                    items-center
+                    gap-0.5
+                    text-[#D4AF37]
+                  "
+                  aria-hidden="true"
+                >
 
-              </span>
+                  {Array.from(
+                    {
+                      length: 5,
+                    }
+                  ).map(
+                    (
+                      _,
+                      index
+                    ) => (
 
+                      <span
+                        key={
+                          index
+                        }
+                        className="
+                          leading-none
+                        "
+                      >
+                        ★
+                      </span>
 
-              {product.review_count >
-                0 && (
+                    )
+                  )}
+
+                </span>
+
 
                 <span
                   className="
                     shrink-0
-                    text-neutral-500
+                    font-medium
+                    text-white
                   "
                 >
 
-                  (
                   {
-                    product.review_count
+                    Number(
+                      product.rating
+                    ).toFixed(1)
                   }
-                  )
 
                 </span>
 
-              )}
 
-            </button>
+                {product.review_count >
+                  0 && (
 
-          )}
+                  <span
+                    className="
+                      shrink-0
+                      text-neutral-500
+                    "
+                  >
+
+                    (
+                    {
+                      product.review_count
+                    }
+                    )
+
+                  </span>
+
+                )}
+
+              </button>
+
+            )}
+
+          </div>
 
 
           {/* Price */}
