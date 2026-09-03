@@ -92,9 +92,10 @@ export function useUnlockCoupon(
             "customer_id",
             customer.id
           )
-          .neq(
+          .not(
             "order_status",
-            "cancelled"
+            "in",
+            "(cancelled,refunded)"
           ),
 
       ]);
@@ -380,9 +381,17 @@ export function useUnlockCoupon(
       }
 
 
+      /*
+       * First get every usage row for this customer.
+       *
+       * We intentionally fetch order_id as well because a
+       * coupon must be reusable only when its previous order
+       * was cancelled/refunded.
+       */
+
       const {
-        data,
-        error,
+        data: usageRows,
+        error: usageError,
       } = await supabase
 
         .from(
@@ -390,7 +399,7 @@ export function useUnlockCoupon(
         )
 
         .select(
-          "coupon_id"
+          "coupon_id, order_id"
         )
 
         .eq(
@@ -404,12 +413,125 @@ export function useUnlockCoupon(
         );
 
 
-      if (error) {
-        throw error;
+      if (usageError) {
+        throw usageError;
       }
 
 
-      return data ?? [];
+      const rows =
+        usageRows ?? [];
+
+
+      if (rows.length === 0) {
+        return [];
+      }
+
+
+      /*
+       * Legacy usage rows without an order_id cannot be
+       * safely connected to a cancelled/refunded order.
+       * Therefore they remain treated as used.
+       */
+
+      const rowsWithoutOrder =
+        rows.filter(
+          (row: any) =>
+            !row.order_id
+        );
+
+
+      const orderIds = Array.from(
+        new Set(
+          rows
+            .filter(
+              (row: any) =>
+                !!row.order_id
+            )
+            .map(
+              (row: any) =>
+                row.order_id
+            )
+        )
+      );
+
+
+      if (orderIds.length === 0) {
+        return rowsWithoutOrder;
+      }
+
+
+      /*
+       * Check the actual order status.
+       *
+       * cancelled/refunded orders do NOT count as coupon
+       * usage. Any other order status keeps the coupon
+       * blocked for one-use-per-customer coupons.
+       */
+
+      const {
+        data: orderRows,
+        error: orderError,
+      } = await supabase
+
+        .from(
+          "orders"
+        )
+
+        .select(
+          "id, order_status"
+        )
+
+        .in(
+          "id",
+          orderIds
+        );
+
+
+      if (orderError) {
+        throw orderError;
+      }
+
+
+      const orderStatusById =
+        new Map(
+          (orderRows ?? []).map(
+            (order: any) => [
+              order.id,
+              order.order_status,
+            ]
+          )
+        );
+
+
+      return rows.filter(
+        (row: any) => {
+
+          /*
+           * No order_id = keep blocked.
+           */
+
+          if (!row.order_id) {
+            return true;
+          }
+
+
+          const status =
+            orderStatusById.get(
+              row.order_id
+            );
+
+
+          /*
+           * Only cancelled/refunded usage is released.
+           */
+
+          return (
+            status !== "cancelled" &&
+            status !== "refunded"
+          );
+
+        }
+      );
 
     },
 
@@ -418,15 +540,31 @@ export function useUnlockCoupon(
       oneUseCouponIds.length > 0,
 
     /*
-     * Keep this relatively fresh because coupon usage can
-     * change immediately after an order/coupon redemption.
+     * Coupon usage can change immediately after checkout.
+     * Do not keep the previous result cached.
      */
 
     staleTime:
-      10 * 1000,
+      0,
+
+    refetchOnMount:
+      "always",
 
     refetchOnWindowFocus:
       true,
+
+    /*
+     * This handles the case where the cart drawer remains
+     * mounted after checkout. The previous version could keep
+     * showing the old unlock offer because React Query had
+     * already cached the usage query.
+     */
+
+    refetchInterval:
+      2000,
+
+    refetchIntervalInBackground:
+      false,
 
   });
 
