@@ -14,7 +14,6 @@ import WishlistButton from "@/features/wishlist/components/WishlistButton";
 import {
   supabase,
 } from "@/shared/lib/supabase";
-import { useState } from "react";
 
 
 interface ProductActionsProps {
@@ -241,25 +240,7 @@ export default function ProductActions({
   const isOutOfStock =
     product.stock <= 0;
 
-  /* =======================================================
-     RING SIZE
-  ======================================================= */
 
-  const [
-    selectedRingSize,
-    setSelectedRingSize,
-  ] = useState<string>("");
-
-  const availableRingSizes: string[] =
-    Array.isArray(
-      product?.specifications?.ring_sizes
-    )
-      ? product.specifications.ring_sizes
-          .map((size: any) => String(size))
-      : [];
-
-  const isRingProduct =
-    availableRingSizes.length > 0;
   /* =======================================================
      ADD TO CART
   ======================================================= */
@@ -270,15 +251,7 @@ export default function ProductActions({
       return;
     }
 
-    if (isRingProduct && !selectedRingSize) {
-      alert("Please select a ring size.");
-      return;
-    }
-
-    addToCart({
-      ...product,
-      ringSize: selectedRingSize,
-    });
+    addToCart(product);
 
   };
 
@@ -292,11 +265,6 @@ export default function ProductActions({
   ) => {
 
     if (isOutOfStock) {
-      return;
-    }
-
-    if (isRingProduct && !selectedRingSize) {
-      alert("Please select a ring size.");
       return;
     }
 
@@ -598,81 +566,6 @@ export default function ProductActions({
           </div>
 
         )}
-
-
-      {/* =================================================
-          RING SIZE
-      ================================================= */}
-
-      {isRingProduct && (
-
-        <div className="mt-6">
-
-          <div className="mb-3 flex items-center justify-between">
-
-            <p
-              className="
-                text-sm
-                font-medium
-                text-white
-              "
-            >
-              Select Ring Size
-            </p>
-
-            {selectedRingSize && (
-              <span className="text-xs text-[#D4AF37]">
-                Size {selectedRingSize} selected
-              </span>
-            )}
-
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-
-            {availableRingSizes.map((size) => {
-
-              const selected =
-                selectedRingSize === size;
-
-              return (
-
-                <button
-                  key={size}
-                  type="button"
-                  onClick={() => setSelectedRingSize(size)}
-                  className={`
-                    flex
-                    h-11
-                    min-w-11
-                    items-center
-                    justify-center
-                    rounded-lg
-                    border
-                    px-3
-                    text-sm
-                    font-medium
-                    transition-all
-                    duration-200
-                    ${
-                      selected
-                        ? "border-[#D4AF37] bg-[#D4AF37] text-black"
-                        : "border-neutral-700 bg-transparent text-white hover:border-[#D4AF37] hover:text-[#D4AF37]"
-                    }
-                  `}
-                >
-                  {size}
-                </button>
-
-              );
-
-            })}
-
-          </div>
-
-        </div>
-
-      )}
 
 
       {/* =================================================

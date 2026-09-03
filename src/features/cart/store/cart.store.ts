@@ -35,6 +35,12 @@ export interface CartItem {
 
   quantity: number;
 
+  /**
+   * Selected ring size.
+   * null/undefined for non-ring products.
+   */
+  ringSize?: string | null;
+
   /*
    * Latest database stock.
    *
@@ -409,7 +415,7 @@ async function loadCustomerCart(
     await supabase
       .from("cart_items")
       .select(
-        "id, product_id, product_name, product_image, price, quantity"
+        "id, product_id, product_name, product_image, price, quantity, ring_size"
       )
       .eq("cart_id", cartId)
       .order("created_at", {
@@ -456,6 +462,10 @@ async function loadCustomerCart(
           1
         ),
 
+      ringSize:
+        item.ring_size ??
+        null,
+
       stock:
         null,
 
@@ -484,7 +494,9 @@ function mergeCartItems(
         merged.find(
           (item) =>
             item.productId ===
-            localItem.productId
+              localItem.productId &&
+            (item.ringSize ?? null) ===
+              (localItem.ringSize ?? null)
         );
 
       if (existing) {
@@ -539,7 +551,7 @@ async function saveCustomerCart(
     await supabase
       .from("cart_items")
       .select(
-        "id, product_id"
+        "id, product_id, ring_size"
       )
       .eq("cart_id", cartId);
 
@@ -554,17 +566,15 @@ async function saveCustomerCart(
 
   }
 
-  const desiredProductIds =
-    items.map(
-      (item) =>
-        item.productId
-    );
-
   const itemsToDelete =
     (existingItems ?? []).filter(
       (existingItem) =>
-        !desiredProductIds.includes(
-          existingItem.product_id
+        !items.some(
+          (item) =>
+            item.productId ===
+              existingItem.product_id &&
+            (item.ringSize ?? null) ===
+              (existingItem.ring_size ?? null)
         )
     );
 
@@ -606,7 +616,9 @@ async function saveCustomerCart(
       (existingItems ?? []).find(
         (existingItem) =>
           existingItem.product_id ===
-          item.productId
+            item.productId &&
+          (existingItem.ring_size ?? null) ===
+            (item.ringSize ?? null)
       );
 
     if (existing) {
@@ -630,6 +642,10 @@ async function saveCustomerCart(
 
             quantity:
               item.quantity,
+
+            ring_size:
+              item.ringSize ??
+              null,
 
           })
           .eq(
@@ -675,6 +691,10 @@ async function saveCustomerCart(
 
             quantity:
               item.quantity,
+
+            ring_size:
+              item.ringSize ??
+              null,
 
           });
 
@@ -1109,7 +1129,9 @@ export const useCartStore =
                   get().items.map(
                     (cartItem) =>
                       cartItem.productId ===
-                      item.productId
+                          item.productId &&
+                      (cartItem.ringSize ?? null) ===
+                          (item.ringSize ?? null)
 
                         ? {
 

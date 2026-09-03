@@ -2678,6 +2678,26 @@ export default function CartDrawer() {
 
 
                               {/* =========================================
+                                  RING SIZE
+                              ========================================== */}
+
+                              {item.ringSize && (
+                                <p
+                                  className="
+                                    mt-1.5
+                                    text-xs
+                                    text-neutral-500
+                                  "
+                                >
+                                  Ring Size:{" "}
+                                  <span className="font-medium text-neutral-800">
+                                    {item.ringSize}
+                                  </span>
+                                </p>
+                              )}
+
+
+                              {/* =========================================
                                   QUANTITY CONTROLS
                               ========================================== */}
 

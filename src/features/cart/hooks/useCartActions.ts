@@ -41,6 +41,9 @@ addItem({
   price: product.price,
   image: product.product_images?.[0]?.image_url,
   quantity: 1,
+  ringSize:
+    product.ringSize ??
+    null,
   stock: null,
 });
 

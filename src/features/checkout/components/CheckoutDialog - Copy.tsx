@@ -16,6 +16,14 @@ import {
   useEffect,
 } from "react";
 
+import {
+  useQuery,
+} from "@tanstack/react-query";
+
+import {
+  supabase,
+} from "@/shared/lib/supabase";
+
 import OrderSuccess from "./OrderSuccess";
 import PaymentStep from "./PaymentStep";
 import LoginStep from "./LoginStep";
@@ -44,8 +52,8 @@ import {
 
 import {
   finalizeCheckoutQuote,
+  setCheckoutQuoteGiftWrap,
 } from "@/features/orders/services/checkout-quote.service";
-
 
 interface Props {
   open: boolean;
@@ -148,11 +156,15 @@ export default function CheckoutDialog({
     setOrderNumber,
   ] = useState("");
 
-
   /*
    * =========================================================
    * PAYMENT PROCESSING
    * =========================================================
+   *
+   * Razorpay success is only the beginning of the final
+   * order-completion step. Keep the checkout locked in a
+   * dedicated processing state until the server-side order
+   * transaction has completed successfully.
    */
 
   const [
@@ -162,11 +174,13 @@ export default function CheckoutDialog({
 
 
   /*
-   * =========================================================
-   * PAYMENT RECOVERY
-   * =========================================================
+   * Payment was captured/verified, but final order completion
+   * encountered a recoverable client/server error.
+   *
+   * Keep the customer away from the payment step so they cannot
+   * accidentally pay twice. Retry uses the SAME Razorpay payment
+   * ID and the database idempotency protection.
    */
-
   const [
     paymentRecoveryError,
     setPaymentRecoveryError,
@@ -196,18 +210,20 @@ export default function CheckoutDialog({
     setShippingError,
   ] = useState("");
 
-
   /*
    * =========================================================
    * SECURE SHIPPING QUOTE
    * =========================================================
+   *
+   * Created server-side by check-delivery.
+   * This will become the source of truth for the final
+   * order calculation in the next security step.
    */
 
   const [
     checkoutQuoteId,
     setCheckoutQuoteId,
   ] = useState<string | null>(null);
-
 
   /*
    * =========================================================
@@ -219,11 +235,12 @@ export default function CheckoutDialog({
     verifiedCheckoutPricing,
     setVerifiedCheckoutPricing,
   ] = useState<{
-    subtotal: number;
-    discount: number;
-    shippingCharge: number;
-    tax: number;
-    totalAmount: number;
+    subtotal:number;
+    discount:number;
+    shippingCharge:number;
+    giftWrapAmount:number;
+    tax:number;
+    totalAmount:number;
   } | null>(null);
 
 
@@ -250,11 +267,78 @@ export default function CheckoutDialog({
     discount,
     appliedCoupon,
     clearCart,
+
+    giftWrapSelected,
+    giftMessage,
+
   } = useCartStore();
 
 
   const subtotal =
     getTotal();
+
+
+  /*
+   * =========================================================
+   * GIFT WRAP SETTINGS
+   * =========================================================
+   *
+   * Address step uses the current Admin-configured Gift Wrap
+   * price because shipping has not been calculated yet.
+   * Payment step uses the server-verified amount from the
+   * finalized checkout quote.
+   */
+
+  const {
+    data: giftWrapSettings,
+  } = useQuery({
+
+    queryKey: [
+      "gift-wrap-settings-checkout",
+    ],
+
+    queryFn: async () => {
+
+      const {
+        data,
+        error,
+      } = await supabase
+        .from("gift_wrap_settings")
+        .select("enabled, price")
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      return {
+        enabled: Boolean(data?.enabled),
+        price: Number(data?.price ?? 0),
+      };
+
+    },
+
+    staleTime: 5 * 60 * 1000,
+
+    enabled: open,
+
+  });
+
+
+  const addressStepGiftWrapAmount =
+    giftWrapSelected &&
+    giftWrapSettings?.enabled
+      ? Number(giftWrapSettings.price ?? 0)
+      : 0;
+
+
+  const addressStepTotal =
+    Math.max(
+      subtotal - discount,
+      0
+    ) +
+    addressStepGiftWrapAmount;
 
 
   /*
@@ -547,6 +631,12 @@ export default function CheckoutDialog({
     );
 
 
+    /*
+     * =======================================================
+     * PINCODE
+     * =======================================================
+     */
+
     const pincode =
       String(
         address?.postal_code ??
@@ -569,6 +659,25 @@ export default function CheckoutDialog({
     }
 
 
+    /*
+     * =======================================================
+     * START SECURE SHIPPING QUOTE
+     * =======================================================
+     *
+     * We now send product IDs + quantities to the server.
+     *
+     * The server fetches the real product weights from the
+     * database. Frontend weight is no longer trusted.
+     *
+     * Products without a stored weight use the server-side
+     * 0.500 kg fallback.
+     *
+     * We also calculate Shiprocket even when the customer
+     * qualifies for free shipping. The quote is still needed
+     * as the server-side shipping reference for checkout.
+     * =======================================================
+     */
+
     setCalculatingShipping(
       true
     );
@@ -584,6 +693,8 @@ export default function CheckoutDialog({
     );
 
 
+    // Give React one browser paint so the loading overlay is
+    // visible before the Shiprocket/network request starts.
     window.setTimeout(() => {
 
       checkDelivery(
@@ -591,286 +702,311 @@ export default function CheckoutDialog({
         {
           pincode,
 
-          customerId:
-            customer?.id ??
-            null,
+        customerId:
+          customer?.id ??
+          null,
 
-          paymentMethod:
-            "prepaid",
+        paymentMethod:
+          "prepaid",
 
-          items:
-            items.map(
-              (
-                item: typeof items[number]
-              ) => ({
+        items:
+          items.map(
+            (item: typeof items[number]) => ({
+              productId:
+                item.productId,
 
-                productId:
-                  item.productId,
+              quantity:
+                item.quantity,
+            })
+          ),
 
-                quantity:
-                  item.quantity,
+      },
 
-              })
-            ),
+      {
 
-        },
+        onSuccess: async (
+          data
+        ) => {
 
-        {
-
-          onSuccess: async (
+          const courier =
             data
-          ) => {
-
-            const courier =
-              data
-                ?.data
-                ?.available_courier_companies
-                ?.[0];
+              ?.data
+              ?.available_courier_companies
+              ?.[0];
 
 
-            if (!courier) {
+          /*
+           * No courier available
+           */
 
-              setCalculatingShipping(
-                false
-              );
+          if (!courier) {
 
-              setShippingCharge(
-                0
-              );
-
-              setCheckoutQuoteId(
-                null
-              );
-
-              setShippingError(
-                "Sorry, delivery is not available for this pincode."
-              );
-
-              return;
-
-            }
-
-
-            const quoteRate =
-              Number(
-                data
-                  ?.quote
-                  ?.shiprocket_rate ??
-                data
-                  ?.verified_shipping
-                  ?.shiprocket_rate ??
-                courier?.rate ??
-                0
-              );
-
-
-            if (
-              !Number.isFinite(
-                quoteRate
-              ) ||
-              quoteRate < 0
-            ) {
-
-              setCalculatingShipping(
-                false
-              );
-
-              setShippingCharge(
-                0
-              );
-
-              setCheckoutQuoteId(
-                null
-              );
-
-              setShippingError(
-                "Unable to verify shipping charges. Please try again."
-              );
-
-              return;
-
-            }
-
-
-            const customerShipping =
-              freeShippingUnlocked
-                ? 0
-                : quoteRate;
-
+            setCalculatingShipping(
+              false
+            );
 
             setShippingCharge(
-              customerShipping
+              0
             );
-
-
-            const quoteId =
-              data
-                ?.quote
-                ?.id ??
-              null;
-
 
             setCheckoutQuoteId(
-              quoteId
+              null
             );
-
-
-            const deliveryInfo = {
-
-              pincode,
-
-              shippingCharge:
-                quoteRate,
-
-              customerShippingCharge:
-                customerShipping,
-
-              courier:
-                courier?.courier_name ||
-                "",
-
-              checkoutQuoteId:
-                quoteId,
-
-              shipmentWeight:
-                data
-                  ?.quote
-                  ?.shipment_weight ??
-                data
-                  ?.verified_shipping
-                  ?.shipment_weight ??
-                null,
-
-            };
-
-
-            localStorage.setItem(
-              "tnm_delivery_info",
-              JSON.stringify(
-                deliveryInfo
-              )
-            );
-
 
             setShippingError(
-              ""
+              "Sorry, delivery is not available for this pincode."
+            );
+
+            return;
+
+          }
+
+
+          /*
+           * =================================================
+           * SERVER-VERIFIED SHIPROCKET RATE
+           * =================================================
+           *
+           * Prefer the rate returned by the secure quote.
+           * Fall back to the courier response only for
+           * compatibility with the existing delivery response.
+           * =================================================
+           */
+
+          const quoteRate =
+            Number(
+              data
+                ?.quote
+                ?.shiprocket_rate ??
+              data
+                ?.verified_shipping
+                ?.shiprocket_rate ??
+              courier?.rate ??
+              0
             );
 
 
-            if (!quoteId) {
+          if (
+            !Number.isFinite(
+              quoteRate
+            ) ||
+            quoteRate < 0
+          ) {
 
-              setCalculatingShipping(
-                false
-              );
+            setCalculatingShipping(
+              false
+            );
 
-              setShippingError(
-                "Unable to create a secure shipping quote. Please try again."
-              );
+            setShippingCharge(
+              0
+            );
 
-              return;
+            setCheckoutQuoteId(
+              null
+            );
 
-            }
+            setShippingError(
+              "Unable to verify shipping charges. Please try again."
+            );
 
+            return;
 
-            try {
-
-              const finalized =
-                await finalizeCheckoutQuote({
-
-                  quoteId,
-
-                  customerId:
-                    customer?.id,
-
-                  couponId:
-                    appliedCoupon?.id ??
-                    null,
-
-                });
+          }
 
 
-              setCheckoutQuoteId(
-                finalized.quote_id
-              );
+          /*
+           * =================================================
+           * FULL SHIPROCKET RATE
+           * =================================================
+           *
+           * No ₹59 / ₹79 customer pricing rule anymore.
+           *
+           * If free shipping is unlocked, the customer pays
+           * ₹0, but the secure quote still retains the real
+           * Shiprocket rate.
+           * =================================================
+           */
+
+          const customerShipping =
+            freeShippingUnlocked
+              ? 0
+              : quoteRate;
 
 
-              setShippingCharge(
-                finalized.shipping_charge
-              );
+          setShippingCharge(
+            customerShipping
+          );
 
 
-              setVerifiedCheckoutPricing({
+          /*
+           * Save the server-generated quote ID.
+           */
 
-                subtotal:
-                  finalized.subtotal,
+          const quoteId =
+            data
+              ?.quote
+              ?.id ??
+            null;
 
-                discount:
-                  finalized.discount,
 
-                shippingCharge:
-                  finalized.shipping_charge,
+          setCheckoutQuoteId(
+            quoteId
+          );
 
-                tax:
-                  finalized.tax,
 
-                totalAmount:
-                  finalized.total_amount,
+          /*
+           * Save delivery information for UI/legacy usage.
+           *
+           * The quote ID is also stored here so the next
+           * checkout-security step can use the same quote.
+           */
+
+          const deliveryInfo = {
+
+            pincode,
+
+            shippingCharge:
+              quoteRate,
+
+            customerShippingCharge:
+              customerShipping,
+
+            courier:
+              courier?.courier_name ||
+              "",
+
+            checkoutQuoteId:
+              quoteId,
+
+            shipmentWeight:
+              data
+                ?.quote
+                ?.shipment_weight ??
+              data
+                ?.verified_shipping
+                ?.shipment_weight ??
+              null,
+
+          };
+
+
+          localStorage.setItem(
+            "tnm_delivery_info",
+            JSON.stringify(
+              deliveryInfo
+            )
+          );
+
+
+          setShippingError(
+            ""
+          );
+
+
+          /*
+           * =================================================
+           * FINALIZE SERVER-SIDE CHECKOUT TOTAL
+           * =================================================
+           *
+           * The Shiprocket quote only contains the verified
+           * shipping rate. Before Payment is shown, the server
+           * now re-fetches prices and validates the selected
+           * coupon/eligibility rules and stores the final
+           * payable amount in checkout_quotes.
+           */
+
+          if (!quoteId) {
+
+            setCalculatingShipping(
+              false
+            );
+
+            setShippingError(
+              "Unable to create a secure shipping quote. Please try again."
+            );
+
+            return;
+
+          }
+
+
+          try {
+
+            /*
+             * Apply Gift Wrap to the secure checkout quote.
+             *
+             * The backend reads the current Admin Gift Wrap
+             * settings and determines the actual price.
+             */
+
+            await setCheckoutQuoteGiftWrap({
+
+              quoteId,
+
+              customerId:
+                customer?.id,
+
+              giftWrap:
+                giftWrapSelected,
+
+              giftMessage:
+                giftWrapSelected
+                  ? giftMessage
+                  : "",
+
+            });
+
+
+            const finalized =
+              await finalizeCheckoutQuote({
+
+                quoteId,
+
+                customerId:
+                  customer?.id,
+
+                couponId:
+                  appliedCoupon?.id ??
+                  null,
 
               });
 
 
-              setCalculatingShipping(
-                false
-              );
-
-
-              setStep(
-                "payment"
-              );
-
-            }
-
-            catch (finalizeError: any) {
-
-              console.error(
-                "Checkout quote finalization failed:",
-                finalizeError
-              );
-
-
-              setCalculatingShipping(
-                false
-              );
-
-
-              setCheckoutQuoteId(
-                null
-              );
-
-
-              setVerifiedCheckoutPricing(
-                null
-              );
-
-
-              setShippingError(
-                finalizeError?.message ||
-                "Unable to verify your final total. Please try again."
-              );
-
-            }
-
-          },
-
-
-          onError: (
-            error
-          ) => {
-
-            console.error(
-              "Shipping calculation failed:",
-              error
+            setCheckoutQuoteId(
+              finalized.quote_id
             );
+
+
+            setShippingCharge(
+              finalized.shipping_charge
+            );
+
+
+            setVerifiedCheckoutPricing({
+
+              subtotal:
+                finalized.subtotal,
+
+              discount:
+                finalized.discount,
+
+              shippingCharge:
+                finalized.shipping_charge,
+
+              giftWrapAmount:
+                Number(
+                  (finalized as any).gift_wrap_amount ??
+                  (finalized as any).giftWrapAmount ??
+                  0
+                ),
+
+              tax:
+                finalized.tax,
+
+              totalAmount:
+                finalized.total_amount,
+
+            });
 
 
             setCalculatingShipping(
@@ -878,8 +1014,22 @@ export default function CheckoutDialog({
             );
 
 
-            setShippingCharge(
-              0
+            setStep(
+              "payment"
+            );
+
+          }
+
+          catch (finalizeError:any) {
+
+            console.error(
+              "Checkout quote finalization failed:",
+              finalizeError
+            );
+
+
+            setCalculatingShipping(
+              false
             );
 
 
@@ -894,12 +1044,51 @@ export default function CheckoutDialog({
 
 
             setShippingError(
-              "Sorry, delivery is not available for this pincode."
+              finalizeError?.message ||
+              "Unable to verify your final total. Please try again."
             );
 
-          },
+          }
 
-        }
+        },
+
+
+        onError: (
+          error
+        ) => {
+
+          console.error(
+            "Shipping calculation failed:",
+            error
+          );
+
+
+          setCalculatingShipping(
+            false
+          );
+
+
+          setShippingCharge(
+            0
+          );
+
+
+          setCheckoutQuoteId(
+            null
+          );
+
+          setVerifiedCheckoutPricing(
+            null
+          );
+
+
+          setShippingError(
+            "Sorry, delivery is not available for this pincode."
+          );
+
+        },
+
+      }
 
       );
 
@@ -920,19 +1109,19 @@ export default function CheckoutDialog({
 
     try {
 
-      let recoverySnapshot: any =
-        null;
-
+      /*
+       * Normal completion uses the live checkout state.
+       * Recovery uses the exact checkout snapshot captured
+       * immediately after Razorpay success.
+       */
+      let recoverySnapshot: any = null;
 
       const storedRecoverySnapshot =
         sessionStorage.getItem(
           "tnm_payment_order_recovery"
         );
 
-
-      if (
-        storedRecoverySnapshot
-      ) {
+      if (storedRecoverySnapshot) {
 
         try {
 
@@ -941,12 +1130,9 @@ export default function CheckoutDialog({
               storedRecoverySnapshot
             );
 
-        }
+        } catch {
 
-        catch {
-
-          recoverySnapshot =
-            null;
+          recoverySnapshot = null;
 
         }
 
@@ -1162,16 +1348,13 @@ export default function CheckoutDialog({
 
       clearCart();
 
-
       sessionStorage.removeItem(
         "tnm_last_verified_razorpay_payment_id"
       );
 
-
       sessionStorage.removeItem(
         "tnm_last_verified_checkout_quote_id"
       );
-
 
       sessionStorage.removeItem(
         "tnm_payment_order_recovery"
@@ -1202,6 +1385,11 @@ export default function CheckoutDialog({
       );
 
 
+      /*
+       * IMPORTANT:
+       * Razorpay has already succeeded. Never send the customer
+       * back to Payment and never ask them to pay again here.
+       */
       setProcessingPayment(
         false
       );
@@ -1242,30 +1430,25 @@ export default function CheckoutDialog({
       payment.razorpay_payment_id
     );
 
-
     if (!checkoutQuoteId) {
-
-      setProcessingPayment(
-        false
-      );
-
-
+      setProcessingPayment(false);
       setPaymentRecoveryError(
         "Secure checkout quote is missing. Please contact support before making another payment."
       );
-
-
       return;
-
     }
-
 
     sessionStorage.setItem(
       "tnm_last_verified_checkout_quote_id",
       checkoutQuoteId
     );
 
-
+    /*
+     * Snapshot everything required to finish the already-paid
+     * order. If React checkout state is reset/unmounted after
+     * payment verification fails, retry can still complete the
+     * order without asking for another payment or address.
+     */
     sessionStorage.setItem(
       "tnm_payment_order_recovery",
       JSON.stringify({
@@ -1342,6 +1525,10 @@ export default function CheckoutDialog({
             verifiedCheckoutPricing?.shippingCharge ??
             finalShippingCharge,
 
+          giftWrapAmount:
+            verifiedCheckoutPricing?.giftWrapAmount ??
+            0,
+
           tax:
             verifiedCheckoutPricing?.tax ??
             0,
@@ -1366,8 +1553,11 @@ export default function CheckoutDialog({
                   appliedCoupon.discount,
 
               }
-
             : null,
+
+        giftWrapSelected,
+
+        giftMessage,
 
         paymentTransactionId:
           payment.razorpay_payment_id,
@@ -1392,6 +1582,10 @@ export default function CheckoutDialog({
    * =========================================================
    * RETRY ORDER COMPLETION
    * =========================================================
+   *
+   * Uses the exact same Razorpay payment ID. The database
+   * idempotency check makes this safe if the first request
+   * already created the order.
    */
 
   async function handleRetryOrderCompletion() {
@@ -1412,7 +1606,6 @@ export default function CheckoutDialog({
       setPaymentRecoveryError(
         "We couldn't safely recover this payment automatically. Please contact us with your payment reference before trying to pay again."
       );
-
 
       return;
 
@@ -1465,227 +1658,6 @@ export default function CheckoutDialog({
 
   /*
    * =========================================================
-   * ORDER SUMMARY
-   * =========================================================
-   */
-
-  const orderSummary = (
-
-    <div
-      className="
-        rounded-2xl
-        border
-        border-neutral-200
-        bg-gradient-to-br
-        from-white
-        via-neutral-50
-        to-[#C8A44D]/[0.045]
-        p-4
-        shadow-[0_8px_30px_rgba(0,0,0,0.045)]
-        motion-safe:animate-[fadeUp_350ms_ease-out]
-      "
-    >
-
-      <h3
-        className="
-          mb-3
-          text-sm
-          font-semibold
-        "
-      >
-        Order Summary
-      </h3>
-
-
-      <div
-        className="
-          space-y-2
-          text-sm
-        "
-      >
-
-        <div
-          className="
-            flex
-            justify-between
-          "
-        >
-
-          <span
-            className="
-              text-neutral-500
-            "
-          >
-            Items
-          </span>
-
-          <span>
-            {
-              items.length
-            }
-          </span>
-
-        </div>
-
-
-        <div
-          className="
-            flex
-            justify-between
-          "
-        >
-
-          <span
-            className="
-              text-neutral-500
-            "
-          >
-            Subtotal
-          </span>
-
-          <span>
-            ₹
-            {
-              subtotal.toFixed(2)
-            }
-          </span>
-
-        </div>
-
-
-        {
-          discount > 0 && (
-
-            <div
-              className="
-                flex
-                justify-between
-                text-green-600
-              "
-            >
-
-              <span>
-                Discount
-              </span>
-
-              <span>
-                - ₹
-                {
-                  discount.toFixed(2)
-                }
-              </span>
-
-            </div>
-
-          )
-        }
-
-
-        {
-          appliedCoupon && (
-
-            <div
-              className="
-                rounded-xl
-                bg-green-100
-                px-3
-                py-2
-                text-xs
-                text-green-700
-              "
-            >
-
-              Coupon Applied:
-
-              {" "}
-
-              <strong>
-                {
-                  appliedCoupon.code
-                }
-              </strong>
-
-            </div>
-
-          )
-        }
-
-
-        <div
-          className="
-            flex
-            justify-between
-          "
-        >
-
-          <span
-            className="
-              text-neutral-500
-            "
-          >
-            Shipping
-          </span>
-
-
-          <span>
-
-            {
-              freeShippingUnlocked
-
-                ? "FREE"
-
-                : step === "payment"
-
-                  ? `₹${finalShippingCharge.toFixed(2)}`
-
-                  : "Calculated at next step"
-
-            }
-
-          </span>
-
-        </div>
-
-
-        <div
-          className="
-            flex
-            justify-between
-            border-t
-            pt-3
-            font-semibold
-          "
-        >
-
-          <span>
-            Total
-          </span>
-
-
-          <span
-            className="
-              text-[#9A7A22]
-            "
-          >
-
-            ₹
-            {
-              finalAmount.toFixed(2)
-            }
-
-          </span>
-
-        </div>
-
-      </div>
-
-    </div>
-
-  );
-
-
-  /*
-   * =========================================================
    * RENDER
    * =========================================================
    */
@@ -1699,6 +1671,7 @@ export default function CheckoutDialog({
       ====================================================== */}
 
       <div
+
         className="
           fixed
           inset-0
@@ -1706,9 +1679,11 @@ export default function CheckoutDialog({
           bg-black/50
           backdrop-blur-md
         "
+
         onClick={
           onClose
         }
+
       />
 
 
@@ -1717,6 +1692,7 @@ export default function CheckoutDialog({
       ====================================================== */}
 
       <div
+
         className="
           fixed
           left-0
@@ -1730,11 +1706,17 @@ export default function CheckoutDialog({
           w-full
           max-w-none
 
+          translate-x-0
+          translate-y-0
+
           flex-col
+
           overflow-hidden
 
           rounded-none
+
           bg-white
+
           shadow-2xl
 
           motion-safe:animate-[checkoutIn_320ms_ease-out]
@@ -1749,6 +1731,7 @@ export default function CheckoutDialog({
           md:-translate-y-1/2
           md:rounded-3xl
         "
+
       >
 
         {/* ===================================================
@@ -1756,6 +1739,7 @@ export default function CheckoutDialog({
         ==================================================== */}
 
         <div
+
           className="
             shrink-0
             border-b
@@ -1769,17 +1753,21 @@ export default function CheckoutDialog({
             md:px-6
             md:py-5
           "
+
         >
 
           <div
+
             className="
               flex
               items-center
               justify-between
             "
+
           >
 
             <h2
+
               className="
                 text-[28px]
                 font-semibold
@@ -1789,6 +1777,7 @@ export default function CheckoutDialog({
 
                 md:text-2xl
               "
+
             >
 
               {
@@ -1803,9 +1792,11 @@ export default function CheckoutDialog({
 
 
             <button
+
               onClick={
                 onClose
               }
+
               className="
                 rounded-full
                 p-2.5
@@ -1816,6 +1807,7 @@ export default function CheckoutDialog({
                 hover:bg-neutral-100
                 active:scale-90
               "
+
             >
 
               <X
@@ -1869,21 +1861,17 @@ export default function CheckoutDialog({
                         const Icon =
                           item.icon;
 
-
                         const completed =
                           index <
                           currentStepIndex;
-
 
                         const active =
                           index ===
                           currentStepIndex;
 
-
                         const available =
                           index <=
                           currentStepIndex;
-
 
                         return (
 
@@ -1922,7 +1910,6 @@ export default function CheckoutDialog({
                                     return;
                                   }
 
-
                                   if (
                                     item.key ===
                                     "login"
@@ -1942,15 +1929,12 @@ export default function CheckoutDialog({
 
                                   }
 
-
                                   if (
                                     item.key ===
                                     "address"
                                   ) {
 
-                                    setShippingError(
-                                      ""
-                                    );
+                                    setShippingError("");
 
                                     setStep(
                                       "address"
@@ -1959,7 +1943,6 @@ export default function CheckoutDialog({
                                     return;
 
                                   }
-
 
                                   if (
                                     item.key ===
@@ -1986,7 +1969,6 @@ export default function CheckoutDialog({
                                   border
                                   transition-all
                                   duration-300
-
                                   motion-safe:hover:scale-105
                                   motion-safe:active:scale-95
 
@@ -2008,9 +1990,7 @@ export default function CheckoutDialog({
 
                                 {
                                   completed
-
                                     ? (
-
                                       <span
                                         className="
                                           text-sm
@@ -2020,11 +2000,8 @@ export default function CheckoutDialog({
                                       >
                                         ✓
                                       </span>
-
                                     )
-
                                     : (
-
                                       <Icon
                                         size={18}
                                         strokeWidth={
@@ -2033,14 +2010,11 @@ export default function CheckoutDialog({
                                             : 2
                                         }
                                       />
-
                                     )
                                 }
 
-
                                 {
                                   active && (
-
                                     <span
                                       className="
                                         absolute
@@ -2051,7 +2025,6 @@ export default function CheckoutDialog({
                                         motion-safe:animate-[stepPulse_2s_ease-in-out_infinite]
                                       "
                                     />
-
                                   )
                                 }
 
@@ -2087,7 +2060,6 @@ export default function CheckoutDialog({
                                   }
                                 </p>
 
-
                                 <p
                                   className={`
                                     mt-0.5
@@ -2102,21 +2074,13 @@ export default function CheckoutDialog({
                                     }
                                   `}
                                 >
-
                                   {
-                                    item.key ===
-                                    "login"
-
+                                    item.key === "login"
                                       ? "Secure access"
-
-                                      : item.key ===
-                                        "address"
-
+                                      : item.key === "address"
                                         ? "Delivery details"
-
                                         : "Complete order"
                                   }
-
                                 </p>
 
                               </div>
@@ -2202,7 +2166,6 @@ export default function CheckoutDialog({
                 px-6
                 backdrop-blur-[6px]
                 motion-safe:animate-[fadeIn_180ms_ease-out]
-
                 md:rounded-3xl
               "
             >
@@ -2235,9 +2198,7 @@ export default function CheckoutDialog({
                   <Loader2
                     size={32}
                     strokeWidth={2.2}
-                    className="
-                      animate-spin
-                    "
+                    className="animate-spin"
                   />
 
                 </div>
@@ -2329,9 +2290,7 @@ export default function CheckoutDialog({
 
                   <ShieldCheck
                     size={14}
-                    className="
-                      text-green-600
-                    "
+                    className="text-green-600"
                   />
 
                   Please don't close or refresh
@@ -2365,7 +2324,6 @@ export default function CheckoutDialog({
                 justify-center
                 bg-white
                 px-6
-
                 md:rounded-3xl
               "
             >
@@ -2510,7 +2468,6 @@ export default function CheckoutDialog({
                 px-6
                 backdrop-blur-[4px]
                 motion-safe:animate-[fadeIn_180ms_ease-out]
-
                 md:rounded-3xl
               "
             >
@@ -2544,16 +2501,11 @@ export default function CheckoutDialog({
                     text-[#9A7A22]
                   "
                 >
-
                   <Loader2
                     size={25}
-                    className="
-                      animate-spin
-                    "
+                    className="animate-spin"
                   />
-
                 </div>
-
 
                 <h3
                   className="
@@ -2566,7 +2518,6 @@ export default function CheckoutDialog({
                   Calculating your final total
                 </h3>
 
-
                 <p
                   className="
                     mt-1.5
@@ -2577,7 +2528,6 @@ export default function CheckoutDialog({
                 >
                   Checking delivery charges and securing your best available shipping rate.
                 </p>
-
 
                 <div
                   className="
@@ -2590,7 +2540,6 @@ export default function CheckoutDialog({
                     bg-neutral-100
                   "
                 >
-
                   <div
                     className="
                       h-full
@@ -2600,9 +2549,7 @@ export default function CheckoutDialog({
                       motion-safe:animate-[loadingSlide_1.2s_ease-in-out_infinite]
                     "
                   />
-
                 </div>
-
 
                 <p
                   className="
@@ -2630,6 +2577,7 @@ export default function CheckoutDialog({
         ==================================================== */}
 
         <div
+
           className="
             relative
             min-h-0
@@ -2639,28 +2587,305 @@ export default function CheckoutDialog({
             scroll-smooth
             px-5
             pb-8
-            pt-5
+            pt-6
             [scrollbar-width:thin]
 
             md:px-6
             md:py-7
           "
+
         >
 
           {/* =================================================
               ORDER SUMMARY
-              ADDRESS / PAYMENT ONLY
           ================================================== */}
 
           {
-            !orderSuccess &&
-            step !== "login" && (
+            !orderSuccess && (
 
-              <div className="mb-6">
+              <div
 
-                {
-                  orderSummary
-                }
+                className="
+                  mb-6
+                  rounded-2xl
+                  border
+                  border-neutral-200
+                  bg-gradient-to-br
+                  from-white
+                  via-neutral-50
+                  to-[#C8A44D]/[0.045]
+                  p-4
+                  shadow-[0_8px_30px_rgba(0,0,0,0.045)]
+                  motion-safe:animate-[fadeUp_350ms_ease-out]
+                "
+
+              >
+
+                <h3
+
+                  className="
+                    mb-3
+                    text-sm
+                    font-semibold
+                  "
+
+                >
+
+                  Order Summary
+
+                </h3>
+
+
+                <div
+
+                  className="
+                    space-y-2
+                    text-sm
+                  "
+
+                >
+
+                  <div
+                    className="
+                      flex
+                      justify-between
+                    "
+                  >
+
+                    <span
+                      className="
+                        text-neutral-500
+                      "
+                    >
+                      Items
+                    </span>
+
+                    <span>
+                      {
+                        items.length
+                      }
+                    </span>
+
+                  </div>
+
+
+                  <div
+                    className="
+                      flex
+                      justify-between
+                    "
+                  >
+
+                    <span
+                      className="
+                        text-neutral-500
+                      "
+                    >
+                      Subtotal
+                    </span>
+
+                    <span>
+                      ₹
+                      {
+                        subtotal.toFixed(2)
+                      }
+                    </span>
+
+                  </div>
+
+
+                  {
+                    discount > 0 && (
+
+                      <div
+
+                        className="
+                          flex
+                          justify-between
+                          text-green-600
+                        "
+
+                      >
+
+                        <span>
+                          Discount
+                        </span>
+
+                        <span>
+                          - ₹
+                          {
+                            discount.toFixed(2)
+                          }
+                        </span>
+
+                      </div>
+
+                    )
+                  }
+
+
+                  {
+                    appliedCoupon && (
+
+                      <div
+
+                        className="
+                          rounded-xl
+                          bg-green-100
+                          px-3
+                          py-2
+                          text-xs
+                          text-green-700
+                        "
+
+                      >
+
+                        Coupon Applied:
+
+                        {" "}
+
+                        <strong>
+                          {
+                            appliedCoupon.code
+                          }
+                        </strong>
+
+                      </div>
+
+                    )
+                  }
+
+
+                  <div
+
+                    className="
+                      flex
+                      justify-between
+                    "
+
+                  >
+
+                    <span
+                      className="
+                        text-neutral-500
+                      "
+                    >
+
+                      Shipping
+
+                    </span>
+
+
+                    <span>
+
+                      {
+                        freeShippingUnlocked
+
+                          ? "FREE"
+
+                          : step === "payment"
+
+                            ? `₹${(
+                                verifiedCheckoutPricing?.shippingCharge ??
+                                finalShippingCharge
+                              ).toFixed(2)}`
+
+                            : "Calculated at next step"
+                      }
+
+                    </span>
+
+                  </div>
+
+
+                  {
+                    (
+                      step === "payment"
+                        ? (
+                            verifiedCheckoutPricing?.giftWrapAmount ??
+                            0
+                          )
+                        : addressStepGiftWrapAmount
+                    ) > 0 && (
+
+                      <div
+                        className="
+                          flex
+                          items-center
+                          justify-between
+                        "
+                      >
+
+                        <span
+                          className="
+                            text-neutral-500
+                          "
+                        >
+                          🎁 Gift Wrap
+                        </span>
+
+                        <span>
+                          ₹
+                          {
+                            (
+                              step === "payment"
+                                ? (
+                                    verifiedCheckoutPricing?.giftWrapAmount ??
+                                    0
+                                  )
+                                : addressStepGiftWrapAmount
+                            ).toFixed(2)
+                          }
+                        </span>
+
+                      </div>
+
+                    )
+                  }
+
+
+                  <div
+
+                    className="
+                      flex
+                      justify-between
+                      border-t
+                      pt-3
+                      font-semibold
+                    "
+
+                  >
+
+                    <span>
+                      Total
+                    </span>
+
+
+                    <span
+
+                      className="
+                        text-[#9A7A22]
+                      "
+
+                    >
+
+                      ₹
+                      {
+                        (
+                          step === "payment"
+                            ? (
+                                verifiedCheckoutPricing?.totalAmount ??
+                                finalAmount
+                              )
+                            : addressStepTotal
+                        ).toFixed(2)
+                      }
+
+                    </span>
+
+                  </div>
+
+                </div>
 
               </div>
 
@@ -2676,6 +2901,7 @@ export default function CheckoutDialog({
             shippingError && (
 
               <div
+
                 className="
                   mb-5
                   rounded-xl
@@ -2685,6 +2911,7 @@ export default function CheckoutDialog({
                   text-sm
                   text-red-600
                 "
+
               >
 
                 {
@@ -2705,6 +2932,7 @@ export default function CheckoutDialog({
             calculatingShipping && (
 
               <div
+
                 className="
                   mb-5
                   flex
@@ -2718,13 +2946,17 @@ export default function CheckoutDialog({
                   text-sm
                   text-neutral-600
                 "
+
               >
 
                 <Loader2
+
                   size={17}
+
                   className="
                     animate-spin
                   "
+
                 />
 
                 Calculating shipping charges...
@@ -2743,12 +2975,15 @@ export default function CheckoutDialog({
             orderSuccess && (
 
               <OrderSuccess
+
                 orderNumber={
                   orderNumber
                 }
+
                 onClose={
                   onClose
                 }
+
               />
 
             )
@@ -2763,52 +2998,41 @@ export default function CheckoutDialog({
             !orderSuccess &&
             step === "login" && (
 
-              <div
-                className="
-                  motion-safe:animate-[fadeUp_300ms_ease-out]
-                "
-              >
-
-                {/* =========================================
-                    LOGIN ICON
-                ========================================== */}
+              <>
 
                 <div
+
                   className="
                     flex
                     justify-center
                   "
+
                 >
 
                   <div
+
                     className="
                       flex
-                      h-16
-                      w-16
+                      h-20
+                      w-20
                       items-center
                       justify-center
                       rounded-full
                       bg-gradient-to-br
                       from-neutral-50
                       to-neutral-100
-                      shadow-[0_10px_30px_rgba(0,0,0,0.07)]
-                      ring-4
+                      shadow-[0_14px_40px_rgba(0,0,0,0.08)]
+                      ring-8
                       ring-neutral-50
                       motion-safe:animate-[softFloat_3s_ease-in-out_infinite]
-
-                      md:h-20
-                      md:w-20
-                      md:ring-8
                     "
+
                   >
 
                     <UserRound
-                      size={32}
+                      size={38}
                       className="
                         text-neutral-800
-
-                        md:h-[38px]
-                        md:w-[38px]
                       "
                     />
 
@@ -2817,66 +3041,31 @@ export default function CheckoutDialog({
                 </div>
 
 
-                {/* =========================================
-                    LOGIN HEADING
-                ========================================== */}
-
                 <h3
-                  className="
-                    mt-4
-                    text-center
-                    text-[22px]
-                    font-semibold
-                    tracking-[-0.02em]
 
-                    md:mt-6
-                    md:text-2xl
+                  className="
+                    mt-6
+                    text-center
+                    text-2xl
+                    font-semibold
                   "
+
                 >
+
                   Login to continue
+
                 </h3>
 
 
-                {/* =========================================
-                    LOGIN FORM
-                ========================================== */}
+                <LoginStep
 
-                <div
-                  className="
-                    mt-4
-
-                    md:mt-6
-                  "
-                >
-
-                  <LoginStep
-                    onSuccess={
-                      handleLoginSuccess
-                    }
-                  />
-
-                </div>
-
-
-                {/* =========================================
-                    ORDER SUMMARY BELOW LOGIN
-                ========================================== */}
-
-                <div
-                  className="
-                    mt-5
-
-                    md:mt-6
-                  "
-                >
-
-                  {
-                    orderSummary
+                  onSuccess={
+                    handleLoginSuccess
                   }
 
-                </div>
+                />
 
-              </div>
+              </>
 
             )
           }
@@ -2891,12 +3080,15 @@ export default function CheckoutDialog({
             step === "address" && (
 
               <AddressStep
+
                 customer={
                   customer
                 }
+
                 onContinue={
                   handleAddressContinue
                 }
+
               />
 
             )
@@ -2932,13 +3124,16 @@ export default function CheckoutDialog({
                   <div>
 
                     <div
+
                       className="
                         flex
                         items-center
                         gap-2
+
                         text-sm
                         font-medium
                       "
+
                     >
 
                       <span>
@@ -2957,21 +3152,32 @@ export default function CheckoutDialog({
 
 
                             <span
+
                               className="
                                 ml-1
+
                                 flex
                                 h-5
                                 w-5
+
                                 items-center
                                 justify-center
+
                                 rounded-full
+
                                 bg-green-100
+
                                 text-green-600
-                                text-xs
+
                                 font-bold
+
+                                text-xs
                               "
+
                             >
+
                               ✓
+
                             </span>
 
                           </>
@@ -2999,28 +3205,40 @@ export default function CheckoutDialog({
                       !giftUnlocked && (
 
                         <div
+
                           className="
                             mt-2
+
                             h-2
+
                             overflow-hidden
+
                             rounded-full
+
                             bg-neutral-200
                           "
+
                         >
 
                           <div
+
                             className="
                               h-full
+
                               rounded-full
+
                               bg-black
+
                               transition-all
                               duration-700
                               ease-out
                             "
+
                             style={{
                               width:
                                 `${giftProgress}%`,
                             }}
+
                           />
 
                         </div>
@@ -3038,13 +3256,16 @@ export default function CheckoutDialog({
                   <div>
 
                     <div
+
                       className="
                         flex
                         items-center
                         gap-2
+
                         text-sm
                         font-medium
                       "
+
                     >
 
                       <span>
@@ -3063,21 +3284,32 @@ export default function CheckoutDialog({
 
 
                             <span
+
                               className="
                                 ml-1
+
                                 flex
                                 h-5
                                 w-5
+
                                 items-center
                                 justify-center
+
                                 rounded-full
+
                                 bg-green-100
+
                                 text-green-600
-                                text-xs
+
                                 font-bold
+
+                                text-xs
                               "
+
                             >
+
                               ✓
+
                             </span>
 
                           </>
@@ -3105,28 +3337,40 @@ export default function CheckoutDialog({
                       !freeShippingUnlocked && (
 
                         <div
+
                           className="
                             mt-2
+
                             h-2
+
                             overflow-hidden
+
                             rounded-full
+
                             bg-neutral-200
                           "
+
                         >
 
                           <div
+
                             className="
                               h-full
+
                               rounded-full
+
                               bg-black
+
                               transition-all
                               duration-700
                               ease-out
                             "
+
                             style={{
                               width:
                                 `${shippingProgress}%`,
                             }}
+
                           />
 
                         </div>
@@ -3144,22 +3388,18 @@ export default function CheckoutDialog({
                 ============================================== */}
 
                 <PaymentStep
+
                   totalAmount={
                     verifiedCheckoutPricing?.totalAmount ??
                     finalAmount
                   }
-                  checkoutQuoteId={
-                    checkoutQuoteId ?? ""
-                  }
-                  onPaymentSuccessStart={() => {
-                    setProcessingPayment(
-                      true
-                    );
-                  }}
-                  onSuccess={
-                    handlePaymentSuccess
-                  }
-                />
+
+                  checkoutQuoteId={checkoutQuoteId ?? ""}
+  onPaymentSuccessStart={() => {
+    setProcessingPayment(true);
+  }}
+  onSuccess={handlePaymentSuccess}
+/>
 
               </>
 
@@ -3179,6 +3419,7 @@ export default function CheckoutDialog({
           !paymentRecoveryError && (
 
             <div
+
               className="
                 shrink-0
                 border-t
@@ -3193,9 +3434,11 @@ export default function CheckoutDialog({
                 md:px-6
                 md:py-4
               "
+
             >
 
               <div
+
                 className="
                   flex
                   items-center
@@ -3205,6 +3448,7 @@ export default function CheckoutDialog({
                   font-medium
                   text-neutral-600
                 "
+
               >
 
                 <ShieldCheck
@@ -3222,11 +3466,7 @@ export default function CheckoutDialog({
 
       </div>
 
-
-      {/* =====================================================
-          COMPONENT MOTION
-      ====================================================== */}
-
+      {/* Component-local motion used by the mobile-first checkout shell. */}
       <style>
         {`
           @keyframes checkoutIn {
@@ -3234,102 +3474,85 @@ export default function CheckoutDialog({
               opacity: 0;
               transform: translateY(18px) scale(0.985);
             }
-
             to {
               opacity: 1;
               transform: translateY(0) scale(1);
             }
           }
 
-
           @keyframes fadeUp {
             from {
               opacity: 0;
               transform: translateY(10px);
             }
-
             to {
               opacity: 1;
               transform: translateY(0);
             }
           }
 
-
           @keyframes softFloat {
             0%, 100% {
               transform: translateY(0);
             }
-
             50% {
               transform: translateY(-5px);
             }
           }
-
 
           @keyframes stepPulse {
             0%, 100% {
               opacity: 0.35;
               transform: scale(1);
             }
-
             50% {
               opacity: 0.8;
               transform: scale(1.06);
             }
           }
 
-
           @keyframes stepCheck {
             from {
               opacity: 0;
               transform: scale(0.6) rotate(-12deg);
             }
-
             to {
               opacity: 1;
               transform: scale(1) rotate(0);
             }
           }
 
-
           @keyframes fadeIn {
             from {
               opacity: 0;
             }
-
             to {
               opacity: 1;
             }
           }
-
 
           @keyframes scaleIn {
             from {
               opacity: 0;
               transform: scale(0.96) translateY(6px);
             }
-
             to {
               opacity: 1;
               transform: scale(1) translateY(0);
             }
           }
 
-
           @keyframes loadingSlide {
             0% {
               transform: translateX(-130%);
             }
-
             50% {
               transform: translateX(70%);
             }
-
             100% {
               transform: translateX(260%);
             }
           }
-
 
           @media (prefers-reduced-motion: reduce) {
             *,

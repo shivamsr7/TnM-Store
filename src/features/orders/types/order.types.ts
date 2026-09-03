@@ -10,6 +10,8 @@ export interface OrderItemPayload {
 
   quantity:number;
 
+  ringSize?: string | null
+
   total:number;
 
 }

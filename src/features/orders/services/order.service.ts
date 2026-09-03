@@ -335,6 +335,10 @@ export async function createOrder(
           quantity:
             item.quantity,
 
+          ring_size:
+            item.ringSize ??
+            null,
+
           total:
             item.total,
 
@@ -573,6 +577,10 @@ export async function createOrder(
             quantity:
               item.quantity,
 
+            ring_size:
+              item.ringSize ??
+              null,
+
             total:
               item.total,
 
@@ -740,4 +748,3 @@ export async function createOrder(
   };
 
 }
-

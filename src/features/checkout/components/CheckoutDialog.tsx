@@ -717,6 +717,9 @@ export default function CheckoutDialog({
 
               quantity:
                 item.quantity,
+
+              ringSize:
+                item.ringSize ?? null,
             })
           ),
 
@@ -1263,6 +1266,9 @@ export default function CheckoutDialog({
 
                 quantity:
                   item.quantity,
+
+                ringSize:
+                  item.ringSize ?? null,
 
                 total:
                   item.price *
