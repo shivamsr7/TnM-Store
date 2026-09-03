@@ -442,20 +442,29 @@ export default function CheckoutDialog({
 
   useEffect(() => {
 
-    if (authCustomer) {
-
-      setCustomer(
-        authCustomer
-      );
-
-      setStep(
-        "address"
-      );
-
+    /*
+     * Once the order has been confirmed, do not let a late
+     * auth/customer context update move the checkout back to
+     * the Address step.
+     */
+    if (
+      orderSuccess ||
+      !authCustomer
+    ) {
+      return;
     }
+
+    setCustomer(
+      authCustomer
+    );
+
+    setStep(
+      "address"
+    );
 
   }, [
     authCustomer,
+    orderSuccess,
   ]);
 
 
@@ -468,6 +477,18 @@ export default function CheckoutDialog({
   useEffect(() => {
 
     if (!open) {
+      return;
+    }
+
+    /*
+     * Do not reset an already-confirmed order.
+     *
+     * The auth context can receive a late update after payment
+     * or order creation. Without this guard, the effect below
+     * would reset orderSuccess and move the customer back to
+     * Address.
+     */
+    if (orderSuccess) {
       return;
     }
 
@@ -522,6 +543,7 @@ export default function CheckoutDialog({
   }, [
     open,
     authCustomer,
+    orderSuccess,
   ]);
 
 
