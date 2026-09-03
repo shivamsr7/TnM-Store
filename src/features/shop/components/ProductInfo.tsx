@@ -99,7 +99,29 @@ export default function ProductInfo({
       {
         product.rating > 0 && (
 
-          <div
+          <button
+
+            type="button"
+
+            onClick={() => {
+
+              const reviewSection =
+                document.getElementById(
+                  "customer-reviews"
+                );
+
+              if (
+                reviewSection
+              ) {
+
+                reviewSection.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                });
+
+              }
+
+            }}
 
             className="
 
@@ -111,48 +133,95 @@ export default function ProductInfo({
 
               text-sm
 
+              text-left
+
+              transition-opacity
+
+              duration-200
+
+              hover:opacity-80
+
+              focus:outline-none
+
+              focus-visible:ring-2
+
+              focus-visible:ring-[#D4AF37]
+
+              focus-visible:ring-offset-2
+
+              focus-visible:ring-offset-black
+
             "
+
+            aria-label="View customer reviews"
 
           >
 
-            <div
+            <span
 
               className="
 
                 flex
                 items-center
-                gap-1
-
-                rounded-full
-
-                bg-[#D4AF37]/10
-
-                px-3
-                py-1
+                gap-0.5
 
                 text-[#D4AF37]
 
               "
 
+              aria-hidden="true"
+
             >
 
-              <Star
-
-                size={15}
-
-                fill="currentColor"
-
-              />
-
-              <span>
-
+              {Array.from(
                 {
-                  product.rating
+                  length: 5,
                 }
+              ).map(
+                (
+                  _,
+                  index
+                ) => (
 
-              </span>
+                  <Star
 
-            </div>
+                    key={
+                      index
+                    }
+
+                    size={14}
+
+                    fill="currentColor"
+
+                    strokeWidth={1.5}
+
+                  />
+
+                )
+              )}
+
+            </span>
+
+
+            <span
+
+              className="
+
+                font-medium
+
+                text-white
+
+              "
+
+            >
+
+              {
+                Number(
+                  product.rating
+                ).toFixed(1)
+              }
+
+            </span>
 
 
             {
@@ -171,14 +240,19 @@ export default function ProductInfo({
                     product.review_count
                   }
                   {" "}
-                  Reviews)
+                  {
+                    product.review_count === 1
+                      ? "Review"
+                      : "Reviews"
+                  }
+                  )
 
                 </span>
 
               )
             }
 
-          </div>
+          </button>
 
         )
       }

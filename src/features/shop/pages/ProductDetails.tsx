@@ -255,11 +255,20 @@ export default function ProductDetails() {
             PRODUCT REVIEWS
         ================================================== */}
 
-        <ProductReviews
-          productId={
-            product.id
-          }
-        />
+        <div
+          id="customer-reviews"
+          className="
+            scroll-mt-24
+          "
+        >
+
+          <ProductReviews
+            productId={
+              product.id
+            }
+          />
+
+        </div>
 
       </div>
 

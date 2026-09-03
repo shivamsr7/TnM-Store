@@ -973,12 +973,34 @@ export default function ProductCard({
 
           {product.rating > 0 && (
 
-            <div
+            <button
+              type="button"
+              onClick={(
+                e
+              ) => {
+
+                e.preventDefault();
+
+                e.stopPropagation();
+
+                openProductDetails();
+
+              }}
+              aria-label="View product reviews"
               className="
                 mt-2
                 flex
+                min-w-0
                 items-center
+                gap-1.5
+                text-left
                 text-xs
+                transition-opacity
+                duration-200
+                hover:opacity-80
+                focus:outline-none
+                focus-visible:ring-1
+                focus-visible:ring-[#D4AF37]
                 sm:mt-3
                 sm:text-sm
               "
@@ -986,12 +1008,55 @@ export default function ProductCard({
 
               <span
                 className="
+                  flex
+                  shrink-0
+                  items-center
+                  gap-0.5
                   text-[#D4AF37]
+                "
+                aria-hidden="true"
+              >
+
+                {Array.from(
+                  {
+                    length: 5,
+                  }
+                ).map(
+                  (
+                    _,
+                    index
+                  ) => (
+
+                    <span
+                      key={
+                        index
+                      }
+                      className="
+                        leading-none
+                      "
+                    >
+                      ★
+                    </span>
+
+                  )
+                )}
+
+              </span>
+
+
+              <span
+                className="
+                  shrink-0
+                  font-medium
+                  text-white
                 "
               >
 
-                ★{" "}
-                {product.rating}
+                {
+                  Number(
+                    product.rating
+                  ).toFixed(1)
+                }
 
               </span>
 
@@ -1001,7 +1066,7 @@ export default function ProductCard({
 
                 <span
                   className="
-                    ml-2
+                    shrink-0
                     text-neutral-500
                   "
                 >
@@ -1010,13 +1075,19 @@ export default function ProductCard({
                   {
                     product.review_count
                   }
+                  {" "}
+                  {
+                    product.review_count === 1
+                      ? "Review"
+                      : "Reviews"
+                  }
                   )
 
                 </span>
 
               )}
 
-            </div>
+            </button>
 
           )}
 
