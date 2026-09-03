@@ -55,6 +55,7 @@ export default function CouponModal({
   const {
     data: coupons = [],
     isLoading,
+    refetch,
   } = useCoupons();
 
   const [
@@ -280,13 +281,19 @@ export default function CouponModal({
 
 
   /*
-   * Re-check after the modal opens so the list feels fresh.
+   * Refresh coupons whenever the modal opens.
+   *
+   * This picks up newly-created active coupons
+   * without changing any existing eligibility rules.
    */
   useEffect(() => {
     if (!open) {
       setCopiedCode(null);
+      return;
     }
-  }, [open]);
+
+    void refetch();
+  }, [open, refetch]);
 
 
   const topOffer =

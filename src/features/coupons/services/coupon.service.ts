@@ -607,9 +607,18 @@ const isCustomerEligible = (
   }
 
 
+  /*
+   * 0 means "no restriction".
+   *
+   * Only positive values are treated as configured
+   * minimum/maximum limits.
+   */
+
   if (
-    coupon.min_previous_orders !==
-      null &&
+    Number(
+      coupon.min_previous_orders ??
+      0
+    ) > 0 &&
     customer.previous_orders <
       Number(
         coupon.min_previous_orders
@@ -620,8 +629,10 @@ const isCustomerEligible = (
 
 
   if (
-    coupon.max_previous_orders !==
-      null &&
+    Number(
+      coupon.max_previous_orders ??
+      0
+    ) > 0 &&
     customer.previous_orders >
       Number(
         coupon.max_previous_orders
@@ -632,8 +643,10 @@ const isCustomerEligible = (
 
 
   if (
-    coupon.min_lifetime_spend !==
-      null &&
+    Number(
+      coupon.min_lifetime_spend ??
+      0
+    ) > 0 &&
     customer.lifetime_spend <
       Number(
         coupon.min_lifetime_spend
@@ -644,8 +657,10 @@ const isCustomerEligible = (
 
 
   if (
-    coupon.max_lifetime_spend !==
-      null &&
+    Number(
+      coupon.max_lifetime_spend ??
+      0
+    ) > 0 &&
     customer.lifetime_spend >
       Number(
         coupon.max_lifetime_spend
