@@ -1235,7 +1235,7 @@ export const useCartStore =
                 0,
 
               couponErrorMessage:
-                "Coupon removed because minimum order value is not met",
+                "",
 
             });
 
@@ -1363,7 +1363,7 @@ export const useCartStore =
                   0,
 
                 couponErrorMessage:
-                  "Coupon removed because minimum order value is not met",
+                  "",
 
               });
 
@@ -1596,7 +1596,7 @@ export const useCartStore =
                   0,
 
                 couponErrorMessage:
-                  "Coupon removed because minimum order value is not met",
+                  "",
 
               });
 
@@ -2139,6 +2139,21 @@ export const useCartStore =
       {
         name:
           "tnm-cart",
+
+        /*
+         * Clear any legacy coupon-removal message that may
+         * still exist in persisted Zustand state.
+         *
+         * Coupon minimum-order handling is now silent so
+         * useUnlockCoupon can show the proper unlock offer.
+         */
+        onRehydrateStorage: () => {
+          return () => {
+            useCartStore.setState({
+              couponErrorMessage: "",
+            });
+          };
+        },
       }
 
     )

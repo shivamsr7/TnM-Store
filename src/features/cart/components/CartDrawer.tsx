@@ -1666,7 +1666,7 @@ export default function CartDrawer() {
         setWishlistSaveError("");
 
         await addToWishlist(
-          removedWishlistItem.productId
+          removedWishlistItem.id
         );
 
         setWishlistSaveSuccess(true);

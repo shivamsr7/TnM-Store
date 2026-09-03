@@ -495,13 +495,13 @@ export function useUnlockCoupon(
 
         !coupon.existing_customer_only &&
 
-        coupon.min_previous_orders == null &&
+        Number(coupon.min_previous_orders ?? 0) <= 0 &&
 
-        coupon.max_previous_orders == null &&
+        Number(coupon.max_previous_orders ?? 0) <= 0 &&
 
-        coupon.min_lifetime_spend == null &&
+        Number(coupon.min_lifetime_spend ?? 0) <= 0 &&
 
-        coupon.max_lifetime_spend == null &&
+        Number(coupon.max_lifetime_spend ?? 0) <= 0 &&
 
         !coupon.one_use_per_customer
       );
@@ -638,8 +638,7 @@ export function useUnlockCoupon(
      */
 
     if (
-      coupon.min_previous_orders !=
-        null &&
+      Number(coupon.min_previous_orders ?? 0) > 0 &&
       customerContext.previousOrders <
         Number(
           coupon.min_previous_orders
@@ -650,8 +649,7 @@ export function useUnlockCoupon(
 
 
     if (
-      coupon.max_previous_orders !=
-        null &&
+      Number(coupon.max_previous_orders ?? 0) > 0 &&
       customerContext.previousOrders >
         Number(
           coupon.max_previous_orders
@@ -668,8 +666,7 @@ export function useUnlockCoupon(
      */
 
     if (
-      coupon.min_lifetime_spend !=
-        null &&
+      Number(coupon.min_lifetime_spend ?? 0) > 0 &&
       customerContext.lifetimeSpend <
         Number(
           coupon.min_lifetime_spend
@@ -680,8 +677,7 @@ export function useUnlockCoupon(
 
 
     if (
-      coupon.max_lifetime_spend !=
-        null &&
+      Number(coupon.max_lifetime_spend ?? 0) > 0 &&
       customerContext.lifetimeSpend >
         Number(
           coupon.max_lifetime_spend
