@@ -639,42 +639,30 @@ export default function ShopHeader({
             </div>
 
 
-            {/* Showing text */}
+            {/* Collection Prompt */}
 
             <div
               className="
                 flex
                 min-w-0
-                items-baseline
-                gap-1.5
+                items-center
                 whitespace-nowrap
+                animate-[fadeInUp_0.7s_ease-out]
               "
             >
 
               <span
                 className="
-                  text-[10px]
-                  font-semibold
-                  uppercase
-                  tracking-[0.24em]
-                  text-[#C8A44D]
-                  sm:text-[10px]
-                "
-              >
-                Showing
-              </span>
-
-
-              <span
-                className="
-                  text-sm
+                  font-serif
+                  text-[12px]
                   font-medium
-                  tracking-[-0.01em]
-                  text-neutral-200
-                  sm:text-sm
+                  italic
+                  tracking-[0.08em]
+                  text-[#D4AF37]
+                  sm:text-[14px]
                 "
               >
-                {visibleProductCount} pieces
+                Find Your Next Favourite
               </span>
 
             </div>
