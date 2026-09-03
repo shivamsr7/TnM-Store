@@ -463,8 +463,114 @@ export default function MobileNavigation({
           "
         >
 
+          {/* =================================================
+              NEW ARRIVALS
+          ================================================== */}
+
           <Link
             to="/shop?newArrival=true"
+
+            onClick={
+              onClose
+            }
+
+            className="
+              flex
+              items-center
+              justify-between
+              border-b
+              border-neutral-100
+              px-4
+              py-4
+              text-sm
+              font-medium
+              text-neutral-900
+
+              transition
+
+              hover:bg-[#F8F6F1]
+              hover:text-[#C8A44D]
+            "
+          >
+
+            <span>
+
+              ✨ New Arrivals
+
+            </span>
+
+
+            <span
+              className="
+                text-xs
+                text-[#C8A44D]
+              "
+            >
+
+              Explore →
+
+            </span>
+
+          </Link>
+
+
+          {/* =================================================
+              UNDER ₹299
+          ================================================== */}
+
+          <Link
+            to="/shop?maxPrice=299"
+
+            onClick={
+              onClose
+            }
+
+            className="
+              flex
+              items-center
+              justify-between
+              border-b
+              border-neutral-100
+              px-4
+              py-4
+              text-sm
+              font-medium
+              text-neutral-900
+
+              transition
+
+              hover:bg-[#F8F6F1]
+              hover:text-[#C8A44D]
+            "
+          >
+
+            <span>
+
+              Under ₹299
+
+            </span>
+
+
+            <span
+              className="
+                text-xs
+                text-[#C8A44D]
+              "
+            >
+
+              Explore →
+
+            </span>
+
+          </Link>
+
+
+          {/* =================================================
+              UNDER ₹499
+          ================================================== */}
+
+          <Link
+            to="/shop?maxPrice=499"
 
             onClick={
               onClose
@@ -489,7 +595,7 @@ export default function MobileNavigation({
 
             <span>
 
-              ✨ New Arrivals
+              Under ₹499
 
             </span>
 
