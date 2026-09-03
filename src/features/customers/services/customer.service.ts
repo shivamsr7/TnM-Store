@@ -62,17 +62,70 @@ export async function getCustomerByPhone(
 
   /*
    * ---------------------------------------------------------
+   * GET CURRENT AUTH USER
+   * ---------------------------------------------------------
+   */
+
+  const {
+    data: authData,
+    error: authError,
+  } =
+    await supabase.auth.getUser();
+
+
+  if (
+    authError
+  ) {
+
+    console.error(
+      "[T&M AUTH] Auth user query error:",
+      authError
+    );
+
+    throw authError;
+
+  }
+
+
+  const authUser =
+    authData.user;
+
+
+  /*
+   * A customer record is identified by the
+   * authenticated Supabase Auth user.
+   */
+
+  if (
+    !authUser
+  ) {
+
+    console.log(
+      "[T&M AUTH] No authenticated user"
+    );
+
+    return null;
+
+  }
+
+
+  /*
+   * ---------------------------------------------------------
    * DIRECT ACTIVE CUSTOMER QUERY
    * ---------------------------------------------------------
    */
 
   const {
     data,
-    error,
+    error
   } =
     await supabase
       .from("customers")
       .select("*")
+      .eq(
+        "auth_user_id",
+        authUser.id
+      )
       .eq(
         "phone",
         normalizedPhone
@@ -80,12 +133,6 @@ export async function getCustomerByPhone(
       .is(
         "deleted_at",
         null
-      )
-      .order(
-        "created_at",
-        {
-          ascending: true,
-        }
       )
       .limit(1);
 
@@ -215,16 +262,62 @@ export async function createCustomer(
 
 
   /*
-   * Create new customer.
+   * ---------------------------------------------------------
+   * GET CURRENT AUTH USER
+   * ---------------------------------------------------------
+   */
+
+  const {
+    data: authData,
+    error: authError,
+  } =
+    await supabase.auth.getUser();
+
+
+  if (
+    authError
+  ) {
+
+    console.error(
+      "[T&M AUTH] Auth user query error:",
+      authError
+    );
+
+    throw authError;
+
+  }
+
+
+  const authUser =
+    authData.user;
+
+
+  if (
+    !authUser
+  ) {
+
+    throw new Error(
+      "Please complete login before creating your customer profile."
+    );
+
+  }
+
+
+  /*
+   * Create new customer and bind it to the
+   * authenticated Supabase Auth user.
    */
 
   const {
     data,
-    error,
+    error
   } =
     await supabase
       .from("customers")
       .insert({
+
+        auth_user_id:
+          authUser.id,
 
         first_name:
           customer.first_name,

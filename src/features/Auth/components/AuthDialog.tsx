@@ -357,31 +357,206 @@ export default function AuthDialog({
        * =====================================================
        * VERIFY REAL SUPABASE OTP
        * =====================================================
+       */
+
+      const {
+        data: verifyData,
+        error: verifyError,
+      } =
+        await supabase.auth.verifyOtp({
+
+          phone:
+            `+91${normalizedPhone}`,
+
+          token:
+            otp.join(""),
+
+          type:
+            "sms",
+
+        });
+
+
+      /*
+       * =====================================================
+       * DIAGNOSTIC RESULT
+       * =====================================================
        *
-       * Supabase Auth verifies the OTP and creates the
-       * authenticated session.
-       *
-       * SMS delivery:
-       * Supabase Auth → Send SMS Hook → 2Factor
-       *
+       * We intentionally inspect the returned user/session
+       * before calling AuthContext.
        * =====================================================
        */
 
-      await supabase.auth.verifyOtp({
-        phone: `+91${normalizedPhone}`,
-        token: otp.join(""),
-        type: "sms",
-      });
+      console.log(
+        "[T&M AUTH] OTP verification result:",
+        {
+          hasUser:
+            !!verifyData?.user,
+
+          hasSession:
+            !!verifyData?.session,
+
+          userId:
+            verifyData?.user?.id ?? null,
+
+          userPhone:
+            verifyData?.user?.phone ?? null,
+
+          sessionAccessToken:
+            !!verifyData?.session?.access_token,
+
+          error:
+            verifyError
+              ? {
+                  message:
+                    verifyError.message,
+
+                  status:
+                    verifyError.status,
+
+                  code:
+                    verifyError.code,
+                }
+              : null,
+        }
+      );
+
+
+      /*
+       * =====================================================
+       * OTP VERIFICATION FAILED
+       * =====================================================
+       */
+
+      if (
+        verifyError
+      ) {
+
+        console.error(
+          "[T&M AUTH] OTP verification failed:",
+          {
+            message:
+              verifyError.message,
+
+            status:
+              verifyError.status,
+
+            code:
+              verifyError.code,
+
+          }
+        );
+
+        throw verifyError;
+
+      }
+
+
+      /*
+       * =====================================================
+       * VERIFY SESSION WAS CREATED
+       * =====================================================
+       */
+
+      if (
+        !verifyData?.session ||
+        !verifyData?.user
+      ) {
+
+        console.error(
+          "[T&M AUTH] OTP verified but Supabase session was not created.",
+          {
+            hasUser:
+              !!verifyData?.user,
+
+            hasSession:
+              !!verifyData?.session,
+
+            userId:
+              verifyData?.user?.id ?? null,
+
+          }
+        );
+
+        throw new Error(
+          "OTP verified but Supabase session was not created."
+        );
+
+      }
+
+
+      /*
+       * =====================================================
+       * VERIFY SESSION IS AVAILABLE FROM THE CLIENT
+       * =====================================================
+       *
+       * This second check helps distinguish a successful
+       * OTP response from a client-side session persistence
+       * problem.
+       * =====================================================
+       */
+
+      const {
+        data: sessionData,
+        error: sessionError,
+      } =
+        await supabase.auth.getSession();
+
+
+      console.log(
+        "[T&M AUTH] Session immediately after OTP:",
+        {
+          hasSession:
+            !!sessionData?.session,
+
+          userId:
+            sessionData?.session?.user?.id ?? null,
+
+          error:
+            sessionError
+              ? {
+                  message:
+                    sessionError.message,
+
+                  status:
+                    sessionError.status,
+
+                  name:
+                    sessionError.name,
+                }
+              : null,
+        }
+      );
+
+
+      if (
+        sessionError
+      ) {
+
+        console.error(
+          "[T&M AUTH] Failed to read session after OTP:",
+          sessionError
+        );
+
+        throw sessionError;
+
+      }
+
+
+      if (
+        !sessionData?.session
+      ) {
+
+        throw new Error(
+          "OTP verification succeeded, but the client session is missing."
+        );
+
+      }
 
 
       /*
        * =====================================================
        * RESOLVE T&M CUSTOMER
-       * =====================================================
-       *
-       * AuthContext uses the authenticated Supabase session
-       * to load the matching T&M customer record.
-       *
        * =====================================================
        */
 
@@ -440,7 +615,7 @@ export default function AuthDialog({
     ) {
 
       console.error(
-        "OTP verification error:",
+        "[T&M AUTH] OTP verification error:",
         error
       );
 
