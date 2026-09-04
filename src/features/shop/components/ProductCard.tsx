@@ -717,8 +717,11 @@ export default function ProductCard({
 
         className="
           group
+          flex
+          h-full
+          flex-col
           cursor-pointer
-          overflow-hidden
+          overflow-visible
           rounded-2xl
           bg-[#0b0b0b]
           border-0
@@ -771,7 +774,7 @@ export default function ProductCard({
           className="
             relative
             aspect-[4/5]
-            overflow-hidden
+            overflow-visible
             rounded-2xl
             bg-neutral-900
             sm:rounded-3xl
@@ -803,6 +806,7 @@ export default function ProductCard({
 
                 h-full
                 w-full
+                rounded-2xl
                 object-cover
 
                 transition-all
@@ -839,6 +843,7 @@ export default function ProductCard({
               inset-x-0
               bottom-0
               h-24
+              rounded-b-2xl
               bg-gradient-to-t
               from-black/40
               via-black/10
@@ -853,16 +858,19 @@ export default function ProductCard({
             <div
               className="
                 absolute
-                left-3
+                left-0
                 top-3
                 z-20
                 flex
                 h-12
                 w-12
+                -translate-x-1/2
                 rotate-[-8deg]
                 items-center
                 justify-center
-                drop-shadow-[0_4px_8px_rgba(0,0,0,0.35)]
+                drop-shadow-[0_5px_8px_rgba(0,0,0,0.45)]
+                sm:left-3
+                sm:translate-x-0
                 sm:h-16
                 sm:w-16
               "
@@ -873,6 +881,7 @@ export default function ProductCard({
                   absolute
                   inset-0
                   bg-red-600
+                  drop-shadow-[0_0_0_2px_rgba(255,255,255,0.95)]
                   [clip-path:polygon(50%_0%,61%_12%,75%_7%,81%_21%,96%_25%,91%_40%,100%_50%,91%_60%,96%_75%,81%_79%,75%_93%,61%_88%,50%_100%,39%_88%,25%_93%,19%_79%,4%_75%,9%_60%,0%_50%,9%_40%,4%_25%,19%_21%,25%_7%,39%_12%)]
                 "
               />
@@ -914,8 +923,9 @@ export default function ProductCard({
               <div
                 className="
                   absolute
+                  bottom-2
                   right-2
-                  top-2
+                  top-auto
                   z-20
                   max-w-[calc(100%-4.5rem)]
                   rounded-full
@@ -932,6 +942,7 @@ export default function ProductCard({
                   backdrop-blur-md
                   sm:right-3
                   sm:top-3
+                  sm:bottom-auto
                   sm:max-w-none
                   sm:px-3
                   sm:py-1.5
@@ -973,13 +984,7 @@ export default function ProductCard({
             className={`
               absolute
               right-3
-              ${
-                hasSpecialDiscount &&
-                countdownSeconds !== null &&
-                countdownSeconds > 0
-                  ? "top-12 sm:top-16"
-                  : "top-3"
-              }
+              top-3
               z-30
               opacity-100
               transition-opacity
@@ -1152,6 +1157,7 @@ export default function ProductCard({
         <div
           className="
             flex
+            flex-1
             flex-col
             p-3
             sm:p-5
