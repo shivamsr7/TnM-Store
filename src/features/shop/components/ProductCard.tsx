@@ -718,6 +718,9 @@ export default function ProductCard({
         className="
           group
           relative
+          flex
+          h-full
+          flex-col
           cursor-pointer
           overflow-visible
           rounded-2xl
@@ -739,8 +742,9 @@ export default function ProductCard({
             className="
               pointer-events-none
               absolute
-              left-[-1.75rem]
+              left-0
               top-5
+              -translate-x-1/2
               z-40
               flex
               h-14
@@ -751,6 +755,7 @@ export default function ProductCard({
               drop-shadow-[0_4px_8px_rgba(0,0,0,0.4)]
               sm:left-3
               sm:top-3
+              sm:translate-x-0
               sm:h-16
               sm:w-16
             "
@@ -865,6 +870,7 @@ export default function ProductCard({
 
                 h-full
                 w-full
+                rounded-2xl
                 object-cover
 
                 transition-all
@@ -901,6 +907,7 @@ export default function ProductCard({
               inset-x-0
               bottom-0
               h-24
+              rounded-b-2xl
               bg-gradient-to-t
               from-black/40
               via-black/10
@@ -909,46 +916,89 @@ export default function ProductCard({
           />
 
 
-          {/* Special Offer Countdown */}
+          {/* =================================================
+              SPECIAL OFFER COUNTDOWN
+              Desktop and mobile are intentionally separate.
+          ================================================== */}
 
           {hasSpecialDiscount &&
             countdownSeconds !== null &&
             countdownSeconds > 0 && (
-              <div
-                className="
-                  absolute
-                  bottom-2
-                  right-2
-                  top-auto
-                  z-20
-                  max-w-[calc(100%-4.5rem)]
-                  rounded-full
-                  border
-                  border-red-500/80
-                  bg-black/80
-                  px-2
-                  py-1
-                  text-[8px]
-                  font-semibold
-                  tracking-[0.02em]
-                  text-red-400
-                  shadow-[0_4px_12px_rgba(0,0,0,0.3)]
-                  backdrop-blur-md
-                  sm:right-3
-                  sm:top-3
-                  sm:bottom-auto
-                  sm:max-w-none
-                  sm:px-3
-                  sm:py-1.5
-                  sm:text-[10px]
-                "
-                aria-label={`Special offer ends in ${formatCountdown(countdownSeconds)}`}
-              >
-                <span aria-hidden="true">⏱</span>{" "}
-                {formatCountdown(countdownSeconds)}
-              </div>
-            )}
+              <>
+                {/* Desktop: top-right of image */}
+                <div
+                  className="
+                    absolute
+                    right-3
+                    top-3
+                    z-30
+                    hidden
+                    items-center
+                    rounded-full
+                    border
+                    border-red-500/80
+                    bg-black/80
+                    px-3
+                    py-1.5
+                    text-[10px]
+                    font-semibold
+                    tracking-[0.02em]
+                    text-red-400
+                    shadow-[0_4px_12px_rgba(0,0,0,0.3)]
+                    backdrop-blur-md
+                    sm:flex
+                  "
+                >
+                  <span
+                    aria-hidden="true"
+                    className="mr-1"
+                  >
+                    ⏱
+                  </span>
 
+                  {formatCountdown(
+                    countdownSeconds
+                  )}
+                </div>
+
+                {/* Mobile: bottom-right of image */}
+                <div
+                  className="
+                    absolute
+                    bottom-2
+                    right-2
+                    z-30
+                    flex
+                    max-w-[calc(100%-1rem)]
+                    items-center
+                    rounded-full
+                    border
+                    border-red-500/80
+                    bg-black/80
+                    px-2
+                    py-1
+                    text-[8px]
+                    font-semibold
+                    tracking-[0.01em]
+                    text-red-400
+                    shadow-[0_4px_12px_rgba(0,0,0,0.3)]
+                    backdrop-blur-md
+                    sm:hidden
+                  "
+                >
+                  <span
+                    aria-hidden="true"
+                    className="mr-1"
+                  >
+                    ⏱
+                  </span>
+
+                  {formatCountdown(
+                    countdownSeconds
+                  )}
+                </div>
+              </>
+            )}
 
           {/* Regular Discount Badge */}
 
