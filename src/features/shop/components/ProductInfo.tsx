@@ -3,6 +3,11 @@ import {
   Zap,
 } from "lucide-react";
 
+import {
+  getEffectiveProductPrice,
+  hasSpecialProductDiscount,
+} from "@/features/products/utils/specialDiscount";
+
 
 interface ProductInfoProps {
 
@@ -18,31 +23,24 @@ export default function ProductInfo({
 }: ProductInfoProps) {
 
 
+  const effectivePrice =
+    getEffectiveProductPrice(product);
+
+  const hasSpecialDiscount =
+    hasSpecialProductDiscount(product);
+
   const discount =
-
     product.compare_price
-
-      ?
-
-        Math.round(
-
+      ? Math.round(
           (
-
             (
               product.compare_price -
-              product.price
-            )
-
-            /
-
+              effectivePrice
+            ) /
             product.compare_price
-
           ) * 100
-
         )
-
       :
-
         0;
 
 
@@ -300,14 +298,42 @@ export default function ProductInfo({
 
             ₹
             {
-              product.price
+              effectivePrice
             }
 
           </span>
 
 
           {
-            product.compare_price && (
+            hasSpecialDiscount && (
+
+              <span
+
+                className="
+
+                  text-base
+
+                  text-neutral-500
+
+                  line-through
+
+                "
+
+              >
+
+                ₹
+                {
+                  product.price
+                }
+
+              </span>
+
+            )
+          }
+
+
+          {
+            product.compare_price && !hasSpecialDiscount && (
 
               <span
 
@@ -361,6 +387,31 @@ export default function ProductInfo({
                 {
                   discount
                 }% OFF
+
+              </span>
+
+            )
+          }
+
+
+          {
+            hasSpecialDiscount && (
+
+              <span
+
+                className="
+
+                  text-xs
+
+                  font-medium
+
+                  text-[#D4AF37]
+
+                "
+
+              >
+
+                ✦ Special Price
 
               </span>
 

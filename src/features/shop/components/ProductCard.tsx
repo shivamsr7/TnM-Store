@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useState,
 } from "react";
 
@@ -25,6 +26,12 @@ import type {
 import QuickViewModal from "./QuickViewModal";
 
 import NotifyDialog from "@/features/notify/components/NotifyDialog";
+
+import {
+  getEffectiveProductPrice,
+  getSpecialDiscountAmount,
+  hasSpecialProductDiscount,
+} from "@/features/products/utils/specialDiscount";
 
 
 /*
@@ -55,6 +62,16 @@ interface ProductCollectionRelation {
 
 type ProductCardProduct =
   Product & {
+
+    /*
+     * Product-level special discount fields.
+     * These are added here because the shared Product type
+     * does not yet include the newly added database columns.
+     */
+    special_discount_enabled?: boolean | null;
+    special_discount_type?: "percentage" | "fixed" | null;
+    special_discount_value?: number | null;
+    special_discount_ends_at?: string | null;
 
     product_images?: {
 
@@ -211,6 +228,12 @@ export default function ProductCard({
   ] = useState(false);
 
 
+  const [
+    countdownSeconds,
+    setCountdownSeconds,
+  ] = useState<number | null>(null);
+
+
   /*
    * =========================================================
    * Cart
@@ -257,6 +280,89 @@ export default function ProductCard({
    * =========================================================
    */
 
+  const effectivePrice =
+    getEffectiveProductPrice(product);
+
+  const hasSpecialDiscount =
+    hasSpecialProductDiscount(product);
+
+
+  /*
+   * =========================================================
+   * Special Offer Countdown
+   * =========================================================
+   */
+
+  useEffect(() => {
+
+    if (
+      !hasSpecialDiscount ||
+      !product.special_discount_ends_at
+    ) {
+      setCountdownSeconds(null);
+      return;
+    }
+
+    const endsAt =
+      new Date(product.special_discount_ends_at).getTime();
+
+    if (!Number.isFinite(endsAt)) {
+      setCountdownSeconds(null);
+      return;
+    }
+
+    const updateCountdown = () => {
+      const remaining = Math.max(
+        0,
+        Math.ceil((endsAt - Date.now()) / 1000)
+      );
+
+      setCountdownSeconds(remaining);
+    };
+
+    updateCountdown();
+
+    const interval = window.setInterval(
+      updateCountdown,
+      1000
+    );
+
+    return () =>
+      window.clearInterval(interval);
+  }, [
+    hasSpecialDiscount,
+    product.special_discount_ends_at,
+  ]);
+
+
+  const formatCountdown = (
+    totalSeconds: number
+  ) => {
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    const paddedHours = String(hours).padStart(2, "0");
+    const paddedMinutes = String(minutes).padStart(2, "0");
+    const paddedSeconds = String(seconds).padStart(2, "0");
+
+    if (days > 0) {
+      return `${days}d ${paddedHours}h ${paddedMinutes}m ${paddedSeconds}s`;
+    }
+
+    if (hours > 0) {
+      return `${paddedHours}h ${paddedMinutes}m ${paddedSeconds}s`;
+    }
+
+    if (minutes > 0) {
+      return `${paddedMinutes}m ${paddedSeconds}s`;
+    }
+
+    return `${paddedSeconds}s`;
+  };
+
+
   const discount =
 
     product.compare_price
@@ -265,13 +371,19 @@ export default function ProductCard({
           (
             (
               product.compare_price -
-              product.price
+              effectivePrice
             ) /
             product.compare_price
           ) *
             100
         )
 
+      : 0;
+
+
+  const mrp =
+    Number(product.compare_price) > Number(product.price)
+      ? Number(product.compare_price)
       : 0;
 
 
@@ -735,10 +847,103 @@ export default function ProductCard({
           />
 
 
-          {/* Discount Badge */}
+          {/* Special Offer Star Badge */}
 
-          {discount > 0 && (
+          {hasSpecialDiscount && (
+            <div
+              className="
+                absolute
+                left-3
+                top-3
+                z-20
+                flex
+                h-14
+                w-14
+                rotate-[-8deg]
+                items-center
+                justify-center
+                drop-shadow-[0_4px_8px_rgba(0,0,0,0.35)]
+                sm:h-16
+                sm:w-16
+              "
+              aria-label="Special Offer"
+            >
+              <div
+                className="
+                  absolute
+                  inset-0
+                  bg-red-600
+                  [clip-path:polygon(50%_0%,61%_12%,75%_7%,81%_21%,96%_25%,91%_40%,100%_50%,91%_60%,96%_75%,81%_79%,75%_93%,61%_88%,50%_100%,39%_88%,25%_93%,19%_79%,4%_75%,9%_60%,0%_50%,9%_40%,4%_25%,19%_21%,25%_7%,39%_12%)]
+                "
+              />
 
+              <div
+                className="
+                  relative
+                  z-10
+                  flex
+                  flex-col
+                  items-center
+                  justify-center
+                  text-center
+                  font-semibold
+                  uppercase
+                  leading-[1.05]
+                  tracking-[0.06em]
+                  text-white
+                "
+              >
+                <span className="text-[8px] sm:text-[9px]">
+                  Special
+                </span>
+                <span className="text-[9px] sm:text-[10px]">
+                  Offer
+                </span>
+                <span className="mt-0.5 text-[7px] font-bold sm:text-[8px]">
+                  ✦
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Special Offer Countdown */}
+
+          {hasSpecialDiscount &&
+            countdownSeconds !== null &&
+            countdownSeconds > 0 && (
+              <div
+                className="
+                  absolute
+                  right-3
+                  top-3
+                  z-20
+                  rounded-full
+                  border
+                  border-red-500/80
+                  bg-black/75
+                  px-2.5
+                  py-1
+                  text-[9px]
+                  font-semibold
+                  tracking-[0.04em]
+                  text-red-400
+                  shadow-[0_4px_12px_rgba(0,0,0,0.3)]
+                  backdrop-blur-md
+                  sm:px-3
+                  sm:py-1.5
+                  sm:text-[10px]
+                "
+                aria-label={`Special offer ends in ${formatCountdown(countdownSeconds)}`}
+              >
+                <span aria-hidden="true">⏱</span>{" "}
+                {formatCountdown(countdownSeconds)}
+              </div>
+            )}
+
+
+          {/* Regular Discount Badge */}
+
+          {!hasSpecialDiscount && discount > 0 && (
             <div
               className="
                 absolute
@@ -754,28 +959,30 @@ export default function ProductCard({
                 text-black
               "
             >
-
               {discount}% OFF
-
             </div>
-
           )}
-
 
           {/* Quick View */}
 
           <div
-            className="
+            className={`
               absolute
               right-3
-              top-3
+              ${
+                hasSpecialDiscount &&
+                countdownSeconds !== null &&
+                countdownSeconds > 0
+                  ? "top-14 sm:top-16"
+                  : "top-3"
+              }
               z-30
               opacity-100
               transition-opacity
               duration-300
               sm:opacity-0
               sm:group-hover:opacity-100
-            "
+            `}
           >
 
             <button
@@ -1103,66 +1310,129 @@ export default function ProductCard({
           <div
             className="
               mt-3
-              flex
-              items-center
-              gap-2
               sm:mt-4
-              sm:gap-3
             "
           >
+            {hasSpecialDiscount && mrp > 0 && (
+              <div
+                className="
+                  mb-1
+                  text-[10px]
+                  font-medium
+                  uppercase
+                  tracking-[0.12em]
+                  text-neutral-500
+                  sm:text-xs
+                "
+              >
+                MRP ₹{mrp.toFixed(2)}
+              </div>
+            )}
 
-            <span
+            <div
               className="
-                text-lg
-                font-semibold
-                text-white
-                sm:text-xl
+                flex
+                flex-wrap
+                items-baseline
+                gap-x-2
+                gap-y-1
               "
             >
-
-              ₹
-              {product.price}
-
-            </span>
-
-
-            {product.compare_price && (
-
               <span
                 className="
-                  text-xs
-                  text-neutral-500
-                  line-through
-                  sm:text-sm
+                  text-lg
+                  font-semibold
+                  tracking-tight
+                  text-white
+                  sm:text-xl
                 "
               >
-
-                ₹
-                {
-                  product.compare_price
-                }
-
+                ₹{effectivePrice.toFixed(2)}
               </span>
 
-            )}
+              {hasSpecialDiscount && (
+                <span
+                  className="
+                    text-xs
+                    text-neutral-500
+                    line-through
+                    sm:text-sm
+                  "
+                >
+                  ₹{Number(product.price).toFixed(2)}
+                </span>
+              )}
 
+              {!hasSpecialDiscount &&
+                product.compare_price && (
+                  <span
+                    className="
+                      text-xs
+                      text-neutral-500
+                      line-through
+                      sm:text-sm
+                    "
+                  >
+                    ₹{product.compare_price}
+                  </span>
+                )}
 
-            {discount > 0 && (
+              {hasSpecialDiscount && (
+                <span
+                  className="
+                    rounded-md
+                    border
+                    border-[#D4AF37]/50
+                    bg-[#D4AF37]/10
+                    px-1.5
+                    py-0.5
+                    text-[10px]
+                    font-semibold
+                    tracking-wide
+                    text-[#D4AF37]
+                    sm:px-2
+                    sm:text-xs
+                  "
+                >
+                  {product.special_discount_type === "percentage"
+                    ? `${Math.min(Number(product.special_discount_value) || 0, 100)}% OFF`
+                    : `₹${getSpecialDiscountAmount(product).toFixed(0)} OFF`}
+                </span>
+              )}
 
-              <span
+              {!hasSpecialDiscount &&
+                discount > 0 && (
+                  <span
+                    className="
+                      text-xs
+                      font-medium
+                      text-[#D4AF37]
+                    "
+                  >
+                    {discount}% OFF
+                  </span>
+                )}
+            </div>
+
+            {hasSpecialDiscount && (
+              <div
                 className="
-                  text-xs
+                  mt-1
+                  flex
+                  items-center
+                  gap-1.5
+                  text-[10px]
                   font-medium
+                  uppercase
+                  tracking-[0.14em]
                   text-[#D4AF37]
+                  sm:text-[11px]
                 "
               >
-
-                {discount}% OFF
-
-              </span>
-
+                <span aria-hidden="true">✦</span>
+                <span>Special Price</span>
+              </div>
             )}
-
           </div>
 
 
