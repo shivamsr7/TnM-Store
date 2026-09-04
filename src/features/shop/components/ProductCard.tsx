@@ -717,6 +717,7 @@ export default function ProductCard({
 
         className="
           group
+          relative
           flex
           h-full
           flex-col
@@ -774,7 +775,7 @@ export default function ProductCard({
           className="
             relative
             aspect-[4/5]
-            overflow-visible
+            overflow-hidden
             rounded-2xl
             bg-neutral-900
             sm:rounded-3xl
@@ -806,7 +807,6 @@ export default function ProductCard({
 
                 h-full
                 w-full
-                rounded-2xl
                 object-cover
 
                 transition-all
@@ -843,7 +843,6 @@ export default function ProductCard({
               inset-x-0
               bottom-0
               h-24
-              rounded-b-2xl
               bg-gradient-to-t
               from-black/40
               via-black/10
@@ -851,69 +850,6 @@ export default function ProductCard({
             "
           />
 
-
-          {/* Special Offer Star Badge */}
-
-          {hasSpecialDiscount && (
-            <div
-              className="
-                absolute
-                left-0
-                top-3
-                z-20
-                flex
-                h-12
-                w-12
-                -translate-x-1/2
-                rotate-[-8deg]
-                items-center
-                justify-center
-                drop-shadow-[0_5px_8px_rgba(0,0,0,0.45)]
-                sm:left-3
-                sm:translate-x-0
-                sm:h-16
-                sm:w-16
-              "
-              aria-label="Special Offer"
-            >
-              <div
-                className="
-                  absolute
-                  inset-0
-                  bg-red-600
-                  drop-shadow-[0_0_0_2px_rgba(255,255,255,0.95)]
-                  [clip-path:polygon(50%_0%,61%_12%,75%_7%,81%_21%,96%_25%,91%_40%,100%_50%,91%_60%,96%_75%,81%_79%,75%_93%,61%_88%,50%_100%,39%_88%,25%_93%,19%_79%,4%_75%,9%_60%,0%_50%,9%_40%,4%_25%,19%_21%,25%_7%,39%_12%)]
-                "
-              />
-
-              <div
-                className="
-                  relative
-                  z-10
-                  flex
-                  flex-col
-                  items-center
-                  justify-center
-                  text-center
-                  font-semibold
-                  uppercase
-                  leading-[1.05]
-                  tracking-[0.06em]
-                  text-white
-                "
-              >
-                <span className="text-[8px] sm:text-[9px]">
-                  Special
-                </span>
-                <span className="text-[9px] sm:text-[10px]">
-                  Offer
-                </span>
-                <span className="mt-0.5 text-[7px] font-bold sm:text-[8px]">
-                  ✦
-                </span>
-              </div>
-            </div>
-          )}
 
           {/* Special Offer Countdown */}
 
@@ -1148,6 +1084,84 @@ export default function ProductCard({
           )}
 
         </div>
+
+
+        {/* Special Offer Sticker */}
+
+        {hasSpecialDiscount && (
+          <div
+            className="
+              pointer-events-none
+              absolute
+              left-[-1.75rem]
+              top-5
+              z-40
+              flex
+              h-14
+              w-14
+              rotate-[-8deg]
+              items-center
+              justify-center
+              sm:left-3
+              sm:top-3
+              sm:h-16
+              sm:w-16
+            "
+            aria-label="Special Offer"
+          >
+            {/* White sticker edge */}
+
+            <div
+              className="
+                absolute
+                inset-[-2px]
+                bg-white
+                [clip-path:polygon(50%_0%,61%_12%,75%_7%,81%_21%,96%_25%,91%_40%,100%_50%,91%_60%,96%_75%,81%_79%,75%_93%,61%_88%,50%_100%,39%_88%,25%_93%,19%_79%,4%_75%,9%_60%,0%_50%,9%_40%,4%_25%,19%_21%,25%_7%,39%_12%)]
+              "
+            />
+
+            {/* Red sticker */}
+
+            <div
+              className="
+                absolute
+                inset-0
+                bg-red-600
+                shadow-[0_5px_10px_rgba(0,0,0,0.4)]
+                [clip-path:polygon(50%_0%,61%_12%,75%_7%,81%_21%,96%_25%,91%_40%,100%_50%,91%_60%,96%_75%,81%_79%,75%_93%,61%_88%,50%_100%,39%_88%,25%_93%,19%_79%,4%_75%,9%_60%,0%_50%,9%_40%,4%_25%,19%_21%,25%_7%,39%_12%)]
+              "
+            />
+
+            <div
+              className="
+                relative
+                z-10
+                flex
+                flex-col
+                items-center
+                justify-center
+                text-center
+                font-semibold
+                uppercase
+                leading-[1.05]
+                tracking-[0.06em]
+                text-white
+              "
+            >
+              <span className="text-[8px] sm:text-[9px]">
+                Special
+              </span>
+
+              <span className="text-[9px] sm:text-[10px]">
+                Offer
+              </span>
+
+              <span className="mt-0.5 text-[7px] font-bold sm:text-[8px]">
+                ✦
+              </span>
+            </div>
+          </div>
+        )}
 
 
         {/* =================================================
