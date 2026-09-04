@@ -898,6 +898,66 @@ export default function ProductCard({
           )}
 
 
+          {/* Desktop Special Offer Timer */}
+          {hasSpecialDiscount &&
+            countdownSeconds !== null &&
+            countdownSeconds > 0 && (
+              <div
+                className="
+                  absolute
+                  right-3
+                  top-3
+                  z-30
+                  hidden
+                  rounded-full
+                  border
+                  border-red-500/80
+                  bg-black/80
+                  px-3
+                  py-1.5
+                  text-[10px]
+                  font-semibold
+                  tracking-[0.02em]
+                  text-red-400
+                  shadow-[0_4px_12px_rgba(0,0,0,0.3)]
+                  backdrop-blur-md
+                  sm:block
+                "
+              >
+                ⏱ {formatCountdown(countdownSeconds)}
+              </div>
+            )}
+
+          {/* Mobile Special Offer Timer */}
+          {hasSpecialDiscount &&
+            countdownSeconds !== null &&
+            countdownSeconds > 0 && (
+              <div
+                className="
+                  absolute
+                  bottom-2
+                  right-2
+                  z-30
+                  max-w-[calc(100%-4rem)]
+                  rounded-full
+                  border
+                  border-red-500/80
+                  bg-black/80
+                  px-2
+                  py-1
+                  text-[8px]
+                  font-semibold
+                  tracking-[0.02em]
+                  text-red-400
+                  shadow-[0_4px_12px_rgba(0,0,0,0.3)]
+                  backdrop-blur-md
+                  sm:hidden
+                "
+              >
+                ⏱ {formatCountdown(countdownSeconds)}
+              </div>
+            )}
+
           {/* Bottom Gradient */}
 
           <div
@@ -915,90 +975,6 @@ export default function ProductCard({
             "
           />
 
-
-          {/* =================================================
-              SPECIAL OFFER COUNTDOWN
-              Desktop and mobile are intentionally separate.
-          ================================================== */}
-
-          {hasSpecialDiscount &&
-            countdownSeconds !== null &&
-            countdownSeconds > 0 && (
-              <>
-                {/* Desktop: top-right of image */}
-                <div
-                  className="
-                    absolute
-                    right-3
-                    top-3
-                    z-30
-                    hidden
-                    items-center
-                    rounded-full
-                    border
-                    border-red-500/80
-                    bg-black/80
-                    px-3
-                    py-1.5
-                    text-[10px]
-                    font-semibold
-                    tracking-[0.02em]
-                    text-red-400
-                    shadow-[0_4px_12px_rgba(0,0,0,0.3)]
-                    backdrop-blur-md
-                    sm:flex
-                  "
-                >
-                  <span
-                    aria-hidden="true"
-                    className="mr-1"
-                  >
-                    ⏱
-                  </span>
-
-                  {formatCountdown(
-                    countdownSeconds
-                  )}
-                </div>
-
-                {/* Mobile: bottom-right of image */}
-                <div
-                  className="
-                    absolute
-                    bottom-2
-                    right-2
-                    z-30
-                    flex
-                    max-w-[calc(100%-1rem)]
-                    items-center
-                    rounded-full
-                    border
-                    border-red-500/80
-                    bg-black/80
-                    px-2
-                    py-1
-                    text-[8px]
-                    font-semibold
-                    tracking-[0.01em]
-                    text-red-400
-                    shadow-[0_4px_12px_rgba(0,0,0,0.3)]
-                    backdrop-blur-md
-                    sm:hidden
-                  "
-                >
-                  <span
-                    aria-hidden="true"
-                    className="mr-1"
-                  >
-                    ⏱
-                  </span>
-
-                  {formatCountdown(
-                    countdownSeconds
-                  )}
-                </div>
-              </>
-            )}
 
           {/* Regular Discount Badge */}
 
@@ -1359,6 +1335,37 @@ export default function ProductCard({
           </div>
 
 
+          {/* Mobile Special Price Tag */}
+          {hasSpecialDiscount && (
+            <div
+              className="
+                mb-1.5
+                flex
+                items-center
+                sm:hidden
+              "
+            >
+              <span
+                className="
+                  inline-flex
+                  items-center
+                  rounded-md
+                  bg-[#D4AF37]
+                  px-2
+                  py-1
+                  text-[9px]
+                  font-bold
+                  uppercase
+                  tracking-[0.12em]
+                  text-black
+                  shadow-[0_2px_6px_rgba(212,175,55,0.18)]
+                "
+              >
+                ✦&nbsp; SPECIAL PRICE
+              </span>
+            </div>
+          )}
+
           {/* Price */}
 
           <div
@@ -1472,7 +1479,7 @@ export default function ProductCard({
               <div
                 className="
                   mt-1
-                  flex
+                  hidden
                   items-center
                   gap-1.5
                   text-[10px]
@@ -1480,6 +1487,7 @@ export default function ProductCard({
                   uppercase
                   tracking-[0.14em]
                   text-[#D4AF37]
+                  sm:flex
                   sm:text-[11px]
                 "
               >
