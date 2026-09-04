@@ -1335,37 +1335,6 @@ export default function ProductCard({
           </div>
 
 
-          {/* Mobile Special Price Tag */}
-          {hasSpecialDiscount && (
-            <div
-              className="
-                mb-1.5
-                flex
-                items-center
-                sm:hidden
-              "
-            >
-              <span
-                className="
-                  inline-flex
-                  items-center
-                  rounded-md
-                  bg-[#D4AF37]
-                  px-2
-                  py-1
-                  text-[9px]
-                  font-bold
-                  uppercase
-                  tracking-[0.12em]
-                  text-black
-                  shadow-[0_2px_6px_rgba(212,175,55,0.18)]
-                "
-              >
-                ✦&nbsp; SPECIAL PRICE
-              </span>
-            </div>
-          )}
-
           {/* Price */}
 
           <div
@@ -1476,24 +1445,55 @@ export default function ProductCard({
             </div>
 
             {hasSpecialDiscount && (
-              <div
-                className="
-                  mt-1
-                  hidden
-                  items-center
-                  gap-1.5
-                  text-[10px]
-                  font-medium
-                  uppercase
-                  tracking-[0.14em]
-                  text-[#D4AF37]
-                  sm:flex
-                  sm:text-[11px]
-                "
-              >
-                <span aria-hidden="true">✦</span>
-                <span>Special Price</span>
-              </div>
+              <>
+                {/* Mobile: same original position, only styled as a gold tag */}
+                <div
+                  className="
+                    mt-1
+                    flex
+                    items-center
+                    sm:hidden
+                  "
+                >
+                  <span
+                    className="
+                      inline-flex
+                      items-center
+                      rounded-md
+                      bg-[#D4AF37]
+                      px-2
+                      py-1
+                      text-[9px]
+                      font-bold
+                      uppercase
+                      tracking-[0.12em]
+                      text-black
+                    "
+                  >
+                    ✦&nbsp; SPECIAL PRICE
+                  </span>
+                </div>
+
+                {/* Desktop: preserve the existing Special Price styling */}
+                <div
+                  className="
+                    mt-1
+                    hidden
+                    items-center
+                    gap-1.5
+                    text-[10px]
+                    font-medium
+                    uppercase
+                    tracking-[0.14em]
+                    text-[#D4AF37]
+                    sm:flex
+                    sm:text-[11px]
+                  "
+                >
+                  <span aria-hidden="true">✦</span>
+                  <span>Special Price</span>
+                </div>
+              </>
             )}
           </div>
 
