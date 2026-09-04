@@ -857,8 +857,8 @@ export default function ProductCard({
                 top-3
                 z-20
                 flex
-                h-14
-                w-14
+                h-12
+                w-12
                 rotate-[-8deg]
                 items-center
                 justify-center
@@ -914,21 +914,25 @@ export default function ProductCard({
               <div
                 className="
                   absolute
-                  right-3
-                  top-3
+                  right-2
+                  top-2
                   z-20
+                  max-w-[calc(100%-4.5rem)]
                   rounded-full
                   border
                   border-red-500/80
-                  bg-black/75
-                  px-2.5
+                  bg-black/80
+                  px-2
                   py-1
-                  text-[9px]
+                  text-[8px]
                   font-semibold
-                  tracking-[0.04em]
+                  tracking-[0.02em]
                   text-red-400
                   shadow-[0_4px_12px_rgba(0,0,0,0.3)]
                   backdrop-blur-md
+                  sm:right-3
+                  sm:top-3
+                  sm:max-w-none
                   sm:px-3
                   sm:py-1.5
                   sm:text-[10px]
@@ -973,7 +977,7 @@ export default function ProductCard({
                 hasSpecialDiscount &&
                 countdownSeconds !== null &&
                 countdownSeconds > 0
-                  ? "top-14 sm:top-16"
+                  ? "top-12 sm:top-16"
                   : "top-3"
               }
               z-30
