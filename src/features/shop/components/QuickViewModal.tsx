@@ -9,7 +9,6 @@ import { createPortal } from "react-dom";
 
 import {
   X,
-  Star,
   ChevronLeft,
   ChevronRight,
   ZoomIn,
@@ -3171,56 +3170,78 @@ export default function QuickViewModal({
           </h2>
 
 
-          {/* RATING */}
+          {/* Rating — matches ProductCard */}
 
-          {product.rating > 0 && (
+          <div
+            className="
+              mt-3
+              flex
+              min-h-[22px]
+              items-center
+            "
+          >
 
-            <div
-              className="
-                mt-3
+            {product.rating > 0 && (
 
-                flex
-                items-center
-                gap-2
-
-                text-sm
-
-                text-[#D4AF37]
-              "
-            >
-
-              <Star
-                size={15}
-                fill="currentColor"
-              />
-
-              <span>
-                {product.rating}
-              </span>
-
-
-              {product.review_count >
-                0 && (
+              <div
+                className="
+                  flex
+                  min-w-0
+                  items-center
+                  gap-1.5
+                  text-left
+                  text-sm
+                "
+              >
 
                 <span
                   className="
-                    text-neutral-400
+                    flex
+                    shrink-0
+                    items-center
+                    gap-0.5
+                    text-[#D4AF37]
                   "
+                  aria-hidden="true"
                 >
 
-                  (
-                  {
-                    product.review_count
-                  }
-                  )
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <span
+                      key={index}
+                      className="leading-none"
+                    >
+                      ★
+                    </span>
+                  ))}
 
                 </span>
 
-              )}
+                <span
+                  className="
+                    shrink-0
+                    font-medium
+                    text-white
+                  "
+                >
+                  {Number(product.rating).toFixed(1)}
+                </span>
 
-            </div>
+                {product.review_count > 0 && (
+                  <span
+                    className="
+                      shrink-0
+                      text-neutral-500
+                    "
+                  >
+                    ({product.review_count})
+                  </span>
+                )}
 
-          )}
+              </div>
+
+            )}
+
+          </div>
 
 
           {/* PRICE / SPECIAL PRICE */}
