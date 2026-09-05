@@ -32,12 +32,6 @@ import {
   useCartActions,
 } from "@/features/cart/hooks/useCartActions";
 
-import {
-  getEffectiveProductPrice,
-  getSpecialDiscountAmount,
-  hasSpecialProductDiscount,
-} from "@/features/products/utils/specialDiscount";
-
 
 interface QuickViewModalProps {
   product: Product & {
@@ -45,11 +39,6 @@ interface QuickViewModalProps {
       image_url: string;
       sort_order: number;
     }[];
-
-    special_discount_enabled?: boolean | null;
-    special_discount_type?: "percentage" | "fixed" | null;
-    special_discount_value?: number | null;
-    special_discount_ends_at?: string | null;
   };
 
   open: boolean;
@@ -217,27 +206,11 @@ export default function QuickViewModal({
 
   /*
    * =========================================================
-   * DISCOUNT / SPECIAL PRICE
+   * DISCOUNT
    * =========================================================
    */
 
-  const hasSpecialDiscount =
-    hasSpecialProductDiscount(product);
-
-  const effectivePrice =
-    getEffectiveProductPrice(product);
-
-  const specialDiscountAmount =
-    getSpecialDiscountAmount(product);
-
-  const mrp =
-    Number(product.compare_price) >
-    Number(product.price)
-      ? Number(product.compare_price)
-      : 0;
-
   const discount =
-    !hasSpecialDiscount &&
     product.compare_price &&
     product.compare_price >
       product.price
@@ -254,91 +227,6 @@ export default function QuickViewModal({
         )
 
       : 0;
-
-  const [countdownSeconds, setCountdownSeconds] =
-    useState<number | null>(null);
-
-  useEffect(() => {
-    if (
-      !hasSpecialDiscount ||
-      !product.special_discount_ends_at
-    ) {
-      setCountdownSeconds(null);
-      return;
-    }
-
-    const endsAt =
-      new Date(
-        product.special_discount_ends_at
-      ).getTime();
-
-    if (!Number.isFinite(endsAt)) {
-      setCountdownSeconds(null);
-      return;
-    }
-
-    const updateCountdown = () => {
-      const remaining = Math.max(
-        0,
-        Math.ceil(
-          (endsAt - Date.now()) / 1000
-        )
-      );
-
-      setCountdownSeconds(remaining);
-    };
-
-    updateCountdown();
-
-    const interval =
-      window.setInterval(
-        updateCountdown,
-        1000
-      );
-
-    return () =>
-      window.clearInterval(interval);
-  }, [
-    hasSpecialDiscount,
-    product.special_discount_ends_at,
-  ]);
-
-  const formatCountdown = (
-    totalSeconds: number
-  ) => {
-    const days = Math.floor(
-      totalSeconds / 86400
-    );
-    const hours = Math.floor(
-      (totalSeconds % 86400) / 3600
-    );
-    const minutes = Math.floor(
-      (totalSeconds % 3600) / 60
-    );
-    const seconds =
-      totalSeconds % 60;
-
-    const paddedHours =
-      String(hours).padStart(2, "0");
-    const paddedMinutes =
-      String(minutes).padStart(2, "0");
-    const paddedSeconds =
-      String(seconds).padStart(2, "0");
-
-    if (days > 0) {
-      return `${days}d ${paddedHours}h ${paddedMinutes}m ${paddedSeconds}s`;
-    }
-
-    if (hours > 0) {
-      return `${paddedHours}h ${paddedMinutes}m ${paddedSeconds}s`;
-    }
-
-    if (minutes > 0) {
-      return `${paddedMinutes}m ${paddedSeconds}s`;
-    }
-
-    return `${paddedSeconds}s`;
-  };
 
 
   /*
@@ -3223,170 +3111,76 @@ export default function QuickViewModal({
           )}
 
 
-          {/* PRICE / SPECIAL PRICE */}
+          {/* PRICE */}
 
           <div
             className="
               mt-4
+
+              flex
+              flex-wrap
+              items-center
+              gap-3
             "
           >
 
-            {hasSpecialDiscount && mrp > 0 && (
-              <div
-                className="
-                  mb-1
-                  text-[10px]
-                  font-medium
-                  uppercase
-                  tracking-[0.12em]
-                  text-neutral-500
-                "
-              >
-                MRP ₹{mrp.toFixed(2)}
-              </div>
-            )}
-
-            <div
+            <span
               className="
-                flex
-                flex-wrap
-                items-baseline
-                gap-x-3
-                gap-y-1.5
+                text-2xl
+                font-bold
+                text-white
               "
             >
 
+              ₹{product.price}
+
+            </span>
+
+
+            {product.compare_price && (
+
               <span
                 className="
-                  text-2xl
-                  font-bold
-                  text-white
+                  text-sm
+
+                  text-neutral-500
+
+                  line-through
                 "
               >
-                ₹{effectivePrice.toFixed(2)}
+
+                ₹{
+                  product.compare_price
+                }
+
               </span>
 
-              {hasSpecialDiscount && (
-                <span
-                  className="
-                    text-sm
-                    text-neutral-500
-                    line-through
-                  "
-                >
-                  ₹{Number(product.price).toFixed(2)}
-                </span>
-              )}
-
-              {!hasSpecialDiscount &&
-                product.compare_price && (
-                  <span
-                    className="
-                      text-sm
-                      text-neutral-500
-                      line-through
-                    "
-                  >
-                    ₹{product.compare_price}
-                  </span>
-                )}
-
-              {hasSpecialDiscount && (
-                <span
-                  className="
-                    rounded-md
-                    border
-                    border-[#D4AF37]/50
-                    bg-[#D4AF37]/10
-                    px-2
-                    py-0.5
-                    text-xs
-                    font-semibold
-                    tracking-wide
-                    text-[#D4AF37]
-                  "
-                >
-                  {product.special_discount_type ===
-                  "percentage"
-                    ? `${Math.min(
-                        Number(product.special_discount_value) || 0,
-                        100
-                      )}% OFF`
-                    : `₹${specialDiscountAmount.toFixed(0)} OFF`}
-                </span>
-              )}
-
-              {!hasSpecialDiscount &&
-                discount > 0 && (
-                  <span
-                    className="
-                      rounded-full
-                      bg-[#D4AF37]/10
-                      px-2.5
-                      py-1
-                      text-xs
-                      font-medium
-                      text-[#D4AF37]
-                    "
-                  >
-                    {discount}% OFF
-                  </span>
-                )}
-
-            </div>
-
-            {hasSpecialDiscount && (
-              <div className="mt-1.5 self-start">
-                <span
-                  className="
-                    inline-flex
-                    w-auto
-                    max-w-max
-                    items-center
-                    gap-1.5
-                    rounded-md
-                    border
-                    border-[#D8C27A]
-                    bg-[#F5E6B8]
-                    px-2.5
-                    py-1
-                    text-[10px]
-                    font-bold
-                    uppercase
-                    tracking-[0.14em]
-                    text-black
-                    sm:text-[11px]
-                  "
-                >
-                  <span aria-hidden="true">✦</span>
-                  <span>Special Price</span>
-                </span>
-              </div>
             )}
 
-            {hasSpecialDiscount &&
-              countdownSeconds !== null &&
-              countdownSeconds > 0 && (
-                <div
-                  className="
-                    mt-3
-                    inline-flex
-                    items-center
-                    rounded-full
-                    border
-                    border-red-500/60
-                    bg-red-500/[0.06]
-                    px-3
-                    py-1.5
-                    text-[10px]
-                    font-semibold
-                    tracking-[0.02em]
-                    text-red-400
-                  "
-                >
-                  ⏱ Offer ends in {formatCountdown(countdownSeconds)}
-                </div>
-              )}
+
+            {discount > 0 && (
+
+              <span
+                className="
+                  rounded-full
+
+                  bg-[#D4AF37]/10
+
+                  px-2.5
+                  py-1
+
+                  text-xs
+                  font-medium
+
+                  text-[#D4AF37]
+                "
+              >
+
+                {discount}% OFF
+
+              </span>
+
+            )}
 
           </div>
 
@@ -3659,7 +3453,7 @@ export default function QuickViewModal({
                 "
               >
 
-                ₹{effectivePrice.toFixed(2)}
+                ₹{product.price}
 
               </p>
 
