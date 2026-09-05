@@ -719,9 +719,9 @@ export default function ProductCard({
           group
           relative
           flex
+          h-full
           flex-col
           cursor-pointer
-          sm:h-full
           overflow-visible
           rounded-2xl
           bg-[#0b0b0b]
@@ -736,23 +736,28 @@ export default function ProductCard({
 
       >
 
-        {/* Special Offer Sticker — desktop only */}
+        {/* Special Offer Sticker */}
         {hasSpecialDiscount && (
           <div
             className="
               pointer-events-none
               absolute
-              left-3
-              top-3
+              left-0
+              top-5
+              -translate-x-1/2
               z-40
-              hidden
-              h-16
-              w-16
+              flex
+              h-14
+              w-14
               rotate-[-8deg]
               items-center
               justify-center
               drop-shadow-[0_4px_8px_rgba(0,0,0,0.4)]
-              sm:flex
+              sm:left-3
+              sm:top-3
+              sm:translate-x-0
+              sm:h-16
+              sm:w-16
             "
             aria-label="Special Offer"
           >
@@ -781,13 +786,13 @@ export default function ProductCard({
                 text-white
               "
             >
-              <span className="text-[9px]">
+              <span className="text-[8px] sm:text-[9px]">
                 Special
               </span>
-              <span className="text-[10px]">
+              <span className="text-[9px] sm:text-[10px]">
                 Offer
               </span>
-              <span className="mt-0.5 text-[8px] font-bold">
+              <span className="mt-0.5 text-[7px] font-bold sm:text-[8px]">
                 ✦
               </span>
             </div>
@@ -1172,10 +1177,10 @@ export default function ProductCard({
         <div
           className="
             flex
+            flex-1
             flex-col
             p-3
-            sm:flex-1
-            sm:p-4
+            sm:p-5
           "
         >
 
@@ -1183,6 +1188,7 @@ export default function ProductCard({
 
           <h3
             className="
+              h-[42px]
               line-clamp-2
               text-sm
               font-medium
@@ -1190,6 +1196,7 @@ export default function ProductCard({
               text-[#F7E3A3]
               transition
               group-hover:text-[#D4AF37]
+              sm:h-[56px]
               sm:text-lg
               sm:leading-7
             "
@@ -1204,11 +1211,11 @@ export default function ProductCard({
 
           <div
             className="
-              mt-1
+              mt-2
               flex
               min-h-[18px]
               items-center
-              sm:mt-1.5
+              sm:mt-3
               sm:min-h-[22px]
             "
           >
@@ -1332,8 +1339,8 @@ export default function ProductCard({
 
           <div
             className="
-              mt-1.5
-              sm:mt-2
+              mt-3
+              sm:mt-4
             "
           >
             {hasSpecialDiscount && mrp > 0 && (
@@ -1497,25 +1504,10 @@ export default function ProductCard({
 
           <div
             className="
-              mt-3
+              mt-auto
               flex
-              min-h-11
-              items-center
               gap-2
-              border-t
-              border-white/10
-              pt-3
-              sm:mt-auto
-              sm:min-h-12
-              sm:pt-4
-              sm:-mx-4
-              sm:mb-[-1rem]
-              sm:px-4
-              sm:pb-4
-              sm:bg-gradient-to-t
-              sm:from-black
-              sm:via-[#0b0b0b]
-              sm:to-transparent
+              pt-4
             "
             onClick={(
               e
@@ -1634,8 +1626,8 @@ export default function ProductCard({
                   hover:border-[#D4AF37]
                   hover:text-[#D4AF37]
                   active:scale-95
-                  sm:h-11
-                  sm:w-11
+                  sm:h-12
+                  sm:w-12
                 "
 
               />

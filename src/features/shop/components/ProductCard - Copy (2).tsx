@@ -736,23 +736,28 @@ export default function ProductCard({
 
       >
 
-        {/* Special Offer Sticker — desktop only */}
+        {/* Special Offer Sticker */}
         {hasSpecialDiscount && (
           <div
             className="
               pointer-events-none
               absolute
-              left-3
-              top-3
+              left-0
+              top-5
+              -translate-x-1/2
               z-40
-              hidden
-              h-16
-              w-16
+              flex
+              h-14
+              w-14
               rotate-[-8deg]
               items-center
               justify-center
               drop-shadow-[0_4px_8px_rgba(0,0,0,0.4)]
-              sm:flex
+              sm:left-3
+              sm:top-3
+              sm:translate-x-0
+              sm:h-16
+              sm:w-16
             "
             aria-label="Special Offer"
           >
@@ -781,13 +786,13 @@ export default function ProductCard({
                 text-white
               "
             >
-              <span className="text-[9px]">
+              <span className="text-[8px] sm:text-[9px]">
                 Special
               </span>
-              <span className="text-[10px]">
+              <span className="text-[9px] sm:text-[10px]">
                 Offer
               </span>
-              <span className="mt-0.5 text-[8px] font-bold">
+              <span className="mt-0.5 text-[7px] font-bold sm:text-[8px]">
                 ✦
               </span>
             </div>
