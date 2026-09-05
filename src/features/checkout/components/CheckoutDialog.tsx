@@ -84,6 +84,13 @@ const FREE_GIFT_AMOUNT = 1000;
 
 const FREE_SHIPPING_AMOUNT = 2000;
 
+interface CheckoutProductPricing {
+  id: string;
+  price: number | null;
+  compare_price: number | null;
+  special_discount_ends_at: string | null;
+}
+
 
 export default function CheckoutDialog({
   open,
@@ -106,6 +113,12 @@ export default function CheckoutDialog({
    * STEP
    * =========================================================
    */
+
+  const [
+    isAddingNewAddress,
+    setIsAddingNewAddress,
+  ] = useState(false);
+
 
   const [
     step,
@@ -280,6 +293,82 @@ export default function CheckoutDialog({
 
   /*
    * =========================================================
+   * CHECKOUT PRODUCT PRICING
+   * =========================================================
+   *
+   * Used only for the checkout price breakdown. The cart item's
+   * price remains the actual snapped customer price, while the
+   * product table supplies the current regular price and MRP.
+   * =========================================================
+   */
+
+  const {
+    data: checkoutProductPricing = [],
+  } = useQuery<CheckoutProductPricing[]>({
+    queryKey: [
+      "checkout-product-pricing",
+      items
+        .map(item => item.productId)
+        .sort()
+        .join("|"),
+    ],
+
+    queryFn: async () => {
+      const productIds = [
+        ...new Set(
+          items.map(
+            item => item.productId
+          )
+        ),
+      ];
+
+      if (productIds.length === 0) {
+        return [];
+      }
+
+      const {
+        data,
+        error,
+      } = await supabase
+        .from("products")
+        .select(
+          "id, price, compare_price, special_discount_ends_at"
+        )
+        .in(
+          "id",
+          productIds
+        );
+
+      if (error) {
+        throw error;
+      }
+
+      return (
+        data ?? []
+      ) as CheckoutProductPricing[];
+    },
+
+    enabled:
+      open &&
+      items.length > 0,
+
+    staleTime:
+      5 * 60 * 1000,
+  });
+
+  const checkoutProductPricingMap =
+    new Map<string, CheckoutProductPricing>(
+      checkoutProductPricing.map(
+        product => [
+          product.id,
+          product,
+        ]
+      )
+    );
+
+
+  /*
+   * =========================================================
    * GIFT WRAP SETTINGS
    * =========================================================
    *
@@ -436,6 +525,117 @@ export default function CheckoutDialog({
 
   /*
    * =========================================================
+   * CHECKOUT PRICE BREAKDOWN
+   * =========================================================
+   *
+   * Total MRP = MRP of all cart items × quantity.
+   * Item Discount = MRP → regular/our price.
+   * Special Offer Discount = regular/our price → snapped
+   * Special Price.
+   * Subtotal = actual cart/verified checkout subtotal.
+   * =========================================================
+   */
+
+  let totalMrp = 0;
+  let itemDiscount = 0;
+  let specialOfferDiscount = 0;
+
+  items.forEach(item => {
+    const pricing =
+      checkoutProductPricingMap.get(
+        item.productId
+      );
+
+    const regularPrice =
+      Number(
+        pricing?.price ??
+        item.price
+      );
+
+    const mrp =
+      Number(
+        pricing?.compare_price ??
+        regularPrice
+      );
+
+    const quantity =
+      Number(item.quantity) || 0;
+
+    const productMrp =
+      mrp > 0
+        ? mrp
+        : regularPrice;
+
+    totalMrp +=
+      productMrp *
+      quantity;
+
+    const hasSpecialPrice =
+      Number(item.price) <
+      regularPrice;
+
+    if (hasSpecialPrice) {
+      itemDiscount +=
+        Math.max(
+          0,
+          productMrp -
+          regularPrice
+        ) *
+        quantity;
+
+      specialOfferDiscount +=
+        Math.max(
+          0,
+          regularPrice -
+          Number(item.price)
+        ) *
+        quantity;
+    } else {
+      itemDiscount +=
+        Math.max(
+          0,
+          productMrp -
+          Number(item.price)
+        ) *
+        quantity;
+    }
+  });
+
+  const displayedSubtotal =
+    verifiedCheckoutPricing?.subtotal ??
+    subtotal;
+
+  const displayedCouponDiscount =
+    verifiedCheckoutPricing?.discount ??
+    discount;
+
+  const displayedGiftWrapAmount =
+    step === "payment"
+      ? (
+          verifiedCheckoutPricing?.giftWrapAmount ??
+          0
+        )
+      : addressStepGiftWrapAmount;
+
+  const displayedTax =
+    step === "payment"
+      ? (
+          verifiedCheckoutPricing?.tax ??
+          0
+        )
+      : 0;
+
+  const displayedTotal =
+    step === "payment"
+      ? (
+          verifiedCheckoutPricing?.totalAmount ??
+          finalAmount
+        )
+      : addressStepTotal;
+
+
+  /*
+   * =========================================================
    * AUTH CUSTOMER EFFECT
    * =========================================================
    */
@@ -470,9 +670,80 @@ export default function CheckoutDialog({
 
   /*
    * =========================================================
+   * RESET AFTER CHECKOUT CLOSES
+   * =========================================================
+   *
+   * OrderSuccess belongs to the previous checkout session.
+   * When the confirmation screen is closed, clear that state
+   * so the next Proceed to Checkout starts as a fresh checkout.
+   * =========================================================
+   */
+
+  useEffect(() => {
+
+    if (open) {
+      return;
+    }
+
+    setOrderSuccess(
+      false
+    );
+
+    setOrderNumber(
+      ""
+    );
+
+    setProcessingPayment(
+      false
+    );
+
+    setPaymentRecoveryError(
+      ""
+    );
+
+    setSelectedAddress(
+      null
+    );
+
+    setShippingCharge(
+      0
+    );
+
+    setShippingError(
+      ""
+    );
+
+    setCheckoutQuoteId(
+      null
+    );
+
+    setVerifiedCheckoutPricing(
+      null
+    );
+
+    setCalculatingShipping(
+      false
+    );
+
+  }, [
+    open,
+  ]);
+
+
+  /*
+   * =========================================================
    * RESET WHEN CHECKOUT OPENS
    * =========================================================
    */
+
+  useEffect(() => {
+
+    if (step !== "address") {
+      setIsAddingNewAddress(false);
+    }
+
+  }, [step]);
+
 
   useEffect(() => {
 
@@ -1874,67 +2145,117 @@ export default function CheckoutDialog({
 
                 <div
                   className="
-                    flex
-                    items-start
+                    relative
                   "
                 >
 
-                  {
-                    STEPS.map(
-                      (
-                        item,
-                        index
-                      ) => {
+                  {/* SEPARATE CONNECTOR SEGMENTS
+                      Stops at the edge of each step circle so the
+                      line never runs underneath / through the circles. */}
+                  <div
+                    className="
+                      pointer-events-none
+                      absolute
+                      left-[calc(16.6667%+22px)]
+                      top-5
+                      h-[2px]
+                      w-[calc(33.3333%-44px)]
+                      rounded-full
+                      bg-neutral-200
+                    "
+                  >
+                    {currentStepIndex >= 1 && (
+                      <div
+                        className="
+                          h-full
+                          w-full
+                          rounded-full
+                          bg-[#C8A44D]
+                          transition-all
+                          duration-500
+                          ease-out
+                        "
+                      />
+                    )}
+                  </div>
 
-                        const Icon =
-                          item.icon;
+                  <div
+                    className="
+                      pointer-events-none
+                      absolute
+                      left-[calc(50%+22px)]
+                      top-5
+                      h-[2px]
+                      w-[calc(33.3333%-44px)]
+                      rounded-full
+                      bg-neutral-200
+                    "
+                  >
+                    {currentStepIndex >= 2 && (
+                      <div
+                        className="
+                          h-full
+                          w-full
+                          rounded-full
+                          bg-[#C8A44D]
+                          transition-all
+                          duration-500
+                          ease-out
+                        "
+                      />
+                    )}
+                  </div>
 
-                        const completed =
-                          index <
-                          currentStepIndex;
+                  <div
+                    className="
+                      relative
+                      z-10
+                      grid
+                      grid-cols-3
+                    "
+                  >
 
-                        const active =
-                          index ===
-                          currentStepIndex;
+                    {
+                      STEPS.map(
+                        (
+                          item,
+                          index
+                        ) => {
 
-                        const available =
-                          index <=
-                          currentStepIndex;
+                          const Icon =
+                            item.icon;
 
-                        return (
+                          const completed =
+                            index <
+                            currentStepIndex;
 
-                          <div
-                            key={
-                              item.key
-                            }
-                            className="
-                              flex
-                              min-w-0
-                              flex-1
-                              items-start
-                            "
-                          >
+                          const active =
+                            index ===
+                            currentStepIndex;
+
+                          const available =
+                            index <=
+                            currentStepIndex;
+
+                          return (
 
                             <div
+                              key={item.key}
                               className="
                                 flex
                                 min-w-0
-                                flex-1
                                 flex-col
                                 items-center
+                                text-center
                               "
                             >
 
                               <button
                                 type="button"
-                                disabled={
-                                  !available
-                                }
+                                disabled={!available}
                                 onClick={() => {
 
-                                  if (
-                                    !available
-                                  ) {
+                                  if (!available) {
                                     return;
                                   }
 
@@ -1942,47 +2263,27 @@ export default function CheckoutDialog({
                                     item.key ===
                                     "login"
                                   ) {
-
-                                    if (
-                                      !authCustomer
-                                    ) {
-
-                                      setStep(
-                                        "login"
-                                      );
-
+                                    if (!authCustomer) {
+                                      setStep("login");
                                     }
-
                                     return;
-
                                   }
 
                                   if (
                                     item.key ===
                                     "address"
                                   ) {
-
                                     setShippingError("");
-
-                                    setStep(
-                                      "address"
-                                    );
-
+                                    setStep("address");
                                     return;
-
                                   }
 
                                   if (
                                     item.key ===
                                     "payment"
                                   ) {
-
-                                    setStep(
-                                      "payment"
-                                    );
-
+                                    setStep("payment");
                                   }
-
                                 }}
                                 className={`
                                   group
@@ -2058,11 +2359,10 @@ export default function CheckoutDialog({
 
                               </button>
 
-
                               <div
                                 className="
                                   mt-2
-                                  text-center
+                                  min-w-0
                                 "
                               >
 
@@ -2083,9 +2383,7 @@ export default function CheckoutDialog({
                                     }
                                   `}
                                 >
-                                  {
-                                    item.label
-                                  }
+                                  {item.label}
                                 </p>
 
                                 <p
@@ -2115,54 +2413,12 @@ export default function CheckoutDialog({
 
                             </div>
 
+                          );
+                        }
+                      )
+                    }
 
-                            {
-                              index !==
-                              STEPS.length - 1 && (
-
-                                <div
-                                  className="
-                                    relative
-                                    mt-5
-                                    h-[2px]
-                                    flex-1
-                                    overflow-hidden
-                                    rounded-full
-                                    bg-neutral-200
-                                  "
-                                >
-
-                                  <div
-                                    className={`
-                                      absolute
-                                      inset-y-0
-                                      left-0
-                                      rounded-full
-                                      transition-all
-                                      duration-500
-                                      ease-out
-
-                                      ${
-                                        index <
-                                        currentStepIndex
-                                          ? "w-full bg-[#C8A44D]"
-                                          : "w-0 bg-[#C8A44D]"
-                                      }
-                                    `}
-                                  />
-
-                                </div>
-
-                              )
-                            }
-
-                          </div>
-
-                        );
-
-                      }
-                    )
-                  }
+                  </div>
 
                 </div>
 
@@ -2629,10 +2885,10 @@ export default function CheckoutDialog({
           ================================================== */}
 
           {
-            !orderSuccess && (
+            !orderSuccess &&
+            !isAddingNewAddress && (
 
               <div
-
                 className="
                   mb-6
                   rounded-2xl
@@ -2646,271 +2902,270 @@ export default function CheckoutDialog({
                   shadow-[0_8px_30px_rgba(0,0,0,0.045)]
                   motion-safe:animate-[fadeUp_350ms_ease-out]
                 "
-
               >
 
-                <h3
-
+                <div
                   className="
-                    mb-3
-                    text-sm
-                    font-semibold
+                    mb-4
+                    flex
+                    items-center
+                    justify-between
                   "
-
                 >
+                  <h3
+                    className="
+                      text-base
+                      font-semibold
+                      tracking-[-0.02em]
+                      text-neutral-950
+                    "
+                  >
+                    Order Summary
+                  </h3>
 
-                  Order Summary
-
-                </h3>
-
+                  <span
+                    className="
+                      rounded-full
+                      bg-neutral-100
+                      px-2.5
+                      py-1
+                      text-[10px]
+                      font-semibold
+                      text-neutral-500
+                    "
+                  >
+                    {items.length} {items.length === 1 ? "Item" : "Items"}
+                  </span>
+                </div>
 
                 <div
-
                   className="
-                    space-y-2
+                    space-y-2.5
                     text-sm
                   "
-
                 >
 
+                  {/* TOTAL MRP */}
                   <div
                     className="
                       flex
+                      items-center
                       justify-between
                     "
                   >
-
-                    <span
-                      className="
-                        text-neutral-500
-                      "
-                    >
-                      Items
+                    <span className="text-neutral-500">
+                      Total MRP
                     </span>
-
-                    <span>
-                      {
-                        items.length
-                      }
+                    <span className="font-medium text-neutral-800">
+                      ₹{totalMrp.toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                     </span>
-
                   </div>
 
+                  {/* ITEM DISCOUNT */}
+                  {itemDiscount > 0 && (
+                    <div
+                      className="
+                        flex
+                        items-center
+                        justify-between
+                        text-green-600
+                      "
+                    >
+                      <span>Item Discount</span>
+                      <span>
+                        -₹{itemDiscount.toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+                  )}
 
+                  {/* SPECIAL OFFER DISCOUNT */}
+                  {specialOfferDiscount > 0 && (
+                    <div
+                      className="
+                        flex
+                        items-center
+                        justify-between
+                        text-[#A07D16]
+                      "
+                    >
+                      <span>Special Offer Discount</span>
+                      <span>
+                        -₹{specialOfferDiscount.toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* SUBTOTAL */}
                   <div
                     className="
                       flex
-                      justify-between
-                    "
-                  >
-
-                    <span
-                      className="
-                        text-neutral-500
-                      "
-                    >
-                      Subtotal
-                    </span>
-
-                    <span>
-                      ₹
-                      {
-                        subtotal.toFixed(2)
-                      }
-                    </span>
-
-                  </div>
-
-
-                  {
-                    discount > 0 && (
-
-                      <div
-
-                        className="
-                          flex
-                          justify-between
-                          text-green-600
-                        "
-
-                      >
-
-                        <span>
-                          Discount
-                        </span>
-
-                        <span>
-                          - ₹
-                          {
-                            discount.toFixed(2)
-                          }
-                        </span>
-
-                      </div>
-
-                    )
-                  }
-
-
-                  {
-                    appliedCoupon && (
-
-                      <div
-
-                        className="
-                          rounded-xl
-                          bg-green-100
-                          px-3
-                          py-2
-                          text-xs
-                          text-green-700
-                        "
-
-                      >
-
-                        Coupon Applied:
-
-                        {" "}
-
-                        <strong>
-                          {
-                            appliedCoupon.code
-                          }
-                        </strong>
-
-                      </div>
-
-                    )
-                  }
-
-
-                  <div
-
-                    className="
-                      flex
-                      justify-between
-                    "
-
-                  >
-
-                    <span
-                      className="
-                        text-neutral-500
-                      "
-                    >
-
-                      Shipping
-
-                    </span>
-
-
-                    <span>
-
-                      {
-                        freeShippingUnlocked
-
-                          ? "FREE"
-
-                          : step === "payment"
-
-                            ? `₹${(
-                                verifiedCheckoutPricing?.shippingCharge ??
-                                finalShippingCharge
-                              ).toFixed(2)}`
-
-                            : "Calculated at next step"
-                      }
-
-                    </span>
-
-                  </div>
-
-
-                  {
-                    (
-                      step === "payment"
-                        ? (
-                            verifiedCheckoutPricing?.giftWrapAmount ??
-                            0
-                          )
-                        : addressStepGiftWrapAmount
-                    ) > 0 && (
-
-                      <div
-                        className="
-                          flex
-                          items-center
-                          justify-between
-                        "
-                      >
-
-                        <span
-                          className="
-                            text-neutral-500
-                          "
-                        >
-                          🎁 Gift Wrap
-                        </span>
-
-                        <span>
-                          ₹
-                          {
-                            (
-                              step === "payment"
-                                ? (
-                                    verifiedCheckoutPricing?.giftWrapAmount ??
-                                    0
-                                  )
-                                : addressStepGiftWrapAmount
-                            ).toFixed(2)
-                          }
-                        </span>
-
-                      </div>
-
-                    )
-                  }
-
-
-                  <div
-
-                    className="
-                      flex
+                      items-center
                       justify-between
                       border-t
+                      border-neutral-200
+                      pt-2.5
+                      font-medium
+                    "
+                  >
+                    <span>Subtotal</span>
+                    <span>
+                      ₹{displayedSubtotal.toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+
+                  {/* COUPON DISCOUNT */}
+                  {displayedCouponDiscount > 0 && (
+                    <div
+                      className="
+                        flex
+                        items-center
+                        justify-between
+                        text-green-600
+                      "
+                    >
+                      <span>Coupon Discount</span>
+                      <span>
+                        -₹{displayedCouponDiscount.toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* APPLIED COUPON */}
+                  {appliedCoupon && (
+                    <div
+                      className="
+                        rounded-xl
+                        border
+                        border-green-200
+                        bg-green-50
+                        px-3
+                        py-2
+                        text-xs
+                        text-green-700
+                      "
+                    >
+                      Coupon Applied:
+                      {" "}
+                      <strong>
+                        {appliedCoupon.code}
+                      </strong>
+                    </div>
+                  )}
+
+                  {/* SHIPPING */}
+                  <div
+                    className="
+                      flex
+                      items-center
+                      justify-between
+                    "
+                  >
+                    <span className="text-neutral-500">
+                      Shipping
+                    </span>
+                    <span
+                      className={
+                        freeShippingUnlocked
+                          ? "font-semibold text-green-600"
+                          : "text-neutral-800"
+                      }
+                    >
+                      {freeShippingUnlocked
+                        ? "FREE"
+                        : step === "payment"
+                          ? `₹${(
+                              verifiedCheckoutPricing?.shippingCharge ??
+                              finalShippingCharge
+                            ).toLocaleString("en-IN", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}`
+                          : "Calculated at next step"}
+                    </span>
+                  </div>
+
+                  {/* GIFT WRAP */}
+                  {displayedGiftWrapAmount > 0 && (
+                    <div
+                      className="
+                        flex
+                        items-center
+                        justify-between
+                      "
+                    >
+                      <span className="text-neutral-500">
+                        🎁 Gift Wrap
+                      </span>
+                      <span>
+                        ₹{displayedGiftWrapAmount.toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* TAX */}
+                  {displayedTax > 0 && (
+                    <div
+                      className="
+                        flex
+                        items-center
+                        justify-between
+                      "
+                    >
+                      <span className="text-neutral-500">
+                        Tax
+                      </span>
+                      <span>
+                        ₹{displayedTax.toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* FINAL TOTAL */}
+                  <div
+                    className="
+                      mt-1
+                      flex
+                      items-center
+                      justify-between
+                      border-t
+                      border-neutral-200
                       pt-3
                       font-semibold
                     "
-
                   >
-
-                    <span>
-                      Total
-                    </span>
-
-
+                    <span>Total</span>
                     <span
-
                       className="
+                        text-base
                         text-[#9A7A22]
                       "
-
                     >
-
-                      ₹
-                      {
-                        (
-                          step === "payment"
-                            ? (
-                                verifiedCheckoutPricing?.totalAmount ??
-                                finalAmount
-                              )
-                            : addressStepTotal
-                        ).toFixed(2)
-                      }
-
+                      ₹{displayedTotal.toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                     </span>
-
                   </div>
 
                 </div>
@@ -3115,6 +3370,10 @@ export default function CheckoutDialog({
 
                 onContinue={
                   handleAddressContinue
+                }
+
+                onAddingAddressChange={
+                  setIsAddingNewAddress
                 }
 
               />
