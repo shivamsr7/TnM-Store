@@ -15,6 +15,7 @@ import {
 } from "react-router-dom";
 
 import {
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -26,6 +27,12 @@ import {
 import {
   useCartActions,
 } from "@/features/cart/hooks/useCartActions";
+
+import {
+  getEffectiveProductPrice,
+  getSpecialDiscountAmount,
+  hasSpecialProductDiscount,
+} from "@/features/products/utils/specialDiscount";
 
 
 interface ProductRelatedProductsProps {
@@ -54,6 +61,30 @@ export default function ProductRelatedProducts({
     addedProductId,
     setAddedProductId,
   ] = useState<string | null>(null);
+
+  /*
+   * =========================================================
+   * SPECIAL OFFER COUNTDOWN
+   *
+   * One shared clock keeps every related-product card in sync
+   * without creating an interval for every card.
+   * =========================================================
+   */
+
+  const [
+    now,
+    setNow,
+  ] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, []);
 
 
   const {
@@ -98,6 +129,10 @@ export default function ProductRelatedProducts({
               slug,
               price,
               compare_price,
+              special_discount_enabled,
+              special_discount_type,
+              special_discount_value,
+              special_discount_ends_at,
               stock,
               category_id,
               subcategory_id,
@@ -201,6 +236,10 @@ export default function ProductRelatedProducts({
               slug,
               price,
               compare_price,
+              special_discount_enabled,
+              special_discount_type,
+              special_discount_value,
+              special_discount_ends_at,
               stock,
               category_id,
               subcategory_id,
@@ -306,6 +345,10 @@ export default function ProductRelatedProducts({
               slug,
               price,
               compare_price,
+              special_discount_enabled,
+              special_discount_type,
+              special_discount_value,
+              special_discount_ends_at,
               stock,
               category_id,
               subcategory_id,
@@ -400,6 +443,143 @@ export default function ProductRelatedProducts({
 
   }
 
+
+  /*
+   * =========================================================
+   * SPECIAL PRICE HELPERS
+   * =========================================================
+   */
+
+  const getCountdownSeconds = (
+    product: any
+  ) => {
+    if (
+      !hasSpecialProductDiscount(product) ||
+      !product.special_discount_ends_at
+    ) {
+      return null;
+    }
+
+    const endsAt =
+      new Date(
+        product.special_discount_ends_at
+      ).getTime();
+
+    if (!Number.isFinite(endsAt)) {
+      return null;
+    }
+
+    return Math.max(
+      0,
+      Math.ceil(
+        (endsAt - now) / 1000
+      )
+    );
+  };
+
+
+  const formatCountdown = (
+    totalSeconds: number
+  ) => {
+    const days =
+      Math.floor(
+        totalSeconds / 86400
+      );
+
+    const hours =
+      Math.floor(
+        (totalSeconds % 86400) / 3600
+      );
+
+    const minutes =
+      Math.floor(
+        (totalSeconds % 3600) / 60
+      );
+
+    const seconds =
+      totalSeconds % 60;
+
+    const paddedHours =
+      String(hours).padStart(2, "0");
+
+    const paddedMinutes =
+      String(minutes).padStart(2, "0");
+
+    const paddedSeconds =
+      String(seconds).padStart(2, "0");
+
+    if (days > 0) {
+      return `${days}d ${paddedHours}h ${paddedMinutes}m ${paddedSeconds}s`;
+    }
+
+    if (hours > 0) {
+      return `${paddedHours}h ${paddedMinutes}m ${paddedSeconds}s`;
+    }
+
+    if (minutes > 0) {
+      return `${paddedMinutes}m ${paddedSeconds}s`;
+    }
+
+    return `${paddedSeconds}s`;
+  };
+
+
+  const getSpecialPriceDetails = (
+    product: any
+  ) => {
+    const hasSpecialDiscount =
+      hasSpecialProductDiscount(
+        product
+      );
+
+    const effectivePrice =
+      getEffectiveProductPrice(
+        product
+      );
+
+    const originalPrice =
+      Number(product.price ?? 0);
+
+    const comparePrice =
+      Number(
+        product.compare_price ?? 0
+      );
+
+    const mrp =
+      comparePrice > originalPrice
+        ? comparePrice
+        : 0;
+
+    const specialDiscountAmount =
+      hasSpecialDiscount
+        ? getSpecialDiscountAmount(
+            product
+          )
+        : 0;
+
+    const countdownSeconds =
+      hasSpecialDiscount
+        ? getCountdownSeconds(
+            product
+          )
+        : null;
+
+    return {
+      hasSpecialDiscount,
+      effectivePrice,
+      originalPrice,
+      mrp,
+      specialDiscountAmount,
+      countdownSeconds,
+    };
+  };
+
+
+  /*
+   * =========================================================
+   * IMAGE
+   * =========================================================
+   */
 
   const getImage = (
     product: any
@@ -895,67 +1075,224 @@ export default function ProductRelatedProducts({
                       </Link>
 
 
-                      <div
-                        className="
-                          mt-1.5
-                          flex
-                          items-center
-                          gap-1.5
-                        "
-                      >
+                      {(() => {
+                        const {
+                          hasSpecialDiscount,
+                          effectivePrice,
+                          originalPrice,
+                          mrp,
+                          specialDiscountAmount,
+                          countdownSeconds,
+                        } =
+                          getSpecialPriceDetails(
+                            product
+                          );
 
-                        <span
-                          className="
-                            text-sm
-                            font-semibold
-                            text-white
-
-                            sm:text-base
-                          "
-                        >
-
-                          ₹
-                          {
-                            Number(
-                              product.price
-                            ).toFixed(0)
-                          }
-
-                        </span>
-
-
-                        {
+                        const regularDiscount =
                           product.compare_price &&
                           Number(
                             product.compare_price
                           ) >
-                          Number(
-                            product.price
-                          ) && (
+                          effectivePrice
+                            ? Math.round(
+                                (
+                                  (
+                                    Number(
+                                      product.compare_price
+                                    ) -
+                                    effectivePrice
+                                  ) /
+                                  Number(
+                                    product.compare_price
+                                  )
+                                ) *
+                                100
+                              )
+                            : 0;
 
-                            <span
+                        return (
+                          <>
+                            {hasSpecialDiscount &&
+                              mrp > 0 && (
+                                <div
+                                  className="
+                                    mb-0.5
+                                    text-[9px]
+                                    font-medium
+                                    uppercase
+                                    tracking-[0.1em]
+                                    text-white/40
+
+                                    sm:text-[10px]
+                                  "
+                                >
+                                  MRP ₹
+                                  {mrp.toFixed(0)}
+                                </div>
+                              )}
+
+                            <div
                               className="
-                                text-[10px]
-                                text-white/40
-                                line-through
-
-                                sm:text-xs
+                                flex
+                                flex-wrap
+                                items-baseline
+                                gap-x-1.5
+                                gap-y-1
                               "
                             >
+                              <span
+                                className="
+                                  text-sm
+                                  font-semibold
+                                  text-white
 
-                              ₹
-                              {
+                                  sm:text-base
+                                "
+                              >
+                                ₹
+                                {effectivePrice.toFixed(0)}
+                              </span>
+
+                              {hasSpecialDiscount && (
+                                <span
+                                  className="
+                                    text-[10px]
+                                    text-white/40
+                                    line-through
+
+                                    sm:text-xs
+                                  "
+                                >
+                                  ₹
+                                  {originalPrice.toFixed(0)}
+                                </span>
+                              )}
+
+                              {!hasSpecialDiscount &&
+                                product.compare_price &&
                                 Number(
                                   product.compare_price
-                                ).toFixed(0)
-                              }
+                                ) >
+                                  Number(
+                                    product.price
+                                  ) && (
+                                  <span
+                                    className="
+                                      text-[10px]
+                                      text-white/40
+                                      line-through
 
-                            </span>
+                                      sm:text-xs
+                                    "
+                                  >
+                                    ₹
+                                    {Number(
+                                      product.compare_price
+                                    ).toFixed(0)}
+                                  </span>
+                                )}
 
-                          )
-                        }
+                              {hasSpecialDiscount && (
+                                <span
+                                  className="
+                                    rounded-md
+                                    border
+                                    border-[#D4AF37]/50
+                                    bg-[#D4AF37]/10
+                                    px-1
+                                    py-0.5
+                                    text-[8px]
+                                    font-semibold
+                                    tracking-wide
+                                    text-[#D4AF37]
 
-                      </div>
+                                    sm:px-1.5
+                                    sm:text-[9px]
+                                  "
+                                >
+                                  {product.special_discount_type ===
+                                  "percentage"
+                                    ? `${Math.min(
+                                        Number(
+                                          product.special_discount_value
+                                        ) || 0,
+                                        100
+                                      )}% OFF`
+                                    : `₹${specialDiscountAmount.toFixed(
+                                        0
+                                      )} OFF`}
+                                </span>
+                              )}
+
+                              {!hasSpecialDiscount &&
+                                regularDiscount > 0 && (
+                                  <span
+                                    className="
+                                      text-[9px]
+                                      font-medium
+                                      text-[#D4AF37]
+
+                                      sm:text-[10px]
+                                    "
+                                  >
+                                    {regularDiscount}% OFF
+                                  </span>
+                                )}
+                            </div>
+
+                            {hasSpecialDiscount && (
+                              <div
+                                className="
+                                  mt-1
+                                  flex
+                                  items-center
+                                  gap-1.5
+                                "
+                              >
+                                <span
+                                  className="
+                                    inline-flex
+                                    items-center
+                                    rounded-md
+                                    bg-[#D4AF37]
+                                    px-1.5
+                                    py-0.5
+                                    text-[8px]
+                                    font-bold
+                                    uppercase
+                                    tracking-[0.1em]
+                                    text-black
+
+                                    sm:px-2
+                                    sm:text-[9px]
+                                  "
+                                >
+                                  ✦ SPECIAL PRICE
+                                </span>
+
+                                {countdownSeconds !== null &&
+                                  countdownSeconds > 0 && (
+                                    <span
+                                      className="
+                                        whitespace-nowrap
+                                        text-[8px]
+                                        font-medium
+                                        text-[#D4AF37]
+
+                                        sm:text-[9px]
+                                      "
+                                    >
+                                      ⏱{" "}
+                                      {formatCountdown(
+                                        countdownSeconds
+                                      )}
+                                    </span>
+                                  )}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
 
 
                       {/* ADD TO CART */}

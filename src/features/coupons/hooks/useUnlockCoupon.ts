@@ -16,7 +16,8 @@ import {
 
 
 export function useUnlockCoupon(
-  cartTotal: number
+  cartTotal: number,
+  cartItems: any[] = []
 ) {
 
   const {
@@ -28,6 +29,118 @@ export function useUnlockCoupon(
     data: coupons = [],
     isLoading: couponsLoading,
   } = useCoupons();
+
+
+  /*
+   * =========================================================
+   * SPECIAL PRICE CART CHECK
+   * =========================================================
+   *
+   * A Special Price product must never unlock/show a coupon
+   * offer. We compare the cart's snapped unit price with the
+   * current regular product price.
+   * =========================================================
+   */
+
+  const {
+    data: specialPriceOnly = false,
+    isLoading: specialPriceLoading,
+  } = useQuery({
+
+    queryKey: [
+      "unlock-coupon-special-price-check",
+      cartItems
+        .map(
+          (item: any) =>
+            `${item.productId ?? item.product_id ?? item.id ?? ""}:${item.quantity}:${item.price ?? item.unit_price ?? 0}`
+        )
+        .sort()
+        .join("|"),
+    ],
+
+    queryFn: async () => {
+
+      if (cartItems.length === 0) {
+        return false;
+      }
+
+      const productIds = [
+        ...new Set(
+          cartItems
+            .map(
+              (item: any) =>
+                item.productId ??
+                item.product_id ??
+                item.id ??
+                ""
+            )
+            .filter(Boolean)
+        ),
+      ];
+
+      if (productIds.length === 0) {
+        return false;
+      }
+
+      const {
+        data: products,
+        error,
+      } = await supabase
+        .from("products")
+        .select("id, price")
+        .in("id", productIds);
+
+      if (error) {
+        throw error;
+      }
+
+      const regularPriceById =
+        new Map(
+          (products ?? []).map(
+            (product: any) => [
+              product.id,
+              Number(product.price ?? 0),
+            ]
+          )
+        );
+
+      return cartItems.every(
+        (item: any) => {
+
+          const productId =
+            item.productId ??
+            item.product_id ??
+            item.id ??
+            "";
+
+          const snappedPrice =
+            Number(
+              item.price ??
+              item.unit_price ??
+              0
+            );
+
+          const regularPrice =
+            regularPriceById.get(
+              productId
+            ) ?? 0;
+
+          return (
+            regularPrice > 0 &&
+            snappedPrice < regularPrice
+          );
+
+        }
+      );
+
+    },
+
+    enabled:
+      cartItems.length > 0,
+
+    staleTime: 0,
+
+  });
 
 
   /*
@@ -595,7 +708,8 @@ export function useUnlockCoupon(
     customerLoading ||
     customerRulesLoading ||
     membershipRulesLoading ||
-    usageLoading;
+    usageLoading ||
+    specialPriceLoading;
 
 
   /*
@@ -864,6 +978,21 @@ export function useUnlockCoupon(
 
   const now =
     new Date();
+
+
+  /*
+   * Special Price-only carts should not surface an unlock
+   * coupon offer.
+   */
+  if (
+    specialPriceOnly
+  ) {
+    return {
+      unlockCoupon: null,
+      remainingAmount: 0,
+      isLoading,
+    };
+  }
 
 
   const lockedCoupons =

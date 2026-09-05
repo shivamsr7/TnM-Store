@@ -162,7 +162,9 @@ const calculateEligibleItems = (
     coupon.apply_scope ===
       "all"
   ) {
-    return items;
+    return items.filter(
+      item => !item.is_special_price
+    );
   }
 
 
@@ -221,6 +223,10 @@ const calculateEligibleItems = (
 
   return items.filter(
     item => {
+
+      if (item.is_special_price) {
+        return false;
+      }
 
       const excluded =
         excludes.some(
@@ -742,7 +748,7 @@ export async function validateCoupon(
   ) {
 
     throw new Error(
-      "Invalid coupon code"
+      "This coupon code is invalid. Please check the code and try again."
     );
 
   }
@@ -767,7 +773,7 @@ export async function validateCoupon(
   ) {
 
     throw new Error(
-      "This coupon is not active yet"
+      "This coupon is not active yet. Please try again later."
     );
 
   }
@@ -782,7 +788,7 @@ export async function validateCoupon(
   ) {
 
     throw new Error(
-      "This coupon has expired"
+      "This coupon has expired and can no longer be used."
     );
 
   }
@@ -809,7 +815,7 @@ export async function validateCoupon(
   ) {
 
     throw new Error(
-      "This coupon limit has been reached"
+      "This coupon has reached its usage limit and can no longer be used."
     );
 
   }
@@ -830,7 +836,7 @@ export async function validateCoupon(
     ) {
 
       throw new Error(
-        "Please log in to use this coupon"
+        "Please log in to use this coupon."
       );
 
     }
@@ -869,7 +875,7 @@ export async function validateCoupon(
     ) {
 
       throw new Error(
-        "You have already used this coupon"
+        "You have already used this coupon."
       );
 
     }
@@ -1182,6 +1188,7 @@ export async function validateCoupon(
         )
         .select(`
           id,
+          price,
           category_id,
           brand_id,
           product_collections(
@@ -1217,6 +1224,8 @@ export async function validateCoupon(
       productMetadata[
         product.id
       ] = {
+
+        regular_price: Number(product.price ?? 0),
 
         category_ids:
           product.category_id
@@ -1292,6 +1301,12 @@ export async function validateCoupon(
           };
 
 
+        const unitPrice =
+          getUnitPrice(item);
+
+        const regularPrice =
+          Number(metadata.regular_price ?? 0);
+
         return {
 
           product_id:
@@ -1303,9 +1318,11 @@ export async function validateCoupon(
             ),
 
           unit_price:
-            getUnitPrice(
-              item
-            ),
+            unitPrice,
+
+          is_special_price:
+            regularPrice > 0 &&
+            unitPrice < regularPrice,
 
           ...metadata,
 
@@ -1362,7 +1379,7 @@ export async function validateCoupon(
   ) {
 
     throw new Error(
-      `Minimum order value ₹${coupon.minimum_order_amount} required`
+      `Add ₹${Math.max(0, Number(coupon.minimum_order_amount) - orderSubtotal).toLocaleString("en-IN")} more to meet the minimum order value for this coupon.`
     );
 
   }
@@ -1443,6 +1460,16 @@ export async function validateCoupon(
       "This coupon does not apply to the products in your cart."
     );
 
+  }
+
+
+  if (
+    validationItems.length > 0 &&
+    eligibleItems.length === 0
+  ) {
+    throw new Error(
+      "This coupon does not apply to the products in your cart."
+    );
   }
 
 

@@ -56,6 +56,13 @@ interface CartBannerCoupon {
   expires_at: string | null;
 }
 
+interface CartProductPricing {
+  id: string;
+  price: number | null;
+  compare_price: number | null;
+  special_discount_ends_at: string | null;
+}
+
 export default function CartDrawer() {
 
   /*
@@ -95,6 +102,156 @@ export default function CartDrawer() {
   const {
     customer,
   } = useAuth();
+
+
+  /*
+   * =========================================================
+   * TOTALS
+   * =========================================================
+   */
+
+  const total =
+    getTotal();
+
+  const finalTotal =
+    getFinalTotal();
+
+
+  /*
+   * =========================================================
+   * SYNC APPLIED COUPON WITH CART CHANGES
+   * =========================================================
+   *
+   * When an eligible item is removed/changed, the persisted
+   * coupon must be recalculated against the new cart.
+   *
+   * - Still eligible → refresh the coupon discount.
+   * - No longer eligible → remove the coupon and show the
+   *   existing cart-level error.
+   * =========================================================
+   */
+
+  useEffect(() => {
+
+    if (
+      !isCartOpen ||
+      !customer?.id ||
+      !appliedCoupon
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const syncAppliedCoupon =
+      async () => {
+
+        try {
+
+          const result =
+            await validateCoupon(
+              appliedCoupon.code,
+              total,
+              customer.id,
+              items
+            );
+
+          if (cancelled) {
+            return;
+          }
+
+          /*
+           * Refresh the stored discount when the eligible
+           * portion of the cart changes.
+           */
+          applyCoupon({
+
+            id:
+              result.coupon.id,
+
+            code:
+              result.coupon.code,
+
+            title:
+              result.coupon.title,
+
+            discount:
+              result.discount,
+
+            freeShipping:
+              result.freeShipping,
+
+            freeGift:
+              result.freeGift,
+
+            minimumOrderAmount:
+              result.coupon
+                .minimum_order_amount,
+
+          });
+
+          setCouponError("");
+
+          setCouponMessage(
+            result.freeShipping
+              ? "🎉 Free shipping coupon applied!"
+              : result.freeGift
+                ? "🎁 Free gift coupon applied!"
+                : `Coupon applied! You saved ₹${result.discount}`
+          );
+
+        } catch (error: any) {
+
+          if (cancelled) {
+            return;
+          }
+
+          /*
+           * The cart no longer contains an eligible item
+           * for this coupon.
+           */
+          removeCoupon();
+
+          setCouponMessage("");
+          setCouponError("");
+
+          setCouponRemovedDialog(
+            appliedCoupon.code
+          );
+
+          window.setTimeout(() => {
+            setCouponRemovedDialog(null);
+          }, 2800);
+
+        }
+
+      };
+
+    void syncAppliedCoupon();
+
+    return () => {
+      cancelled = true;
+    };
+
+  }, [
+    isCartOpen,
+    customer?.id,
+    appliedCoupon?.code,
+    items,
+    total,
+    applyCoupon,
+    removeCoupon,
+  ]);
+
+
+
+  /*
+   * =========================================================
+   * SPECIAL PRICE COUNTDOWN
+   * =========================================================
+   */
+
+  const [countdownNow, setCountdownNow] = useState(Date.now());
 
 
   /*
@@ -363,16 +520,242 @@ export default function CartDrawer() {
 
   /*
    * =========================================================
-   * TOTALS
+   * CART PRODUCT PRICING
+   * =========================================================
+   *
+   * item.price is the customer's cart price snapshot.
+   * We only fetch the current regular price / MRP here so the
+   * cart can show the price hierarchy without replacing the
+   * customer's snapped Special Price.
    * =========================================================
    */
 
-  const total =
-    getTotal();
+  const {
+    data: cartProductPricing = [],
+  } = useQuery<CartProductPricing[]>({
 
-  const finalTotal =
-    getFinalTotal();
-/*
+    queryKey: [
+      "cart-product-pricing",
+      items
+        .map(item => item.productId)
+        .sort()
+        .join("|"),
+    ],
+
+    queryFn: async () => {
+
+      const productIds =
+        [
+          ...new Set(
+            items.map(
+              item => item.productId
+            )
+          ),
+        ];
+
+      if (
+        productIds.length === 0
+      ) {
+        return [];
+      }
+
+      const {
+        data,
+        error,
+      } = await supabase
+
+        .from("products")
+
+        .select(
+          "id, price, compare_price, special_discount_ends_at"
+        )
+
+        .in(
+          "id",
+          productIds
+        );
+
+      if (error) {
+        throw error;
+      }
+
+      return (
+        data ?? []
+      ) as CartProductPricing[];
+
+    },
+
+    enabled:
+      isCartOpen &&
+      items.length > 0,
+
+    staleTime:
+      5 * 60 * 1000,
+
+  });
+
+
+  const cartProductPricingMap =
+    new Map(
+      cartProductPricing.map(
+        product => [
+          product.id,
+          product,
+        ]
+      )
+    );
+
+  /*
+   * =========================================================
+   * CART PRICE BREAKDOWN
+   * =========================================================
+   *
+   * Total Amount = sum of all product MRP values × quantity.
+   *
+   * Item Discount = normal product discount from MRP to the
+   * current regular/our price.
+   *
+   * Special Offer Discount = additional discount from the
+   * regular/our price to the customer's snapped Special Price.
+   *
+   * Subtotal remains the cart store total, so the existing
+   * checkout pricing flow is not changed.
+   * =========================================================
+   */
+
+  let totalAmount = 0;
+  let itemDiscount = 0;
+  let specialOfferDiscount = 0;
+
+  items.forEach(item => {
+
+    const pricing =
+      cartProductPricingMap.get(
+        item.productId
+      );
+
+    const regularPrice =
+      Number(
+        pricing?.price ??
+        item.price
+      );
+
+    const mrp =
+      Number(
+        pricing?.compare_price ??
+        regularPrice
+      );
+
+    const quantity =
+      Number(item.quantity) || 0;
+
+    const productMrp =
+      mrp > 0
+        ? mrp
+        : regularPrice;
+
+    totalAmount +=
+      productMrp *
+      quantity;
+
+    const hasSpecialPrice =
+      item.price <
+      regularPrice;
+
+    if (hasSpecialPrice) {
+
+      specialOfferDiscount +=
+        Math.max(
+          0,
+          regularPrice -
+          item.price
+        ) *
+        quantity;
+
+      itemDiscount +=
+        Math.max(
+          0,
+          productMrp -
+          regularPrice
+        ) *
+        quantity;
+
+    } else {
+
+      itemDiscount +=
+        Math.max(
+          0,
+          productMrp -
+          item.price
+        ) *
+        quantity;
+
+    }
+
+  });
+
+
+
+  useEffect(() => {
+
+    const hasSpecialTimer = cartProductPricing.some(
+      product => Boolean(product.special_discount_ends_at)
+    );
+
+    if (!isCartOpen || !hasSpecialTimer) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setCountdownNow(Date.now());
+    }, 1000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [
+    isCartOpen,
+    cartProductPricing,
+  ]);
+
+
+  const formatSpecialCountdown = (
+    endsAt: string | null | undefined
+  ) => {
+
+    if (!endsAt) {
+      return null;
+    }
+
+    const remainingSeconds = Math.max(
+      0,
+      Math.floor(
+        (new Date(endsAt).getTime() - countdownNow) / 1000
+      )
+    );
+
+    if (remainingSeconds <= 0) {
+      return null;
+    }
+
+    const days = Math.floor(remainingSeconds / 86400);
+    const hours = Math.floor(
+      (remainingSeconds % 86400) / 3600
+    );
+    const minutes = Math.floor(
+      (remainingSeconds % 3600) / 60
+    );
+    const seconds = remainingSeconds % 60;
+
+    if (days > 0) {
+      return `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m`;
+    }
+
+    return `${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
+  };
+
+
+  /*
    * =========================================================
    * STOCK LIMIT MESSAGE
    * =========================================================
@@ -686,7 +1069,8 @@ export default function CartDrawer() {
     unlockCoupon,
     remainingAmount,
   } = useUnlockCoupon(
-    total
+    total,
+    items
   );
 
 
@@ -752,6 +1136,33 @@ export default function CartDrawer() {
     couponError,
     setCouponError,
   ] = useState("");
+
+
+
+  /*
+   * =========================================================
+   * CLEAR STALE COUPON ERROR WHEN AN ELIGIBLE OFFER RETURNS
+   * =========================================================
+   *
+   * If an eligible item is added again, the best coupon can
+   * become available again. Clear the previous "does not apply"
+   * error so the coupon section reflects the current cart.
+   * =========================================================
+   */
+
+  useEffect(() => {
+
+    if (
+      bestCouponAvailable &&
+      couponError
+    ) {
+      setCouponError("");
+    }
+
+  }, [
+    bestCouponAvailable,
+    couponError,
+  ]);
 
 
   const [
@@ -917,6 +1328,32 @@ export default function CartDrawer() {
   ] = useState(false);
 
 
+  /*
+   * =========================================================
+   * BEST OFFER APPLY FEEDBACK
+   * =========================================================
+   */
+
+  const [
+    applyingBestCoupon,
+    setApplyingBestCoupon,
+  ] = useState(false);
+
+  const [
+    bestCouponAppliedDialog,
+    setBestCouponAppliedDialog,
+  ] = useState<{
+    code: string;
+    discount: number;
+  } | null>(null);
+
+
+  const [
+    couponRemovedDialog,
+    setCouponRemovedDialog,
+  ] = useState<string | null>(null);
+
+
   const checkoutCouponReminderKey =
     bestCoupon
       ? `${bestCoupon.id}-${Math.round(total)}`
@@ -939,6 +1376,90 @@ export default function CartDrawer() {
     setShowCheckoutCouponReminder(true);
 
   };
+
+
+  const handleApplyBestCoupon =
+    async () => {
+
+      if (!bestCoupon) {
+        return;
+      }
+
+      if (!customer) {
+        setCouponError(
+          "Please log in to use a coupon"
+        );
+        return;
+      }
+
+      try {
+
+        setApplyingBestCoupon(true);
+        setCouponError("");
+
+        const result =
+          await validateCoupon(
+            bestCoupon.code,
+            total,
+            customer.id,
+            items
+          );
+
+        applyCoupon({
+
+          id:
+            result.coupon.id,
+
+          code:
+            result.coupon.code,
+
+          title:
+            result.coupon.title,
+
+          discount:
+            result.discount,
+
+          freeShipping:
+            result.freeShipping,
+
+          freeGift:
+            result.freeGift,
+
+          minimumOrderAmount:
+            result.coupon
+              .minimum_order_amount,
+
+        });
+
+        setBestCouponAppliedDialog({
+          code:
+            result.coupon.code,
+          discount:
+            Number(
+              result.discount ?? 0
+            ),
+        });
+
+        window.setTimeout(() => {
+          setBestCouponAppliedDialog(
+            null
+          );
+        }, 2600);
+
+      } catch (error: any) {
+
+        setCouponError(
+          error?.message ||
+          "Unable to apply this coupon right now."
+        );
+
+      } finally {
+
+        setApplyingBestCoupon(false);
+
+      }
+
+    };
 
 
   const handleApplyCheckoutCoupon =
@@ -2669,12 +3190,255 @@ export default function CartDrawer() {
 
                                   ₹
                                   {
-                                    item.price
+                                    (
+                                      item.price *
+                                      item.quantity
+                                    ).toLocaleString("en-IN")
                                   }
 
                                 </span>
 
                               </div>
+
+
+                              {(() => {
+
+                                const pricing =
+                                  cartProductPricingMap.get(
+                                    item.productId
+                                  );
+
+                                const regularPrice =
+                                  Number(
+                                    pricing?.price ??
+                                    item.price
+                                  );
+
+                                const mrp =
+                                  Number(
+                                    pricing?.compare_price ??
+                                    0
+                                  );
+
+                                const hasSpecialPrice =
+                                  item.price <
+                                  regularPrice;
+
+                                // Normal product discount: compare_price is the MRP
+                                // and the product price is the regular/sale price.
+                                const hasNormalDiscount =
+                                  !hasSpecialPrice &&
+                                  mrp > item.price;
+
+                                const discountBase =
+                                  hasSpecialPrice
+                                    ? regularPrice
+                                    : mrp;
+
+                                const discountPercent =
+                                  discountBase > 0
+                                    ? Math.round(
+                                        (
+                                          (discountBase -
+                                            item.price) /
+                                          discountBase
+                                        ) *
+                                        100
+                                      )
+                                    : 0;
+
+                                if (
+                                  !hasSpecialPrice &&
+                                  !hasNormalDiscount
+                                ) {
+                                  return null;
+                                }
+
+                                return (
+
+                                  <div
+                                    className="
+                                      mt-2
+                                      space-y-1
+                                    "
+                                  >
+
+                                    {mrp > 0 && (
+                                      <div
+                                        className="
+                                          text-[10px]
+                                          font-medium
+                                          uppercase
+                                          tracking-[0.12em]
+                                          text-neutral-500
+                                        "
+                                      >
+                                        MRP ₹
+                                        {mrp.toLocaleString(
+                                          "en-IN"
+                                        )}
+                                      </div>
+                                    )}
+
+                                    <div
+                                      className="
+                                        flex
+                                        flex-wrap
+                                        items-center
+                                        gap-x-2
+                                        gap-y-1
+                                        text-xs
+                                      "
+                                    >
+
+                                      <span
+                                        className="
+                                          text-neutral-500
+                                        "
+                                      >
+                                        {hasSpecialPrice
+                                          ? "Regular Price"
+                                          : "Our Price"}
+                                      </span>
+
+                                      <span
+                                        className={
+                                          hasSpecialPrice
+                                            ? "text-neutral-500 line-through"
+                                            : "font-semibold text-neutral-800"
+                                        }
+                                      >
+                                        ₹
+                                        {Number(
+                                          regularPrice
+                                        ).toLocaleString(
+                                          "en-IN"
+                                        )}
+                                      </span>
+
+                                      {hasSpecialPrice && (
+                                        <span
+                                          className="
+                                            rounded-md
+                                            border
+                                            border-[#D4AF37]/50
+                                            bg-[#D4AF37]/10
+                                            px-1.5
+                                            py-0.5
+                                            text-[10px]
+                                            font-semibold
+                                            tracking-wide
+                                            text-[#A07D16]
+                                          "
+                                        >
+                                          {discountPercent}% OFF
+                                        </span>
+                                      )}
+
+                                    </div>
+
+                                    {hasSpecialPrice ? (
+                                      <div
+                                        className="
+                                          flex
+                                          flex-wrap
+                                          items-center
+                                          gap-x-2
+                                          gap-y-1
+                                        "
+                                      >
+                                        <span
+                                          className="
+                                            text-[10px]
+                                            font-medium
+                                            uppercase
+                                            tracking-[0.12em]
+                                            text-[#A07D16]
+                                          "
+                                        >
+                                          Special Price
+                                        </span>
+
+                                        <span
+                                          className="
+                                            text-sm
+                                            font-semibold
+                                          "
+                                        >
+                                          ₹
+                                          {Number(
+                                            item.price
+                                          ).toLocaleString(
+                                            "en-IN"
+                                          )}
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <div
+                                        className="
+                                          flex
+                                          flex-wrap
+                                          items-center
+                                          gap-x-2
+                                          gap-y-1
+                                        "
+                                      >
+                                        <span
+                                          className="
+                                            text-[10px]
+                                            font-medium
+                                            uppercase
+                                            tracking-[0.12em]
+                                            text-[#A07D16]
+                                          "
+                                        >
+                                          {discountPercent}% OFF
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {hasSpecialPrice && (
+                                      (() => {
+                                        const specialCountdown =
+                                          formatSpecialCountdown(
+                                            pricing?.special_discount_ends_at
+                                          );
+
+                                        if (!specialCountdown) {
+                                          return null;
+                                        }
+
+                                        return (
+                                          <div
+                                            className="
+                                              mt-1
+                                              inline-flex
+                                              w-fit
+                                              items-center
+                                              gap-1.5
+                                              rounded-md
+                                              border
+                                              border-[#D4AF37]/40
+                                              bg-[#D4AF37]/10
+                                              px-2
+                                              py-1
+                                              text-[10px]
+                                              font-semibold
+                                              text-[#8C6B0A]
+                                            "
+                                          >
+                                            <span aria-hidden="true">⏱</span>
+                                            <span>Offer ends in {specialCountdown}</span>
+                                          </div>
+                                        );
+                                      })()
+                                    )}
+
+                                  </div>
+
+                                );
+
+                              })()}
 
 
                               {/* =========================================
@@ -3112,6 +3876,9 @@ export default function CartDrawer() {
 
                   <RelatedProducts
                     cartItems={items}
+                    onProductNavigate={() => {
+                      closeCart();
+                    }}
                   />
 
                 </div>
@@ -3385,58 +4152,17 @@ export default function CartDrawer() {
                 <button
 
                   onClick={
-                    async () => {
+                    handleApplyBestCoupon
+                  }
 
-                      if (!customer) {
-
-                        throw new Error(
-                          "Please log in to use a coupon"
-                        );
-
-                      }
-
-
-                      const result =
-                        await validateCoupon(
-                          bestCoupon.code,
-                          total,
-                          customer.id,
-                          items
-                        );
-
-
-                      applyCoupon({
-
-                        id:
-                          result.coupon.id,
-
-                        code:
-                          result.coupon.code,
-
-                        title:
-                          result.coupon.title,
-
-                        discount:
-                          result.discount,
-
-                        freeShipping:
-                          result.freeShipping,
-
-                        freeGift:
-                          result.freeGift,
-
-                        minimumOrderAmount:
-                          result.coupon
-                            .minimum_order_amount,
-
-                      });
-
-                      showCouponSuccess();
-
-                    }
+                  disabled={
+                    applyingBestCoupon
                   }
 
                   className="
+
+                    disabled:cursor-not-allowed
+                    disabled:opacity-70
 
                     mt-3
 
@@ -3454,7 +4180,25 @@ export default function CartDrawer() {
 
                 >
 
-                  Apply
+                  {
+                    applyingBestCoupon ? (
+                      <span
+                        className="
+                          flex
+                          items-center
+                          gap-2
+                        "
+                      >
+                        <Loader2
+                          size={16}
+                          className="animate-spin"
+                        />
+                        Applying...
+                      </span>
+                    ) : (
+                      "Apply"
+                    )
+                  }
 
                 </button>
 
@@ -4593,30 +5337,130 @@ export default function CartDrawer() {
 
                   >
 
-                    {/* SUBTOTAL */}
+                    {/* PRICE BREAKDOWN */}
 
                     <div
-
                       className="
-                        flex
-                        justify-between
+                        space-y-2
+                        text-sm
                       "
-
                     >
 
-                      <span>
-                        Subtotal
-                      </span>
+                      {/* TOTAL AMOUNT / MRP TOTAL */}
+
+                      <div
+                        className="
+                          flex
+                          justify-between
+                        "
+                      >
+                        <span>
+                          Total Amount
+                        </span>
+
+                        <span>
+                          ₹
+                          {
+                            totalAmount.toLocaleString(
+                              "en-IN",
+                              {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }
+                            )
+                          }
+                        </span>
+                      </div>
 
 
-                      <span>
+                      {/* ITEM DISCOUNT */}
 
-                        ₹
-                        {
-                          total.toFixed(2)
-                        }
+                      {itemDiscount > 0 && (
+                        <div
+                          className="
+                            flex
+                            justify-between
+                            text-green-600
+                          "
+                        >
+                          <span>
+                            Item Discount
+                          </span>
 
-                      </span>
+                          <span>
+                            -₹
+                            {
+                              itemDiscount.toLocaleString(
+                                "en-IN",
+                                {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                }
+                              )
+                            }
+                          </span>
+                        </div>
+                      )}
+
+
+                      {/* SPECIAL OFFER DISCOUNT */}
+
+                      {specialOfferDiscount > 0 && (
+                        <div
+                          className="
+                            flex
+                            justify-between
+                            text-[#A07D16]
+                          "
+                        >
+                          <span>
+                            Special Offer Discount
+                          </span>
+
+                          <span>
+                            -₹
+                            {
+                              specialOfferDiscount.toLocaleString(
+                                "en-IN",
+                                {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                }
+                              )
+                            }
+                          </span>
+                        </div>
+                      )}
+
+
+                      {/* SUBTOTAL */}
+
+                      <div
+                        className="
+                          flex
+                          justify-between
+                          border-t
+                          pt-2
+                          font-medium
+                        "
+                      >
+                        <span>
+                          Subtotal
+                        </span>
+
+                        <span>
+                          ₹
+                          {
+                            total.toLocaleString(
+                              "en-IN",
+                              {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }
+                            )
+                          }
+                        </span>
+                      </div>
 
                     </div>
 
@@ -5114,6 +5958,10 @@ export default function CartDrawer() {
           total
         }
 
+        cartItems={
+          items
+        }
+
         appliedCoupon={
           appliedCoupon
         }
@@ -5228,6 +6076,293 @@ export default function CartDrawer() {
         }
 
       />
+
+
+      {couponRemovedDialog && (
+
+        <div
+          className="
+            fixed
+            inset-0
+            z-[1400]
+            flex
+            items-center
+            justify-center
+            bg-black/30
+            px-5
+            backdrop-blur-[2px]
+            animate-in
+            fade-in
+            duration-200
+          "
+        >
+
+          <div
+            className="
+              w-full
+              max-w-sm
+              rounded-3xl
+              border
+              border-[#D8C27A]/60
+              bg-white
+              px-6
+              py-7
+              text-center
+              shadow-2xl
+              animate-in
+              zoom-in-95
+              slide-in-from-bottom-2
+              duration-300
+            "
+          >
+
+            <div
+              className="
+                relative
+                mx-auto
+                flex
+                h-16
+                w-16
+                items-center
+                justify-center
+                rounded-full
+                bg-[#F5E6B8]
+                text-[#8C6B0A]
+                animate-in
+                zoom-in
+                duration-500
+              "
+            >
+
+              <div
+                className="
+                  absolute
+                  inset-0
+                  rounded-full
+                  border-2
+                  border-[#D8C27A]
+                  animate-ping
+                  opacity-40
+                "
+              />
+
+              <X
+                size={28}
+                strokeWidth={2.5}
+              />
+
+            </div>
+
+
+            <div
+              className="
+                mt-5
+              "
+            >
+
+              <p
+                className="
+                  text-lg
+                  font-semibold
+                  text-neutral-900
+                "
+              >
+                Coupon removed
+              </p>
+
+              <p
+                className="
+                  mt-2
+                  text-sm
+                  leading-relaxed
+                  text-neutral-500
+                "
+              >
+                <span
+                  className="font-semibold text-neutral-800"
+                >
+                  {couponRemovedDialog}
+                </span>
+                {" "}was removed because the item currently in your cart
+                is not eligible for this coupon.
+              </p>
+
+            </div>
+
+
+            <div
+              className="
+                mt-5
+                text-[11px]
+                text-neutral-400
+              "
+            >
+              Your cart total has been updated
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+
+      {bestCouponAppliedDialog && (
+
+        <div
+          className="
+            fixed
+            inset-0
+            z-[1400]
+            flex
+            items-center
+            justify-center
+            bg-black/30
+            px-5
+            backdrop-blur-[2px]
+            animate-in
+            fade-in
+            duration-200
+          "
+        >
+
+          <div
+            className="
+              w-full
+              max-w-sm
+              rounded-3xl
+              border
+              border-green-200
+              bg-white
+              px-6
+              py-7
+              text-center
+              shadow-2xl
+              animate-in
+              zoom-in-95
+              slide-in-from-bottom-2
+              duration-300
+            "
+          >
+
+            <div
+              className="
+                relative
+                mx-auto
+                flex
+                h-16
+                w-16
+                items-center
+                justify-center
+                rounded-full
+                bg-green-100
+                text-green-600
+                animate-in
+                zoom-in
+                duration-500
+              "
+            >
+
+              <div
+                className="
+                  absolute
+                  inset-0
+                  rounded-full
+                  border-2
+                  border-green-200
+                  animate-ping
+                  opacity-50
+                "
+              />
+
+              <Check
+                size={30}
+                strokeWidth={2.5}
+              />
+
+            </div>
+
+
+            <div
+              className="
+                mt-5
+              "
+            >
+
+              <p
+                className="
+                  text-lg
+                  font-semibold
+                  text-neutral-900
+                "
+              >
+                Coupon applied!
+              </p>
+
+              <p
+                className="
+                  mt-1.5
+                  text-sm
+                  leading-relaxed
+                  text-neutral-500
+                "
+              >
+                <span
+                  className="font-semibold text-neutral-800"
+                >
+                  {bestCouponAppliedDialog.code}
+                </span>
+                {" "}has been applied to the eligible item
+                {bestCouponAppliedDialog.discount > 0 ? "s" : ""}.
+              </p>
+
+              {
+                bestCouponAppliedDialog.discount > 0 && (
+                  <div
+                    className="
+                      mx-auto
+                      mt-4
+                      inline-flex
+                      items-center
+                      gap-1.5
+                      rounded-full
+                      bg-green-50
+                      px-4
+                      py-2
+                      text-sm
+                      font-semibold
+                      text-green-700
+                    "
+                  >
+                    <Sparkles
+                      size={15}
+                    />
+                    You saved ₹
+                    {
+                      bestCouponAppliedDialog.discount
+                    }
+                  </div>
+                )
+              }
+
+            </div>
+
+
+            <div
+              className="
+                mt-5
+                text-[11px]
+                text-neutral-400
+              "
+            >
+              Your cart total has been updated
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
 
 
       {couponSuccess && (

@@ -1,5 +1,9 @@
 import {
-  Star,
+  useEffect,
+  useState,
+} from "react";
+
+import {
   Zap,
 } from "lucide-react";
 
@@ -42,6 +46,56 @@ export default function ProductInfo({
         )
       :
         0;
+
+
+  const [countdownSeconds, setCountdownSeconds] =
+    useState<number | null>(null);
+
+
+  useEffect(() => {
+    if (
+      !hasSpecialDiscount ||
+      !product.special_discount_ends_at
+    ) {
+      setCountdownSeconds(null);
+      return;
+    }
+
+    const updateCountdown = () => {
+      const endsAt = new Date(
+        product.special_discount_ends_at
+      ).getTime();
+
+      const remaining = Math.max(
+        0,
+        Math.floor((endsAt - Date.now()) / 1000)
+      );
+
+      setCountdownSeconds(remaining);
+    };
+
+    updateCountdown();
+    const interval = window.setInterval(
+      updateCountdown,
+      1000
+    );
+
+    return () =>
+      window.clearInterval(interval);
+  }, [
+    hasSpecialDiscount,
+    product.special_discount_ends_at,
+  ]);
+
+
+  const formatCountdown = (seconds: number) => {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    return `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(secs).padStart(2, "0")}s`;
+  };
 
 
   return (
@@ -94,166 +148,83 @@ export default function ProductInfo({
           RATING
       ====================================================== */}
 
-      {
-        product.rating > 0 && (
+      {product.rating > 0 && (
 
-          <button
+        <button
+          type="button"
+          onClick={() => {
+            const reviewSection =
+              document.getElementById(
+                "customer-reviews"
+              );
 
-            type="button"
-
-            onClick={() => {
-
-              const reviewSection =
-                document.getElementById(
-                  "customer-reviews"
-                );
-
-              if (
-                reviewSection
-              ) {
-
-                reviewSection.scrollIntoView({
-                  behavior: "smooth",
-                  block: "start",
-                });
-
-              }
-
-            }}
-
-            className="
-
-              mt-4
-
-              flex
-              items-center
-              gap-2
-
-              text-sm
-
-              text-left
-
-              transition-opacity
-
-              duration-200
-
-              hover:opacity-80
-
-              focus:outline-none
-
-              focus-visible:ring-2
-
-              focus-visible:ring-[#D4AF37]
-
-              focus-visible:ring-offset-2
-
-              focus-visible:ring-offset-black
-
-            "
-
-            aria-label="View customer reviews"
-
-          >
-
-            <span
-
-              className="
-
-                flex
-                items-center
-                gap-0.5
-
-                text-[#D4AF37]
-
-              "
-
-              aria-hidden="true"
-
-            >
-
-              {Array.from(
-                {
-                  length: 5,
-                }
-              ).map(
-                (
-                  _,
-                  index
-                ) => (
-
-                  <Star
-
-                    key={
-                      index
-                    }
-
-                    size={14}
-
-                    fill="currentColor"
-
-                    strokeWidth={1.5}
-
-                  />
-
-                )
-              )}
-
-            </span>
-
-
-            <span
-
-              className="
-
-                font-medium
-
-                text-white
-
-              "
-
-            >
-
-              {
-                Number(
-                  product.rating
-                ).toFixed(1)
-              }
-
-            </span>
-
-
-            {
-              product.review_count > 0 && (
-
-                <span
-
-                  className="
-                    text-neutral-400
-                  "
-
-                >
-
-                  (
-                  {
-                    product.review_count
-                  }
-                  {" "}
-                  {
-                    product.review_count === 1
-                      ? "Review"
-                      : "Reviews"
-                  }
-                  )
-
-                </span>
-
-              )
+            if (reviewSection) {
+              reviewSection.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
             }
+          }}
+          aria-label="View customer reviews"
+          className="
+            mt-4
+            flex
+            min-w-0
+            items-center
+            gap-1.5
+            text-left
+            text-xs
+            transition-opacity
+            duration-200
+            hover:opacity-80
+            focus:outline-none
+            focus-visible:ring-1
+            focus-visible:ring-[#D4AF37]
+            sm:text-sm
+          "
+        >
+          <span
+            className="
+              flex
+              shrink-0
+              items-center
+              gap-0.5
+              text-[#D4AF37]
+            "
+            aria-hidden="true"
+          >
+            {Array.from({ length: 5 }).map((_, index) => (
+              <span
+                key={index}
+                className="leading-none"
+              >
+                ★
+              </span>
+            ))}
+          </span>
 
-          </button>
+          <span
+            className="
+              shrink-0
+              font-medium
+              text-white
+            "
+          >
+            {Number(product.rating).toFixed(1)}
+          </span>
 
-        )
-      }
+          {product.review_count > 0 && (
+            <span
+              className="
+                shrink-0
+                text-neutral-500
+              "
+            >
+              ({product.review_count})
+            </span>
+          )}
+        </button>
+      )}
 
 
       {/* =====================================================
@@ -261,188 +232,210 @@ export default function ProductInfo({
       ====================================================== */}
 
       <div
-
         className="
           mt-6
         "
-
       >
+        {hasSpecialDiscount ? (
+          <>
+            {/* Product MRP */}
+            <div
+              className="
+                text-xs
+                font-medium
+                uppercase
+                tracking-[0.12em]
+                text-neutral-500
+              "
+            >
+              MRP ₹{Number(product.mrp ?? product.compare_price ?? product.price).toFixed(2)}
+            </div>
 
-        <div
-
-          className="
-
-            flex
-            items-center
-            gap-3
-
-          "
-
-        >
-
-          <span
-
-            className="
-
-              text-4xl
-
-              font-semibold
-
-              tracking-tight
-
-              text-white
-
-            "
-
-          >
-
-            ₹
-            {
-              effectivePrice
-            }
-
-          </span>
-
-
-          {
-            hasSpecialDiscount && (
-
-              <span
-
+            {/* Regular Price */}
+            <div className="mt-2">
+              <div
                 className="
-
-                  text-base
-
-                  text-neutral-500
-
-                  line-through
-
-                "
-
-              >
-
-                ₹
-                {
-                  product.price
-                }
-
-              </span>
-
-            )
-          }
-
-
-          {
-            product.compare_price && !hasSpecialDiscount && (
-
-              <span
-
-                className="
-
-                  text-base
-
-                  text-neutral-500
-
-                  line-through
-
-                "
-
-              >
-
-                ₹
-                {
-                  product.compare_price
-                }
-
-              </span>
-
-            )
-          }
-
-
-          {
-            discount > 0 && (
-
-              <span
-
-                className="
-
-                  rounded-full
-
-                  bg-[#D4AF37]/15
-
-                  px-3
-                  py-1
-
                   text-xs
-
                   font-medium
-
-                  text-[#D4AF37]
-
+                  uppercase
+                  tracking-[0.12em]
+                  text-neutral-500
                 "
-
               >
+                Regular Price
+              </div>
 
-                {
-                  discount
-                }% OFF
+              <div className="mt-0.5 flex items-center gap-3">
+                <span
+                  className="
+                    text-2xl
+                    font-medium
+                    tracking-tight
+                    text-neutral-400
+                    line-through
+                  "
+                >
+                  ₹{Number(product.price).toFixed(2)}
+                </span>
+              </div>
+            </div>
 
-              </span>
-
-            )
-          }
-
-
-          {
-            hasSpecialDiscount && (
-
-              <span
-
+            {/* Special Price */}
+            <div className="mt-2">
+              <div
                 className="
-
                   text-xs
-
                   font-medium
-
+                  uppercase
+                  tracking-[0.12em]
                   text-[#D4AF37]
-
                 "
-
               >
+                Special Price
+              </div>
 
-                ✦ Special Price
+              <div className="mt-0.5 flex flex-wrap items-center gap-3">
+                <span
+                  className="
+                    text-4xl
+                    font-semibold
+                    tracking-tight
+                    text-white
+                  "
+                >
+                  ₹{Number(effectivePrice).toFixed(2)}
+                </span>
 
+                <span
+                  className="
+                    rounded-full
+                    bg-[#D4AF37]/15
+                    px-3
+                    py-1
+                    text-xs
+                    font-medium
+                    text-[#D4AF37]
+                  "
+                >
+                  {discount}% OFF
+                </span>
+
+                <span
+                  className="
+                    inline-flex
+                    w-auto
+                    max-w-max
+                    items-center
+                    gap-1.5
+                    rounded-md
+                    border
+                    border-[#D8C27A]
+                    bg-[#F5E6B8]
+                    px-2.5
+                    py-1
+                    text-[10px]
+                    font-bold
+                    uppercase
+                    tracking-[0.14em]
+                    text-black
+                    sm:text-[11px]
+                  "
+                >
+                  <span aria-hidden="true">✦</span>
+                  <span>Special Price</span>
+                </span>
+              </div>
+
+              {countdownSeconds !== null && countdownSeconds > 0 && (
+                <div
+                  className="
+                    mt-2
+                    inline-flex
+                    items-center
+                    rounded-full
+                    border
+                    border-red-500/80
+                    bg-black/80
+                    px-3
+                    py-1.5
+                    text-[10px]
+                    font-semibold
+                    tracking-[0.02em]
+                    text-red-400
+                    shadow-[0_4px_12px_rgba(0,0,0,0.3)]
+                  "
+                >
+                  ⏱ Offer ends in {formatCountdown(countdownSeconds)}
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <div
+              className="
+                flex
+                flex-wrap
+                items-center
+                gap-3
+              "
+            >
+              <span
+                className="
+                  text-4xl
+                  font-semibold
+                  tracking-tight
+                  text-white
+                "
+              >
+                ₹{Number(product.price).toFixed(2)}
               </span>
 
-            )
-          }
+              {product.compare_price && (
+                <span
+                  className="
+                    text-base
+                    text-neutral-500
+                    line-through
+                  "
+                >
+                  ₹{Number(product.compare_price).toFixed(2)}
+                </span>
+              )}
 
-        </div>
-
+              {discount > 0 && (
+                <span
+                  className="
+                    rounded-full
+                    bg-[#D4AF37]/15
+                    px-3
+                    py-1
+                    text-xs
+                    font-medium
+                    text-[#D4AF37]
+                  "
+                >
+                  {discount}% OFF
+                </span>
+              )}
+            </div>
+          </>
+        )}
 
         <p
-
           className="
-
             mt-2
-
             text-sm
-
             text-neutral-400
-
           "
-
         >
-
           Inclusive of all taxes
-
         </p>
-
       </div>
 
 
       {/* =====================================================
+          SALES COUNT      {/* =====================================================
           SALES COUNT
       ====================================================== */}
 

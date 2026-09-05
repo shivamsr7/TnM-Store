@@ -882,17 +882,14 @@ function startCartAuthListener() {
       setTimeout(
         async () => {
 
-          if (
-            event ===
-              "SIGNED_OUT" ||
-            !session
-          ) {
-
-            /*
-             * Clear the local cart on sign-out so a
-             * different customer can never see or merge
-             * the previous customer's cart.
-             */
+          /*
+           * Only clear the cart on an actual sign-out.
+           *
+           * A null session can also occur while the app is
+           * initializing as a guest. In that case the persisted
+           * Zustand guest cart must remain intact.
+           */
+          if (event === "SIGNED_OUT") {
 
             useCartStore.setState({
 
@@ -905,6 +902,14 @@ function startCartAuthListener() {
 
             return;
 
+          }
+
+          /*
+           * No authenticated session = valid guest state.
+           * Do not clear the persisted guest cart.
+           */
+          if (!session) {
+            return;
           }
 
           await synchronizeCartForSession(

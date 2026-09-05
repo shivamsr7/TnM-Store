@@ -2,12 +2,17 @@ import {
   Check,
   Plus,
   Sparkles,
+  Timer,
 } from "lucide-react";
 
 import {
   useEffect,
   useState,
 } from "react";
+
+import {
+  useNavigate,
+} from "react-router-dom";
 
 import {
   useQuery,
@@ -28,6 +33,10 @@ interface RelatedProductsProps {
     productId?: string;
   }>;
 
+  onProductNavigate?: (
+    product: any
+  ) => void;
+
 }
 
 
@@ -37,8 +46,13 @@ interface RelatedProductsProps {
 export default function RelatedProducts({
 
   cartItems,
+  onProductNavigate,
 
 }: RelatedProductsProps) {
+
+
+  const navigate =
+    useNavigate();
 
 
   /*
@@ -57,6 +71,14 @@ export default function RelatedProducts({
     setAddedProductId,
   ] = useState<string | null>(
     null
+  );
+
+
+  const [
+    countdownNow,
+    setCountdownNow,
+  ] = useState(
+    Date.now()
   );
 
 
@@ -213,8 +235,13 @@ export default function RelatedProducts({
             `
               id,
               name,
+              slug,
               price,
               compare_price,
+              special_discount_enabled,
+              special_discount_type,
+              special_discount_value,
+              special_discount_ends_at,
               stock,
               category_id,
               subcategory_id,
@@ -437,8 +464,13 @@ export default function RelatedProducts({
             `
               id,
               name,
+              slug,
               price,
               compare_price,
+              special_discount_enabled,
+              special_discount_type,
+              special_discount_value,
+              special_discount_ends_at,
               stock,
               category_id,
               subcategory_id,
@@ -529,6 +561,38 @@ export default function RelatedProducts({
       5 * 60 * 1000,
 
   });
+
+
+
+  useEffect(() => {
+
+    const hasActiveSpecial =
+      products.some(
+        (product: any) =>
+          Boolean(
+            product.special_discount_enabled
+          ) &&
+          product.special_discount_ends_at
+      );
+
+    if (!hasActiveSpecial) {
+      return;
+    }
+
+    const timer =
+      window.setInterval(() => {
+        setCountdownNow(
+          Date.now()
+        );
+      }, 1000);
+
+    return () => {
+      window.clearInterval(
+        timer
+      );
+    };
+
+  }, [products]);
 
 
   /*
@@ -645,6 +709,155 @@ export default function RelatedProducts({
     );
 
   };
+
+
+  /*
+   * =========================================================
+   * SPECIAL PRICE
+   * =========================================================
+   */
+
+  const getSpecialPrice =
+    (product: any) => {
+
+      const enabled =
+        Boolean(
+          product.special_discount_enabled
+        );
+
+      const basePrice =
+        Number(
+          product.price ?? 0
+        );
+
+      const value =
+        Number(
+          product.special_discount_value ?? 0
+        );
+
+      if (
+        !enabled ||
+        basePrice <= 0 ||
+        value <= 0
+      ) {
+        return null;
+      }
+
+      const specialPrice =
+        product.special_discount_type ===
+        "fixed"
+          ? Math.max(
+              0,
+              basePrice - value
+            )
+          : Math.max(
+              0,
+              basePrice -
+                (basePrice * value) /
+                  100
+            );
+
+      const endsAt =
+        product.special_discount_ends_at
+          ? new Date(
+              product.special_discount_ends_at
+            )
+          : null;
+
+      if (
+        endsAt &&
+        endsAt.getTime() <=
+          Date.now()
+      ) {
+        return null;
+      }
+
+      if (
+        specialPrice >= basePrice
+      ) {
+        return null;
+      }
+
+      return {
+        price: specialPrice,
+        regularPrice: basePrice,
+        endsAt,
+      };
+    };
+
+
+  const formatSpecialCountdown =
+    (
+      endsAt: Date | null
+    ) => {
+
+      if (!endsAt) {
+        return "";
+      }
+
+      const remaining =
+        Math.max(
+          0,
+          endsAt.getTime() -
+            countdownNow
+        );
+
+      if (remaining <= 0) {
+        return "Offer ended";
+      }
+
+      const totalSeconds =
+        Math.floor(
+          remaining / 1000
+        );
+
+      const days =
+        Math.floor(
+          totalSeconds / 86400
+        );
+
+      const hours =
+        Math.floor(
+          (totalSeconds % 86400) /
+            3600
+        );
+
+      const minutes =
+        Math.floor(
+          (totalSeconds % 3600) /
+            60
+        );
+
+      const seconds =
+        totalSeconds % 60;
+
+      if (days > 0) {
+        return `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m`;
+      }
+
+      return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+
+    };
+
+
+  const handleProductClick =
+    (
+      product: any
+    ) => {
+
+      if (!product.slug) {
+        return;
+      }
+
+      onProductNavigate?.(
+        product
+      );
+
+      navigate(
+        `/product/${product.slug}`
+      );
+
+    };
 
 
   /*
@@ -812,6 +1025,31 @@ export default function RelatedProducts({
                   key={
                     product.id
                   }
+                  role="link"
+                  tabIndex={0}
+                  onClick={() =>
+                    handleProductClick(
+                      product
+                    )
+                  }
+                  onKeyDown={(event) => {
+
+                    if (
+                      event.key ===
+                        "Enter" ||
+                      event.key ===
+                        " "
+                    ) {
+
+                      event.preventDefault();
+
+                      handleProductClick(
+                        product.id
+                      );
+
+                    }
+
+                  }}
                   className="
                     flex
                     h-[286px]
@@ -893,6 +1131,41 @@ export default function RelatedProducts({
                       )
                     }
 
+                    {
+                      getSpecialPrice(
+                        product
+                      ) && (
+
+                        <span
+                          className="
+                            absolute
+                            left-1.5
+                            top-1.5
+                            z-10
+                            inline-flex
+                            items-center
+                            gap-1
+                            rounded-md
+                            border
+                            border-[#D8C27A]
+                            bg-[#F5E6B8]
+                            px-1.5
+                            py-1
+                            text-[7px]
+                            font-bold
+                            uppercase
+                            leading-none
+                            tracking-[0.06em]
+                            text-[#8C6B0A]
+                            shadow-sm
+                          "
+                        >
+                          ✦ Special Price
+                        </span>
+
+                      )
+                    }
+
                   </div>
 
 
@@ -932,68 +1205,181 @@ export default function RelatedProducts({
                         PRICE
                     ======================================== */}
 
-                    <div
-                      className="
-                        mt-1.5
-                        flex
-                        h-4
-                        min-w-0
-                        shrink-0
-                        items-center
-                        gap-1
-                      "
-                    >
+                    {(() => {
 
-                      <span
-                        className="
-                          text-[12px]
-                          font-semibold
-                          leading-4
-                        "
-                      >
+                      const specialPrice =
+                        getSpecialPrice(
+                          product
+                        );
 
-                        ₹
-                        {
-                          Number(
-                            product.price
-                          ).toFixed(0)
-                        }
+                      const displayPrice =
+                        specialPrice
+                          ? specialPrice.price
+                          : Number(
+                              product.price
+                            );
 
-                      </span>
+                      const regularPrice =
+                        specialPrice
+                          ? specialPrice.regularPrice
+                          : Number(
+                              product.price
+                            );
 
-
-                      {
-                        product.compare_price &&
+                      const mrp =
                         Number(
-                          product.compare_price
-                        ) >
-                        Number(
-                          product.price
-                        ) && (
+                          product.compare_price ?? 0
+                        );
+
+                      const hasNormalDiscount =
+                        !specialPrice &&
+                        mrp >
+                          displayPrice;
+
+                      return (
+
+                        <div
+                          className="
+                            mt-1.5
+                            flex
+                            h-4
+                            min-w-0
+                            shrink-0
+                            items-center
+                            gap-1
+                          "
+                        >
 
                           <span
                             className="
-                              truncate
-                              text-[8px]
+                              text-[12px]
+                              font-semibold
                               leading-4
-                              text-neutral-400
-                              line-through
                             "
                           >
-
                             ₹
-                            {
-                              Number(
-                                product.compare_price
-                              ).toFixed(0)
-                            }
-
+                            {displayPrice.toFixed(0)}
                           </span>
 
-                        )
-                      }
 
-                    </div>
+                          {specialPrice ? (
+
+                            <>
+
+                              <span
+                                className="
+                                  truncate
+                                  text-[8px]
+                                  leading-4
+                                  text-neutral-400
+                                  line-through
+                                "
+                              >
+                                ₹
+                                {regularPrice.toFixed(0)}
+                              </span>
+
+                              <span
+                                className="
+                                  inline-flex
+                                  shrink-0
+                                  items-center
+                                  rounded-full
+                                  border
+                                  border-[#D8C27A]
+                                  bg-[#F5E6B8]
+                                  px-1.5
+                                  py-0.5
+                                  text-[7px]
+                                  font-bold
+                                  uppercase
+                                  leading-none
+                                  tracking-[0.06em]
+                                  text-[#8C6B0A]
+                                "
+                              >
+                                ✦ Special Price
+                              </span>
+
+                            </>
+
+                          ) : hasNormalDiscount ? (
+
+                            <span
+                              className="
+                                truncate
+                                text-[8px]
+                                leading-4
+                                text-neutral-400
+                                line-through
+                              "
+                            >
+                              ₹
+                              {mrp.toFixed(0)}
+                            </span>
+
+                          ) : null}
+
+                        </div>
+
+                      );
+
+                    })()}
+
+
+                    {
+                      (() => {
+
+                        const specialPrice =
+                          getSpecialPrice(
+                            product
+                          );
+
+                        if (!specialPrice) {
+                          return null;
+                        }
+
+                        return (
+
+                          <div
+                            className="
+                              mt-1.5
+                              inline-flex
+                              h-5
+                              w-fit
+                              max-w-full
+                              items-center
+                              self-start
+                              gap-1
+                              rounded-full
+                              border
+                              border-[#D8C27A]/80
+                              bg-[#FFF8E7]
+                              px-2
+                              text-[7px]
+                              font-semibold
+                              leading-none
+                              text-[#8C6B0A]
+                            "
+                          >
+                            <Timer
+                              size={9}
+                              strokeWidth={2.2}
+                              className="shrink-0"
+                            />
+                            <span className="truncate">
+                              {
+                                formatSpecialCountdown(
+                                  specialPrice.endsAt
+                                )
+                              }
+                            </span>
+                          </div>
+
+                        );
+
+                      })()
+                    }
 
 
                     {/* =======================================
@@ -1002,11 +1388,15 @@ export default function RelatedProducts({
 
                     <button
                       type="button"
-                      onClick={() =>
+                      onClick={(event) => {
+
+                        event.stopPropagation();
+
                         handleAdd(
                           product
-                        )
-                      }
+                        );
+
+                      }}
                       className={`
                         mt-auto
                         flex
