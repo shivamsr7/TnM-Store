@@ -16,8 +16,6 @@ import {
   useEffect,
 } from "react";
 
-import { createPortal } from "react-dom";
-
 import {
   useQuery,
 } from "@tanstack/react-query";
@@ -30,9 +28,6 @@ import OrderSuccess from "./OrderSuccess";
 import PaymentStep from "./PaymentStep";
 import LoginStep from "./LoginStep";
 import AddressStep from "./AddressStep";
-import CouponModal from "@/features/coupons/components/CouponModal";
-
-import { validateCoupon } from "@/features/coupons/services/coupon.service";
 
 import {
   useCustomerStore,
@@ -63,7 +58,6 @@ import {
 interface Props {
   open: boolean;
   onClose: () => void;
-  buyNowItem?: any | null;
 }
 
 
@@ -101,7 +95,6 @@ interface CheckoutProductPricing {
 export default function CheckoutDialog({
   open,
   onClose,
-  buyNowItem = null,
 }: Props) {
 
   /*
@@ -282,56 +275,20 @@ export default function CheckoutDialog({
    */
 
   const {
-    items: cartItems,
+    items,
     getTotal,
-    discount: cartDiscount,
-    appliedCoupon: cartAppliedCoupon,
+    discount,
+    appliedCoupon,
     clearCart,
 
-    giftWrapSelected: cartGiftWrapSelected,
-    giftMessage: cartGiftMessage,
+    giftWrapSelected,
+    giftMessage,
 
   } = useCartStore();
 
-  /*
-   * Buy Now uses an isolated temporary checkout state.
-   * Normal cart checkout continues using the persistent cart store.
-   */
-  const isBuyNow = Boolean(buyNowItem);
 
-  const checkoutItems =
-    isBuyNow
-      ? [buyNowItem]
-      : cartItems;
-
-  const [buyNowCoupon, setBuyNowCoupon] = useState<any>(null);
-  const [buyNowDiscount, setBuyNowDiscount] = useState(0);
-  const [buyNowCouponCode, setBuyNowCouponCode] = useState("");
-  const [buyNowCouponError, setBuyNowCouponError] = useState("");
-  const [buyNowCouponLoading, setBuyNowCouponLoading] = useState(false);
-  const [buyNowCouponModalOpen, setBuyNowCouponModalOpen] = useState(false);
-  const [buyNowGiftWrapSelected, setBuyNowGiftWrapSelected] = useState(false);
-  const [buyNowGiftMessage, setBuyNowGiftMessage] = useState("");
-
-  const appliedCoupon =
-    isBuyNow ? buyNowCoupon : cartAppliedCoupon;
-
-  const discount =
-    isBuyNow ? buyNowDiscount : cartDiscount;
-
-  const giftWrapSelected =
-    isBuyNow ? buyNowGiftWrapSelected : cartGiftWrapSelected;
-
-  const giftMessage =
-    isBuyNow ? buyNowGiftMessage : cartGiftMessage;
-
-  const subtotal = isBuyNow
-    ? checkoutItems.reduce(
-        (sum: number, item: any) =>
-          sum + Number(item.price || 0) * Number(item.quantity || 0),
-        0
-      )
-    : getTotal();
+  const subtotal =
+    getTotal();
 
 
   /*
@@ -350,7 +307,7 @@ export default function CheckoutDialog({
   } = useQuery<CheckoutProductPricing[]>({
     queryKey: [
       "checkout-product-pricing",
-      checkoutItems
+      items
         .map(item => item.productId)
         .sort()
         .join("|"),
@@ -359,7 +316,7 @@ export default function CheckoutDialog({
     queryFn: async () => {
       const productIds = [
         ...new Set(
-          checkoutItems.map(
+          items.map(
             item => item.productId
           )
         ),
@@ -393,7 +350,7 @@ export default function CheckoutDialog({
 
     enabled:
       open &&
-      checkoutItems.length > 0,
+      items.length > 0,
 
     staleTime:
       5 * 60 * 1000,
@@ -583,7 +540,7 @@ export default function CheckoutDialog({
   let itemDiscount = 0;
   let specialOfferDiscount = 0;
 
-  checkoutItems.forEach(item => {
+  items.forEach(item => {
     const pricing =
       checkoutProductPricingMap.get(
         item.productId
@@ -771,103 +728,6 @@ export default function CheckoutDialog({
   }, [
     open,
   ]);
-
-
-  /*
-   * =========================================================
-   * RESET BUY NOW STATE
-   * =========================================================
-   */
-
-  useEffect(() => {
-
-    if (!isBuyNow) {
-      setBuyNowCoupon(null);
-      setBuyNowDiscount(0);
-      setBuyNowCouponCode("");
-      setBuyNowCouponError("");
-      setBuyNowCouponModalOpen(false);
-      setBuyNowGiftWrapSelected(false);
-      setBuyNowGiftMessage("");
-      return;
-    }
-
-    setBuyNowCoupon(null);
-    setBuyNowDiscount(0);
-    setBuyNowCouponCode("");
-    setBuyNowCouponError("");
-    setBuyNowCouponModalOpen(false);
-    setBuyNowGiftWrapSelected(false);
-    setBuyNowGiftMessage("");
-
-  }, [buyNowItem, isBuyNow]);
-
-
-  /*
-   * =========================================================
-   * BUY NOW COUPON
-   * =========================================================
-   */
-
-  async function applyBuyNowCoupon(input: any) {
-
-    const code =
-      typeof input === "string"
-        ? input
-        : input?.code ?? "";
-
-    if (!code.trim()) {
-      setBuyNowCouponError("Please enter a coupon code.");
-      return;
-    }
-
-    if (!customer?.id) {
-      setBuyNowCouponError("Please log in to use a coupon.");
-      return;
-    }
-
-    setBuyNowCouponLoading(true);
-    setBuyNowCouponError("");
-
-    try {
-      const result =
-        await validateCoupon(
-          code,
-          subtotal,
-          customer.id,
-          checkoutItems.map((item: any) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            price: item.price,
-          }))
-        );
-
-      setBuyNowCoupon({
-        ...result.coupon,
-        discount: result.discount,
-        freeShipping: result.freeShipping,
-        freeGift: result.freeGift,
-      });
-
-      setBuyNowDiscount(result.discount);
-      setBuyNowCouponCode("");
-      setBuyNowCouponModalOpen(false);
-    } catch (error: any) {
-      setBuyNowCouponError(
-        error?.message || "Unable to apply this coupon."
-      );
-    } finally {
-      setBuyNowCouponLoading(false);
-    }
-  }
-
-
-  function removeBuyNowCoupon() {
-    setBuyNowCoupon(null);
-    setBuyNowDiscount(0);
-    setBuyNowCouponCode("");
-    setBuyNowCouponError("");
-  }
 
 
   /*
@@ -1143,8 +1003,8 @@ export default function CheckoutDialog({
           "prepaid",
 
         items:
-          checkoutItems.map(
-            (item: typeof checkoutItems[number]) => ({
+          items.map(
+            (item: typeof items[number]) => ({
               productId:
                 item.productId,
 
@@ -1608,9 +1468,12 @@ export default function CheckoutDialog({
 
 
       const recoveryItems =
-        recoverySnapshot?.items?.length
-          ? recoverySnapshot.items
-          : checkoutItems;
+        items?.length
+          ? items
+          : (
+              recoverySnapshot?.items ??
+              []
+            );
 
 
       const recoveryCustomer =
@@ -1782,9 +1645,7 @@ export default function CheckoutDialog({
       );
 
 
-      if (!isBuyNow) {
-        clearCart();
-      }
+      clearCart();
 
       sessionStorage.removeItem(
         "tnm_last_verified_razorpay_payment_id"
@@ -1947,7 +1808,7 @@ export default function CheckoutDialog({
 
         },
 
-        items: checkoutItems,
+        items,
 
         pricing: {
 
@@ -2100,7 +1961,7 @@ export default function CheckoutDialog({
    * =========================================================
    */
 
-  return createPortal(
+  return (
 
     <>
 
@@ -2140,7 +2001,12 @@ export default function CheckoutDialog({
           flex
           h-[100dvh]
           max-h-[100dvh]
+
           w-full
+          max-w-none
+
+          translate-x-0
+          translate-y-0
 
           flex-col
 
@@ -2155,12 +2021,13 @@ export default function CheckoutDialog({
           motion-safe:animate-[checkoutIn_320ms_ease-out]
 
           md:left-1/2
-          md:top-6
-          md:h-[calc(100dvh-48px)]
-          md:max-h-[calc(100dvh-48px)]
-          md:w-[calc(100%-48px)]
-          md:max-w-[760px]
+          md:top-1/2
+          md:h-auto
+          md:max-h-[90vh]
+          md:w-[calc(100%-32px)]
+          md:max-w-[560px]
           md:-translate-x-1/2
+          md:-translate-y-1/2
           md:rounded-3xl
         "
 
@@ -3067,7 +2934,7 @@ export default function CheckoutDialog({
                       text-neutral-500
                     "
                   >
-                    {checkoutItems.length} {checkoutItems.length === 1 ? "Item" : "Items"}
+                    {items.length} {items.length === 1 ? "Item" : "Items"}
                   </span>
                 </div>
 
@@ -3157,98 +3024,6 @@ export default function CheckoutDialog({
                       })}
                     </span>
                   </div>
-
-                  {/* BUY NOW COUPON */}
-                  {isBuyNow && step !== "payment" && (
-                    <div className="space-y-2 pt-1">
-                      {buyNowCoupon ? (
-                        <div className="flex items-center justify-between rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
-                          <span>
-                            Coupon Applied: <strong>{buyNowCoupon.code}</strong>
-                          </span>
-                          <button
-                            type="button"
-                            onClick={removeBuyNowCoupon}
-                            className="font-semibold underline underline-offset-2"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="rounded-xl border border-neutral-200 bg-white p-3">
-                          <div className="flex gap-2">
-                            <input
-                              value={buyNowCouponCode}
-                              onChange={(event) => {
-                                setBuyNowCouponCode(event.target.value.toUpperCase());
-                                setBuyNowCouponError("");
-                              }}
-                              onKeyDown={(event) => {
-                                if (event.key === "Enter") {
-                                  event.preventDefault();
-                                  applyBuyNowCoupon(buyNowCouponCode);
-                                }
-                              }}
-                              placeholder="Enter coupon code"
-                              className="min-w-0 flex-1 rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-[#C8A44D]"
-                              disabled={buyNowCouponLoading}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => applyBuyNowCoupon(buyNowCouponCode)}
-                              disabled={buyNowCouponLoading}
-                              className="rounded-lg bg-black px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
-                            >
-                              {buyNowCouponLoading ? "Applying..." : "Apply"}
-                            </button>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => setBuyNowCouponModalOpen(true)}
-                            className="mt-2 text-xs font-semibold text-[#9A7A22] underline underline-offset-2"
-                          >
-                            View available coupons
-                          </button>
-
-                          {buyNowCouponError && (
-                            <p className="mt-2 text-xs text-red-600">
-                              {buyNowCouponError}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* BUY NOW GIFT WRAP */}
-                  {isBuyNow && step !== "payment" && giftWrapSettings?.enabled && (
-                    <div className="rounded-xl border border-neutral-200 bg-white px-3 py-3">
-                      <label className="flex cursor-pointer items-center justify-between gap-3">
-                        <span>
-                          <span className="block text-sm font-medium text-neutral-800">🎁 Add Gift Wrap</span>
-                          <span className="mt-0.5 block text-xs text-neutral-500">₹{Number(giftWrapSettings.price ?? 0).toLocaleString("en-IN")}</span>
-                        </span>
-                        <input
-                          type="checkbox"
-                          checked={buyNowGiftWrapSelected}
-                          onChange={(event) => setBuyNowGiftWrapSelected(event.target.checked)}
-                          className="h-4 w-4 accent-[#C8A44D]"
-                        />
-                      </label>
-
-                      {buyNowGiftWrapSelected && (
-                        <textarea
-                          value={buyNowGiftMessage}
-                          onChange={(event) => setBuyNowGiftMessage(event.target.value)}
-                          placeholder="Gift message (optional)"
-                          rows={2}
-                          maxLength={250}
-                          className="mt-3 w-full resize-none rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-[#C8A44D]"
-                        />
-                      )}
-                    </div>
-                  )}
 
                   {/* COUPON DISCOUNT */}
                   {displayedCouponDiscount > 0 && (
@@ -3978,26 +3753,17 @@ export default function CheckoutDialog({
 
       </div>
 
-      {isBuyNow && step !== "payment" && (
-        <CouponModal
-          open={buyNowCouponModalOpen}
-          onClose={() => setBuyNowCouponModalOpen(false)}
-          onApply={applyBuyNowCoupon}
-          cartTotal={subtotal}
-          cartItems={checkoutItems}
-          appliedCoupon={buyNowCoupon}
-        />
-      )}
-
       {/* Component-local motion used by the mobile-first checkout shell. */}
       <style>
         {`
           @keyframes checkoutIn {
             from {
               opacity: 0;
+              transform: translateY(18px) scale(0.985);
             }
             to {
               opacity: 1;
+              transform: translateY(0) scale(1);
             }
           }
 
@@ -4088,9 +3854,7 @@ export default function CheckoutDialog({
         `}
       </style>
 
-    </>,
-
-    document.body
+    </>
 
   );
 }

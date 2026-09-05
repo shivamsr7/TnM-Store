@@ -3159,7 +3159,7 @@ export default function CheckoutDialog({
                   </div>
 
                   {/* BUY NOW COUPON */}
-                  {isBuyNow && step !== "payment" && (
+                  {isBuyNow && (
                     <div className="space-y-2 pt-1">
                       {buyNowCoupon ? (
                         <div className="flex items-center justify-between rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
@@ -3222,7 +3222,7 @@ export default function CheckoutDialog({
                   )}
 
                   {/* BUY NOW GIFT WRAP */}
-                  {isBuyNow && step !== "payment" && giftWrapSettings?.enabled && (
+                  {isBuyNow && giftWrapSettings?.enabled && (
                     <div className="rounded-xl border border-neutral-200 bg-white px-3 py-3">
                       <label className="flex cursor-pointer items-center justify-between gap-3">
                         <span>
@@ -3978,7 +3978,7 @@ export default function CheckoutDialog({
 
       </div>
 
-      {isBuyNow && step !== "payment" && (
+      {isBuyNow && (
         <CouponModal
           open={buyNowCouponModalOpen}
           onClose={() => setBuyNowCouponModalOpen(false)}
