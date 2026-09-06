@@ -13,6 +13,7 @@ import {
 import {
   ChevronDown,
   ChevronUp,
+  AlertTriangle,
 } from "lucide-react";
 
 
@@ -103,6 +104,24 @@ export default function MobileNavigation({
 
   /*
    * =========================================================
+   * LOGOUT CONFIRMATION
+   * =========================================================
+   */
+
+  const [
+    showLogoutConfirmation,
+    setShowLogoutConfirmation,
+  ] = useState(false);
+
+
+  const [
+    isLoggingOut,
+    setIsLoggingOut,
+  ] = useState(false);
+
+
+  /*
+   * =========================================================
    * AUTH
    * =========================================================
    */
@@ -145,7 +164,24 @@ export default function MobileNavigation({
    * =========================================================
    */
 
-  async function handleLogout() {
+  function handleLogoutClick() {
+
+    if (isLoggingOut) {
+      return;
+    }
+
+    setShowLogoutConfirmation(true);
+
+  }
+
+
+  async function handleConfirmedLogout() {
+
+    if (isLoggingOut) {
+      return;
+    }
+
+    setIsLoggingOut(true);
 
     try {
 
@@ -161,6 +197,10 @@ export default function MobileNavigation({
       );
 
     } finally {
+
+      setShowLogoutConfirmation(false);
+
+      setIsLoggingOut(false);
 
       /*
        * Close drawer.
@@ -193,12 +233,14 @@ export default function MobileNavigation({
 
   return (
 
-    <div
-      className="
-        space-y-6
-        p-6
-      "
-    >
+    <>
+
+      <div
+        className="
+          space-y-6
+          p-6
+        "
+      >
 
       {/* =====================================================
           ACCOUNT CARD
@@ -287,7 +329,7 @@ export default function MobileNavigation({
                 type="button"
 
                 onClick={
-                  handleLogout
+                  handleLogoutClick
                 }
 
                 className="
@@ -902,6 +944,269 @@ export default function MobileNavigation({
       </div>
 
     </div>
+
+
+    {/* =====================================================
+        LOGOUT CONFIRMATION
+    ====================================================== */}
+
+    <AnimatePresence>
+
+      {showLogoutConfirmation && (
+
+        <motion.div
+          className="
+            fixed
+            inset-0
+            z-[100]
+            flex
+            items-end
+            justify-center
+            bg-black/45
+            px-4
+            pb-5
+            backdrop-blur-[3px]
+            sm:items-center
+          "
+          initial={{
+            opacity: 0,
+          }}
+          animate={{
+            opacity: 1,
+          }}
+          exit={{
+            opacity: 0,
+          }}
+          onClick={() => {
+
+            if (!isLoggingOut) {
+              setShowLogoutConfirmation(false);
+            }
+
+          }}
+        >
+
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mobile-logout-title"
+            className="
+              w-full
+              max-w-sm
+              overflow-hidden
+              rounded-[26px]
+              border
+              border-[#C8A44D]/30
+              bg-white
+              shadow-[0_24px_70px_rgba(0,0,0,0.25)]
+            "
+            initial={{
+              y: 24,
+              scale: 0.96,
+              opacity: 0,
+            }}
+            animate={{
+              y: 0,
+              scale: 1,
+              opacity: 1,
+            }}
+            exit={{
+              y: 18,
+              scale: 0.97,
+              opacity: 0,
+            }}
+            transition={{
+              duration: 0.22,
+              ease: "easeOut",
+            }}
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+
+            <div
+              className="
+                px-5
+                pb-5
+                pt-6
+                text-center
+              "
+            >
+
+              <div
+                className="
+                  mx-auto
+                  flex
+                  h-14
+                  w-14
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-[#F8F6F1]
+                  text-[#B18A2E]
+                  ring-1
+                  ring-[#C8A44D]/25
+                "
+              >
+
+                <AlertTriangle
+                  size={25}
+                  strokeWidth={1.8}
+                />
+
+              </div>
+
+
+              <p
+                className="
+                  mt-4
+                  text-[10px]
+                  font-semibold
+                  uppercase
+                  tracking-[0.2em]
+                  text-[#B18A2E]
+                "
+              >
+                T&M Family
+              </p>
+
+
+              <h3
+                id="mobile-logout-title"
+                className="
+                  mt-1.5
+                  text-xl
+                  font-semibold
+                  tracking-tight
+                  text-neutral-900
+                "
+              >
+                Ready to log out?
+              </h3>
+
+
+              <p
+                className="
+                  mx-auto
+                  mt-2
+                  max-w-[290px]
+                  text-sm
+                  leading-5
+                  text-neutral-500
+                "
+              >
+                Are you sure you want to log out? Your
+                account, orders and wishlist will stay safe.
+                You can sign back in anytime.
+              </p>
+
+            </div>
+
+
+            <div
+              className="
+                border-t
+                border-neutral-100
+                bg-[#FAFAF8]
+                p-4
+              "
+            >
+
+              <button
+                type="button"
+                onClick={
+                  handleConfirmedLogout
+                }
+                disabled={
+                  isLoggingOut
+                }
+                className="
+                  flex
+                  min-h-12
+                  w-full
+                  items-center
+                  justify-center
+                  rounded-2xl
+                  bg-black
+                  px-5
+                  py-3
+                  text-sm
+                  font-semibold
+                  text-white
+                  transition
+                  hover:bg-neutral-800
+                  active:scale-[0.98]
+                  disabled:cursor-not-allowed
+                  disabled:opacity-60
+                "
+              >
+
+                {isLoggingOut
+                  ? "Logging out..."
+                  : "Yes, Log Me Out"}
+
+              </button>
+
+
+              <button
+                type="button"
+                onClick={() =>
+                  setShowLogoutConfirmation(false)
+                }
+                disabled={
+                  isLoggingOut
+                }
+                className="
+                  mt-2
+                  flex
+                  min-h-11
+                  w-full
+                  items-center
+                  justify-center
+                  rounded-2xl
+                  border
+                  border-neutral-200
+                  bg-white
+                  px-5
+                  py-3
+                  text-sm
+                  font-medium
+                  text-neutral-800
+                  transition
+                  hover:bg-neutral-50
+                  active:scale-[0.98]
+                  disabled:cursor-not-allowed
+                  disabled:opacity-50
+                "
+              >
+
+                Keep Me Logged In
+
+              </button>
+
+
+              <p
+                className="
+                  mt-3
+                  text-center
+                  text-[10px]
+                  text-neutral-400
+                "
+              >
+                Your saved account data will remain secure.
+              </p>
+
+            </div>
+
+          </motion.div>
+
+        </motion.div>
+
+      )}
+
+    </AnimatePresence>
+
+    </>
 
   );
 
