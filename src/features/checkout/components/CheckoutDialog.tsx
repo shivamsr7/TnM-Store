@@ -120,6 +120,7 @@ export default function CheckoutDialog({
 
   const {
     customer: authCustomer,
+    refreshCustomer,
   } = useAuth();
 
 
@@ -219,9 +220,48 @@ export default function CheckoutDialog({
     setGuestOtpVerified,
   ] = useState(false);
 
+  /*
+   * Tracks the temporary Supabase Auth session created by Guest OTP.
+   * It intentionally stays alive for the whole checkout.
+   *
+   * It is cleared only when:
+   *   1. the Guest checkout dialog is closed, or
+   *   2. a Guest successfully completes the order/payment flow.
+   *
+   * A Guest who upgrades to Member is no longer treated as a
+   * temporary Guest session, so we never sign that Member session out.
+   */
+  const [
+    guestCheckoutSessionActive,
+    setGuestCheckoutSessionActive,
+  ] = useState(false);
+
   const [
     guestMembershipSubmitting,
     setGuestMembershipSubmitting,
+  ] = useState(false);
+
+  /*
+   * =========================================================
+   * GUEST → MEMBER PROMPT
+   * =========================================================
+   *
+   * Used when a verified Guest encounters a Member-only
+   * benefit such as a special price or a membership coupon.
+   */
+  const [
+    memberUpgradeDialogOpen,
+    setMemberUpgradeDialogOpen,
+  ] = useState(false);
+
+  const [
+    memberUpgradeReason,
+    setMemberUpgradeReason,
+  ] = useState<"special_price" | "coupon">("special_price");
+
+  const [
+    memberUpgradeSubmitting,
+    setMemberUpgradeSubmitting,
   ] = useState(false);
 
   /*
@@ -778,6 +818,44 @@ export default function CheckoutDialog({
 
   /*
    * =========================================================
+   * CLOSE CHECKOUT
+   * =========================================================
+   *
+   * Guest OTP creates a temporary Supabase Auth session.
+   * Keep that session alive while CheckoutDialog is open so
+   * secure Guest operations can continue through Address and
+   * Payment.
+   *
+   * When the Guest closes checkout, sign out that temporary
+   * session. Members are never signed out by this handler.
+   */
+  async function handleCheckoutClose() {
+    if (guestCheckoutSessionActive) {
+      try {
+        const { error } = await supabase.auth.signOut();
+
+        if (error) {
+          console.warn(
+            "[T&M GUEST] Checkout-close session sign-out failed:",
+            error
+          );
+        }
+      } catch (error) {
+        console.warn(
+          "[T&M GUEST] Checkout-close session sign-out failed:",
+          error
+        );
+      } finally {
+        setGuestCheckoutSessionActive(false);
+      }
+    }
+
+    onClose();
+  }
+
+
+  /*
+   * =========================================================
    * AUTH CUSTOMER EFFECT
    * =========================================================
    */
@@ -880,7 +958,11 @@ export default function CheckoutDialog({
     setGuestOtpVerifying(false);
     setGuestCustomerDraft(null);
     setGuestOtpVerified(false);
+    setGuestCheckoutSessionActive(false);
     setGuestMembershipSubmitting(false);
+    setMemberUpgradeDialogOpen(false);
+    setMemberUpgradeReason("special_price");
+    setMemberUpgradeSubmitting(false);
 
   }, [
     open,
@@ -923,26 +1005,51 @@ export default function CheckoutDialog({
    * =========================================================
    */
 
-  function handleViewAvailableCoupons() {
+  function scrollToLoginSection() {
+    const loginSection =
+      loginSectionRef.current;
 
-    /*
-     * Guest checkout already contains the Login section below
-     * the order summary. Do not open another login dialog.
-     * Simply move the checkout viewport to that section.
-     */
-    if (!authCustomer) {
-      setShowLoginScrollHint(false);
-
-      requestAnimationFrame(() => {
-        loginSectionRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      });
-
+    if (!loginSection) {
       return;
     }
 
+    /*
+     * Login is rendered below the Order Summary inside the
+     * checkout scroll container. Scrolling the section itself
+     * keeps the modal fixed while moving the checkout content.
+     */
+    loginSection.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+
+    setShowLoginScrollHint(false);
+  }
+
+
+  function handleViewAvailableCoupons() {
+
+    /*
+     * While the checkout is still on the Login step, this
+     * button should behave as a shortcut to the Login section.
+     *
+     * It must NOT open CouponModal from the Login step.
+     */
+    if (
+      step === "login" &&
+      !authCustomer
+    ) {
+      scrollToLoginSection();
+      return;
+    }
+
+
+    /*
+     * Once the Guest has completed Login/OTP and reached the
+     * Address step, "View available coupons" opens the coupon
+     * dialog so the Guest can browse available offers.
+     */
+    setBuyNowCouponError("");
     setBuyNowCouponModalOpen(true);
   }
 
@@ -1018,6 +1125,191 @@ export default function CheckoutDialog({
   ]);
 
 
+
+  /*
+   * =========================================================
+   * MEMBER UPGRADE PROMPT
+   * =========================================================
+   */
+
+  const isGuestCustomer =
+    Boolean(
+      customer?.id &&
+      !customer?.auth_user_id &&
+      customer?.customer_type === "guest"
+    ) ||
+    Boolean(
+      guestCustomerDraft?.id &&
+      !guestCustomerDraft?.auth_user_id &&
+      guestCustomerDraft?.customer_type === "guest"
+    );
+
+  const hasMemberOnlySpecialPrice =
+    checkoutItems.some((item: any) => {
+      const pricing =
+        checkoutProductPricingMap.get(
+          item.productId
+        );
+
+      const regularPrice =
+        Number(
+          pricing?.price ??
+          item.price ??
+          0
+        );
+
+      return (
+        regularPrice > 0 &&
+        Number(item.price ?? 0) < regularPrice
+      );
+    });
+
+  function openMemberUpgradeDialog(
+    reason: "special_price" | "coupon"
+  ) {
+    setMemberUpgradeReason(reason);
+    setMemberUpgradeDialogOpen(true);
+  }
+
+  async function handleMemberUpgradeFromDialog() {
+    const normalizedPhone =
+      String(
+        customer?.phone ??
+        guestCustomerDraft?.phone ??
+        guestPhone ??
+        ""
+      )
+        .replace(/\D/g, "")
+        .slice(-10);
+
+    if (!/^\d{10}$/.test(normalizedPhone)) {
+      setBuyNowCouponError(
+        "Please verify your mobile number before becoming a member."
+      );
+      setMemberUpgradeDialogOpen(false);
+      return;
+    }
+
+    setMemberUpgradeSubmitting(true);
+
+    try {
+      const memberCustomer =
+        await upgradeGuestToMember(
+          normalizedPhone
+        );
+
+      const draft =
+        customer ||
+        guestCustomerDraft ||
+        {};
+
+      const upgradedCustomer = {
+        ...draft,
+        id:
+          memberCustomer.customer_id ||
+          draft?.id,
+        first_name:
+          memberCustomer.first_name ||
+          draft?.first_name ||
+          "",
+        last_name:
+          memberCustomer.last_name ||
+          draft?.last_name ||
+          "",
+        email:
+          memberCustomer.email ||
+          draft?.email ||
+          null,
+        phone:
+          memberCustomer.phone ||
+          normalizedPhone,
+        auth_user_id:
+          memberCustomer.auth_user_id ||
+          null,
+        customer_type:
+          memberCustomer.customer_type ||
+          "member",
+        phone_verified:
+          Boolean(
+            memberCustomer.phone_verified
+          ),
+      };
+
+      setCustomer(upgradedCustomer);
+
+      useCustomerStore
+        .getState()
+        .setCustomer(
+          upgradedCustomer
+        );
+
+      setGuestCustomerDraft(
+        upgradedCustomer
+      );
+
+      setMemberUpgradeDialogOpen(false);
+      setMemberUpgradeSubmitting(false);
+
+      /*
+       * A membership upgrade changes coupon eligibility and
+       * special-price eligibility. Remove any stale quote and
+       * force the next Address → Payment transition to create
+       * a fresh server-side quote.
+       */
+      setCheckoutQuoteId(null);
+      setVerifiedCheckoutPricing(null);
+      setShippingCharge(0);
+      setShippingError("");
+
+      /*
+       * If the prompt was caused by a coupon, automatically
+       * retry the exact coupon after the customer becomes a
+       * Member.
+       */
+      if (
+        memberUpgradeReason === "coupon" &&
+        buyNowCouponCode.trim()
+      ) {
+        await applyBuyNowCoupon(
+          buyNowCouponCode
+        );
+      }
+    } catch (error: any) {
+      console.error(
+        "Guest to member upgrade from checkout failed:",
+        error
+      );
+
+      setMemberUpgradeSubmitting(false);
+
+      setBuyNowCouponError(
+        error?.message ||
+        "Unable to activate membership. Please try again."
+      );
+    }
+  }
+
+  function continueAsGuestAfterMemberPrompt() {
+    setMemberUpgradeDialogOpen(false);
+    setMemberUpgradeSubmitting(false);
+
+    /*
+     * If this prompt appeared during the initial Guest
+     * membership choice, the customer is already verified and
+     * can continue directly to Address.
+     *
+     * If it appeared while applying/browsing a coupon after the
+     * Guest is already in Address, this simply keeps the current
+     * Address step unchanged.
+     */
+    if (
+      step === "login" &&
+      guestOtpVerified
+    ) {
+      setStep("address");
+    }
+  }
+
   async function applyBuyNowCoupon(input: any) {
 
     const code =
@@ -1062,9 +1354,23 @@ export default function CheckoutDialog({
       setBuyNowCouponCode("");
       setBuyNowCouponModalOpen(false);
     } catch (error: any) {
-      setBuyNowCouponError(
-        error?.message || "Unable to apply this coupon."
-      );
+      if (
+        isGuestCustomer &&
+        error?.code === "MEMBER_ONLY_COUPON"
+      ) {
+        /*
+         * Keep the entered code so that after the guest becomes
+         * a Member we can validate/apply the same coupon again.
+         */
+        setBuyNowCouponCode(code.trim().toUpperCase());
+        setBuyNowCouponError("");
+        setBuyNowCouponModalOpen(false);
+        openMemberUpgradeDialog("coupon");
+      } else {
+        setBuyNowCouponError(
+          error?.message || "Unable to apply this coupon."
+        );
+      }
     } finally {
       setBuyNowCouponLoading(false);
     }
@@ -1410,6 +1716,7 @@ export default function CheckoutDialog({
 
       setGuestCustomerDraft(verifiedGuestCustomer);
       setGuestOtpVerified(true);
+      setGuestCheckoutSessionActive(true);
       setGuestOtpVerifying(false);
       setGuestSubmitting(false);
     } catch (error: any) {
@@ -1482,22 +1789,86 @@ export default function CheckoutDialog({
           .getState()
           .setCustomer(upgradedCustomer);
 
+        /*
+         * The database row is now a Member, but Supabase Auth does
+         * not emit an auth-state event when only the customer row
+         * changes. Refresh AuthContext explicitly so the main
+         * website/header/account immediately sees the Member.
+         */
+        try {
+          const refreshedCustomer = await refreshCustomer();
+
+          if (refreshedCustomer) {
+            setCustomer(refreshedCustomer);
+
+            useCustomerStore
+              .getState()
+              .setCustomer(refreshedCustomer);
+
+            setGuestCustomerDraft(refreshedCustomer);
+          }
+        } catch (refreshError) {
+          console.warn(
+            "Member upgrade succeeded, but AuthContext refresh failed:",
+            refreshError
+          );
+        }
+
+        /*
+         * The same verified Auth session is now the Member's
+         * session. It must NOT be signed out.
+         */
+        setGuestCheckoutSessionActive(false);
         setGuestOtpVerified(false);
         setGuestMembershipSubmitting(false);
         setStep("address");
         return;
       }
 
-      await supabase.auth.signOut();
+      /*
+       * IMPORTANT:
+       * Do NOT sign out here.
+       *
+       * The Guest has already verified their phone. The temporary
+       * Auth session must remain active so the secure Guest
+       * Address / Quote / Payment operations can continue.
+       * handleCheckoutClose() signs it out when the checkout closes.
+       */
+      setGuestCheckoutSessionActive(true);
 
-      setCustomer(draft);
+      const guestCustomer = {
+        ...draft,
+        customer_type:
+          draft?.customer_type ||
+          "guest",
+        auth_user_id:
+          null,
+      };
+
+      setCustomer(guestCustomer);
 
       useCustomerStore
         .getState()
-        .setCustomer(draft);
+        .setCustomer(guestCustomer);
 
       setGuestOtpVerified(false);
       setGuestMembershipSubmitting(false);
+
+      /*
+       * A verified Guest can continue normally, but Member-only
+       * special pricing should first offer the option to upgrade.
+       *
+       * The server remains authoritative; this dialog is only the
+       * customer-facing upgrade prompt.
+       */
+      if (
+        hasMemberOnlySpecialPrice
+      ) {
+        setMemberUpgradeReason("special_price");
+        setMemberUpgradeDialogOpen(true);
+        return;
+      }
+
       setStep("address");
     } catch (error: any) {
       console.error(
@@ -2307,6 +2678,33 @@ export default function CheckoutDialog({
         result.orderNumber
       );
 
+      /*
+       * The Guest has now successfully completed the order.
+       * The temporary checkout Auth session is no longer needed,
+       * so sign it out only AFTER server-side order creation has
+       * succeeded.
+       */
+      if (guestCheckoutSessionActive) {
+        try {
+          const { error: signOutError } =
+            await supabase.auth.signOut();
+
+          if (signOutError) {
+            console.warn(
+              "[T&M GUEST] Post-order session sign-out failed:",
+              signOutError
+            );
+          }
+        } catch (signOutError) {
+          console.warn(
+            "[T&M GUEST] Post-order session sign-out failed:",
+            signOutError
+          );
+        } finally {
+          setGuestCheckoutSessionActive(false);
+        }
+      }
+
 
       if (!isBuyNow) {
         clearCart();
@@ -2645,7 +3043,7 @@ export default function CheckoutDialog({
         "
 
         onClick={
-          onClose
+          handleCheckoutClose
         }
 
       />
@@ -3939,7 +4337,7 @@ export default function CheckoutDialog({
 
               <button
                 type="button"
-                onClick={handleViewAvailableCoupons}
+                onClick={scrollToLoginSection}
                 aria-label="Scroll down to login"
                 className="
                   group
@@ -4099,7 +4497,7 @@ export default function CheckoutDialog({
                 }
 
                 onClose={
-                  onClose
+                  handleCheckoutClose
                 }
 
                 hasOrderEmail={
@@ -5836,6 +6234,143 @@ export default function CheckoutDialog({
 
       </div>
 
+      {memberUpgradeDialogOpen && (
+        <div
+          className="
+            fixed
+            inset-0
+            z-[1400]
+            flex
+            items-center
+            justify-center
+            bg-black/45
+            px-4
+            backdrop-blur-sm
+            motion-safe:animate-[fadeIn_180ms_ease-out]
+          "
+          onClick={() => {
+            if (!memberUpgradeSubmitting) {
+              continueAsGuestAfterMemberPrompt();
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="member-upgrade-title"
+            onClick={(event) => event.stopPropagation()}
+            className="
+              w-full
+              max-w-[390px]
+              overflow-hidden
+              rounded-[26px]
+              border
+              border-[#C8A44D]/20
+              bg-white
+              p-5
+              shadow-[0_30px_90px_rgba(0,0,0,0.22)]
+              motion-safe:animate-[scaleIn_240ms_cubic-bezier(.22,1,.36,1)]
+              sm:p-6
+            "
+          >
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#C8A44D]/10 text-2xl">
+              {memberUpgradeReason === "coupon" ? "🎟️" : "✨"}
+            </div>
+
+            <h3
+              id="member-upgrade-title"
+              className="
+                mt-4
+                text-center
+                text-xl
+                font-semibold
+                tracking-[-0.025em]
+                text-neutral-950
+              "
+            >
+              {memberUpgradeReason === "coupon"
+                ? "This coupon is for Members"
+                : "Unlock the Member Price"}
+            </h3>
+
+            <p className="mx-auto mt-2 max-w-[330px] text-center text-sm leading-5 text-neutral-500">
+              {memberUpgradeReason === "coupon"
+                ? "This coupon is available to T&M Members. Become a Member now and we'll apply it for you."
+                : "This product has an exclusive Member price. Become a T&M Member to unlock the special price."}
+            </p>
+
+            <div className="mt-5 rounded-2xl bg-[#fffaf0] px-4 py-3 text-center text-xs leading-5 text-[#80651d]">
+              Exclusive discounts, members-only offers, early access & special perks.
+            </div>
+
+            <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={handleMemberUpgradeFromDialog}
+                disabled={memberUpgradeSubmitting}
+                className="
+                  inline-flex
+                  min-h-12
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-[14px]
+                  bg-black
+                  px-4
+                  py-3
+                  text-sm
+                  font-semibold
+                  text-white
+                  transition
+                  hover:bg-neutral-800
+                  active:scale-[0.985]
+                  disabled:cursor-not-allowed
+                  disabled:opacity-60
+                "
+              >
+                {memberUpgradeSubmitting ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Activating...
+                  </>
+                ) : (
+                  "Yes, become a Member"
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={continueAsGuestAfterMemberPrompt}
+                disabled={memberUpgradeSubmitting}
+                className="
+                  min-h-12
+                  rounded-[14px]
+                  border
+                  border-neutral-200
+                  bg-white
+                  px-4
+                  py-3
+                  text-sm
+                  font-semibold
+                  text-neutral-700
+                  transition
+                  hover:bg-neutral-50
+                  active:scale-[0.985]
+                  disabled:cursor-not-allowed
+                  disabled:opacity-60
+                "
+              >
+                Continue as Guest
+              </button>
+            </div>
+
+            <p className="mt-4 text-center text-[10px] font-medium uppercase tracking-[0.1em] text-neutral-400">
+              You can always continue without membership
+            </p>
+          </div>
+        </div>
+      )}
+
       {isBuyNow && step !== "payment" && (
         <CouponModal
           open={buyNowCouponModalOpen}
@@ -5844,6 +6379,13 @@ export default function CheckoutDialog({
           cartTotal={subtotal}
           cartItems={checkoutItems}
           appliedCoupon={buyNowCoupon}
+          customerType={isGuestCustomer ? "guest" : "member"}
+          customerId={
+            customer?.id ??
+            guestCustomerDraft?.id ??
+            authCustomer?.id ??
+            null
+          }
         />
       )}
 

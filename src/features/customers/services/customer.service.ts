@@ -569,14 +569,33 @@ export async function sendGuestOtp(
  * Supabase verifies the OTP first. Once verified, the secure
  * RPC marks the existing guest customer as phone_verified.
  *
- * The temporary Supabase Auth session is then signed out so
- * the guest does not become an authenticated T&M Member.
+ * IMPORTANT:
+ * We intentionally DO NOT sign out the Supabase Auth session
+ * here.
+ *
+ * The verified session must remain alive for the entire
+ * checkout flow so the customer can:
+ *
+ *   Guest OTP verification
+ *        ↓
+ *   Continue as Guest OR become a Member
+ *        ↓
+ *   Address
+ *        ↓
+ *   Payment
+ *        ↓
+ *   Order completion
+ *
+ * CheckoutDialog is responsible for signing the session out
+ * when the checkout is closed while the customer is still a
+ * Guest. The session must never be signed out immediately
+ * after OTP verification.
  */
 
 export async function verifyGuestOtp(
   phone: string,
   otp: string,
-  options?: {
+  _options?: {
     keepSession?: boolean;
   }
 ) {
@@ -637,72 +656,54 @@ export async function verifyGuestOtp(
     );
   }
 
-  try {
-
-    const {
-      data: verificationData,
-      error: verificationError,
-    } =
-      await supabase.rpc(
-        "verify_guest_customer_phone",
-        {
-          p_phone:
-            normalizedPhone,
-        }
-      );
-
-    if (
-      verificationError
-    ) {
-      console.error(
-        "[T&M GUEST] Guest phone verification RPC failed:",
-        verificationError
-      );
-
-      throw new Error(
-        verificationError.message ||
-        "Unable to verify your guest checkout phone number."
-      );
-    }
-
-    if (
-      !verificationData?.verified
-    ) {
-      throw new Error(
-        "Unable to verify your guest checkout phone number."
-      );
-    }
-
-    return verificationData;
-
-  } finally {
-
-    /*
-     * Keep the temporary verified Auth session alive when the
-     * caller needs to perform the secure guest-to-member upgrade.
-     *
-     * Existing callers keep the old behavior by default:
-     * the temporary OTP session is signed out immediately.
-     */
-    if (!options?.keepSession) {
-
-      const {
-        error: signOutError
-      } =
-        await supabase.auth.signOut();
-
-      if (
-        signOutError
-      ) {
-        console.warn(
-          "[T&M GUEST] Temporary OTP session sign-out failed:",
-          signOutError
-        );
+  const {
+    data: verificationData,
+    error: verificationError,
+  } =
+    await supabase.rpc(
+      "verify_guest_customer_phone",
+      {
+        p_phone:
+          normalizedPhone,
       }
+    );
 
-    }
+  if (
+    verificationError
+  ) {
+    console.error(
+      "[T&M GUEST] Guest phone verification RPC failed:",
+      verificationError
+    );
 
+    throw new Error(
+      verificationError.message ||
+      "Unable to verify your guest checkout phone number."
+    );
   }
+
+  if (
+    !verificationData?.verified
+  ) {
+    throw new Error(
+      "Unable to verify your guest checkout phone number."
+    );
+  }
+
+  /*
+   * IMPORTANT:
+   * Never sign out here.
+   *
+   * The verified Supabase Auth session stays active until
+   * CheckoutDialog explicitly signs it out after the checkout
+   * is closed or after the order/payment flow has completed.
+   *
+   * This is required because upgrade_guest_to_member uses
+   * auth.uid() to securely convert the verified Guest into a
+   * Member.
+   */
+
+  return verificationData;
 
 }
 

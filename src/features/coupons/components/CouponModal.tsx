@@ -32,6 +32,8 @@ interface Props {
   cartTotal: number;
   cartItems?: any[];
   appliedCoupon?: any;
+  customerType?: "guest" | "member" | null;
+  customerId?: string | null;
 }
 
 interface EligibleCoupon {
@@ -47,10 +49,28 @@ export default function CouponModal({
   cartTotal,
   cartItems = [],
   appliedCoupon,
+  customerType = null,
+  customerId = null,
 }: Props) {
   const {
     customer,
   } = useAuth();
+
+  const isGuestCustomer =
+    customerType === "guest" ||
+    (!customer && customerType !== "member");
+
+  /*
+   * Guest checkout signs out of Supabase Auth after OTP
+   * verification, so use the verified checkout customer ID
+   * supplied by CheckoutDialog when no Auth customer exists.
+   *
+   * Normal Member behavior continues to use authCustomer.id.
+   */
+  const validationCustomerId =
+    customer?.id ??
+    customerId ??
+    "";
 
   const {
     data: coupons = [],
@@ -172,91 +192,154 @@ export default function CouponModal({
       setCheckingEligibility(true);
 
       try {
-        const results =
-          await Promise.all(
-            coupons
-              .filter(
-                (coupon: any) =>
-                  coupon.is_active === true
-              )
-              .map(
-                async (
-                  coupon: any
-                ): Promise<EligibleCoupon | null> => {
-                  try {
-                    const result =
-                      await Promise.race([
-                        validateCoupon(
-                          coupon.code,
-                          cartTotal,
-                          customer?.id ?? "",
-                          stableCartItems
-                        ),
-                        new Promise<never>(
-                          (_, reject) =>
-                            window.setTimeout(
-                              () =>
-                                reject(
-                                  new Error(
-                                    "Coupon eligibility check timed out"
-                                  )
-                                ),
-                              8000
+        const validCoupons = coupons.filter((coupon: any) => {
+          if (coupon.is_active !== true) {
+            return false;
+          }
+
+          if (coupon.starts_at && new Date(coupon.starts_at) > new Date()) {
+            return false;
+          }
+
+          if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) {
+            return false;
+          }
+
+          if (
+            coupon.usage_limit &&
+            Number(coupon.used_count ?? 0) >= Number(coupon.usage_limit)
+          ) {
+            return false;
+          }
+
+          return true;
+        });
+
+        /*
+         * Guest checkout:
+         *
+         * Do not show every active coupon. Instead, run the
+         * existing validation engine in preview-only Member mode.
+         *
+         * This means a Guest sees:
+         * - coupons they can use now;
+         * - Member-only coupons they would actually qualify for
+         *   after becoming the default Member tier;
+         * - no coupons that would remain ineligible after upgrade.
+         *
+         * No normal coupon validation/application logic is changed.
+         */
+        if (isGuestCustomer) {
+          const results = await Promise.all(
+            validCoupons.map(
+              async (
+                coupon: any
+              ): Promise<EligibleCoupon | null> => {
+                try {
+                  const result = await Promise.race([
+                    validateCoupon(
+                      coupon.code,
+                      cartTotal,
+                      validationCustomerId,
+                      stableCartItems,
+                      {
+                        previewAsMember: true,
+                      }
+                    ),
+                    new Promise<never>((_, reject) =>
+                      window.setTimeout(
+                        () =>
+                          reject(
+                            new Error(
+                              "Coupon eligibility check timed out"
                             )
-                        ),
-                      ]);
+                          ),
+                        8000
+                      )
+                    ),
+                  ]);
 
-                    const discount =
-                      Number(
-                        result.discount ?? 0
-                      );
-
-                    /*
-                     * validateCoupon currently returns
-                     * freeShipping but does not return a
-                     * shippingCharge value. Keep the saving
-                     * calculation based on the actual
-                     * discount returned by validation.
-                     */
-                    return {
-                      coupon,
-                      result,
-                      saving: discount,
-                    };
-                  } catch {
-                    /*
-                     * Ineligible coupons are intentionally
-                     * omitted completely.
-                     */
-                    return null;
-                  }
+                  return {
+                    coupon,
+                    result,
+                    saving: Number(
+                      result.discount ?? 0
+                    ),
+                  };
+                } catch {
+                  return null;
                 }
-              )
+              }
+            )
           );
+
+          if (!cancelled) {
+            setEligibleCoupons(
+              results
+                .filter(
+                  (
+                    item
+                  ): item is EligibleCoupon =>
+                    !!item
+                )
+                .sort(
+                  (a, b) =>
+                    b.saving -
+                    a.saving
+                )
+            );
+          }
+
+          return;
+        }
+
+
+        const results = await Promise.all(
+          validCoupons.map(
+            async (coupon: any): Promise<EligibleCoupon | null> => {
+              try {
+                const result = await Promise.race([
+                  validateCoupon(
+                    coupon.code,
+                    cartTotal,
+                    customer?.id ?? "",
+                    stableCartItems
+                  ),
+                  new Promise<never>((_, reject) =>
+                    window.setTimeout(
+                      () =>
+                        reject(
+                          new Error(
+                            "Coupon eligibility check timed out"
+                          )
+                        ),
+                      8000
+                    )
+                  ),
+                ]);
+
+                return {
+                  coupon,
+                  result,
+                  saving: Number(result.discount ?? 0),
+                };
+              } catch {
+                return null;
+              }
+            }
+          )
+        );
 
         if (cancelled) {
           return;
         }
 
-        const eligible =
+        setEligibleCoupons(
           results
             .filter(
-              (
-                item
-              ): item is EligibleCoupon =>
-                !!item
+              (item): item is EligibleCoupon => !!item
             )
-            .sort(
-              (
-                a,
-                b
-              ) =>
-                b.saving -
-                a.saving
-            );
-
-        setEligibleCoupons(
-          eligible
+            .sort((a, b) => b.saving - a.saving)
         );
       } finally {
         if (!cancelled) {
@@ -265,7 +348,7 @@ export default function CouponModal({
       }
     }
 
-    checkEligibility();
+    void checkEligibility();
 
     return () => {
       cancelled = true;
@@ -276,9 +359,11 @@ export default function CouponModal({
     coupons,
     cartTotal,
     customer?.id,
+    validationCustomerId,
+    customerType,
+    isGuestCustomer,
     cartFingerprint,
   ]);
-
 
   /*
    * Refresh coupons whenever the modal opens.
@@ -549,7 +634,9 @@ export default function CouponModal({
                     sm:text-xs
                   "
                 >
-                  Showing only offers you can use right now
+                  {isGuestCustomer
+                    ? "Showing offers you can unlock or use."
+                    : "Showing only offers you can use right now"}
                 </p>
 
               </div>
@@ -586,6 +673,22 @@ export default function CouponModal({
 
         </div>
 
+
+        {isGuestCustomer && (
+          <div className="mx-4 mt-3 rounded-2xl border border-[#C8A44D]/25 bg-[#fffaf0] px-4 py-3 sm:mx-6">
+            <div className="flex items-start gap-2.5">
+              <span className="mt-0.5 text-base">✨</span>
+              <div>
+                <p className="text-xs font-semibold text-neutral-900 sm:text-sm">
+                  Unlock more with T&M Membership
+                </p>
+                <p className="mt-1 text-[11px] leading-4 text-neutral-600 sm:text-xs sm:leading-5">
+                  These are offers you can use now or unlock after becoming a T&M Member.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ===================================================
             CONTENT

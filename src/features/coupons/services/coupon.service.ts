@@ -41,12 +41,46 @@ type CustomerContext = {
   id: string;
   email?: string | null;
   phone?: string | null;
+  customer_type?: "guest" | "member" | null;
   previous_orders: number;
   lifetime_spend: number;
   is_new_customer: boolean;
   is_first_order: boolean;
   membership_tier_id: string | null;
 };
+
+type CouponValidationOptions = {
+  /*
+   * Preview-only mode used by the Guest coupon list.
+   *
+   * It does not alter normal coupon validation. It temporarily
+   * evaluates the Guest as the default (lowest-spend) Member tier
+   * so the UI can show only coupons that would actually become
+   * usable after the Guest upgrades.
+   */
+  previewAsMember?: boolean;
+};
+
+
+/**
+ * Structured coupon validation error.
+ *
+ * CheckoutDialog can use the code to distinguish a
+ * member-only coupon from a normal invalid/ineligible coupon
+ * and offer the guest a secure upgrade to Member.
+ */
+export class CouponValidationError extends Error {
+  code: string;
+
+  constructor(
+    message: string,
+    code: string
+  ) {
+    super(message);
+    this.name = "CouponValidationError";
+    this.code = code;
+  }
+}
 
 
 const roundMoney = (
@@ -715,7 +749,8 @@ export async function validateCoupon(
   code: string,
   cartTotal: number,
   customerId: string,
-  cartItems: CartInputItem[] = []
+  cartItems: CartInputItem[] = [],
+  options: CouponValidationOptions = {}
 ) {
 
   /*
@@ -843,24 +878,19 @@ export async function validateCoupon(
 
 
     const {
-      data: previousUsage,
+      data: couponAlreadyUsed,
       error: usageError,
     } =
-      await supabase
-        .from(
-          "coupon_usage"
-        )
-        .select("id")
-        .eq(
-          "coupon_id",
-          coupon.id
-        )
-        .eq(
-          "customer_id",
-          customerId
-        )
-        .limit(1)
-        .maybeSingle();
+      await supabase.rpc(
+        "check_coupon_customer_usage",
+        {
+          p_coupon_id:
+            coupon.id,
+
+          p_customer_id:
+            customerId,
+        }
+      );
 
 
     if (
@@ -871,7 +901,7 @@ export async function validateCoupon(
 
 
     if (
-      previousUsage
+      couponAlreadyUsed
     ) {
 
       throw new Error(
@@ -885,221 +915,119 @@ export async function validateCoupon(
 
   /*
    * -------------------------------------------------------
-   * LOAD TARGETS / CUSTOMER / MEMBERSHIP
+   * SECURE COUPON CONTEXT
    * -------------------------------------------------------
+   *
+   * Guest checkout runs without a persistent Supabase Auth
+   * session. Therefore protected coupon/customer tables
+   * must not be queried directly from the browser.
+   *
+   * The SECURITY DEFINER RPC performs the protected reads
+   * server-side and returns only the data required by this
+   * validation engine.
    */
-
-  const [
-    targetResult,
-    selectedCustomerResult,
-    membershipResult,
-  ] =
-    await Promise.all([
-
-      supabase
-        .from(
-          "coupon_targets"
-        )
-        .select("*")
-        .eq(
-          "coupon_id",
-          coupon.id
-        ),
-
-      supabase
-        .from(
-          "coupon_customers"
-        )
-        .select(
-          "customer_id"
-        )
-        .eq(
-          "coupon_id",
-          coupon.id
-        ),
-
-      supabase
-        .from(
-          "coupon_membership_tiers"
-        )
-        .select(
-          "tier_id"
-        )
-        .eq(
-          "coupon_id",
-          coupon.id
-        ),
-
-    ]);
+  const {
+    data: couponContext,
+    error: couponContextError,
+  } = await supabase.rpc(
+    "get_coupon_validation_context",
+    {
+      p_coupon_id: coupon.id,
+      p_customer_id: customerId || null,
+    }
+  );
 
 
   if (
-    targetResult.error
+    couponContextError
   ) {
-    throw targetResult.error;
+    throw couponContextError;
   }
 
 
   if (
-    selectedCustomerResult.error
+    !couponContext
   ) {
-    throw selectedCustomerResult.error;
-  }
-
-
-  if (
-    membershipResult.error
-  ) {
-    throw membershipResult.error;
+    throw new Error(
+      "Unable to validate this coupon right now. Please try again."
+    );
   }
 
 
   /*
-   * -------------------------------------------------------
-   * CUSTOMER CONTEXT
-   * -------------------------------------------------------
-   *
-   * lifetime_spend + tier come from customer_rewards,
-   * which is already the source used by the membership UI.
-   *
-   * Previous orders are calculated from orders and cancelled
-   * orders are not counted.
-   * -------------------------------------------------------
+   * One-use-per-customer is checked inside the same secure
+   * RPC. This keeps coupon_usage protected by RLS.
    */
+  if (
+    coupon.one_use_per_customer &&
+    couponContext.already_used
+  ) {
+    throw new Error(
+      "You have already used this coupon."
+    );
+  }
 
+
+  /*
+   * Customer context is assembled from the server-side RPC.
+   */
   let customerContext:
     CustomerContext | null =
     null;
 
 
   if (
-    customerId
+    couponContext.customer
   ) {
-
-    const [
-      customerResult,
-      rewardResult,
-      orderResult,
-    ] =
-      await Promise.all([
-
-        supabase
-          .from(
-            "customers"
-          )
-          .select(
-            "id, email, phone"
-          )
-          .eq(
-            "id",
-            customerId
-          )
-          .single(),
-
-        supabase
-          .from(
-            "customer_rewards"
-          )
-          .select(
-            "lifetime_spend, tier_id"
-          )
-          .eq(
-            "customer_id",
-            customerId
-          )
-          .maybeSingle(),
-
-        supabase
-          .from(
-            "orders"
-          )
-          .select(
-            "id, order_status"
-          )
-          .eq(
-            "customer_id",
-            customerId
-          ),
-
-      ]);
-
-
-    if (
-      customerResult.error &&
-      customerResult.error.code !==
-        "PGRST116"
-    ) {
-      throw customerResult.error;
-    }
-
-
-    if (
-      rewardResult.error
-    ) {
-      throw rewardResult.error;
-    }
-
-
-    if (
-      orderResult.error
-    ) {
-      throw orderResult.error;
-    }
-
-
-    const validOrders =
-      (
-        orderResult.data ??
-        []
-      ).filter(
-        (
-          order: any
-        ) =>
-          order.order_status !==
-          "cancelled"
-      );
-
-
-    const previousOrders =
-      validOrders.length;
-
 
     customerContext = {
 
       id:
-        customerId,
+        String(
+          couponContext.customer.id ??
+          customerId
+        ),
 
       email:
-        customerResult.data
-          ?.email ??
+        couponContext.customer.email ??
         null,
 
       phone:
-        customerResult.data
-          ?.phone ??
+        couponContext.customer.phone ??
         null,
 
+      customer_type:
+        couponContext.customer.customer_type ===
+          "member"
+          ? "member"
+          : "guest",
+
       previous_orders:
-        previousOrders,
+        Number(
+          couponContext.customer.previous_orders ??
+          0
+        ),
 
       lifetime_spend:
         Number(
-          rewardResult.data
-            ?.lifetime_spend ??
+          couponContext.customer.lifetime_spend ??
           0
         ),
 
       is_new_customer:
-        previousOrders ===
-        0,
+        Number(
+          couponContext.customer.previous_orders ??
+          0
+        ) === 0,
 
       is_first_order:
-        previousOrders ===
-        0,
+        Number(
+          couponContext.customer.previous_orders ??
+          0
+        ) === 0,
 
       membership_tier_id:
-        rewardResult.data
-          ?.tier_id ??
+        couponContext.customer.membership_tier_id ??
         null,
 
     };
@@ -1110,29 +1038,98 @@ export async function validateCoupon(
   /*
    * Customer targeting.
    */
-
   const selectedCustomerIds =
-    (
-      selectedCustomerResult.data ??
-      []
-    ).map(
-      (
-        row: any
-      ) =>
-        row.customer_id
-    );
+    Array.isArray(
+      couponContext.selected_customer_ids
+    )
+      ? couponContext.selected_customer_ids.map(
+          (id: any) =>
+            String(id)
+        )
+      : [];
 
 
   const membershipTierIds =
-    (
-      membershipResult.data ??
-      []
-    ).map(
-      (
-        row: any
-      ) =>
-        row.tier_id
+    Array.isArray(
+      couponContext.membership_tier_ids
+    )
+      ? couponContext.membership_tier_ids.map(
+          (id: any) =>
+            String(id)
+        )
+      : [];
+
+
+  const targetRows =
+    Array.isArray(
+      couponContext.targets
+    )
+      ? couponContext.targets
+      : [];
+
+
+  /*
+   * -------------------------------------------------------
+   * GUEST -> MEMBER PREVIEW
+   * -------------------------------------------------------
+   *
+   * This is used only by the available-coupons list.
+   *
+   * Normal coupon application is completely unchanged.
+   * When previewAsMember is true, evaluate the current Guest
+   * against the default Member tier (the lowest minimum-spend
+   * reward tier). All other customer/cart restrictions remain
+   * exactly the same.
+   */
+  if (
+    options.previewAsMember &&
+    customerContext?.customer_type === "guest"
+  ) {
+    /*
+     * Guests must not query reward_tiers directly because
+     * checkout runs without a persistent Auth session.
+     *
+     * The secure RPC returns the default Member tier
+     * (the active tier with the lowest minimum_spend).
+     */
+    const {
+      data: defaultTierId,
+      error: defaultTierError,
+    } = await supabase.rpc(
+      "get_default_member_tier_id"
     );
+
+    if (defaultTierError) {
+      throw defaultTierError;
+    }
+
+    if (defaultTierId) {
+      customerContext = {
+        ...customerContext,
+        customer_type: "member",
+        membership_tier_id:
+          String(defaultTierId),
+      };
+    }
+  }
+
+
+  /*
+   * Membership-tier targeting is the definitive signal that
+   * a coupon is Member-only.
+   *
+   * Guests should get a specific error code so CheckoutDialog
+   * can offer the existing secure upgrade_guest_to_member RPC.
+   */
+  if (
+    membershipTierIds.length > 0 &&
+    customerContext?.customer_type !== "member"
+  ) {
+    throw new CouponValidationError(
+      "This coupon is available to T&M Members only.",
+      "MEMBER_ONLY_COUPON"
+    );
+  }
 
 
   if (
@@ -1191,6 +1188,10 @@ export async function validateCoupon(
           price,
           category_id,
           brand_id,
+          special_discount_enabled,
+          special_discount_type,
+          special_discount_value,
+          special_discount_ends_at,
           product_collections(
             collection_id
           ),
@@ -1226,6 +1227,31 @@ export async function validateCoupon(
       ] = {
 
         regular_price: Number(product.price ?? 0),
+
+        /*
+         * These fields identify the actual product-level
+         * Special Discount. A lower cart price by itself is
+         * NOT considered a Special Price because normal
+         * product discounts are coupon-eligible.
+         */
+        special_discount_enabled:
+          Boolean(
+            product.special_discount_enabled
+          ),
+
+        special_discount_type:
+          product.special_discount_type ??
+          null,
+
+        special_discount_value:
+          Number(
+            product.special_discount_value ??
+            0
+          ),
+
+        special_discount_ends_at:
+          product.special_discount_ends_at ??
+          null,
 
         category_ids:
           product.category_id
@@ -1305,7 +1331,101 @@ export async function validateCoupon(
           getUnitPrice(item);
 
         const regularPrice =
-          Number(metadata.regular_price ?? 0);
+          Number(
+            metadata.regular_price ??
+            0
+          );
+
+        const specialEnabled =
+          Boolean(
+            metadata.special_discount_enabled
+          );
+
+        const specialValue =
+          Math.max(
+            Number(
+              metadata.special_discount_value ??
+              0
+            ),
+            0
+          );
+
+        let memberSpecialPrice =
+          regularPrice;
+
+        if (
+          specialEnabled &&
+          specialValue > 0 &&
+          regularPrice > 0
+        ) {
+          if (
+            metadata.special_discount_type ===
+            "fixed"
+          ) {
+            memberSpecialPrice =
+              Math.max(
+                regularPrice -
+                  Math.min(
+                    specialValue,
+                    regularPrice
+                  ),
+                0
+              );
+          } else {
+            const percentage =
+              Math.min(
+                specialValue,
+                100
+              );
+
+            memberSpecialPrice =
+              Math.max(
+                regularPrice -
+                  (
+                    regularPrice *
+                    percentage
+                  ) /
+                    100,
+                0
+              );
+          }
+        }
+
+        /*
+         * IMPORTANT:
+         *
+         * A normal product discount such as:
+         *
+         *   MRP ₹899 -> Regular ₹699
+         *
+         * is NOT a special price.
+         *
+         * A product-level Special Discount is identified by
+         * special_discount_enabled + a valid discount value.
+         *
+         * For Guest Member-preview, simulate the price that
+         * the Guest would receive after becoming a Member.
+         * For a normal Member validation, use the actual cart
+         * price so existing checkout behavior is preserved.
+         */
+        const isPreviewingMember =
+          Boolean(
+            options.previewAsMember &&
+            customerContext?.customer_type ===
+              "member"
+          );
+
+        const isSpecialPrice =
+          specialEnabled &&
+          specialValue > 0 &&
+          regularPrice > 0 &&
+          (
+            isPreviewingMember
+              ? memberSpecialPrice <
+                regularPrice
+              : unitPrice <
+                regularPrice
+          );
 
         return {
 
@@ -1321,8 +1441,7 @@ export async function validateCoupon(
             unitPrice,
 
           is_special_price:
-            regularPrice > 0 &&
-            unitPrice < regularPrice,
+            isSpecialPrice,
 
           ...metadata,
 
@@ -1442,10 +1561,7 @@ export async function validateCoupon(
     calculateEligibleItems(
       coupon,
       validationItems,
-      (
-        targetResult.data ??
-        []
-      ) as TargetRow[]
+      targetRows as TargetRow[]
     );
 
 
