@@ -138,6 +138,74 @@ export const wishlistService = {
     productId: string
   ) {
 
+    /*
+     * =======================================================
+     * Validate Product Before Wishlist Insert
+     * =======================================================
+     *
+     * A cart item can outlive its product record. For example,
+     * a product may be removed from the products table after it
+     * was added to a customer's cart.
+     *
+     * In that situation, moving the stale cart item to the
+     * wishlist would fail with:
+     *
+     *   wishlists_product_id_fkey
+     *
+     * Do the existence check first so we never send an invalid
+     * product_id to the wishlist table.
+     */
+
+    const {
+      data: product,
+      error: productError,
+    } = await supabase
+
+      .from("products")
+
+      .select("id")
+
+      .eq(
+        "id",
+        productId
+      )
+
+      .maybeSingle();
+
+
+    if (productError) {
+      throw productError;
+    }
+
+
+    if (!product) {
+
+      const staleProductError =
+        new Error(
+          "This product is no longer available and cannot be added to your wishlist."
+        );
+
+      /*
+       * Keep a stable error code so the UI can distinguish
+       * this expected stale-cart case from a real database
+       * failure if it wants to show custom messaging later.
+       */
+      (
+        staleProductError as Error & {
+          code?: string;
+        }
+      ).code = "PRODUCT_NOT_FOUND";
+
+      throw staleProductError;
+
+    }
+
+
+    /*
+     * Product still exists, so preserve the existing wishlist
+     * insertion logic unchanged.
+     */
+
     const {
       data,
       error,

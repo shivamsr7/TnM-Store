@@ -9,6 +9,7 @@ import {
   ChevronDown,
   Gift,
   MessageCircle,
+  HelpCircle,
 } from "lucide-react";
 
 import {
@@ -894,7 +895,27 @@ export default function CartDrawer() {
       product => Boolean(product.special_discount_ends_at)
     );
 
-    if (!isCartOpen || !hasSpecialTimer) {
+    const hasCartBannerTimer = cartBannerCoupons.some(
+      coupon => {
+        if (!coupon.expires_at) {
+          return false;
+        }
+
+        const remainingMs =
+          new Date(coupon.expires_at).getTime() -
+          Date.now();
+
+        return (
+          remainingMs > 0 &&
+          remainingMs <= 24 * 60 * 60 * 1000
+        );
+      }
+    );
+
+    if (
+      !isCartOpen ||
+      (!hasSpecialTimer && !hasCartBannerTimer)
+    ) {
       return;
     }
 
@@ -908,6 +929,7 @@ export default function CartDrawer() {
   }, [
     isCartOpen,
     cartProductPricing,
+    cartBannerCoupons,
   ]);
 
 
@@ -945,6 +967,66 @@ export default function CartDrawer() {
 
     return `${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
   };
+
+
+  /*
+   * =========================================================
+   * CART BANNER COUPON COUNTDOWN
+   * =========================================================
+   *
+   * Show the countdown only during the final 24 hours of
+   * the currently displayed cart promotion.
+   *
+   * The expiry comes directly from the coupon record, so the
+   * timer is based on the real coupon expiry instead of a
+   * hardcoded duration.
+   * =========================================================
+   */
+
+  const formatCartBannerCouponCountdown = (
+    expiresAt: string | null | undefined
+  ) => {
+
+    if (!expiresAt) {
+      return null;
+    }
+
+    const remainingSeconds = Math.max(
+      0,
+      Math.floor(
+        (new Date(expiresAt).getTime() - countdownNow) / 1000
+      )
+    );
+
+    /*
+     * Only show the timer during the final 24 hours.
+     */
+    if (
+      remainingSeconds <= 0 ||
+      remainingSeconds > 24 * 60 * 60
+    ) {
+      return null;
+    }
+
+    const hours = Math.floor(
+      remainingSeconds / 3600
+    );
+
+    const minutes = Math.floor(
+      (remainingSeconds % 3600) / 60
+    );
+
+    const seconds =
+      remainingSeconds % 60;
+
+    return `${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
+  };
+
+
+  const cartBannerCouponCountdown =
+    formatCartBannerCouponCountdown(
+      activeCartBanner?.expires_at
+    );
 
 
   /*
@@ -1284,6 +1366,24 @@ export default function CartDrawer() {
   >(null);
 
 
+  /*
+   * =========================================================
+   * REMOVE ITEM CONFIRMATION
+   * =========================================================
+   *
+   * Ask before removing a product so the customer does not
+   * accidentally lose a limited-stock piece from the cart.
+   * =========================================================
+   */
+
+  const [
+    removeConfirmItem,
+    setRemoveConfirmItem,
+  ] = useState<
+    (typeof items)[number] | null
+  >(null);
+
+
   const [
     wishlistSaveSuccess,
     setWishlistSaveSuccess,
@@ -1511,6 +1611,11 @@ export default function CartDrawer() {
   ] = useState(false);
 
   const [
+    showCheckoutOfferChoice,
+    setShowCheckoutOfferChoice,
+  ] = useState(false);
+
+  const [
     dismissedCouponReminderKey,
   ] = useState("");
 
@@ -1553,6 +1658,22 @@ export default function CartDrawer() {
 
 
   const handleProceedToCheckout = () => {
+
+    /*
+     * When an unlockable offer is available, give the customer
+     * a clear choice before checkout.
+     *
+     * If another coupon is already available, both choices are
+     * presented together in the same modal.
+     */
+    if (
+      !appliedCoupon &&
+      unlockCoupon &&
+      Number(remainingAmount) > 0
+    ) {
+      setShowCheckoutOfferChoice(true);
+      return;
+    }
 
     if (
       !bestCouponAvailable ||
@@ -1651,6 +1772,34 @@ export default function CartDrawer() {
 
       }
 
+    };
+
+
+  const handleContinueToCheckoutOfferChoice = () => {
+
+    setShowCheckoutOfferChoice(false);
+    setCheckoutOpen(true);
+
+  };
+
+
+  const handleShopToUnlockCheckoutOffer = () => {
+
+    setShowCheckoutOfferChoice(false);
+    scrollToRelatedProducts();
+
+  };
+
+
+  const handleApplyAvailableCheckoutOffer =
+    async () => {
+
+      await handleApplyCheckoutCoupon();
+
+      /*
+       * handleApplyCheckoutCoupon opens checkout after the
+       * coupon has been successfully applied.
+       */
     };
 
 
@@ -1893,8 +2042,26 @@ export default function CartDrawer() {
       new IntersectionObserver(
         ([entry]) => {
 
+          /*
+           * The navigator is meant to help the customer find
+           * "You may also like" when that section is still
+           * BELOW the current scroll position.
+           *
+           * Previously we used `!entry.isIntersecting`, which
+           * also becomes true after the customer scrolls PAST
+           * the section. That is why "More for you" remained
+           * visible while the customer was already below it.
+           */
+          const rootBounds =
+            entry.rootBounds;
+
+          const relatedIsBelowViewport =
+            Boolean(rootBounds) &&
+            entry.boundingClientRect.top >=
+              rootBounds!.bottom;
+
           setShowRelatedNavigator(
-            !entry.isIntersecting
+            relatedIsBelowViewport
           );
 
         },
@@ -2316,39 +2483,104 @@ export default function CartDrawer() {
   ) => {
 
     /*
-     * Remove from cart first. We keep a local snapshot of the
-     * item so the wishlist prompt can still show its details
-     * after the cart item disappears.
+     * Do not remove immediately. Show a confirmation first so
+     * the customer has a chance to keep a limited-stock piece.
      */
 
-    removeItem(item.id);
-
-    setRemovedWishlistItem(item);
-    setWishlistSaveSuccess(false);
-    setWishlistSaveError("");
-
-    if (
-      wishlistPromptTimerRef.current
-    ) {
-      window.clearTimeout(
-        wishlistPromptTimerRef.current
-      );
-    }
-
-    /*
-     * Give the customer a few seconds to choose. If they do
-     * nothing, the prompt quietly disappears.
-     */
-
-    wishlistPromptTimerRef.current =
-      window.setTimeout(() => {
-
-        setRemovedWishlistItem(null);
-        setWishlistSaveError("");
-
-      }, 6500);
+    setRemoveConfirmItem(item);
 
   };
+
+
+  const handleConfirmedRemoveItem = async (
+    item: (typeof items)[number]
+  ) => {
+
+    try {
+
+      await removeItem(item.id);
+
+    } finally {
+
+      setRemoveConfirmItem(current =>
+        current?.id === item.id
+          ? null
+          : current
+      );
+
+    }
+
+  };
+
+
+  const handleRemoveAndWishlistItem =
+    async (
+      item: (typeof items)[number]
+    ) => {
+
+      if (!customer?.id) {
+
+        setWishlistSaveError(
+          "Please log in to save this piece to your wishlist."
+        );
+
+        return;
+
+      }
+
+      try {
+
+        setWishlistSaveError("");
+
+        /*
+         * IMPORTANT:
+         * Wishlist expects the real product ID, not the cart
+         * row ID.
+         */
+        await addToWishlist(
+          item.productId
+        );
+
+        await removeItem(
+          item.id
+        );
+
+        setRemoveConfirmItem(null);
+
+        setRemovedWishlistItem(item);
+        setWishlistSaveSuccess(true);
+
+        if (
+          wishlistPromptTimerRef.current
+        ) {
+
+          window.clearTimeout(
+            wishlistPromptTimerRef.current
+          );
+
+        }
+
+        wishlistPromptTimerRef.current =
+          window.setTimeout(() => {
+
+            setRemovedWishlistItem(null);
+            setWishlistSaveSuccess(false);
+            setWishlistSaveError("");
+
+          }, 2200);
+
+      } catch (
+        error: any
+      ) {
+
+        setWishlistSaveError(
+          error?.message ||
+          "Unable to save this piece to your wishlist."
+        );
+
+      }
+
+    };
 
 
   const handleAddRemovedItemToWishlist =
@@ -2379,7 +2611,7 @@ export default function CartDrawer() {
         setWishlistSaveError("");
 
         await addToWishlist(
-          removedWishlistItem.id
+          removedWishlistItem.productId
         );
 
         setWishlistSaveSuccess(true);
@@ -2758,11 +2990,39 @@ export default function CartDrawer() {
                       "
                     >
 
-                      ✨{" "}
-                      {activeCartBanner.cart_display_text?.trim() ||
-                        "Special offer available"}{" "}
-                      | Use Code :{" "}
-                      {activeCartBanner.code}
+                      <div>
+                        ✨{" "}
+                        {activeCartBanner.cart_display_text?.trim() ||
+                          "Special offer available"}{" "}
+                        | Use Code :{" "}
+                        {activeCartBanner.code}
+                      </div>
+
+                      {cartBannerCouponCountdown && (
+                        <div
+                          className="
+                            mt-2
+                            inline-flex
+                            items-center
+                            justify-center
+                            rounded-full
+                            border
+                            border-white/20
+                            bg-white/10
+                            px-3
+                            py-1
+                            text-[11px]
+                            font-semibold
+                            tracking-wide
+                            text-white
+                          "
+                        >
+                          <span aria-hidden="true" className="mr-1.5">
+                            ⏳
+                          </span>
+                          Offer ends in {cartBannerCouponCountdown}
+                        </div>
+                      )}
 
                     </div>
 
@@ -5145,6 +5405,315 @@ export default function CartDrawer() {
 
 
         {/* ===================================================
+            REMOVE ITEM CONFIRMATION
+        ==================================================== */}
+
+        {removeConfirmItem && (
+          <div
+            className="
+              absolute
+              inset-0
+              z-[110]
+              flex
+              items-center
+              justify-center
+              bg-black/35
+              px-4
+              backdrop-blur-[3px]
+              animate-in
+              fade-in
+              duration-200
+            "
+          >
+            <div
+              className="
+                relative
+                w-full
+                max-w-sm
+                overflow-hidden
+                rounded-[26px]
+                border
+                border-[#C8A44D]/25
+                bg-white
+                shadow-[0_24px_70px_rgba(0,0,0,0.24)]
+                animate-in
+                zoom-in-95
+                slide-in-from-bottom-3
+                duration-300
+              "
+            >
+              <div
+                className="
+                  pointer-events-none
+                  absolute
+                  -right-16
+                  -top-16
+                  h-40
+                  w-40
+                  rounded-full
+                  bg-[#D4AF37]/12
+                  blur-3xl
+                "
+              />
+
+              <div className="relative p-5">
+                <div className="flex items-start gap-3.5">
+                  <div
+                    className="
+                      h-16
+                      w-16
+                      shrink-0
+                      overflow-hidden
+                      rounded-2xl
+                      bg-[#FBF7EA]
+                      ring-1
+                      ring-[#C8A44D]/20
+                    "
+                  >
+                    <img
+                      src={removeConfirmItem.image}
+                      alt={removeConfirmItem.name}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className="
+                        text-[10px]
+                        font-semibold
+                        uppercase
+                        tracking-[0.16em]
+                        text-[#A27D18]
+                      "
+                    >
+                      Before you remove it
+                    </p>
+
+                    <h3
+                      className="
+                        mt-1
+                        line-clamp-2
+                        text-base
+                        font-semibold
+                        leading-5
+                        text-neutral-900
+                      "
+                    >
+                      {removeConfirmItem.name}
+                    </h3>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRemoveConfirmItem(null);
+                      setWishlistSaveError("");
+                    }}
+                    className="
+                      flex
+                      h-8
+                      w-8
+                      shrink-0
+                      items-center
+                      justify-center
+                      rounded-full
+                      text-neutral-400
+                      transition
+                      hover:bg-neutral-100
+                      hover:text-neutral-700
+                      active:scale-90
+                    "
+                    aria-label="Keep item in cart"
+                  >
+                    <X size={17} />
+                  </button>
+                </div>
+
+                <div
+                  className="
+                    mt-4
+                    rounded-2xl
+                    border
+                    border-[#D4AF37]/25
+                    bg-[#FBF7EA]
+                    px-4
+                    py-3.5
+                  "
+                >
+                  <div className="flex items-start gap-2.5">
+                    <span
+                      className="
+                        mt-0.5
+                        flex
+                        h-7
+                        w-7
+                        shrink-0
+                        items-center
+                        justify-center
+                        rounded-full
+                        bg-[#D4AF37]/15
+                        text-sm
+                      "
+                    >
+                      ✨
+                    </span>
+
+                    <div>
+                      <p
+                        className="
+                          text-sm
+                          font-semibold
+                          text-neutral-900
+                        "
+                      >
+                        Limited stock available
+                      </p>
+
+                      <p
+                        className="
+                          mt-1
+                          text-xs
+                          leading-4
+                          text-neutral-600
+                        "
+                      >
+                        This piece may not stay available for long.
+                        Would you really like to remove it from your cart?
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleRemoveAndWishlistItem(
+                        removeConfirmItem
+                      );
+                    }}
+                    disabled={isAddingToWishlist}
+                    className="
+                      flex
+                      min-h-11
+                      w-full
+                      items-center
+                      justify-center
+                      gap-2
+                      rounded-2xl
+                      bg-black
+                      px-4
+                      py-3
+                      text-xs
+                      font-semibold
+                      text-white
+                      shadow-sm
+                      transition
+                      hover:bg-neutral-800
+                      active:scale-[0.98]
+                      disabled:cursor-not-allowed
+                      disabled:opacity-60
+                    "
+                  >
+                    {isAddingToWishlist ? (
+                      <>
+                        <Loader2
+                          size={15}
+                          className="animate-spin"
+                        />
+                        Saving to Wishlist...
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-sm">♡</span>
+                        Add to Wishlist
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleConfirmedRemoveItem(
+                        removeConfirmItem
+                      );
+                    }}
+                    disabled={isAddingToWishlist}
+                    className="
+                      flex
+                      min-h-11
+                      w-full
+                      items-center
+                      justify-center
+                      rounded-2xl
+                      border
+                      border-neutral-200
+                      bg-white
+                      px-4
+                      py-3
+                      text-xs
+                      font-semibold
+                      text-neutral-700
+                      transition
+                      hover:bg-neutral-50
+                      active:scale-[0.98]
+                      disabled:opacity-50
+                    "
+                  >
+                    Remove from Cart
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.dispatchEvent(
+                        new CustomEvent("tnm:open-help")
+                      );
+                    }}
+                    className="
+                      flex
+                      min-h-10
+                      w-full
+                      items-center
+                      justify-center
+                      gap-1.5
+                      rounded-2xl
+                      px-4
+                      py-2.5
+                      text-xs
+                      font-medium
+                      text-[#8A6D25]
+                      transition
+                      hover:bg-[#FBF7EA]
+                      active:scale-[0.98]
+                    "
+                  >
+                    <HelpCircle size={14} />
+                    Need Help?
+                  </button>
+                </div>
+
+                {wishlistSaveError && (
+                  <p
+                    className="
+                      mt-3
+                      px-1
+                      text-center
+                      text-[11px]
+                      leading-4
+                      text-red-500
+                    "
+                  >
+                    {wishlistSaveError}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================
             REMOVE → WISHLIST PROMPT
         ==================================================== */}
 
@@ -6200,6 +6769,447 @@ export default function CartDrawer() {
 
       </div>
 
+
+      {/* =====================================================
+          CHECKOUT OFFER CHOICE
+      ====================================================== */}
+
+      {showCheckoutOfferChoice &&
+        unlockCoupon && (
+        <div
+          className="
+            fixed inset-0 z-[1450]
+            flex items-center justify-center
+            bg-black/45 px-4
+            backdrop-blur-[4px]
+            animate-in fade-in duration-200
+          "
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="checkout-offer-choice-title"
+        >
+          <div
+            className="
+              relative w-full max-w-[390px]
+              overflow-hidden rounded-[30px]
+              border border-[#D4AF37]/25
+              bg-white
+              shadow-[0_28px_90px_rgba(0,0,0,0.28)]
+              animate-in zoom-in-95 slide-in-from-bottom-4
+              duration-300
+            "
+          >
+            <div
+              className="
+                pointer-events-none absolute -right-20 -top-20
+                h-48 w-48 rounded-full
+                bg-[#D4AF37]/15 blur-3xl
+              "
+            />
+
+            <div
+              className="
+                pointer-events-none absolute -bottom-24 -left-20
+                h-48 w-48 rounded-full
+                bg-[#D4AF37]/10 blur-3xl
+              "
+            />
+
+            <button
+              type="button"
+              onClick={() =>
+                setShowCheckoutOfferChoice(false)
+              }
+              className="
+                absolute right-3 top-3 z-20
+                flex h-9 w-9 items-center justify-center
+                rounded-full text-neutral-400
+                transition hover:bg-neutral-100
+                hover:text-neutral-800 active:scale-90
+              "
+              aria-label="Close offer choices"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="relative px-6 pb-6 pt-7 text-center">
+
+              <div
+                className="
+                  mx-auto flex h-14 w-14
+                  items-center justify-center
+                  rounded-full
+                  bg-[#FBF5DF]
+                  text-[#A27B16]
+                  ring-1 ring-[#D4AF37]/25
+                  shadow-[0_8px_25px_rgba(200,164,77,0.16)]
+                "
+              >
+                <Sparkles size={27} strokeWidth={1.8} />
+              </div>
+
+              <p
+                className="
+                  mt-4 text-[10px] font-semibold uppercase
+                  tracking-[0.2em] text-[#A27B16]
+                "
+              >
+                Before you checkout
+              </p>
+
+              <h3
+                id="checkout-offer-choice-title"
+                className="
+                  mt-1.5 text-[25px] font-semibold
+                  tracking-tight text-neutral-900
+                "
+              >
+                You have offers waiting ✨
+              </h3>
+
+              <p
+                className="
+                  mx-auto mt-2 max-w-[315px]
+                  text-sm leading-5 text-neutral-500
+                "
+              >
+                Save on your current cart, or add a little more
+                to unlock another offer.
+              </p>
+
+              {bestCouponAvailable && bestCoupon ? (
+                <>
+                  {/* AVAILABLE NOW */}
+                  <div
+                    className="
+                      mt-5 rounded-[22px]
+                      border border-green-200
+                      bg-green-50 p-4 text-left
+                    "
+                  >
+                    <div className="flex items-start gap-3">
+
+                      <div
+                        className="
+                          flex h-11 w-11 shrink-0
+                          items-center justify-center
+                          rounded-xl bg-white
+                          text-green-600 shadow-sm
+                        "
+                      >
+                        <Check size={20} strokeWidth={2.4} />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+
+                        <div
+                          className="
+                            flex items-start
+                            justify-between gap-2
+                          "
+                        >
+                          <div className="min-w-0">
+                            <p
+                              className="
+                                text-[10px] font-semibold uppercase
+                                tracking-[0.14em] text-green-700
+                              "
+                            >
+                              Available now
+                            </p>
+
+                            <p
+                              className="
+                                mt-1 text-sm font-semibold
+                                text-neutral-900
+                              "
+                            >
+                              Save ₹{Number(
+                                bestCoupon.estimatedSaving ?? 0
+                              ).toLocaleString("en-IN")}
+                            </p>
+                          </div>
+
+                          <span
+                            className="
+                              shrink-0 rounded-full
+                              bg-black px-2.5 py-1
+                              text-[10px] font-semibold
+                              tracking-wide text-white
+                            "
+                          >
+                            {bestCoupon.code}
+                          </span>
+                        </div>
+
+                        <p
+                          className="
+                            mt-1.5 text-xs leading-4
+                            text-neutral-600
+                          "
+                        >
+                          {bestCoupon.title ||
+                            "This offer is available for your current cart."}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleApplyAvailableCheckoutOffer}
+                      disabled={applyingCheckoutCoupon}
+                      className="
+                        mt-3 flex min-h-10 w-full
+                        items-center justify-center gap-2
+                        rounded-xl bg-black px-4 py-2.5
+                        text-xs font-semibold text-white
+                        transition hover:bg-neutral-800
+                        active:scale-[0.98]
+                        disabled:cursor-not-allowed
+                        disabled:opacity-60
+                      "
+                    >
+                      {applyingCheckoutCoupon ? (
+                        <>
+                          <Loader2
+                            size={15}
+                            className="animate-spin"
+                          />
+                          Applying...
+                        </>
+                      ) : (
+                        <>
+                          Apply {bestCoupon.code} & Continue
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* UNLOCKABLE OFFER */}
+                  <div
+                    className="
+                      mt-3 rounded-[22px]
+                      border border-[#D4AF37]/30
+                      bg-[#FBF7EA] p-4 text-left
+                    "
+                  >
+                    <div className="flex items-start gap-3">
+
+                      <div
+                        className="
+                          flex h-11 w-11 shrink-0
+                          items-center justify-center
+                          rounded-xl bg-white
+                          text-[#A27B16] shadow-sm
+                        "
+                      >
+                        <Gift size={20} strokeWidth={1.8} />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+
+                        <div
+                          className="
+                            flex items-start
+                            justify-between gap-2
+                          "
+                        >
+                          <div className="min-w-0">
+                            <p
+                              className="
+                                text-[10px] font-semibold uppercase
+                                tracking-[0.14em] text-[#A27B16]
+                              "
+                            >
+                              Unlock with more shopping
+                            </p>
+
+                            <p
+                              className="
+                                mt-1 text-sm font-semibold
+                                text-neutral-900
+                              "
+                            >
+                              Add ₹{Number(
+                                remainingAmount
+                              ).toLocaleString("en-IN")} more
+                            </p>
+                          </div>
+
+                          <span
+                            className="
+                              shrink-0 rounded-full
+                              bg-white px-2.5 py-1
+                              text-[10px] font-semibold
+                              tracking-wide text-[#8A6D25]
+                              ring-1 ring-[#D4AF37]/25
+                            "
+                          >
+                            {unlockCoupon.code}
+                          </span>
+                        </div>
+
+                        <p
+                          className="
+                            mt-1.5 text-xs leading-4
+                            text-neutral-600
+                          "
+                        >
+                          {unlockCoupon.title ||
+                            "Add a little more to unlock this offer."}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleShopToUnlockCheckoutOffer}
+                      className="
+                        mt-3 flex min-h-10 w-full
+                        items-center justify-center
+                        rounded-xl
+                        border border-[#D4AF37]/35
+                        bg-white px-4 py-2.5
+                        text-xs font-semibold text-[#8A6D25]
+                        transition hover:bg-[#FFFDF7]
+                        active:scale-[0.98]
+                      "
+                    >
+                      Add ₹{Number(
+                        remainingAmount
+                      ).toLocaleString("en-IN")} More & Unlock
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={
+                      handleContinueToCheckoutOfferChoice
+                    }
+                    disabled={applyingCheckoutCoupon}
+                    className="
+                      mt-3 flex min-h-10 w-full
+                      items-center justify-center
+                      rounded-2xl px-4 py-2.5
+                      text-xs font-medium text-neutral-500
+                      transition hover:bg-neutral-50
+                      hover:text-neutral-900
+                      active:scale-[0.98]
+                      disabled:opacity-50
+                    "
+                  >
+                    Continue without using an offer
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* UNLOCK-ONLY */}
+                  <div
+                    className="
+                      mt-5 rounded-[22px]
+                      border border-[#D4AF37]/30
+                      bg-[#FBF7EA] p-4 text-left
+                    "
+                  >
+                    <div className="flex items-start gap-3">
+
+                      <div
+                        className="
+                          flex h-11 w-11 shrink-0
+                          items-center justify-center
+                          rounded-xl bg-white
+                          text-[#A27B16] shadow-sm
+                        "
+                      >
+                        <Gift size={20} strokeWidth={1.8} />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className="
+                            text-[10px] font-semibold uppercase
+                            tracking-[0.14em] text-[#A27B16]
+                          "
+                        >
+                          You're almost there
+                        </p>
+
+                        <p
+                          className="
+                            mt-1 text-sm font-semibold
+                            text-neutral-900
+                          "
+                        >
+                          Add ₹{Number(
+                            remainingAmount
+                          ).toLocaleString("en-IN")} more to unlock{" "}
+                          {unlockCoupon.code}
+                        </p>
+
+                        <p
+                          className="
+                            mt-1.5 text-xs leading-4
+                            text-neutral-600
+                          "
+                        >
+                          {unlockCoupon.title ||
+                            "A special offer is waiting for you."}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleShopToUnlockCheckoutOffer}
+                    className="
+                      mt-4 flex min-h-12 w-full
+                      items-center justify-center
+                      rounded-2xl bg-black px-5 py-3.5
+                      text-sm font-semibold text-white
+                      shadow-[0_10px_25px_rgba(0,0,0,0.16)]
+                      transition hover:bg-neutral-800
+                      active:scale-[0.98]
+                    "
+                  >
+                    Add ₹{Number(
+                      remainingAmount
+                    ).toLocaleString("en-IN")} More & Unlock
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={
+                      handleContinueToCheckoutOfferChoice
+                    }
+                    className="
+                      mt-2.5 flex min-h-10 w-full
+                      items-center justify-center
+                      rounded-2xl px-4 py-2.5
+                      text-xs font-medium text-neutral-500
+                      transition hover:bg-neutral-50
+                      hover:text-neutral-900
+                      active:scale-[0.98]
+                    "
+                  >
+                    Continue to checkout anyway
+                  </button>
+                </>
+              )}
+
+              <p
+                className="
+                  mt-2 text-[10px] leading-4
+                  text-neutral-400
+                "
+              >
+                Your current cart is safe — these offers are optional.
+              </p>
+
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* =====================================================
           CHECKOUT COUPON REMINDER

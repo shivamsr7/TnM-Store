@@ -27,6 +27,10 @@ interface WhatsAppSupportChatProps {
 }
 
 
+const SUPPORT_DISMISSED_STORAGE_KEY =
+  "tnm_whatsapp_support_need_help_dismissed";
+
+
 export default function WhatsAppSupportChat({
   productName,
 }: WhatsAppSupportChatProps) {
@@ -52,7 +56,24 @@ export default function WhatsAppSupportChat({
   const [
     showSupport,
     setShowSupport,
-  ] = useState(false);
+  ] = useState(() => {
+
+    try {
+
+      return (
+        sessionStorage.getItem(
+          SUPPORT_DISMISSED_STORAGE_KEY
+        ) !== "1"
+        && false
+      );
+
+    } catch {
+
+      return false;
+
+    }
+
+  });
 
 
   const [
@@ -111,45 +132,80 @@ export default function WhatsAppSupportChat({
    * =====================================================
    * SHOW NEED HELP AFTER 4 SECONDS
    *
-   * The timer starts whenever the pathname changes.
-   *
-   * Therefore:
-   *
-   * Page A → wait 4 sec → show
-   *
-   * Page B → timer resets → wait 4 sec → show
+   * The timer normally starts whenever the pathname changes.
+   * However, once the customer dismisses the bubble, that
+   * dismissal is remembered for the current browser session,
+   * so it will not reappear on every page.
    * =====================================================
    */
 
   useEffect(() => {
 
     /*
-     * Reset everything when customer enters
+     * Always close the popup when navigating to
      * another page.
+     *
+     * The small "Need Help?" bubble is different:
+     * once the customer dismisses it, that dismissal is
+     * remembered for the current browser session.
      */
 
     setShowSupport(false);
 
     setClosing(false);
 
-
-    /*
-     * Also close the popup when navigating to
-     * another page.
-     *
-     * This prevents the old page's support popup
-     * from remaining open on the new page.
-     */
-
     setOpen(false);
 
 
     /*
-     * Wait exactly 4 seconds.
+     * Do not restart the 4-second timer if the customer
+     * has already dismissed "Need Help?" in this session.
+     */
+
+    try {
+
+      if (
+        sessionStorage.getItem(
+          SUPPORT_DISMISSED_STORAGE_KEY
+        ) === "1"
+      ) {
+
+        return;
+
+      }
+
+    } catch {
+      /*
+       * If sessionStorage is unavailable, fall back to
+       * the normal temporary behavior.
+       */
+    }
+
+
+    /*
+     * Show the support bubble once after 4 seconds.
      */
 
     const timer =
       window.setTimeout(() => {
+
+        try {
+
+          if (
+            sessionStorage.getItem(
+              SUPPORT_DISMISSED_STORAGE_KEY
+            ) === "1"
+          ) {
+
+            return;
+
+          }
+
+        } catch {
+          /*
+           * Continue with the normal display behavior.
+           */
+        }
 
         setShowSupport(true);
 
@@ -157,8 +213,8 @@ export default function WhatsAppSupportChat({
 
 
     /*
-     * If the customer changes page before 4 seconds,
-     * cancel the previous timer.
+     * Cancel the timer when the customer navigates
+     * before it fires.
      */
 
     return () => {
@@ -178,11 +234,12 @@ export default function WhatsAppSupportChat({
    * =====================================================
    * CLOSE NEED HELP BUBBLE
    *
-   * This only closes the small floating bubble.
+   * This closes the small floating bubble and remembers
+   * the dismissal for the current browser session.
    *
-   * It does NOT disable WhatsApp support permanently.
-   * When the customer navigates to another page,
-   * the timer starts again.
+   * It does NOT disable WhatsApp support itself. The customer
+   * can still open the chat whenever the floating chat button
+   * is available.
    * =====================================================
    */
 
@@ -198,6 +255,27 @@ export default function WhatsAppSupportChat({
      */
 
     setClosing(true);
+
+
+    /*
+     * Remember the dismissal for the current browser
+     * session so the bubble does not come back on every
+     * page or every few seconds.
+     */
+
+    try {
+
+      sessionStorage.setItem(
+        SUPPORT_DISMISSED_STORAGE_KEY,
+        "1"
+      );
+
+    } catch {
+      /*
+       * The UI still closes even if sessionStorage is
+       * unavailable.
+       */
+    }
 
 
     window.setTimeout(() => {
@@ -222,6 +300,36 @@ export default function WhatsAppSupportChat({
     setOpen(true);
 
   };
+
+
+  /*
+   * =====================================================
+   * EXTERNAL NEED HELP TRIGGER
+   * =====================================================
+   *
+   * Cart/checkout can explicitly open this same support
+   * popup by dispatching the tnm:open-help event.
+   */
+
+  useEffect(() => {
+
+    const handleExternalHelp = () => {
+      setOpen(true);
+    };
+
+    window.addEventListener(
+      "tnm:open-help",
+      handleExternalHelp
+    );
+
+    return () => {
+      window.removeEventListener(
+        "tnm:open-help",
+        handleExternalHelp
+      );
+    };
+
+  }, []);
 
 
   /*
@@ -470,7 +578,7 @@ export default function WhatsAppSupportChat({
                 "
               >
 
-                Need Help?
+                Need Help? Chat With Us
 
               </span>
 
