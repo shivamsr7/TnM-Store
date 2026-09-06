@@ -65,7 +65,7 @@ import NotificationsPage
 
 import Wishlist
   from "@/features/wishlist/pages/Wishlist";
-
+import OrderTrackingPage from "@/features/orders/pages/OrderTrackingPage";
 
 export default function AppRouter() {
 
@@ -250,7 +250,10 @@ export default function AppRouter() {
           />
 
         </Route>
-
+<Route
+  path="/track-order"
+  element={<OrderTrackingPage />}
+/>
       </Routes>
 
     </>

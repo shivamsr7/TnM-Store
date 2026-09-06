@@ -14,6 +14,8 @@ interface DeliveryCheckItem {
 
   quantity: number;
 
+  buyNow?: boolean;
+
 }
 
 

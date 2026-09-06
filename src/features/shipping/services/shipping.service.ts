@@ -7,6 +7,8 @@ interface CheckDeliveryItem {
 
   quantity: number;
 
+  buyNow?: boolean;
+
 }
 
 
@@ -76,6 +78,9 @@ export const shippingService = {
 
                 quantity:
                   item.quantity,
+
+                buy_now:
+                  Boolean(item.buyNow),
 
               })
             ),

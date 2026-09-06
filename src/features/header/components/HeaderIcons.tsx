@@ -30,6 +30,8 @@ import {
   useAuth,
 } from "@/features/Auth/context/AuthContext";
 
+import LogoutConfirmDialog from "@/features/Auth/components/LogoutConfirmDialog";
+
 import {
   useCartStore,
 } from "@/features/cart/store/cart.store";
@@ -321,6 +323,16 @@ export default function HeaderIcons({
     setAccountOpen,
   ] = useState(false);
 
+  const [
+    logoutConfirmOpen,
+    setLogoutConfirmOpen,
+  ] = useState(false);
+
+  const [
+    logoutLoading,
+    setLogoutLoading,
+  ] = useState(false);
+
 
 
   const notificationRef =
@@ -499,7 +511,25 @@ export default function HeaderIcons({
 
     setAccountOpen(false);
 
-    logout();
+    setLogoutConfirmOpen(true);
+
+  }
+
+  async function handleLogoutConfirm() {
+
+    try {
+
+      setLogoutLoading(true);
+
+      await logout();
+
+      setLogoutConfirmOpen(false);
+
+    } finally {
+
+      setLogoutLoading(false);
+
+    }
 
   }
 
@@ -1148,6 +1178,17 @@ export default function HeaderIcons({
         )}
 
       </div>
+
+      <LogoutConfirmDialog
+        open={logoutConfirmOpen}
+        loading={logoutLoading}
+        onCancel={() => {
+          if (!logoutLoading) {
+            setLogoutConfirmOpen(false);
+          }
+        }}
+        onConfirm={handleLogoutConfirm}
+      />
 
     </div>
 

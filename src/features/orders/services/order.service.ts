@@ -26,100 +26,93 @@ function generateOrderNumber() {
 
 
 
-async function createOrderActivity({
-
-  orderId,
-
-  eventType,
-
-  title,
-
-  description,
-
-  metadata
-
+/**
+ * Securely attach an email address to an existing order so the customer
+ * can receive transactional order updates.
+ *
+ * The database RPC is responsible for authorization:
+ * - authenticated customers are verified against auth.uid()
+ * - guests must provide the phone number associated with the order
+ *
+ * Do not update `orders.customer_email` directly from the browser.
+ */
+export async function saveOrderEmail({
+  orderNumber,
+  email,
+  phone,
+  updateCustomerEmail = false,
 }: {
-
-  orderId: string;
-
-  eventType: string;
-
-  title: string;
-
-  description?: string;
-
-  metadata?: Record<string, unknown>;
-
+  orderNumber: string;
+  email: string;
+  phone?: string | null;
+  updateCustomerEmail?: boolean;
 }) {
+  const normalizedOrderNumber =
+    orderNumber.trim();
 
+  const normalizedEmail =
+    email.trim().toLowerCase();
 
+  const normalizedPhone =
+    phone?.replace(/\D/g, "") || null;
 
-
-
-  const {
-
-    data: {
-
-      user
-
-    }
-
-  } = await supabase.auth.getUser();
-
-
-
-
-
-  const {
-
-    error
-
-  } = await supabase
-
-    .from("order_activity")
-
-    .insert({
-
-      order_id:
-        orderId,
-
-      event_type:
-        eventType,
-
-      title,
-
-      description:
-        description ?? null,
-
-      metadata:
-        metadata ?? {},
-
-      created_by:
-        user?.id ?? null
-
-    });
-
-
-
-
-
-  if (error) {
-
-    console.error(
-
-      "Create activity failed:",
-
-      error
-
+  if (!normalizedOrderNumber) {
+    throw new Error(
+      "Order number is required."
     );
-
   }
 
+  if (
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+      normalizedEmail
+    )
+  ) {
+    throw new Error(
+      "Please enter a valid email address."
+    );
+  }
+
+  if (
+    normalizedPhone !== null &&
+    normalizedPhone.length > 0 &&
+    normalizedPhone.length !== 10
+  ) {
+    throw new Error(
+      "Please enter a valid 10-digit phone number."
+    );
+  }
+
+  const {
+    data,
+    error,
+  } = await supabase.rpc(
+    "save_order_email",
+    {
+      p_order_number:
+        normalizedOrderNumber,
+      p_email:
+        normalizedEmail,
+      p_phone:
+        normalizedPhone,
+      p_update_customer_email:
+        Boolean(updateCustomerEmail),
+    }
+  );
+
+  if (error) {
+    console.error(
+      "Save order email failed:",
+      error
+    );
+
+    throw new Error(
+      error.message ||
+      "We couldn't save your email. Please try again."
+    );
+  }
+
+  return data;
 }
-
-
-
-
 
 
 
@@ -487,30 +480,6 @@ export async function createOrder(
       : null;
 
 
-  // Activity 1: Order Created
-
-  await createOrderActivity({
-
-    orderId,
-
-    eventType:
-      "order_created",
-
-    title:
-      "Order Created",
-
-    description:
-      `Order #${finalOrderNumber} was placed successfully.`,
-
-    metadata: {
-
-      order_number:
-        finalOrderNumber
-
-    }
-
-  });
-
 
   // Notification 1: Order Placed
 
@@ -674,38 +643,6 @@ export async function createOrder(
   }
 
 
-  // Activity 2: Payment Received
-
-  if (
-    payload.paymentMethod ===
-    "prepaid"
-  ) {
-
-    await createOrderActivity({
-
-      orderId,
-
-      eventType:
-        "payment_received",
-
-      title:
-        "Payment Received",
-
-      description:
-        `Payment received for order #${finalOrderNumber}.`,
-
-      metadata: {
-
-        payment_method:
-          "prepaid",
-
-        transaction_id:
-          paymentTransactionId
-
-      }
-
-    });
-
 
     // Notification 2: Payment Received
 
@@ -731,8 +668,6 @@ export async function createOrder(
       });
 
     }
-
-  }
 
 
   return {

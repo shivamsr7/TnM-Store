@@ -52,11 +52,12 @@ serve(async (req) => {
      * items: [
      *   {
      *     product_id: string,
-     *     quantity: number
+     *     quantity: number,
+     *     buy_now?: boolean
      *   }
      * ]
      *
-     * The server fetches the real product weights.
+     * The server fetches the real product weights and prices.
      *
      * weight is intentionally NOT trusted when items are supplied.
      */
@@ -159,12 +160,20 @@ serve(async (req) => {
 
     /*
      * =========================================================
-     * SERVER-SIDE WEIGHT
+     * SERVER-SIDE WEIGHT + PRICE
      * =========================================================
      *
-     * When items are supplied, NEVER trust the frontend weight.
+     * When items are supplied, NEVER trust the frontend weight
+     * or frontend Buy Now price.
      *
-     * Every product weight is fetched from products.
+     * Every product weight and price is fetched from products.
+     *
+     * Normal Cart:
+     *   Uses the existing product price.
+     *
+     * Buy Now:
+     *   Calculates the current special customer price
+     *   server-side from the product's special discount fields.
      *
      * NULL / 0 weight → 0.500 kg fallback.
      */
@@ -177,6 +186,7 @@ serve(async (req) => {
       quantity: number;
       price: number;
       weight: number;
+      buy_now: boolean;
     }> = [];
 
     if (items.length > 0) {
@@ -193,6 +203,13 @@ serve(async (req) => {
         const quantity =
           Number(
             item?.quantity ?? 0
+          );
+
+        const buyNow =
+          Boolean(
+            item?.buy_now ??
+            item?.buyNow ??
+            false
           );
 
         if (!productId) {
@@ -216,7 +233,19 @@ serve(async (req) => {
         } = await supabaseAdmin
           .from("products")
           .select(
-            "id, price, weight, status, track_inventory, stock, allow_backorders"
+            `
+              id,
+              price,
+              weight,
+              status,
+              track_inventory,
+              stock,
+              allow_backorders,
+              special_discount_enabled,
+              special_discount_type,
+              special_discount_value,
+              special_discount_ends_at
+            `
           )
           .eq("id", productId)
           .maybeSingle();
@@ -264,14 +293,111 @@ serve(async (req) => {
           verifiedWeight *
           quantity;
 
+        /*
+         * =====================================================
+         * SERVER-SIDE PRICE VERIFICATION
+         * =====================================================
+         *
+         * Cart:
+         *   Keep existing behavior and use products.price.
+         *
+         * Buy Now:
+         *   Recalculate the active special price from the
+         *   product's database discount configuration.
+         *
+         * The browser never supplies the final price.
+         */
+
+        const regularPrice =
+          Number(
+            product.price ?? 0
+          );
+
+        let verifiedPrice =
+          regularPrice;
+
+        if (
+          buyNow &&
+          Boolean(
+            product.special_discount_enabled
+          )
+        ) {
+          const discountValue =
+            Number(
+              product.special_discount_value ?? 0
+            );
+
+          if (
+            Number.isFinite(
+              discountValue
+            ) &&
+            discountValue > 0
+          ) {
+            const discountType =
+              String(
+                product.special_discount_type ?? ""
+              ).toLowerCase();
+
+            /*
+             * Fixed discount:
+             *
+             * ₹1,599 - ₹179 = ₹1,420
+             */
+            if (
+              discountType === "fixed"
+            ) {
+              verifiedPrice =
+                Math.max(
+                  0,
+                  regularPrice -
+                    Math.min(
+                      discountValue,
+                      regularPrice
+                    )
+                );
+            }
+
+            /*
+             * Percentage discount.
+             *
+             * Example:
+             * ₹1,599 - 10% = ₹1,439.10
+             */
+            else {
+              const percentage =
+                Math.min(
+                  discountValue,
+                  100
+                );
+
+              verifiedPrice =
+                Math.max(
+                  0,
+                  regularPrice -
+                    (
+                      regularPrice *
+                      percentage /
+                      100
+                    )
+                );
+            }
+          }
+        }
+
         verifiedItems.push({
           product_id:
             product.id,
+
           quantity,
+
           price:
-            Number(product.price ?? 0),
+            verifiedPrice,
+
           weight:
             verifiedWeight,
+
+          buy_now:
+            buyNow,
         });
       }
 
@@ -511,24 +637,37 @@ serve(async (req) => {
         .insert({
           customer_id:
             customer_id,
+
           shipping_pincode:
             customer_pincode,
+
           payment_method:
             payment_method,
+
           items:
             verifiedItems,
+
           subtotal: 0,
+
           discount: 0,
+
           shipping_charge:
             shiprocketRate,
+
           tax: 0,
+
           total_amount: 0,
+
           coupon_id: null,
+
           coupon_code: null,
+
           shipment_weight:
             shipmentWeight,
+
           shiprocket_rate:
             shiprocketRate,
+
           expires_at:
             expiresAt,
         })
@@ -565,10 +704,13 @@ serve(async (req) => {
         ? {
             id:
               quoteId,
+
             expires_at:
               quoteExpiresAt,
+
             shipment_weight:
               shipmentWeight,
+
             shiprocket_rate:
               shiprocketRate,
           }
@@ -577,14 +719,18 @@ serve(async (req) => {
       verified_shipping: {
         shiprocket_rate:
           shiprocketRate,
+
         shipment_weight:
           shipmentWeight,
+
         courier:
           courier?.courier_name ??
           "",
       },
     });
+
   } catch (error) {
+
     console.error(
       "check-delivery error:",
       error
@@ -599,5 +745,6 @@ serve(async (req) => {
       },
       500
     );
+
   }
 });

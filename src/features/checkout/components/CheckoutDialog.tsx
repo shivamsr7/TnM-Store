@@ -1,5 +1,6 @@
 import {
   X,
+  ArrowDown,
   ShieldCheck,
   UserRound,
   MapPin,
@@ -14,6 +15,7 @@ import {
 import {
   useState,
   useEffect,
+  useRef,
 } from "react";
 
 import { createPortal } from "react-dom";
@@ -145,6 +147,15 @@ export default function CheckoutDialog({
     customer,
     setCustomer,
   ] = useState<any>(null);
+
+  /*
+   * Used when a guest clicks "View available coupons".
+   * We keep the existing Login step exactly where it is and
+   * smoothly scroll the checkout content down to it.
+   */
+  const loginSectionRef = useRef<HTMLDivElement | null>(null);
+  const checkoutContentRef = useRef<HTMLDivElement | null>(null);
+  const [showLoginScrollHint, setShowLoginScrollHint] = useState(true);
 
 
   /*
@@ -325,6 +336,18 @@ export default function CheckoutDialog({
   const giftMessage =
     isBuyNow ? buyNowGiftMessage : cartGiftMessage;
 
+  /*
+   * Buy Now subtotal is the actual snapped customer price.
+   *
+   * item.price already contains the active special price.
+   * The MRP -> regular-price discount and the regular-price ->
+   * special-price discount are shown separately in the breakdown,
+   * but must NOT be deducted again from subtotal.
+   *
+   * Example:
+   * ₹2,000 MRP - ₹401 item discount - ₹179 special offer
+   * = ₹1,420 actual subtotal.
+   */
   const subtotal = isBuyNow
     ? checkoutItems.reduce(
         (sum: number, item: any) =>
@@ -768,6 +791,8 @@ export default function CheckoutDialog({
       false
     );
 
+    setShowLoginScrollHint(true);
+
   }, [
     open,
   ]);
@@ -808,6 +833,101 @@ export default function CheckoutDialog({
    * BUY NOW COUPON
    * =========================================================
    */
+
+  function handleViewAvailableCoupons() {
+
+    /*
+     * Guest checkout already contains the Login section below
+     * the order summary. Do not open another login dialog.
+     * Simply move the checkout viewport to that section.
+     */
+    if (!authCustomer) {
+      setShowLoginScrollHint(false);
+
+      requestAnimationFrame(() => {
+        loginSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+
+      return;
+    }
+
+    setBuyNowCouponModalOpen(true);
+  }
+
+
+  /*
+   * =========================================================
+   * LOGIN SCROLL HINT
+   * =========================================================
+   *
+   * The cute floating arrow is only a visual cue for guests.
+   * It disappears permanently for the current checkout session
+   * once the customer clicks it OR naturally reaches the Login
+   * section by scrolling.
+   */
+  useEffect(() => {
+
+    if (!open || authCustomer || step !== "login" || orderSuccess) {
+      return;
+    }
+
+    setShowLoginScrollHint(true);
+
+    const container = checkoutContentRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const handleScroll = () => {
+
+      if (loginSectionRef.current) {
+
+        const loginRect =
+          loginSectionRef.current.getBoundingClientRect();
+
+        const containerRect =
+          container.getBoundingClientRect();
+
+        /*
+         * Consider the Login section "reached" when its top has
+         * entered the visible checkout content area.
+         */
+        if (
+          loginRect.top <=
+          containerRect.top + 110
+        ) {
+          setShowLoginScrollHint(false);
+        }
+      }
+
+    };
+
+    container.addEventListener(
+      "scroll",
+      handleScroll,
+      { passive: true }
+    );
+
+    handleScroll();
+
+    return () => {
+      container.removeEventListener(
+        "scroll",
+        handleScroll
+      );
+    };
+
+  }, [
+    open,
+    authCustomer,
+    step,
+    orderSuccess,
+  ]);
+
 
   async function applyBuyNowCoupon(input: any) {
 
@@ -1150,6 +1270,9 @@ export default function CheckoutDialog({
 
               quantity:
                 item.quantity,
+
+              buyNow:
+                isBuyNow,
 
               ringSize:
                 item.ringSize ?? null,
@@ -2994,6 +3117,7 @@ export default function CheckoutDialog({
         ==================================================== */}
 
         <div
+          ref={checkoutContentRef}
 
           className="
             relative
@@ -3205,8 +3329,8 @@ export default function CheckoutDialog({
 
                           <button
                             type="button"
-                            onClick={() => setBuyNowCouponModalOpen(true)}
-                            className="mt-2 text-xs font-semibold text-[#9A7A22] underline underline-offset-2"
+                            onClick={handleViewAvailableCoupons}
+                            className="mt-2 text-xs font-semibold text-[#9A7A22] underline underline-offset-2 transition hover:text-[#C8A44D]"
                           >
                             View available coupons
                           </button>
@@ -3400,6 +3524,89 @@ export default function CheckoutDialog({
             )
           }
 
+          {/* =================================================
+              CUTE LOGIN SCROLL HINT
+          ================================================== */}
+
+          {
+            !orderSuccess &&
+            !authCustomer &&
+            step === "login" &&
+            showLoginScrollHint && (
+
+              <button
+                type="button"
+                onClick={handleViewAvailableCoupons}
+                aria-label="Scroll down to login"
+                className="
+                  group
+                  sticky
+                  bottom-4
+                  z-30
+                  mx-auto
+                  mt-[-2px]
+                  flex
+                  w-fit
+                  items-center
+                  gap-2
+                  rounded-full
+                  border
+                  border-[#C8A44D]/30
+                  bg-white/95
+                  px-4
+                  py-2.5
+                  text-[12px]
+                  font-semibold
+                  text-neutral-800
+                  shadow-[0_12px_32px_rgba(0,0,0,0.13)]
+                  backdrop-blur-md
+                  transition-all
+                  duration-300
+                  hover:-translate-y-0.5
+                  hover:border-[#C8A44D]/60
+                  hover:shadow-[0_16px_36px_rgba(0,0,0,0.16)]
+                  active:scale-95
+                "
+              >
+
+                <span
+                  className="
+                    flex
+                    h-7
+                    w-7
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-[#C8A44D]/12
+                    text-[#9A7A22]
+                    motion-safe:animate-[cuteArrowBounce_1.35s_ease-in-out_infinite]
+                  "
+                >
+                  <ArrowDown
+                    size={16}
+                    strokeWidth={2.5}
+                  />
+                </span>
+
+                <span>
+                  Scroll down to login
+                </span>
+
+                <span
+                  aria-hidden="true"
+                  className="
+                    text-[#C8A44D]
+                    motion-safe:animate-[hintSpark_1.8s_ease-in-out_infinite]
+                  "
+                >
+                  ✦
+                </span>
+
+              </button>
+
+            )
+          }
+
 
           {/* =================================================
               SHIPPING ERROR
@@ -3492,6 +3699,20 @@ export default function CheckoutDialog({
                   onClose
                 }
 
+                hasOrderEmail={
+                  Boolean(
+                    customer?.email ??
+                    authCustomer?.email
+                  )
+                }
+
+                customerPhone={
+                  customer?.phone ??
+                  authCustomer?.phone ??
+                  selectedAddress?.phone ??
+                  null
+                }
+
               />
 
             )
@@ -3506,7 +3727,12 @@ export default function CheckoutDialog({
             !orderSuccess &&
             step === "login" && (
 
-              <>
+              <div
+                ref={loginSectionRef}
+                className="scroll-mt-5"
+              >
+
+                <>
 
                 <div
 
@@ -3573,7 +3799,9 @@ export default function CheckoutDialog({
 
                 />
 
-              </>
+                </>
+
+              </div>
 
             )
           }
@@ -4018,6 +4246,26 @@ export default function CheckoutDialog({
             }
             50% {
               transform: translateY(-5px);
+            }
+          }
+
+          @keyframes cuteArrowBounce {
+            0%, 100% {
+              transform: translateY(0);
+            }
+            50% {
+              transform: translateY(4px);
+            }
+          }
+
+          @keyframes hintSpark {
+            0%, 100% {
+              opacity: 0.45;
+              transform: scale(0.9) rotate(0deg);
+            }
+            50% {
+              opacity: 1;
+              transform: scale(1.08) rotate(8deg);
             }
           }
 

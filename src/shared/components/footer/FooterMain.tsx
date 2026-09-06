@@ -1,4 +1,5 @@
 import { useState } from "react";
+import OrderTrackingDialog from "@/features/orders/components/OrderTrackingDialog";
 import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
@@ -162,6 +163,8 @@ export default function FooterMain() {
   ] = useState<number | null>(
     null
   );
+
+  const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
 
 
   /* =====================================================
@@ -615,21 +618,21 @@ console.log("FOOTER SOCIAL SETTINGS", settings);
                           "
                         >
 
-                          <Link
-                            to={
-                              getColumnLinkPath(
-                                link
-                              )
-                            }
-                          >
-
-                            {
-                              getColumnLinkName(
-                                link
-                              )
-                            }
-
-                          </Link>
+                          {getColumnLinkName(link) === "Track Your Order" ? (
+                            <button
+                              type="button"
+                              onClick={() => setTrackingDialogOpen(true)}
+                              className="text-left transition hover:text-[#C8A44D]"
+                            >
+                              Track Your Order
+                            </button>
+                          ) : (
+                            <Link
+                              to={getColumnLinkPath(link)}
+                            >
+                              {getColumnLinkName(link)}
+                            </Link>
+                          )}
 
                         </li>
 
@@ -846,21 +849,21 @@ console.log("FOOTER SOCIAL SETTINGS", settings);
                               }
                             >
 
-                              <Link
-                                to={
-                                  getColumnLinkPath(
-                                    link
-                                  )
-                                }
-                              >
-
-                                {
-                                  getColumnLinkName(
-                                    link
-                                  )
-                                }
-
-                              </Link>
+                              {getColumnLinkName(link) === "Track Your Order" ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setTrackingDialogOpen(true)}
+                                  className="text-left transition hover:text-[#C8A44D]"
+                                >
+                                  Track Your Order
+                                </button>
+                              ) : (
+                                <Link
+                                  to={getColumnLinkPath(link)}
+                                >
+                                  {getColumnLinkName(link)}
+                                </Link>
+                              )}
 
                             </li>
 
@@ -881,6 +884,11 @@ console.log("FOOTER SOCIAL SETTINGS", settings);
 
       </div>
 
+
+      <OrderTrackingDialog
+        open={trackingDialogOpen}
+        onClose={() => setTrackingDialogOpen(false)}
+      />
 
       {/* =================================================
           MOBILE NEWSLETTER
