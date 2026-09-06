@@ -102,6 +102,9 @@ interface CheckoutProductPricing {
   id: string;
   price: number | null;
   compare_price: number | null;
+  special_discount_enabled: boolean | null;
+  special_discount_type: string | null;
+  special_discount_value: number | null;
   special_discount_ends_at: string | null;
 }
 
@@ -262,6 +265,19 @@ export default function CheckoutDialog({
   const [
     memberUpgradeSubmitting,
     setMemberUpgradeSubmitting,
+  ] = useState(false);
+
+  /*
+   * True when a Guest has explicitly chosen to continue without
+   * the Member-only special price.
+   *
+   * The Guest should continue to Address at the normal/regular
+   * product price. The Member price can be unlocked again from
+   * the price-breakdown button.
+   */
+  const [
+    guestContinueWithoutSpecialPrice,
+    setGuestContinueWithoutSpecialPrice,
   ] = useState(false);
 
   /*
@@ -431,6 +447,14 @@ export default function CheckoutDialog({
       ? [buyNowItem]
       : cartItems;
 
+  const isGuestCheckoutCustomer =
+    Boolean(
+      (customer?.customer_type === "guest" &&
+        !customer?.auth_user_id) ||
+      (guestCustomerDraft?.customer_type === "guest" &&
+        !guestCustomerDraft?.auth_user_id)
+    );
+
   const [buyNowCoupon, setBuyNowCoupon] = useState<any>(null);
   const [buyNowDiscount, setBuyNowDiscount] = useState(0);
   const [buyNowCouponCode, setBuyNowCouponCode] = useState("");
@@ -464,15 +488,6 @@ export default function CheckoutDialog({
    * ₹2,000 MRP - ₹401 item discount - ₹179 special offer
    * = ₹1,420 actual subtotal.
    */
-  const subtotal = isBuyNow
-    ? checkoutItems.reduce(
-        (sum: number, item: any) =>
-          sum + Number(item.price || 0) * Number(item.quantity || 0),
-        0
-      )
-    : getTotal();
-
-
   /*
    * =========================================================
    * CHECKOUT PRODUCT PRICING
@@ -514,7 +529,7 @@ export default function CheckoutDialog({
       } = await supabase
         .from("products")
         .select(
-          "id, price, compare_price, special_discount_ends_at"
+          "id, price, compare_price, special_discount_enabled, special_discount_type, special_discount_value, special_discount_ends_at"
         )
         .in(
           "id",
@@ -547,6 +562,52 @@ export default function CheckoutDialog({
         ]
       )
     );
+
+  const getGuestEffectiveItemPrice = (item: any) => {
+    const pricing =
+      checkoutProductPricingMap.get(
+        item.productId
+      );
+
+    const regularPrice =
+      Number(
+        pricing?.price ??
+        item.price ??
+        0
+      );
+
+    const specialEnabled =
+      pricing?.special_discount_enabled === true;
+
+    const specialValue =
+      Number(
+        pricing?.special_discount_value ?? 0
+      );
+
+    const hasActiveSpecialOffer =
+      specialEnabled &&
+      specialValue > 0;
+
+    if (
+      isGuestCheckoutCustomer &&
+      guestContinueWithoutSpecialPrice &&
+      hasActiveSpecialOffer
+    ) {
+      return regularPrice;
+    }
+
+    return Number(item.price ?? 0);
+  };
+
+  const subtotal = isBuyNow
+    ? checkoutItems.reduce(
+        (sum: number, item: any) =>
+          sum +
+          getGuestEffectiveItemPrice(item) *
+            Number(item.quantity || 0),
+        0
+      )
+    : getTotal();
 
 
   /*
@@ -728,11 +789,39 @@ export default function CheckoutDialog({
         item.productId
       );
 
-    const regularPrice =
+    /*
+     * IMPORTANT:
+     * For Guests, item.price is the actual normal checkout price.
+     * A Member-only special price must never be counted as the
+     * normal Item Discount.
+     *
+     * For Members, products.price is the regular/our price and
+     * item.price is the snapped Member special price.
+     */
+    const pricingRegularPrice =
       Number(
         pricing?.price ??
-        item.price
+        item.price ??
+        0
       );
+
+    const itemPrice =
+      Number(
+        item.price ??
+        pricingRegularPrice
+      );
+
+    const effectiveItemPrice =
+      getGuestEffectiveItemPrice(item);
+
+    const regularPrice =
+      isGuestCheckoutCustomer
+        ? (
+            guestContinueWithoutSpecialPrice
+              ? pricingRegularPrice
+              : itemPrice
+          )
+        : pricingRegularPrice;
 
     const mrp =
       Number(
@@ -752,32 +841,54 @@ export default function CheckoutDialog({
       productMrp *
       quantity;
 
-    const hasSpecialPrice =
-      Number(item.price) <
-      regularPrice;
+    /*
+     * Item Discount is ONLY:
+     *
+     * MRP → regular customer price
+     *
+     * For a Guest, this is the price the Guest actually sees.
+     * For a Member, this is the product's regular price before
+     * the Member special offer.
+     */
+    itemDiscount +=
+      Math.max(
+        0,
+        productMrp -
+        regularPrice
+      ) *
+      quantity;
 
-    if (hasSpecialPrice) {
-      itemDiscount +=
-        Math.max(
-          0,
-          productMrp -
-          regularPrice
-        ) *
-        quantity;
+    /*
+     * Special Offer Discount is ONLY for a Member who is
+     * actually receiving the active product-level special price.
+     *
+     * Normal product discounts are therefore never treated as
+     * special discounts.
+     */
+    const productSpecialEnabled =
+      pricing?.special_discount_enabled === true;
 
+    const productSpecialValue =
+      Number(
+        pricing?.special_discount_value ?? 0
+      );
+
+    const hasSpecialOffer =
+      productSpecialEnabled &&
+      productSpecialValue > 0;
+
+    const isMemberReceivingSpecialPrice =
+      !isGuestCheckoutCustomer &&
+      hasSpecialOffer &&
+      effectiveItemPrice <
+        regularPrice;
+
+    if (isMemberReceivingSpecialPrice) {
       specialOfferDiscount +=
         Math.max(
           0,
           regularPrice -
-          Number(item.price)
-        ) *
-        quantity;
-    } else {
-      itemDiscount +=
-        Math.max(
-          0,
-          productMrp -
-          Number(item.price)
+          effectiveItemPrice
         ) *
         quantity;
     }
@@ -830,6 +941,8 @@ export default function CheckoutDialog({
    * session. Members are never signed out by this handler.
    */
   async function handleCheckoutClose() {
+    setGuestContinueWithoutSpecialPrice(false);
+
     if (guestCheckoutSessionActive) {
       try {
         const { error } = await supabase.auth.signOut();
@@ -1151,16 +1264,11 @@ export default function CheckoutDialog({
           item.productId
         );
 
-      const regularPrice =
-        Number(
-          pricing?.price ??
-          item.price ??
-          0
-        );
-
       return (
-        regularPrice > 0 &&
-        Number(item.price ?? 0) < regularPrice
+        pricing?.special_discount_enabled === true &&
+        Number(
+          pricing?.special_discount_value ?? 0
+        ) > 0
       );
     });
 
@@ -1247,6 +1355,60 @@ export default function CheckoutDialog({
         upgradedCustomer
       );
 
+      /*
+       * This Guest Auth session is now the permanent Member
+       * session. It must NOT be signed out when CheckoutDialog
+       * closes.
+       */
+      setGuestCheckoutSessionActive(false);
+      setGuestOtpVerified(false);
+
+      /*
+       * Refresh the GLOBAL AuthContext as well.
+       *
+       * Guest → Member changes the customer row in Supabase,
+       * but that database update does not emit a Supabase
+       * auth-state event. Without this refresh, the page behind
+       * CheckoutDialog can continue showing the Guest state until
+       * the browser is manually refreshed.
+       *
+       * Do NOT reload the whole browser page here because that
+       * would destroy the active checkout state/address.
+       */
+      try {
+        const refreshedCustomer =
+          await refreshCustomer(
+            normalizedPhone
+          );
+
+        if (refreshedCustomer) {
+          setCustomer(
+            refreshedCustomer
+          );
+
+          useCustomerStore
+            .getState()
+            .setCustomer(
+              refreshedCustomer
+            );
+
+          setGuestCustomerDraft(
+            refreshedCustomer
+          );
+        }
+      } catch (refreshError) {
+        console.warn(
+          "Member upgrade succeeded, but global AuthContext refresh failed:",
+          refreshError
+        );
+      }
+
+      /*
+       * The customer is now a Member, so the Member special price
+       * is allowed again.
+       */
+      setGuestContinueWithoutSpecialPrice(false);
+
       setMemberUpgradeDialogOpen(false);
       setMemberUpgradeSubmitting(false);
 
@@ -1294,13 +1456,35 @@ export default function CheckoutDialog({
     setMemberUpgradeSubmitting(false);
 
     /*
-     * If this prompt appeared during the initial Guest
-     * membership choice, the customer is already verified and
-     * can continue directly to Address.
+     * A Guest must never continue checkout with a Member-only
+     * special price.
      *
-     * If it appeared while applying/browsing a coupon after the
-     * Guest is already in Address, this simply keeps the current
-     * Address step unchanged.
+     * If the prompt was triggered by special pricing, remove that
+     * special-price benefit from the checkout display and continue
+     * to Address at the normal product price.
+     */
+    if (
+      memberUpgradeReason === "special_price"
+    ) {
+      setGuestContinueWithoutSpecialPrice(true);
+
+      /*
+       * The old Member-price quote must not be reused.
+       * Address → Payment will create a fresh quote using the
+       * Guest's normal product price.
+       */
+      setCheckoutQuoteId(null);
+      setVerifiedCheckoutPricing(null);
+      setShippingCharge(0);
+      setShippingError("");
+
+      setStep("address");
+      return;
+    }
+
+    /*
+     * Coupon prompts happen after the Guest is already in Address.
+     * Keep the existing step unchanged in that case.
      */
     if (
       step === "login" &&
@@ -4061,6 +4245,39 @@ export default function CheckoutDialog({
                       </span>
                     </div>
                   )}
+
+                  {step !== "payment" &&
+                    isGuestCheckoutCustomer &&
+                    guestContinueWithoutSpecialPrice &&
+                    hasMemberOnlySpecialPrice && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openMemberUpgradeDialog(
+                            "special_price"
+                          )
+                        }
+                        className="
+                          mt-1
+                          w-full
+                          rounded-xl
+                          border
+                          border-[#C8A44D]/30
+                          bg-[#fffaf0]
+                          px-3
+                          py-2.5
+                          text-left
+                          text-xs
+                          font-semibold
+                          text-[#80651d]
+                          transition
+                          hover:bg-[#fff7df]
+                          active:scale-[0.99]
+                        "
+                      >
+                        ✨ Click here to unlock the Member Special Price
+                      </button>
+                    )}
 
                   {/* SUBTOTAL */}
                   <div

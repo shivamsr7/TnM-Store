@@ -83,43 +83,6 @@ serve(async (req) => {
     const legacyWeight =
       Number(body?.weight ?? 0.25);
 
-    if (!customer_pincode) {
-      return jsonResponse(
-        {
-          error: "Pincode is required",
-        },
-        400
-      );
-    }
-
-    if (
-      !/^\d{6}$/.test(
-        customer_pincode
-      )
-    ) {
-      return jsonResponse(
-        {
-          error: "Invalid delivery pincode",
-        },
-        400
-      );
-    }
-
-    if (
-      ![
-        "prepaid",
-        "razorpay",
-        "cod",
-        "partial_cod",
-      ].includes(payment_method)
-    ) {
-      return jsonResponse(
-        {
-          error: "Invalid payment method",
-        },
-        400
-      );
-    }
 
     /*
      * =========================================================
@@ -157,6 +120,123 @@ serve(async (req) => {
           },
         }
       );
+
+
+    /*
+     * =========================================================
+     * CUSTOMER TYPE / AUTHORIZATION
+     * =========================================================
+     *
+     * Special Offer pricing is MEMBER-ONLY.
+     *
+     * We do NOT trust customer_type sent by the browser.
+     * The customer record is read server-side.
+     *
+     * For a Member, the supplied customer_id must also belong
+     * to the currently authenticated Supabase user.
+     *
+     * Guests can still use this delivery-check endpoint, but
+     * they never receive the Member-only Special Offer price.
+     */
+    let isMemberCustomer = false;
+
+    if (customer_id) {
+      const authorizationHeader =
+        req.headers.get("Authorization") ?? "";
+
+      let authenticatedUserId: string | null = null;
+
+      if (
+        authorizationHeader.startsWith("Bearer ")
+      ) {
+        const accessToken =
+          authorizationHeader.slice(7).trim();
+
+        if (accessToken) {
+          const {
+            data: {
+              user,
+            },
+          } =
+            await supabaseAdmin.auth.getUser(
+              accessToken
+            );
+
+          authenticatedUserId =
+            user?.id ?? null;
+        }
+      }
+
+      /*
+       * The actual customer_type is always taken from the
+       * database. Never accept it from the request body.
+       */
+      const {
+        data: customerRecord,
+        error: customerError,
+      } = await supabaseAdmin
+        .from("customers")
+        .select(
+          "id, customer_type, auth_user_id, deleted_at"
+        )
+        .eq("id", customer_id)
+        .maybeSingle();
+
+      if (customerError) {
+        throw new Error(
+          `Unable to verify customer: ${customerError.message}`
+        );
+      }
+
+      if (
+        customerRecord &&
+        !customerRecord.deleted_at &&
+        customerRecord.customer_type === "member" &&
+        authenticatedUserId &&
+        customerRecord.auth_user_id ===
+          authenticatedUserId
+      ) {
+        isMemberCustomer = true;
+      }
+    }
+
+    if (!customer_pincode) {
+      return jsonResponse(
+        {
+          error: "Pincode is required",
+        },
+        400
+      );
+    }
+
+    if (
+      !/^\d{6}$/.test(
+        customer_pincode
+      )
+    ) {
+      return jsonResponse(
+        {
+          error: "Invalid delivery pincode",
+        },
+        400
+      );
+    }
+
+    if (
+      ![
+        "prepaid",
+        "razorpay",
+        "cod",
+        "partial_cod",
+      ].includes(payment_method)
+    ) {
+      return jsonResponse(
+        {
+          error: "Invalid payment method",
+        },
+        400
+      );
+    }
 
     /*
      * =========================================================
@@ -316,8 +396,21 @@ serve(async (req) => {
         let verifiedPrice =
           regularPrice;
 
+        /*
+         * IMPORTANT:
+         *
+         * Special Offer pricing is available ONLY to Members.
+         *
+         * Guests always keep the normal product price here,
+         * even when the product has an active special discount.
+         *
+         * This is enforced server-side so a Guest cannot bypass
+         * the UI and receive the Member-only price by modifying
+         * the browser request.
+         */
         if (
           buyNow &&
+          isMemberCustomer &&
           Boolean(
             product.special_discount_enabled
           )
@@ -726,6 +819,23 @@ serve(async (req) => {
         courier:
           courier?.courier_name ??
           "",
+      },
+
+      /*
+       * Useful for the current CheckoutDialog pricing flow.
+       * This value is server-derived and can be used only as
+       * informational state; the quote remains authoritative.
+       */
+      pricing: {
+        customer_type:
+          isMemberCustomer
+            ? "member"
+            : "guest",
+        member_special_price_applied:
+          isMemberCustomer &&
+          verifiedItems.some(
+            (item) => item.buy_now
+          ),
       },
     });
 
