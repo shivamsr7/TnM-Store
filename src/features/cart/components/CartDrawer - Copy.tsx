@@ -381,66 +381,6 @@ export default function CartDrawer() {
 
   /*
    * =========================================================
-   * ESTIMATED DISPATCH DATE
-   * =========================================================
-   *
-   * The dispatch date is calculated server-side/database-side.
-   * The frontend only reads and formats the returned date.
-   * =========================================================
-   */
-
-  const {
-    data: estimatedDispatchDate,
-  } = useQuery<string | null>({
-
-    queryKey: [
-      "estimated-dispatch-date",
-    ],
-
-    queryFn: async () => {
-
-      const {
-        data,
-        error,
-      } = await supabase.rpc(
-        "get_estimated_dispatch_date"
-      );
-
-      if (error) {
-        throw error;
-      }
-
-      return data ?? null;
-
-    },
-
-    enabled:
-      isCartOpen &&
-      items.length > 0,
-
-    staleTime:
-      5 * 60 * 1000,
-
-  });
-
-
-  const formattedEstimatedDispatchDate =
-    estimatedDispatchDate
-      ? new Intl.DateTimeFormat(
-          "en-IN",
-          {
-            day: "numeric",
-            month: "long",
-            timeZone: "Asia/Kolkata",
-          }
-        ).format(
-          new Date(`${estimatedDispatchDate}T00:00:00+05:30`)
-        )
-      : null;
-
-
-  /*
-   * =========================================================
    * CART BANNER COUPON
    * =========================================================
    *
@@ -1444,99 +1384,6 @@ export default function CartDrawer() {
   >(null);
 
 
-  /*
-   * =========================================================
-   * CLEAR CART CONFIRMATION
-   * =========================================================
-   *
-   * Ask before clearing the complete cart so the customer
-   * cannot accidentally remove every item with one tap.
-   * =========================================================
-   */
-
-  const [
-    showClearCartConfirm,
-    setShowClearCartConfirm,
-  ] = useState(false);
-
-
-  const [
-    clearingCart,
-    setClearingCart,
-  ] = useState(false);
-
-
-  const [
-    clearCartError,
-    setClearCartError,
-  ] = useState("");
-
-
-  const handleClearCart = () => {
-
-    if (items.length === 0 || clearingCart) {
-      return;
-    }
-
-    setClearCartError("");
-    setShowClearCartConfirm(true);
-
-  };
-
-
-  const handleConfirmedClearCart = async () => {
-
-    if (items.length === 0 || clearingCart) {
-      setShowClearCartConfirm(false);
-      return;
-    }
-
-    try {
-
-      setClearingCart(true);
-      setClearCartError("");
-
-      /*
-       * Remove from a stable snapshot so every item that was
-       * present when the customer confirmed is cleared even
-       * though each removal updates the store independently.
-       */
-      const itemsToClear = [...items];
-
-      for (const item of itemsToClear) {
-        await removeItem(item.id);
-      }
-
-      setShowClearCartConfirm(false);
-
-    } catch (error: any) {
-
-      setClearCartError(
-        error?.message ||
-        "Unable to clear your cart right now. Please try again."
-      );
-
-    } finally {
-
-      setClearingCart(false);
-
-    }
-
-  };
-
-
-  const handleKeepCartItems = () => {
-
-    if (clearingCart) {
-      return;
-    }
-
-    setClearCartError("");
-    setShowClearCartConfirm(false);
-
-  };
-
-
   const [
     wishlistSaveSuccess,
     setWishlistSaveSuccess,
@@ -1619,23 +1466,6 @@ export default function CartDrawer() {
   const [
     checkoutOpen,
     setCheckoutOpen,
-  ] = useState(false);
-
-
-  /*
-   * =========================================================
-   * COMPACT CHECKOUT SUMMARY
-   * =========================================================
-   *
-   * Keep the footer compact by default. Customers can expand
-   * the arrow on Estimated Total to view the full price
-   * breakdown when they want to review the details.
-   * =========================================================
-   */
-
-  const [
-    showPriceBreakdown,
-    setShowPriceBreakdown,
   ] = useState(false);
 
 
@@ -5575,283 +5405,6 @@ export default function CartDrawer() {
 
 
         {/* ===================================================
-            CLEAR CART CONFIRMATION
-        ==================================================== */}
-
-        {showClearCartConfirm && (
-          <div
-            className="
-              absolute
-              inset-0
-              z-[130]
-              flex
-              items-center
-              justify-center
-              bg-black/40
-              px-4
-              backdrop-blur-[3px]
-              animate-in
-              fade-in
-              duration-200
-            "
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="clear-cart-confirm-title"
-          >
-            <div
-              className="
-                relative
-                w-full
-                max-w-sm
-                overflow-hidden
-                rounded-[28px]
-                border
-                border-neutral-200
-                bg-white
-                shadow-[0_24px_70px_rgba(0,0,0,0.25)]
-                animate-in
-                zoom-in-95
-                slide-in-from-bottom-3
-                duration-300
-              "
-            >
-              <div
-                className="
-                  pointer-events-none
-                  absolute
-                  -right-16
-                  -top-16
-                  h-40
-                  w-40
-                  rounded-full
-                  bg-red-500/[0.06]
-                  blur-3xl
-                "
-              />
-
-              <div className="relative p-5 sm:p-6">
-
-                <button
-                  type="button"
-                  onClick={handleKeepCartItems}
-                  disabled={clearingCart}
-                  className="
-                    absolute
-                    right-3
-                    top-3
-                    flex
-                    h-9
-                    w-9
-                    items-center
-                    justify-center
-                    rounded-full
-                    text-neutral-400
-                    transition
-                    hover:bg-neutral-100
-                    hover:text-neutral-700
-                    active:scale-90
-                    disabled:cursor-not-allowed
-                    disabled:opacity-40
-                  "
-                  aria-label="Keep items in cart"
-                >
-                  <X size={18} />
-                </button>
-
-                <div
-                  className="
-                    flex
-                    h-14
-                    w-14
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-red-50
-                    text-red-500
-                    ring-1
-                    ring-red-100
-                  "
-                >
-                  <Trash2 size={23} strokeWidth={1.9} />
-                </div>
-
-                <p
-                  className="
-                    mt-5
-                    text-[10px]
-                    font-semibold
-                    uppercase
-                    tracking-[0.18em]
-                    text-neutral-400
-                  "
-                >
-                  Clear your cart
-                </p>
-
-                <h3
-                  id="clear-cart-confirm-title"
-                  className="
-                    mt-1.5
-                    text-[22px]
-                    font-semibold
-                    tracking-tight
-                    text-neutral-900
-                  "
-                >
-                  Clear all items?
-                </h3>
-
-                <p
-                  className="
-                    mt-2
-                    text-sm
-                    leading-5
-                    text-neutral-500
-                  "
-                >
-                  You have{" "}
-                  <span className="font-semibold text-neutral-800">
-                    {items.length} {items.length === 1 ? "item" : "items"}
-                  </span>{" "}
-                  in your cart. Removing everything will empty your cart.
-                </p>
-
-                <div
-                  className="
-                    mt-4
-                    rounded-2xl
-                    border
-                    border-[#D4AF37]/25
-                    bg-[#FBF7EA]
-                    px-4
-                    py-3.5
-                  "
-                >
-                  <div className="flex items-start gap-2.5">
-                    <span
-                      className="
-                        mt-0.5
-                        flex
-                        h-7
-                        w-7
-                        shrink-0
-                        items-center
-                        justify-center
-                        rounded-full
-                        bg-[#D4AF37]/15
-                        text-sm
-                      "
-                    >
-                      ✨
-                    </span>
-
-                    <p
-                      className="
-                        text-xs
-                        leading-4
-                        text-neutral-600
-                      "
-                    >
-                      Some of these pieces may have limited stock and
-                      may not be available later.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-4 grid grid-cols-1 gap-2">
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void handleConfirmedClearCart();
-                    }}
-                    disabled={clearingCart}
-                    className="
-                      flex
-                      min-h-11
-                      w-full
-                      items-center
-                      justify-center
-                      gap-2
-                      rounded-2xl
-                      bg-black
-                      px-4
-                      py-3
-                      text-xs
-                      font-semibold
-                      text-white
-                      shadow-sm
-                      transition
-                      hover:bg-neutral-800
-                      active:scale-[0.98]
-                      disabled:cursor-not-allowed
-                      disabled:opacity-60
-                    "
-                  >
-                    {clearingCart ? (
-                      <>
-                        <Loader2
-                          size={15}
-                          className="animate-spin"
-                        />
-                        Clearing Cart...
-                      </>
-                    ) : (
-                      "Yes, Clear My Cart"
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleKeepCartItems}
-                    disabled={clearingCart}
-                    className="
-                      flex
-                      min-h-11
-                      w-full
-                      items-center
-                      justify-center
-                      rounded-2xl
-                      border
-                      border-neutral-200
-                      bg-white
-                      px-4
-                      py-3
-                      text-xs
-                      font-semibold
-                      text-neutral-700
-                      transition
-                      hover:bg-neutral-50
-                      active:scale-[0.98]
-                      disabled:cursor-not-allowed
-                      disabled:opacity-50
-                    "
-                  >
-                    Keep My Items
-                  </button>
-
-                </div>
-
-                {clearCartError && (
-                  <p
-                    className="
-                      mt-3
-                      text-center
-                      text-[11px]
-                      leading-4
-                      text-red-500
-                    "
-                  >
-                    {clearCartError}
-                  </p>
-                )}
-
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ===================================================
             REMOVE ITEM CONFIRMATION
         ==================================================== */}
 
@@ -6827,264 +6380,267 @@ export default function CartDrawer() {
 
                     {/* PRICE BREAKDOWN */}
 
-                    {showPriceBreakdown && (
+                    <div
+                      className="
+                        space-y-2
+                        text-sm
+                      "
+                    >
+
+                      {/* TOTAL AMOUNT / MRP TOTAL */}
 
                       <div
                         className="
-                          space-y-2
-                          text-sm
-                          animate-in
-                          fade-in
-                          slide-in-from-top-1
-                          duration-200
+                          flex
+                          justify-between
                         "
                       >
+                        <span>
+                          Total Amount
+                        </span>
 
-                        {/* TOTAL AMOUNT / MRP TOTAL */}
-
-                        <div
-                          className="
-                            flex
-                            justify-between
-                          "
-                        >
-                          <span>
-                            Total Amount
-                          </span>
-
-                          <span>
-                            ₹
-                            {
-                              totalAmount.toLocaleString(
-                                "en-IN",
-                                {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                }
-                              )
-                            }
-                          </span>
-                        </div>
-
-
-                        {/* ITEM DISCOUNT */}
-
-                        {itemDiscount > 0 && (
-                          <div
-                            className="
-                              flex
-                              justify-between
-                              text-green-600
-                            "
-                          >
-                            <span>
-                              Item Discount
-                            </span>
-
-                            <span>
-                              -₹
+                        <span>
+                          ₹
+                          {
+                            totalAmount.toLocaleString(
+                              "en-IN",
                               {
-                                itemDiscount.toLocaleString(
-                                  "en-IN",
-                                  {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  }
-                                )
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
                               }
-                            </span>
-                          </div>
-                        )}
-
-
-                        {/* SPECIAL OFFER DISCOUNT */}
-
-                        {specialOfferDiscount > 0 && (
-                          <div
-                            className="
-                              flex
-                              justify-between
-                              text-[#A07D16]
-                            "
-                          >
-                            <span>
-                              Special Offer Discount
-                            </span>
-
-                            <span>
-                              -₹
-                              {
-                                specialOfferDiscount.toLocaleString(
-                                  "en-IN",
-                                  {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  }
-                                )
-                              }
-                            </span>
-                          </div>
-                        )}
-
-
-                        {/* SUBTOTAL */}
-
-                        <div
-                          className="
-                            flex
-                            justify-between
-                            border-t
-                            pt-2
-                            font-medium
-                          "
-                        >
-                          <span>
-                            Subtotal
-                          </span>
-
-                          <span>
-                            ₹
-                            {
-                              total.toLocaleString(
-                                "en-IN",
-                                {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                }
-                              )
-                            }
-                          </span>
-                        </div>
-
-
-                        {/* COUPON */}
-
-                        {appliedCoupon && (
-                          <div
-                            className="
-                              flex
-                              justify-between
-                              text-green-600
-                            "
-                          >
-                            <span>
-                              Coupon (
-                              {appliedCoupon.code}
-                              )
-                            </span>
-
-                            <span>
-                              -₹
-                              {discount.toFixed(2)}
-                            </span>
-                          </div>
-                        )}
-
-
-                        {/* GIFT WRAP */}
-
-                        {giftWrapSelected && (
-                          <div className="flex items-center justify-between text-neutral-600">
-                            <span className="flex items-center gap-1.5">
-                              <Gift
-                                size={14}
-                                className="text-[#B28A20]"
-                                strokeWidth={1.8}
-                              />
-                              Gift Wrap
-                            </span>
-                            <span>₹{giftWrapPrice.toFixed(2)}</span>
-                          </div>
-                        )}
-
-
-                        {/* SHIPPING */}
-
-                        <div
-                          className="
-                            flex
-                            justify-between
-                            text-neutral-600
-                          "
-                        >
-                          <span>
-                            Shipping
-                          </span>
-
-                          <span>
-                            {
-                              freeShippingUnlocked ||
-                              appliedCoupon?.freeShipping
-                                ? "FREE"
-                                : "Calculated at checkout"
-                            }
-                          </span>
-                        </div>
-
+                            )
+                          }
+                        </span>
                       </div>
 
+
+                      {/* ITEM DISCOUNT */}
+
+                      {itemDiscount > 0 && (
+                        <div
+                          className="
+                            flex
+                            justify-between
+                            text-green-600
+                          "
+                        >
+                          <span>
+                            Item Discount
+                          </span>
+
+                          <span>
+                            -₹
+                            {
+                              itemDiscount.toLocaleString(
+                                "en-IN",
+                                {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                }
+                              )
+                            }
+                          </span>
+                        </div>
+                      )}
+
+
+                      {/* SPECIAL OFFER DISCOUNT */}
+
+                      {specialOfferDiscount > 0 && (
+                        <div
+                          className="
+                            flex
+                            justify-between
+                            text-[#A07D16]
+                          "
+                        >
+                          <span>
+                            Special Offer Discount
+                          </span>
+
+                          <span>
+                            -₹
+                            {
+                              specialOfferDiscount.toLocaleString(
+                                "en-IN",
+                                {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                }
+                              )
+                            }
+                          </span>
+                        </div>
+                      )}
+
+
+                      {/* SUBTOTAL */}
+
+                      <div
+                        className="
+                          flex
+                          justify-between
+                          border-t
+                          pt-2
+                          font-medium
+                        "
+                      >
+                        <span>
+                          Subtotal
+                        </span>
+
+                        <span>
+                          ₹
+                          {
+                            total.toLocaleString(
+                              "en-IN",
+                              {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }
+                            )
+                          }
+                        </span>
+                      </div>
+
+                    </div>
+
+
+                    {/* COUPON */}
+
+                    {
+                      appliedCoupon && (
+
+                        <div
+
+                          className="
+
+                            flex
+                            justify-between
+
+                            text-green-600
+
+                          "
+
+                        >
+
+                          <span>
+
+                            Coupon (
+                            {
+                              appliedCoupon.code
+                            }
+                            )
+
+                          </span>
+
+
+                          <span>
+
+                            -₹
+                            {
+                              discount.toFixed(2)
+                            }
+
+                          </span>
+
+                        </div>
+
+                      )
+                    }
+
+
+                    {/* GIFT WRAP */}
+
+                    {giftWrapSelected && (
+                      <div className="flex items-center justify-between text-neutral-600">
+                        <span className="flex items-center gap-1.5">
+                          <Gift
+                            size={14}
+                            className="text-[#B28A20]"
+                            strokeWidth={1.8}
+                          />
+                          Gift Wrap
+                        </span>
+                        <span>₹{giftWrapPrice.toFixed(2)}</span>
+                      </div>
                     )}
 
 
-                    {/* ESTIMATED TOTAL + EXPAND/COLLAPSE */}
+                    {/* SHIPPING */}
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowPriceBreakdown(
-                          current => !current
-                        )
-                      }
-                      aria-expanded={showPriceBreakdown}
-                      aria-label={
-                        showPriceBreakdown
-                          ? "Hide price breakdown"
-                          : "Show price breakdown"
-                      }
+                    <div
+
                       className="
+
                         flex
-                        w-full
-                        items-center
                         justify-between
+
+                        text-neutral-600
+
+                      "
+
+                    >
+
+                      <span>
+                        Shipping
+                      </span>
+
+
+                      <span>
+
+                        {
+                          freeShippingUnlocked ||
+                          appliedCoupon?.freeShipping
+
+                            ? "FREE"
+
+                            : "Calculated at checkout"
+                        }
+
+                      </span>
+
+                    </div>
+
+
+                    {/* TOTAL */}
+
+                    <div
+
+                      className="
+
+                        flex
+                        justify-between
+
                         border-t
-                        border-neutral-200
+
                         pt-3
-                        text-left
+
                         text-lg
                         font-bold
-                        transition
+
                       "
+
                     >
 
                       <span>
                         Estimated Total
                       </span>
 
-                      <span className="flex items-center gap-2">
-                        ₹
-                        {estimatedTotal.toFixed(2)}
 
-                        <ChevronDown
-                          size={18}
-                          strokeWidth={2.2}
-                          className={`
-                            shrink-0
-                            text-neutral-500
-                            transition-transform
-                            duration-200
-                            ${
-                              showPriceBreakdown
-                                ? "rotate-180"
-                                : ""
-                            }
-                          `}
-                        />
+                      <span>
+
+                        ₹
+                        {
+                          estimatedTotal.toFixed(2)
+                        }
 
                       </span>
 
-                    </button>
+                    </div>
 
                   </div>
+
 
                   {/* CHECKOUT */}
 
@@ -7144,41 +6700,9 @@ export default function CartDrawer() {
 
                   >
 
-                    {formattedEstimatedDispatchDate
-                      ? `⚡ Estimated dispatch by ${formattedEstimatedDispatchDate}`
-                      : "⚡ Estimated dispatch date unavailable"}
+                    ⚡ Dispatched in 1 day
 
                   </p>
-
-
-                  <button
-                    type="button"
-                    onClick={handleClearCart}
-                    disabled={clearingCart}
-                    className="
-                      mx-auto
-                      mt-2
-                      flex
-                      items-center
-                      justify-center
-                      gap-1.5
-                      rounded-lg
-                      px-3
-                      py-1.5
-                      text-[11px]
-                      font-medium
-                      text-neutral-400
-                      transition
-                      hover:bg-neutral-50
-                      hover:text-red-500
-                      active:scale-[0.98]
-                      disabled:cursor-not-allowed
-                      disabled:opacity-50
-                    "
-                  >
-                    <Trash2 size={13} strokeWidth={1.8} />
-                    Clear Cart
-                  </button>
 
                 </>
 
