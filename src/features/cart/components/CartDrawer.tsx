@@ -43,6 +43,8 @@ import { supabase } from "@/shared/lib/supabase";
 
 import RelatedProducts from "@/features/cart/components/RelatedProducts";
 
+import NotifyDialog from "@/features/notify/components/NotifyDialog";
+
 import { useWishlistActions } from "@/features/wishlist/hooks/useWishlistActions";
 
 
@@ -637,6 +639,14 @@ export default function CartDrawer() {
     setOutOfStockItem,
   ] = useState<(typeof items)[number] | null>(null);
 
+  const [
+    showOutOfStockNotify,
+    setShowOutOfStockNotify,
+  ] = useState(false);
+
+  const outOfStockRemovalTimerRef =
+    useRef<number | null>(null);
+
 
   /*
    * =========================================================
@@ -713,31 +723,11 @@ export default function CartDrawer() {
         if (currentStock <= 0) {
 
           /*
-           * Tell the customer what happened before removing the
-           * stale cart item. The short delay gives the message
-           * enough time to be noticed without blocking checkout.
+           * Tell the customer what happened, but do not remove
+           * the item automatically. The customer explicitly
+           * confirms the removal with the OK button.
            */
           setOutOfStockItem(item);
-
-          await new Promise<void>(resolve => {
-            window.setTimeout(resolve, 1800);
-          });
-
-          if (cancelled) {
-            return;
-          }
-
-          try {
-            await removeItem(item.id);
-          } catch {
-            // Keep reconciliation running for other items.
-          }
-
-          setOutOfStockItem(current => (
-            current?.id === item.id
-              ? null
-              : current
-          ));
 
           continue;
         }
@@ -2433,6 +2423,78 @@ export default function CartDrawer() {
           wishlistPromptTimerRef.current
         );
 
+      }
+
+    };
+
+  }, []);
+
+
+  /*
+   * =========================================================
+   * NOTIFY ME — OUT-OF-STOCK ITEM
+   * =========================================================
+   */
+
+  const handleOutOfStockNotify = () => {
+
+    if (!outOfStockItem) {
+      return;
+    }
+
+    setShowOutOfStockNotify(true);
+
+  };
+
+
+  /*
+   * =========================================================
+   * CONFIRM OUT-OF-STOCK REMOVAL
+   * =========================================================
+   */
+
+  const handleConfirmOutOfStockRemoval =
+    async () => {
+
+      if (!outOfStockItem) {
+        return;
+      }
+
+      const itemId =
+        outOfStockItem.id;
+
+      if (outOfStockRemovalTimerRef.current) {
+        window.clearTimeout(
+          outOfStockRemovalTimerRef.current
+        );
+        outOfStockRemovalTimerRef.current = null;
+      }
+
+      try {
+
+        await removeItem(itemId);
+
+      } finally {
+
+        setOutOfStockItem(current =>
+          current?.id === itemId
+            ? null
+            : current
+        );
+
+      }
+
+    };
+
+
+  useEffect(() => {
+
+    return () => {
+
+      if (outOfStockRemovalTimerRef.current) {
+        window.clearTimeout(
+          outOfStockRemovalTimerRef.current
+        );
       }
 
     };
@@ -5520,11 +5582,76 @@ export default function CartDrawer() {
                 className="
                   mt-4
                   text-[11px]
+                  leading-4
                   text-neutral-400
                 "
               >
-                Your cart total will be updated automatically.
+                Please remove this item to continue with the
+                latest available stock.
               </p>
+
+              <div
+                className="
+                  mt-5
+                  flex
+                  gap-2.5
+                "
+              >
+
+                <button
+                  type="button"
+                  onClick={handleOutOfStockNotify}
+                  className="
+                    flex
+                    min-h-11
+                    flex-1
+                    items-center
+                    justify-center
+                    rounded-2xl
+                    border
+                    border-[#D4AF37]/45
+                    bg-[#FBF7EA]
+                    px-3
+                    py-3
+                    text-xs
+                    font-semibold
+                    text-[#8A6D25]
+                    transition
+                    hover:bg-[#F7F0D9]
+                    active:scale-[0.98]
+                  "
+                >
+                  Notify Me
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleConfirmOutOfStockRemoval();
+                  }}
+                  className="
+                    flex
+                    min-h-11
+                    flex-1
+                    items-center
+                    justify-center
+                    rounded-2xl
+                    bg-black
+                    px-3
+                    py-3
+                    text-xs
+                    font-semibold
+                    text-white
+                    shadow-sm
+                    transition
+                    hover:bg-neutral-800
+                    active:scale-[0.98]
+                  "
+                >
+                  Remove Item
+                </button>
+
+              </div>
             </div>
           </div>
         )}
@@ -6249,6 +6376,28 @@ export default function CartDrawer() {
 
         </div>
 
+      )}
+
+
+      {/* =====================================================
+          NOTIFY ME — OUT-OF-STOCK CART ITEM
+      ====================================================== */}
+
+      {outOfStockItem && (
+        <NotifyDialog
+          open={showOutOfStockNotify}
+          onClose={() =>
+            setShowOutOfStockNotify(false)
+          }
+          product={{
+            id:
+              outOfStockItem.productId,
+            name:
+              outOfStockItem.name,
+            image:
+              outOfStockItem.image ?? null,
+          }}
+        />
       )}
 
 
