@@ -89,6 +89,7 @@ export default function CartDrawer() {
     discount,
     getFinalTotal,
     clearStockError,
+    refreshCartStock,
 
     giftWrapSelected,
     giftMessage,
@@ -521,6 +522,36 @@ export default function CartDrawer() {
     cartBannerCoupons[
       activeCartBannerIndex
     ] ?? null;
+
+
+  /*
+   * =========================================================
+   * REFRESH CART STOCK / PRICE SNAPSHOTS
+   * =========================================================
+   *
+   * The cart store checks the latest product stock and also
+   * restores an expired Special Price to the current regular
+   * product price.
+   *
+   * Run this immediately whenever the drawer opens so a stale
+   * cart is corrected without requiring a product-page refresh.
+   * The existing product query below continues to refresh the
+   * visible stock state while the drawer remains open.
+   * =========================================================
+   */
+
+  useEffect(() => {
+
+    if (!isCartOpen || items.length === 0) {
+      return;
+    }
+
+    void refreshCartStock();
+
+  }, [
+    isCartOpen,
+    refreshCartStock,
+  ]);
 
 
   /*

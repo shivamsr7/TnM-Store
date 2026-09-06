@@ -208,6 +208,68 @@ interface CartStore {
  * =========================================================
  */
 
+/*
+ * =========================================================
+ * GET CURRENT PRODUCT PRICING
+ * =========================================================
+ *
+ * Reads the current regular price and Special Price expiry
+ * directly from Supabase.
+ *
+ * A Special Price is a cart snapshot only while its offer is
+ * active. Once the configured end time has passed, the cart
+ * price must revert to the current regular product price.
+ * =========================================================
+ */
+
+const getProductCurrentPricing = async (
+  productId: string
+): Promise<{
+  price: number;
+  specialDiscountEndsAt: string | null;
+} | null> => {
+
+  const {
+    data,
+    error,
+  } = await supabase
+    .from("products")
+    .select(
+      "price, special_discount_ends_at"
+    )
+    .eq(
+      "id",
+      productId
+    )
+    .maybeSingle();
+
+  if (error) {
+
+    console.error(
+      "Failed to fetch product pricing:",
+      error
+    );
+
+    return null;
+
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return {
+    price:
+      Number(
+        data.price ?? 0
+      ),
+    specialDiscountEndsAt:
+      data.special_discount_ends_at ?? null,
+  };
+
+};
+
+
 const getProductStock = async (
   productId: string
 ): Promise<number | null> => {
@@ -1703,15 +1765,24 @@ export const useCartStore =
                   currentItems.map(
                     async (item) => {
 
-                      const stock =
-                        await getProductStock(
-                          item.productId
-                        );
+                      const [
+                        stock,
+                        pricing,
+                      ] =
+                        await Promise.all([
+                          getProductStock(
+                            item.productId
+                          ),
+                          getProductCurrentPricing(
+                            item.productId
+                          ),
+                        ]);
 
 
                       return {
                         item,
                         stock,
+                        pricing,
                       };
 
                     }
@@ -1733,6 +1804,7 @@ export const useCartStore =
                   ({
                     item,
                     stock,
+                    pricing,
                   }) => {
 
                     /*
@@ -1746,6 +1818,48 @@ export const useCartStore =
                     ) {
 
                       return item;
+
+                    }
+
+
+                    /*
+                     * Special Price expiry
+                     *
+                     * If the cart contains an older Special Price
+                     * snapshot and the configured offer has ended,
+                     * restore the current regular product price.
+                     */
+                    const specialOfferExpired =
+                      Boolean(
+                        pricing?.specialDiscountEndsAt
+                      ) &&
+                      new Date(
+                        pricing!.specialDiscountEndsAt as string
+                      ).getTime() <=
+                        Date.now();
+
+                    const updatedPrice =
+                      specialOfferExpired &&
+                      pricing
+                        ? pricing.price
+                        : item.price;
+
+                    if (
+                      specialOfferExpired &&
+                      pricing &&
+                      Number(item.price) !==
+                        Number(pricing.price)
+                    ) {
+
+                      hasStockAdjustment =
+                        true;
+
+                      if (!stockMessage) {
+
+                        stockMessage =
+                          `${item.name}'s Special Price has expired. The regular price has been restored.`;
+
+                      }
 
                     }
 
@@ -1775,6 +1889,9 @@ export const useCartStore =
                       return {
 
                         ...item,
+
+                        price:
+                          updatedPrice,
 
                         stock: 0,
 
@@ -1812,6 +1929,9 @@ export const useCartStore =
 
                         ...item,
 
+                        price:
+                          updatedPrice,
+
                         stock,
 
                         quantity:
@@ -1829,6 +1949,9 @@ export const useCartStore =
                     return {
 
                       ...item,
+
+                      price:
+                        updatedPrice,
 
                       stock,
 

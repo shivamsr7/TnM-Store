@@ -461,8 +461,6 @@ export default function CheckoutDialog({
   const [buyNowCouponError, setBuyNowCouponError] = useState("");
   const [buyNowCouponLoading, setBuyNowCouponLoading] = useState(false);
   const [buyNowCouponModalOpen, setBuyNowCouponModalOpen] = useState(false);
-  const [buyNowAvailableCouponCount, setBuyNowAvailableCouponCount] = useState(0);
-  const [buyNowCheckingCouponCount, setBuyNowCheckingCouponCount] = useState(false);
   const [buyNowGiftWrapSelected, setBuyNowGiftWrapSelected] = useState(false);
   const [buyNowGiftMessage, setBuyNowGiftMessage] = useState("");
 
@@ -1098,8 +1096,6 @@ export default function CheckoutDialog({
       setBuyNowCouponCode("");
       setBuyNowCouponError("");
       setBuyNowCouponModalOpen(false);
-      setBuyNowAvailableCouponCount(0);
-      setBuyNowCheckingCouponCount(false);
       setBuyNowGiftWrapSelected(false);
       setBuyNowGiftMessage("");
       return;
@@ -1114,141 +1110,6 @@ export default function CheckoutDialog({
     setBuyNowGiftMessage("");
 
   }, [buyNowItem, isBuyNow]);
-
-
-  /*
-   * =========================================================
-   * BUY NOW AVAILABLE COUPON COUNT
-   * =========================================================
-   *
-   * Show the customer how many coupons are actually eligible
-   * for this Buy Now product.
-   *
-   * This deliberately uses the same validateCoupon() source of
-   * truth as CouponModal, so the count respects:
-   * - product/category/collection targeting
-   * - customer targeting
-   * - membership restrictions
-   * - minimum/maximum conditions
-   * - usage limits
-   * - coupon dates
-   * - the current Special Price expiry state
-   *
-   * Ineligible coupons are simply not counted.
-   */
-
-  useEffect(() => {
-
-    let cancelled = false;
-
-    async function loadBuyNowAvailableCouponCount() {
-
-      if (
-        !isBuyNow ||
-        !open ||
-        !customer?.id ||
-        checkoutItems.length === 0
-      ) {
-        if (!cancelled) {
-          setBuyNowAvailableCouponCount(0);
-          setBuyNowCheckingCouponCount(false);
-        }
-        return;
-      }
-
-      setBuyNowCheckingCouponCount(true);
-
-      try {
-
-        const {
-          data: activeCoupons,
-          error: couponsError,
-        } = await supabase
-          .from("coupons")
-          .select("*")
-          .eq("is_active", true);
-
-        if (couponsError) {
-          throw couponsError;
-        }
-
-        const eligibleResults =
-          await Promise.all(
-            (activeCoupons ?? []).map(
-              async (coupon: any) => {
-
-                try {
-
-                  await validateCoupon(
-                    coupon.code,
-                    subtotal,
-                    customer.id,
-                    checkoutItems.map(
-                      (item: any) => ({
-                        productId:
-                          item.productId,
-                        quantity:
-                          item.quantity,
-                        price:
-                          item.price,
-                      })
-                    )
-                  );
-
-                  return true;
-
-                } catch {
-                  return false;
-                }
-
-              }
-            )
-          );
-
-        if (cancelled) {
-          return;
-        }
-
-        setBuyNowAvailableCouponCount(
-          eligibleResults.filter(Boolean).length
-        );
-
-      } catch {
-
-        if (!cancelled) {
-          /*
-           * If the availability check itself fails, do not show
-           * a misleading offer count.
-           */
-          setBuyNowAvailableCouponCount(0);
-        }
-
-      } finally {
-
-        if (!cancelled) {
-          setBuyNowCheckingCouponCount(false);
-        }
-
-      }
-
-    }
-
-    void loadBuyNowAvailableCouponCount();
-
-    return () => {
-      cancelled = true;
-    };
-
-  }, [
-    isBuyNow,
-    open,
-    customer?.id,
-    checkoutItems.length,
-    checkoutItems[0]?.productId,
-    checkoutItems[0]?.quantity,
-    checkoutItems[0]?.price,
-    subtotal,
-  ]);
 
 
   /*
@@ -4484,19 +4345,13 @@ export default function CheckoutDialog({
                             </button>
                           </div>
 
-                          {!buyNowCheckingCouponCount &&
-                            buyNowAvailableCouponCount > 0 && (
-                              <button
-                                type="button"
-                                onClick={handleViewAvailableCoupons}
-                                className="mt-2 text-xs font-semibold text-[#9A7A22] underline underline-offset-2 transition hover:text-[#C8A44D]"
-                              >
-                                {buyNowAvailableCouponCount}{" "}
-                                {buyNowAvailableCouponCount === 1
-                                  ? "offer available for you"
-                                  : "offers available for you"}
-                              </button>
-                            )}
+                          <button
+                            type="button"
+                            onClick={handleViewAvailableCoupons}
+                            className="mt-2 text-xs font-semibold text-[#9A7A22] underline underline-offset-2 transition hover:text-[#C8A44D]"
+                          >
+                            View available coupons
+                          </button>
 
                           {buyNowCouponError && (
                             <p className="mt-2 text-xs text-red-600">

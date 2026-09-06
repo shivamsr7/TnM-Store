@@ -126,6 +126,71 @@ const getQuantity = (
 
 /*
  * =========================================================
+ * SPECIAL PRICE STATUS
+ * =========================================================
+ *
+ * A product-level Special Price is considered active only
+ * while its configured end time has not passed.
+ *
+ * This is important for coupon validation because a Buy Now
+ * item may still carry the old Special Price snapshot in the
+ * browser/cart after the offer has expired.
+ */
+
+const isSpecialOfferActive = (
+  metadata: any
+) => {
+
+  if (
+    !Boolean(
+      metadata?.special_discount_enabled
+    )
+  ) {
+    return false;
+  }
+
+
+  if (
+    Number(
+      metadata?.special_discount_value ?? 0
+    ) <= 0
+  ) {
+    return false;
+  }
+
+
+  if (
+    Number(
+      metadata?.regular_price ?? 0
+    ) <= 0
+  ) {
+    return false;
+  }
+
+
+  /*
+   * No end time means the Special Price remains active
+   * according to the existing product configuration.
+   */
+  if (
+    !metadata?.special_discount_ends_at
+  ) {
+    return true;
+  }
+
+
+  return (
+    new Date(
+      metadata.special_discount_ends_at
+    ).getTime() >
+    Date.now()
+  );
+
+};
+
+
+/*
+ * =========================================================
  * PRODUCT TARGET MATCHING
  * =========================================================
  */
@@ -1350,13 +1415,16 @@ export async function validateCoupon(
             0
           );
 
+        const specialOfferActive =
+          isSpecialOfferActive(
+            metadata
+          );
+
         let memberSpecialPrice =
           regularPrice;
 
         if (
-          specialEnabled &&
-          specialValue > 0 &&
-          regularPrice > 0
+          specialOfferActive
         ) {
           if (
             metadata.special_discount_type ===
@@ -1401,12 +1469,18 @@ export async function validateCoupon(
          * is NOT a special price.
          *
          * A product-level Special Discount is identified by
-         * special_discount_enabled + a valid discount value.
+         * special_discount_enabled + a valid discount value
+         * AND an active special-price period.
          *
          * For Guest Member-preview, simulate the price that
          * the Guest would receive after becoming a Member.
          * For a normal Member validation, use the actual cart
-         * price so existing checkout behavior is preserved.
+         * price while the Special Price is active.
+         *
+         * If the Special Price has expired, use the current
+         * regular product price for coupon validation. This
+         * prevents a stale Buy Now/cart Special Price snapshot
+         * from keeping the item coupon-ineligible.
          */
         const isPreviewingMember =
           Boolean(
@@ -1416,9 +1490,7 @@ export async function validateCoupon(
           );
 
         const isSpecialPrice =
-          specialEnabled &&
-          specialValue > 0 &&
-          regularPrice > 0 &&
+          specialOfferActive &&
           (
             isPreviewingMember
               ? memberSpecialPrice <
@@ -1426,6 +1498,18 @@ export async function validateCoupon(
               : unitPrice <
                 regularPrice
           );
+
+        const effectiveUnitPrice =
+          !specialOfferActive &&
+          specialEnabled &&
+          specialValue > 0 &&
+          regularPrice > 0 &&
+          metadata.special_discount_ends_at &&
+          new Date(
+            metadata.special_discount_ends_at
+          ).getTime() <= Date.now()
+            ? regularPrice
+            : unitPrice;
 
         return {
 
@@ -1438,7 +1522,7 @@ export async function validateCoupon(
             ),
 
           unit_price:
-            unitPrice,
+            effectiveUnitPrice,
 
           is_special_price:
             isSpecialPrice,

@@ -43,6 +43,8 @@ import { supabase } from "@/shared/lib/supabase";
 
 import RelatedProducts from "@/features/cart/components/RelatedProducts";
 
+import NotifyDialog from "@/features/notify/components/NotifyDialog";
+
 import { useWishlistActions } from "@/features/wishlist/hooks/useWishlistActions";
 
 
@@ -61,6 +63,9 @@ interface CartProductPricing {
   price: number | null;
   compare_price: number | null;
   special_discount_ends_at: string | null;
+  stock: number | null;
+  track_inventory: boolean | null;
+  allow_backorders: boolean | null;
 }
 
 export default function CartDrawer() {
@@ -567,7 +572,7 @@ export default function CartDrawer() {
         .from("products")
 
         .select(
-          "id, price, compare_price, special_discount_ends_at"
+          "id, price, compare_price, special_discount_ends_at, stock, track_inventory, allow_backorders"
         )
 
         .in(
@@ -589,8 +594,21 @@ export default function CartDrawer() {
       isCartOpen &&
       items.length > 0,
 
+    /*
+     * Stock may change because another customer can purchase
+     * the same product after it was added to this cart.
+     * Keep the stock snapshot fresh while the drawer is open.
+     */
     staleTime:
-      5 * 60 * 1000,
+      0,
+
+    refetchOnWindowFocus:
+      true,
+
+    refetchInterval:
+      isCartOpen
+        ? 10000
+        : false,
 
   });
 
@@ -604,6 +622,149 @@ export default function CartDrawer() {
         ]
       )
     );
+
+  /*
+   * =========================================================
+   * OUT-OF-STOCK NOTIFICATION
+   * =========================================================
+   *
+   * When another customer buys the last available piece,
+   * give the current customer a clear message before removing
+   * the stale item from their cart.
+   * =========================================================
+   */
+
+  const [
+    outOfStockItem,
+    setOutOfStockItem,
+  ] = useState<(typeof items)[number] | null>(null);
+
+  const [
+    showOutOfStockNotify,
+    setShowOutOfStockNotify,
+  ] = useState(false);
+
+  const outOfStockRemovalTimerRef =
+    useRef<number | null>(null);
+
+
+  /*
+   * =========================================================
+   * RECONCILE CART STOCK
+   * =========================================================
+   *
+   * Another customer may purchase a product after it was
+   * already added to this cart. Reconcile the cart whenever
+   * the latest product stock is fetched.
+   *
+   * - Missing product → remove from cart.
+   * - Stock 0 → remove from cart.
+   * - Stock lower than cart quantity → reduce quantity.
+   *
+   * Backorder-enabled and non-inventory-tracked products are
+   * intentionally left unchanged.
+   *
+   * Checkout still performs its own authoritative server-side
+   * stock validation; this only keeps the cart UI current.
+   * =========================================================
+   */
+
+  useEffect(() => {
+
+    if (
+      !isCartOpen ||
+      items.length === 0 ||
+      cartProductPricing.length === 0
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const reconcileCartStock = async () => {
+
+      for (const item of items) {
+
+        if (cancelled) {
+          return;
+        }
+
+        const pricing =
+          cartProductPricingMap.get(
+            item.productId
+          );
+
+        if (!pricing) {
+
+          try {
+            await removeItem(item.id);
+          } catch {
+            // Keep reconciliation running for other items.
+          }
+
+          continue;
+        }
+
+        if (
+          pricing.track_inventory === false ||
+          pricing.allow_backorders === true
+        ) {
+          continue;
+        }
+
+        const currentStock =
+          Math.max(
+            0,
+            Number(
+              pricing.stock ?? 0
+            )
+          );
+
+        if (currentStock <= 0) {
+
+          /*
+           * Tell the customer what happened, but do not remove
+           * the item automatically. The customer explicitly
+           * confirms the removal with the OK button.
+           */
+          setOutOfStockItem(item);
+
+          continue;
+        }
+
+        if (
+          item.quantity > currentStock
+        ) {
+
+          try {
+            await updateQuantity(
+              item.id,
+              currentStock
+            );
+          } catch {
+            // Checkout remains the final server-side guard.
+          }
+
+        }
+
+      }
+
+    };
+
+    void reconcileCartStock();
+
+    return () => {
+      cancelled = true;
+    };
+
+  }, [
+    isCartOpen,
+    items,
+    cartProductPricing,
+    removeItem,
+    updateQuantity,
+  ]);
+
 
   /*
    * =========================================================
@@ -2262,6 +2423,78 @@ export default function CartDrawer() {
           wishlistPromptTimerRef.current
         );
 
+      }
+
+    };
+
+  }, []);
+
+
+  /*
+   * =========================================================
+   * NOTIFY ME — OUT-OF-STOCK ITEM
+   * =========================================================
+   */
+
+  const handleOutOfStockNotify = () => {
+
+    if (!outOfStockItem) {
+      return;
+    }
+
+    setShowOutOfStockNotify(true);
+
+  };
+
+
+  /*
+   * =========================================================
+   * CONFIRM OUT-OF-STOCK REMOVAL
+   * =========================================================
+   */
+
+  const handleConfirmOutOfStockRemoval =
+    async () => {
+
+      if (!outOfStockItem) {
+        return;
+      }
+
+      const itemId =
+        outOfStockItem.id;
+
+      if (outOfStockRemovalTimerRef.current) {
+        window.clearTimeout(
+          outOfStockRemovalTimerRef.current
+        );
+        outOfStockRemovalTimerRef.current = null;
+      }
+
+      try {
+
+        await removeItem(itemId);
+
+      } finally {
+
+        setOutOfStockItem(current =>
+          current?.id === itemId
+            ? null
+            : current
+        );
+
+      }
+
+    };
+
+
+  useEffect(() => {
+
+    return () => {
+
+      if (outOfStockRemovalTimerRef.current) {
+        window.clearTimeout(
+          outOfStockRemovalTimerRef.current
+        );
       }
 
     };
@@ -5216,6 +5449,214 @@ export default function CartDrawer() {
 
 
         {/* ===================================================
+            OUT-OF-STOCK POPUP
+        ==================================================== */}
+
+        {outOfStockItem && (
+          <div
+            className="
+              absolute
+              inset-0
+              z-[120]
+              flex
+              items-center
+              justify-center
+              bg-black/30
+              px-5
+              backdrop-blur-[2px]
+              animate-in
+              fade-in
+              duration-200
+            "
+          >
+            <div
+              className="
+                w-full
+                max-w-sm
+                overflow-hidden
+                rounded-3xl
+                border
+                border-neutral-200
+                bg-white
+                p-5
+                text-center
+                shadow-[0_20px_60px_rgba(0,0,0,0.22)]
+                animate-in
+                zoom-in-95
+                slide-in-from-bottom-2
+                duration-300
+              "
+            >
+              <div
+                className="
+                  mx-auto
+                  flex
+                  h-14
+                  w-14
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-red-50
+                  text-red-500
+                  text-2xl
+                "
+              >
+                !
+              </div>
+
+              <p
+                className="
+                  mt-4
+                  text-[11px]
+                  font-semibold
+                  uppercase
+                  tracking-[0.16em]
+                  text-neutral-400
+                "
+              >
+                Just sold out
+              </p>
+
+              <h3
+                className="
+                  mt-1.5
+                  text-lg
+                  font-semibold
+                  text-neutral-900
+                "
+              >
+                This piece is no longer available
+              </h3>
+
+              <div
+                className="
+                  mt-4
+                  flex
+                  items-center
+                  gap-3
+                  rounded-2xl
+                  bg-neutral-50
+                  p-3
+                  text-left
+                "
+              >
+                <img
+                  src={outOfStockItem.image}
+                  alt={outOfStockItem.name}
+                  className="
+                    h-16
+                    w-16
+                    shrink-0
+                    rounded-xl
+                    object-cover
+                  "
+                />
+
+                <div className="min-w-0">
+                  <p
+                    className="
+                      line-clamp-2
+                      text-sm
+                      font-semibold
+                      text-neutral-900
+                    "
+                  >
+                    {outOfStockItem.name}
+                  </p>
+
+                  <p
+                    className="
+                      mt-1
+                      text-xs
+                      leading-4
+                      text-neutral-500
+                    "
+                  >
+                    Another customer purchased the last available piece.
+                    We’ll remove it from your cart now.
+                  </p>
+                </div>
+              </div>
+
+              <p
+                className="
+                  mt-4
+                  text-[11px]
+                  leading-4
+                  text-neutral-400
+                "
+              >
+                Please remove this item to continue with the
+                latest available stock.
+              </p>
+
+              <div
+                className="
+                  mt-5
+                  flex
+                  gap-2.5
+                "
+              >
+
+                <button
+                  type="button"
+                  onClick={handleOutOfStockNotify}
+                  className="
+                    flex
+                    min-h-11
+                    flex-1
+                    items-center
+                    justify-center
+                    rounded-2xl
+                    border
+                    border-[#D4AF37]/45
+                    bg-[#FBF7EA]
+                    px-3
+                    py-3
+                    text-xs
+                    font-semibold
+                    text-[#8A6D25]
+                    transition
+                    hover:bg-[#F7F0D9]
+                    active:scale-[0.98]
+                  "
+                >
+                  Notify Me
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleConfirmOutOfStockRemoval();
+                  }}
+                  className="
+                    flex
+                    min-h-11
+                    flex-1
+                    items-center
+                    justify-center
+                    rounded-2xl
+                    bg-black
+                    px-3
+                    py-3
+                    text-xs
+                    font-semibold
+                    text-white
+                    shadow-sm
+                    transition
+                    hover:bg-neutral-800
+                    active:scale-[0.98]
+                  "
+                >
+                  Remove Item
+                </button>
+
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================
             FIXED FOOTER
         ==================================================== */}
 
@@ -5935,6 +6376,28 @@ export default function CartDrawer() {
 
         </div>
 
+      )}
+
+
+      {/* =====================================================
+          NOTIFY ME — OUT-OF-STOCK CART ITEM
+      ====================================================== */}
+
+      {outOfStockItem && (
+        <NotifyDialog
+          open={showOutOfStockNotify}
+          onClose={() =>
+            setShowOutOfStockNotify(false)
+          }
+          product={{
+            id:
+              outOfStockItem.productId,
+            name:
+              outOfStockItem.name,
+            image:
+              outOfStockItem.image ?? null,
+          }}
+        />
       )}
 
 
