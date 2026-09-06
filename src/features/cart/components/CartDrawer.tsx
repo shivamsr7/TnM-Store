@@ -5461,7 +5461,7 @@ export default function CartDrawer() {
               className="
                 absolute
                 left-1/2
-                bottom-[calc(92px+env(safe-area-inset-bottom))]
+                bottom-[calc(150px+env(safe-area-inset-bottom))]
                 z-40
                 -translate-x-1/2
 
