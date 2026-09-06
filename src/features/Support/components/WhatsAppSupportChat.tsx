@@ -56,7 +56,7 @@ export default function WhatsAppSupportChat({
   const [
     showSupport,
     setShowSupport,
-  ] = useState(() => {
+  ] = useState<boolean>(() => {
 
     try {
 
