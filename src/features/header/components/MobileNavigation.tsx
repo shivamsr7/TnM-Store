@@ -6,8 +6,14 @@ import {
 
 
 import {
+  useEffect,
   useState,
 } from "react";
+
+
+import {
+  createPortal,
+} from "react-dom";
 
 
 import {
@@ -223,6 +229,46 @@ export default function MobileNavigation({
     }
 
   }
+
+
+  /*
+   * =========================================================
+   * LOCK PAGE SCROLL WHILE LOGOUT CONFIRMATION IS OPEN
+   * =========================================================
+   *
+   * The confirmation is rendered into document.body so it is
+   * not affected by the mobile drawer's own scroll container.
+   * =========================================================
+   */
+
+  useEffect(() => {
+
+    if (!showLogoutConfirmation) {
+      return;
+    }
+
+    const previousOverflow =
+      document.body.style.overflow;
+
+    const previousTouchAction =
+      document.body.style.touchAction;
+
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+
+    return () => {
+
+      document.body.style.overflow =
+        previousOverflow;
+
+      document.body.style.touchAction =
+        previousTouchAction;
+
+    };
+
+  }, [
+    showLogoutConfirmation,
+  ]);
 
 
   /*
@@ -950,7 +996,9 @@ export default function MobileNavigation({
         LOGOUT CONFIRMATION
     ====================================================== */}
 
-    <AnimatePresence>
+    {showLogoutConfirmation &&
+      createPortal(
+        <AnimatePresence>
 
       {showLogoutConfirmation && (
 
@@ -958,15 +1006,15 @@ export default function MobileNavigation({
           className="
             fixed
             inset-0
-            z-[100]
+            z-[10000]
             flex
-            items-end
+            min-h-[100dvh]
+            items-center
             justify-center
-            bg-black/45
+            bg-black/55
             px-4
-            pb-5
-            backdrop-blur-[3px]
-            sm:items-center
+            py-5
+            backdrop-blur-[5px]
           "
           initial={{
             opacity: 0,
@@ -992,9 +1040,10 @@ export default function MobileNavigation({
             aria-labelledby="mobile-logout-title"
             className="
               w-full
-              max-w-sm
+              max-w-[390px]
+              max-h-[calc(100dvh-40px)]
               overflow-hidden
-              rounded-[26px]
+              rounded-[28px]
               border
               border-[#C8A44D]/30
               bg-white
@@ -1030,6 +1079,9 @@ export default function MobileNavigation({
                 pb-5
                 pt-6
                 text-center
+                sm:px-6
+                sm:pb-6
+                sm:pt-7
               "
             >
 
@@ -1204,7 +1256,9 @@ export default function MobileNavigation({
 
       )}
 
-    </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      )}
 
     </>
 
