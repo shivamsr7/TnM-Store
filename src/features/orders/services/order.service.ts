@@ -7,7 +7,9 @@ import type {
 } from "../types/order.types";
 
 
-
+import {
+  notificationService
+} from "@/features/notifications/services/notification.service";
 
 
 function generateOrderNumber() {
