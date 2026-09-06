@@ -6,10 +6,6 @@ import type {
   CreateOrderPayload
 } from "../types/order.types";
 
-import {
-  notificationService
-} from "@/features/notifications/services/notification.service";
-
 
 
 
@@ -150,17 +146,23 @@ export async function createOrder(
 
   if (paymentTransactionId) {
 
+    const normalizedPhone =
+      payload.customer.phone?.replace(/\D/g, "") || null;
+
     const {
       data: existingOrder,
       error: existingOrderError,
-    } = await supabase
-      .from("orders")
-      .select("id, order_number")
-      .eq(
-        "payment_transaction_id",
-        paymentTransactionId
-      )
-      .maybeSingle();
+    } = await supabase.rpc(
+      "get_checkout_order_by_payment_transaction",
+      {
+        p_payment_transaction_id:
+          paymentTransactionId,
+        p_customer_id:
+          payload.customerId ?? null,
+        p_phone:
+          normalizedPhone,
+      }
+    );
 
 
     if (existingOrderError) {
@@ -367,17 +369,23 @@ export async function createOrder(
      */
     if (paymentTransactionId) {
 
+      const normalizedPhone =
+        payload.customer.phone?.replace(/\D/g, "") || null;
+
       const {
         data: recoveredOrder,
         error: recoveryLookupError,
-      } = await supabase
-        .from("orders")
-        .select("id, order_number")
-        .eq(
-          "payment_transaction_id",
-          paymentTransactionId
-        )
-        .maybeSingle();
+      } = await supabase.rpc(
+        "get_checkout_order_by_payment_transaction",
+        {
+          p_payment_transaction_id:
+            paymentTransactionId,
+          p_customer_id:
+            payload.customerId ?? null,
+          p_phone:
+            normalizedPhone,
+        }
+      );
 
 
       if (
@@ -419,28 +427,23 @@ export async function createOrder(
    * if the RPC returns an already-existing order.
    */
 
+  const normalizedPhone =
+    payload.customer.phone?.replace(/\D/g, "") || null;
+
   const {
     data: createdOrder,
     error: createdOrderLookupError,
-  } = await supabase
-    .from("orders")
-    .select(`
-      id,
-      order_number,
-      gift_wrap,
-      gift_wrap_amount,
-      gift_message,
-      subtotal,
-      discount,
-      shipping_charge,
-      tax,
-      total_amount
-    `)
-    .eq(
-      "id",
-      orderId
-    )
-    .single();
+  } = await supabase.rpc(
+    "get_checkout_order",
+    {
+      p_order_id:
+        orderId,
+      p_customer_id:
+        payload.customerId ?? null,
+      p_phone:
+        normalizedPhone,
+    }
+  );
 
 
   if (createdOrderLookupError) {
@@ -478,34 +481,6 @@ export async function createOrder(
           null
         )
       : null;
-
-
-
-  // Notification 1: Order Placed
-
-  if (payload.customerId) {
-
-    await notificationService.createNotification({
-
-      customerId:
-        payload.customerId,
-
-      title:
-        "Order Placed",
-
-      message:
-        `Your order #${finalOrderNumber} has been placed successfully.`,
-
-      type:
-        "order",
-
-      referenceId:
-        orderId,
-
-    });
-
-  }
-
 
   // Email: Complete Order Confirmation
 
@@ -641,34 +616,6 @@ export async function createOrder(
     });
 
   }
-
-
-
-    // Notification 2: Payment Received
-
-    if (payload.customerId) {
-
-      await notificationService.createNotification({
-
-        customerId:
-          payload.customerId,
-
-        title:
-          "Payment Received",
-
-        message:
-          `Payment received for order #${finalOrderNumber}.`,
-
-        type:
-          "payment",
-
-        referenceId:
-          orderId,
-
-      });
-
-    }
-
 
   return {
 
