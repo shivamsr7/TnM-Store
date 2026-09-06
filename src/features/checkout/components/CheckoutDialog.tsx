@@ -3,6 +3,8 @@ import {
   ArrowDown,
   ShieldCheck,
   UserRound,
+  Mail,
+  Smartphone,
   MapPin,
   CreditCard,
   Loader2,
@@ -43,6 +45,10 @@ import {
 import {
   getCustomerByPhone,
   createCustomer,
+  createGuestCustomer,
+  sendGuestOtp,
+  verifyGuestOtp,
+  upgradeGuestToMember,
 } from "@/features/customers/services/customer.service";
 
 import {
@@ -147,6 +153,76 @@ export default function CheckoutDialog({
     customer,
     setCustomer,
   ] = useState<any>(null);
+
+  /*
+   * =========================================================
+   * LOGIN / GUEST CHECKOUT CHOICE
+   * =========================================================
+   *
+   * The first checkout step now lets the customer choose
+   * between the existing Member login flow and Guest checkout.
+   * Both paths stay inside this same Login step; no additional
+   * dialog is opened.
+   */
+  const [
+    loginChoice,
+    setLoginChoice,
+  ] = useState<"member" | "guest" | null>(null);
+
+  const [
+    guestName,
+    setGuestName,
+  ] = useState("");
+
+  const [
+    guestPhone,
+    setGuestPhone,
+  ] = useState("");
+
+  const [
+    guestEmail,
+    setGuestEmail,
+  ] = useState("");
+
+  const [
+    guestError,
+    setGuestError,
+  ] = useState("");
+
+  const [
+    guestSubmitting,
+    setGuestSubmitting,
+  ] = useState(false);
+
+  const [
+    guestOtp,
+    setGuestOtp,
+  ] = useState("");
+
+  const [
+    guestOtpSent,
+    setGuestOtpSent,
+  ] = useState(false);
+
+  const [
+    guestOtpVerifying,
+    setGuestOtpVerifying,
+  ] = useState(false);
+
+  const [
+    guestCustomerDraft,
+    setGuestCustomerDraft,
+  ] = useState<any>(null);
+
+  const [
+    guestOtpVerified,
+    setGuestOtpVerified,
+  ] = useState(false);
+
+  const [
+    guestMembershipSubmitting,
+    setGuestMembershipSubmitting,
+  ] = useState(false);
 
   /*
    * Used when a guest clicks "View available coupons".
@@ -793,6 +869,19 @@ export default function CheckoutDialog({
 
     setShowLoginScrollHint(true);
 
+    setLoginChoice(null);
+    setGuestName("");
+    setGuestPhone("");
+    setGuestEmail("");
+    setGuestError("");
+    setGuestSubmitting(false);
+    setGuestOtp("");
+    setGuestOtpSent(false);
+    setGuestOtpVerifying(false);
+    setGuestCustomerDraft(null);
+    setGuestOtpVerified(false);
+    setGuestMembershipSubmitting(false);
+
   }, [
     open,
   ]);
@@ -1071,6 +1160,21 @@ export default function CheckoutDialog({
         : "login"
     );
 
+    if (!authCustomer) {
+      setLoginChoice(null);
+      setGuestName("");
+      setGuestPhone("");
+      setGuestEmail("");
+      setGuestError("");
+      setGuestSubmitting(false);
+      setGuestOtp("");
+      setGuestOtpSent(false);
+      setGuestOtpVerifying(false);
+      setGuestCustomerDraft(null);
+      setGuestOtpVerified(false);
+      setGuestMembershipSubmitting(false);
+    }
+
   }, [
     open,
     authCustomer,
@@ -1162,6 +1266,305 @@ export default function CheckoutDialog({
     }
 
   }
+
+
+  /*
+   * =========================================================
+   * GUEST CHECKOUT
+   * =========================================================
+   *
+   * Guest checkout stays inside the existing Login step.
+   * We create/reuse a customer record without creating a
+   * Supabase Auth account. The Address and Payment steps remain
+   * completely unchanged.
+   */
+  async function handleGuestContinue() {
+    const normalizedName =
+      guestName.trim().replace(/\s+/g, " ");
+
+    const normalizedPhone =
+      guestPhone.replace(/\D/g, "").slice(-10);
+
+    const normalizedEmail =
+      guestEmail.trim().toLowerCase();
+
+    setGuestError("");
+
+    if (!normalizedName || normalizedName.length < 2) {
+      setGuestError("Please enter your full name.");
+      return;
+    }
+
+    if (!/^\d{10}$/.test(normalizedPhone)) {
+      setGuestError("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    if (
+      normalizedEmail &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+    ) {
+      setGuestError("Please enter a valid email address.");
+      return;
+    }
+
+    setGuestSubmitting(true);
+
+    try {
+      const nameParts = normalizedName.split(" ");
+      const firstName = nameParts[0];
+      const lastName = nameParts.slice(1).join(" ");
+
+      /*
+       * Create/reuse the guest customer BEFORE sending OTP.
+       * The secure RPC rejects phone numbers that already belong
+       * to a registered Member.
+       */
+      const guestCustomer = await createGuestCustomer({
+        first_name: firstName,
+        last_name: lastName,
+        email: normalizedEmail || undefined,
+        phone: normalizedPhone,
+      });
+
+      const checkoutGuestCustomer = {
+        ...guestCustomer,
+        first_name:
+          guestCustomer?.first_name || firstName,
+        last_name:
+          guestCustomer?.last_name || lastName,
+        phone:
+          guestCustomer?.phone || normalizedPhone,
+        email:
+          normalizedEmail ||
+          guestCustomer?.email ||
+          null,
+      };
+
+      setGuestCustomerDraft(checkoutGuestCustomer);
+
+      await sendGuestOtp(normalizedPhone);
+
+      setGuestOtp("");
+      setGuestOtpSent(true);
+      setGuestSubmitting(false);
+    } catch (error: any) {
+      console.error(
+        "Guest checkout OTP setup failed:",
+        error
+      );
+
+      setGuestError(
+        error?.message ||
+        "Unable to send OTP. Please try again."
+      );
+
+      setGuestSubmitting(false);
+    }
+  }
+
+  async function handleVerifyGuestOtp() {
+    const normalizedPhone =
+      guestPhone.replace(/\D/g, "").slice(-10);
+
+    const normalizedOtp =
+      guestOtp.replace(/\D/g, "").slice(0, 6);
+
+    setGuestError("");
+
+    if (!/^\d{10}$/.test(normalizedPhone)) {
+      setGuestError("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    if (!/^\d{6}$/.test(normalizedOtp)) {
+      setGuestError("Please enter the 6-digit OTP.");
+      return;
+    }
+
+    setGuestOtpVerifying(true);
+
+    try {
+      await verifyGuestOtp(
+        normalizedPhone,
+        normalizedOtp,
+        { keepSession: true }
+      );
+
+      const draft = guestCustomerDraft || {};
+
+      const verifiedGuestCustomer = {
+        ...draft,
+        phone: draft?.phone || normalizedPhone,
+        first_name:
+          draft?.first_name ||
+          guestName.trim().split(/\s+/)[0],
+        last_name:
+          draft?.last_name ||
+          guestName.trim().split(/\s+/).slice(1).join(" "),
+        email:
+          guestEmail.trim().toLowerCase() ||
+          draft?.email ||
+          null,
+      };
+
+      setGuestCustomerDraft(verifiedGuestCustomer);
+      setGuestOtpVerified(true);
+      setGuestOtpVerifying(false);
+      setGuestSubmitting(false);
+    } catch (error: any) {
+      console.error(
+        "Guest OTP verification failed:",
+        error
+      );
+
+      setGuestError(
+        error?.message ||
+        "Invalid OTP. Please try again."
+      );
+
+      setGuestOtpVerifying(false);
+    }
+  }
+
+  async function handleGuestMemberChoice(
+    choice: "member" | "guest"
+  ) {
+    const normalizedPhone =
+      guestPhone.replace(/\D/g, "").slice(-10);
+
+    const draft = guestCustomerDraft || {};
+
+    setGuestError("");
+
+    if (!/^\d{10}$/.test(normalizedPhone)) {
+      setGuestError("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    setGuestMembershipSubmitting(true);
+
+    try {
+      if (choice === "member") {
+        const memberCustomer =
+          await upgradeGuestToMember(normalizedPhone);
+
+        const upgradedCustomer = {
+          ...draft,
+          id:
+            memberCustomer.customer_id ||
+            draft?.id,
+          first_name:
+            memberCustomer.first_name ||
+            draft?.first_name ||
+            "",
+          last_name:
+            memberCustomer.last_name ||
+            draft?.last_name ||
+            "",
+          email:
+            memberCustomer.email ||
+            draft?.email ||
+            null,
+          phone:
+            memberCustomer.phone ||
+            normalizedPhone,
+          auth_user_id:
+            memberCustomer.auth_user_id ||
+            null,
+          phone_verified:
+            Boolean(memberCustomer.phone_verified),
+        };
+
+        setCustomer(upgradedCustomer);
+
+        useCustomerStore
+          .getState()
+          .setCustomer(upgradedCustomer);
+
+        setGuestOtpVerified(false);
+        setGuestMembershipSubmitting(false);
+        setStep("address");
+        return;
+      }
+
+      await supabase.auth.signOut();
+
+      setCustomer(draft);
+
+      useCustomerStore
+        .getState()
+        .setCustomer(draft);
+
+      setGuestOtpVerified(false);
+      setGuestMembershipSubmitting(false);
+      setStep("address");
+    } catch (error: any) {
+      console.error(
+        "Guest membership choice failed:",
+        error
+      );
+
+      setGuestError(
+        error?.message ||
+        "Unable to continue. Please try again."
+      );
+
+      setGuestMembershipSubmitting(false);
+    }
+  }
+
+  async function handleResendGuestOtp() {
+    const normalizedPhone =
+      guestPhone.replace(/\D/g, "").slice(-10);
+
+    setGuestError("");
+
+    if (!/^\d{10}$/.test(normalizedPhone)) {
+      setGuestError("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    setGuestSubmitting(true);
+
+    try {
+      await sendGuestOtp(normalizedPhone);
+      setGuestOtp("");
+      setGuestError("");
+    } catch (error: any) {
+      console.error(
+        "Guest OTP resend failed:",
+        error
+      );
+
+      setGuestError(
+        error?.message ||
+        "Unable to resend OTP. Please try again."
+      );
+    } finally {
+      setGuestSubmitting(false);
+    }
+  }
+
+  function handleGuestPhoneChange(value: string) {
+    const normalizedPhone =
+      value.replace(/\D/g, "").slice(0, 10);
+
+    setGuestPhone(normalizedPhone);
+    setGuestError("");
+
+    /*
+     * Changing the mobile number invalidates the current OTP
+     * session and the guest customer draft.
+     */
+    if (guestOtpSent) {
+      setGuestOtpSent(false);
+      setGuestOtp("");
+      setGuestCustomerDraft(null);
+      setGuestOtpVerified(false);
+    }
+  }
+
 
 
   /*
@@ -3720,7 +4123,7 @@ export default function CheckoutDialog({
 
 
           {/* =================================================
-              LOGIN
+              LOGIN / MEMBER / GUEST
           ================================================== */}
 
           {
@@ -3729,77 +4132,1304 @@ export default function CheckoutDialog({
 
               <div
                 ref={loginSectionRef}
-                className="scroll-mt-5"
+                className="scroll-mt-5 pb-3"
               >
 
-                <>
+                {/* -------------------------------------------------
+                    LOGIN CHOICE
+                    Only the Login area is redesigned. The checkout
+                    shell, Address, Payment and all existing logic
+                    remain unchanged.
+                -------------------------------------------------- */}
 
-                <div
-
-                  className="
-                    flex
-                    justify-center
-                  "
-
-                >
-
+                {loginChoice === null && (
                   <div
-
                     className="
-                      flex
-                      h-20
-                      w-20
-                      items-center
-                      justify-center
-                      rounded-full
-                      bg-gradient-to-br
-                      from-neutral-50
-                      to-neutral-100
-                      shadow-[0_14px_40px_rgba(0,0,0,0.08)]
-                      ring-8
-                      ring-neutral-50
-                      motion-safe:animate-[softFloat_3s_ease-in-out_infinite]
+                      relative
+                      overflow-hidden
+                      rounded-[30px]
+                      border
+                      border-[#C8A44D]/15
+                      bg-gradient-to-b
+                      from-[#fffdf8]
+                      via-white
+                      to-[#faf8f2]
+                      px-4
+                      pb-6
+                      pt-5
+                      shadow-[0_18px_55px_rgba(0,0,0,0.055)]
+                      motion-safe:animate-[loginChoiceIn_500ms_cubic-bezier(.22,1,.36,1)]
+                      sm:px-6
+                      sm:pt-6
                     "
-
                   >
 
-                    <UserRound
-                      size={38}
+                    {/* soft decorative glow */}
+                    <span
+                      aria-hidden="true"
                       className="
-                        text-neutral-800
+                        pointer-events-none
+                        absolute
+                        -right-16
+                        -top-20
+                        h-40
+                        w-40
+                        rounded-full
+                        bg-[#C8A44D]/[0.10]
+                        blur-3xl
+                        motion-safe:animate-[loginGlow_5s_ease-in-out_infinite]
                       "
                     />
 
+                    <span
+                      aria-hidden="true"
+                      className="
+                        pointer-events-none
+                        absolute
+                        -bottom-20
+                        -left-16
+                        h-36
+                        w-36
+                        rounded-full
+                        bg-[#C8A44D]/[0.07]
+                        blur-3xl
+                        motion-safe:animate-[loginGlow_6s_ease-in-out_infinite_reverse]
+                      "
+                    />
+
+                    {/* icon */}
+                    <div
+                      className="
+                        relative
+                        mx-auto
+                        flex
+                        h-[74px]
+                        w-[74px]
+                        items-center
+                        justify-center
+                        rounded-full
+                        border
+                        border-[#C8A44D]/20
+                        bg-gradient-to-br
+                        from-[#fffdf6]
+                        to-[#f5ecd5]
+                        text-[#9A7A22]
+                        shadow-[0_12px_35px_rgba(200,164,77,0.16)]
+                        ring-8
+                        ring-[#C8A44D]/[0.035]
+                        motion-safe:animate-[loginIconFloat_3.8s_ease-in-out_infinite]
+                      "
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="
+                          absolute
+                          inset-[-6px]
+                          rounded-full
+                          border
+                          border-[#C8A44D]/10
+                          motion-safe:animate-[loginRing_2.8s_ease-out_infinite]
+                        "
+                      />
+
+                      <UserRound
+                        size={32}
+                        strokeWidth={1.9}
+                      />
+
+                      <span
+                        aria-hidden="true"
+                        className="
+                          absolute
+                          -right-1
+                          top-0
+                          text-[15px]
+                          text-[#C8A44D]
+                          motion-safe:animate-[loginSparkle_2.2s_ease-in-out_infinite]
+                        "
+                      >
+                        ✦
+                      </span>
+                    </div>
+
+                    <div className="relative text-center">
+
+                      <h3
+                        className="
+                          mt-5
+                          text-[25px]
+                          font-semibold
+                          tracking-[-0.035em]
+                          text-neutral-950
+                          sm:text-[27px]
+                        "
+                      >
+                        How would you like to continue?
+                      </h3>
+
+                      <p
+                        className="
+                          mx-auto
+                          mt-2
+                          max-w-[430px]
+                          text-[13px]
+                          leading-5
+                          text-neutral-500
+                          sm:text-sm
+                        "
+                      >
+                        Choose the easiest way to complete your order.
+                      </p>
+
+                    </div>
+
+                    {/* choice cards */}
+                    <div
+                      className="
+                        relative
+                        mt-6
+                        grid
+                        gap-3
+                        sm:mt-7
+                        sm:grid-cols-2
+                      "
+                    >
+
+                      {/* MEMBER */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGuestError("");
+                          setLoginChoice("member");
+                        }}
+                        className="
+                          group
+                          relative
+                          overflow-hidden
+                          rounded-[22px]
+                          border
+                          border-[#C8A44D]/20
+                          bg-white
+                          p-4
+                          text-left
+                          shadow-[0_8px_28px_rgba(0,0,0,0.045)]
+                          transition-all
+                          duration-300
+                          ease-out
+                          hover:-translate-y-1
+                          hover:border-[#C8A44D]/55
+                          hover:shadow-[0_18px_40px_rgba(200,164,77,0.13)]
+                          active:scale-[0.985]
+                          motion-safe:animate-[loginCardIn_520ms_cubic-bezier(.22,1,.36,1)_120ms_both]
+                        "
+                      >
+
+                        <span
+                          aria-hidden="true"
+                          className="
+                            pointer-events-none
+                            absolute
+                            -right-8
+                            -top-8
+                            h-24
+                            w-24
+                            rounded-full
+                            bg-[#C8A44D]/[0.07]
+                            blur-2xl
+                            transition-transform
+                            duration-500
+                            group-hover:scale-150
+                          "
+                        />
+
+                        <div className="relative flex items-start gap-3.5">
+
+                          <span
+                            className="
+                              flex
+                              h-12
+                              w-12
+                              shrink-0
+                              items-center
+                              justify-center
+                              rounded-[15px]
+                              bg-gradient-to-br
+                              from-[#fff9e9]
+                              to-[#f6edd8]
+                              text-[#9A7A22]
+                              shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]
+                              transition-all
+                              duration-300
+                              group-hover:scale-105
+                              group-hover:rotate-[-3deg]
+                            "
+                          >
+                            <UserRound
+                              size={22}
+                              strokeWidth={2}
+                            />
+                          </span>
+
+                          <span className="min-w-0 flex-1">
+
+                            <span
+                              className="
+                                flex
+                                items-center
+                                gap-2
+                                text-[16px]
+                                font-semibold
+                                tracking-[-0.015em]
+                                text-neutral-950
+                              "
+                            >
+                              I'm a Member
+
+                              <span
+                                className="
+                                  rounded-full
+                                  bg-[#C8A44D]/10
+                                  px-2
+                                  py-0.5
+                                  text-[9px]
+                                  font-semibold
+                                  uppercase
+                                  tracking-[0.08em]
+                                  text-[#9A7A22]
+                                "
+                              >
+                                Saved
+                              </span>
+                            </span>
+
+                            <span
+                              className="
+                                mt-1.5
+                                block
+                                text-xs
+                                leading-5
+                                text-neutral-500
+                              "
+                            >
+                              Sign in to use your saved details and order history.
+                            </span>
+
+                          </span>
+
+                        </div>
+
+                        <span
+                          className="
+                            relative
+                            mt-4
+                            flex
+                            items-center
+                            gap-1.5
+                            text-xs
+                            font-semibold
+                            text-[#9A7A22]
+                            transition-all
+                            duration-300
+                            group-hover:gap-2.5
+                          "
+                        >
+                          Continue as Member
+                          <span
+                            aria-hidden="true"
+                            className="transition-transform duration-300 group-hover:translate-x-0.5"
+                          >
+                            →
+                          </span>
+                        </span>
+
+                      </button>
+
+
+                      {/* GUEST */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGuestError("");
+                          setLoginChoice("guest");
+                        }}
+                        className="
+                          group
+                          relative
+                          overflow-hidden
+                          rounded-[22px]
+                          border
+                          border-neutral-200
+                          bg-white
+                          p-4
+                          text-left
+                          shadow-[0_8px_28px_rgba(0,0,0,0.045)]
+                          transition-all
+                          duration-300
+                          ease-out
+                          hover:-translate-y-1
+                          hover:border-neutral-300
+                          hover:shadow-[0_18px_40px_rgba(0,0,0,0.09)]
+                          active:scale-[0.985]
+                          motion-safe:animate-[loginCardIn_520ms_cubic-bezier(.22,1,.36,1)_220ms_both]
+                        "
+                      >
+
+                        <span
+                          aria-hidden="true"
+                          className="
+                            pointer-events-none
+                            absolute
+                            -right-8
+                            -top-8
+                            h-24
+                            w-24
+                            rounded-full
+                            bg-neutral-100
+                            blur-2xl
+                            transition-transform
+                            duration-500
+                            group-hover:scale-150
+                          "
+                        />
+
+                        <div className="relative flex items-start gap-3.5">
+
+                          <span
+                            className="
+                              flex
+                              h-12
+                              w-12
+                              shrink-0
+                              items-center
+                              justify-center
+                              rounded-[15px]
+                              bg-gradient-to-br
+                              from-neutral-50
+                              to-neutral-100
+                              text-neutral-700
+                              shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]
+                              transition-all
+                              duration-300
+                              group-hover:scale-105
+                              group-hover:rotate-[3deg]
+                            "
+                          >
+                            <Smartphone
+                              size={22}
+                              strokeWidth={2}
+                            />
+                          </span>
+
+                          <span className="min-w-0 flex-1">
+
+                            <span
+                              className="
+                                block
+                                text-[16px]
+                                font-semibold
+                                tracking-[-0.015em]
+                                text-neutral-950
+                              "
+                            >
+                              Continue as Guest
+                            </span>
+
+                            <span
+                              className="
+                                mt-1.5
+                                block
+                                text-xs
+                                leading-5
+                                text-neutral-500
+                              "
+                            >
+                              Checkout quickly without creating an account.
+                            </span>
+
+                          </span>
+
+                        </div>
+
+                        <span
+                          className="
+                            relative
+                            mt-4
+                            flex
+                            items-center
+                            gap-1.5
+                            text-xs
+                            font-semibold
+                            text-neutral-700
+                            transition-all
+                            duration-300
+                            group-hover:gap-2.5
+                          "
+                        >
+                          Continue as Guest
+                          <span
+                            aria-hidden="true"
+                            className="transition-transform duration-300 group-hover:translate-x-0.5"
+                          >
+                            →
+                          </span>
+                        </span>
+
+                      </button>
+
+                    </div>
+
+                    {/* secure note */}
+                    <div
+                      className="
+                        relative
+                        mt-5
+                        flex
+                        items-center
+                        justify-center
+                        gap-2
+                        text-[11px]
+                        font-medium
+                        text-neutral-400
+                        motion-safe:animate-[loginFade_700ms_ease-out_500ms_both]
+                      "
+                    >
+                      <span
+                        className="
+                          flex
+                          h-6
+                          w-6
+                          items-center
+                          justify-center
+                          rounded-full
+                          bg-neutral-100
+                        "
+                      >
+                        <ShieldCheck
+                          size={13}
+                          className="text-neutral-500"
+                        />
+                      </span>
+                      Your details are kept secure
+                    </div>
+
                   </div>
-
-                </div>
-
-
-                <h3
-
-                  className="
-                    mt-6
-                    text-center
-                    text-2xl
-                    font-semibold
-                  "
-
-                >
-
-                  Login to continue
-
-                </h3>
+                )}
 
 
-                <LoginStep
+                {loginChoice === "member" && (
+                  <div
+                    className="
+                      motion-safe:animate-[loginPanelIn_420ms_cubic-bezier(.22,1,.36,1)]
+                    "
+                  >
 
-                  onSuccess={
-                    handleLoginSuccess
-                  }
+                    <button
+                      type="button"
+                      onClick={() => setLoginChoice(null)}
+                      className="
+                        group
+                        mb-5
+                        inline-flex
+                        items-center
+                        gap-1.5
+                        rounded-full
+                        border
+                        border-neutral-200
+                        bg-white
+                        px-3
+                        py-2
+                        text-xs
+                        font-semibold
+                        text-neutral-600
+                        shadow-sm
+                        transition-all
+                        duration-200
+                        hover:-translate-x-0.5
+                        hover:border-[#C8A44D]/35
+                        hover:text-[#9A7A22]
+                        active:scale-95
+                      "
+                    >
+                      <span
+                        className="transition-transform duration-200 group-hover:-translate-x-0.5"
+                      >
+                        ←
+                      </span>
+                      Choose another option
+                    </button>
 
-                />
+                    <div
+                      className="
+                        rounded-[28px]
+                        border
+                        border-[#C8A44D]/15
+                        bg-gradient-to-b
+                        from-[#fffdf8]
+                        via-white
+                        to-neutral-50
+                        px-4
+                        pb-5
+                        pt-6
+                        shadow-[0_16px_48px_rgba(0,0,0,0.055)]
+                        sm:px-6
+                      "
+                    >
 
-                </>
+                      <div
+                        className="
+                          mx-auto
+                          flex
+                          h-[68px]
+                          w-[68px]
+                          items-center
+                          justify-center
+                          rounded-full
+                          bg-gradient-to-br
+                          from-[#fff9e9]
+                          to-[#f5ead0]
+                          text-[#9A7A22]
+                          shadow-[0_10px_30px_rgba(200,164,77,0.15)]
+                          ring-8
+                          ring-[#C8A44D]/[0.035]
+                          motion-safe:animate-[loginIconFloat_3.8s_ease-in-out_infinite]
+                        "
+                      >
+                        <UserRound
+                          size={31}
+                          strokeWidth={1.9}
+                        />
+                      </div>
+
+                      <h3
+                        className="
+                          mt-5
+                          text-center
+                          text-[24px]
+                          font-semibold
+                          tracking-[-0.035em]
+                          text-neutral-950
+                        "
+                      >
+                        Welcome back
+                      </h3>
+
+                      <p
+                        className="
+                          mt-1.5
+                          text-center
+                          text-sm
+                          leading-5
+                          text-neutral-500
+                        "
+                      >
+                        Sign in securely with your mobile number.
+                      </p>
+
+                      <LoginStep
+                        onSuccess={
+                          handleLoginSuccess
+                        }
+                      />
+
+                    </div>
+
+                  </div>
+                )}
+
+
+                {loginChoice === "guest" && (
+                  <div
+                    className="
+                      motion-safe:animate-[loginPanelIn_420ms_cubic-bezier(.22,1,.36,1)]
+                    "
+                  >
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setGuestError("");
+                        setLoginChoice(null);
+                      }}
+                      className="
+                        group
+                        mb-5
+                        inline-flex
+                        items-center
+                        gap-1.5
+                        rounded-full
+                        border
+                        border-neutral-200
+                        bg-white
+                        px-3
+                        py-2
+                        text-xs
+                        font-semibold
+                        text-neutral-600
+                        shadow-sm
+                        transition-all
+                        duration-200
+                        hover:-translate-x-0.5
+                        hover:border-[#C8A44D]/35
+                        hover:text-[#9A7A22]
+                        active:scale-95
+                      "
+                    >
+                      <span
+                        className="transition-transform duration-200 group-hover:-translate-x-0.5"
+                      >
+                        ←
+                      </span>
+                      Choose another option
+                    </button>
+
+                    <div
+                      className="
+                        rounded-[28px]
+                        border
+                        border-neutral-200
+                        bg-gradient-to-b
+                        from-white
+                        via-white
+                        to-neutral-50
+                        p-5
+                        shadow-[0_16px_48px_rgba(0,0,0,0.055)]
+                        sm:p-6
+                      "
+                    >
+
+                      <div className="flex items-center gap-3">
+
+                        <div
+                          className="
+                            flex
+                            h-12
+                            w-12
+                            shrink-0
+                            items-center
+                            justify-center
+                            rounded-[15px]
+                            bg-neutral-100
+                            text-neutral-700
+                            shadow-sm
+                            motion-safe:animate-[loginIconPop_420ms_cubic-bezier(.22,1,.36,1)]
+                          "
+                        >
+                          <Smartphone
+                            size={23}
+                            strokeWidth={2}
+                          />
+                        </div>
+
+                        <div>
+                          <h3
+                            className="
+                              text-xl
+                              font-semibold
+                              tracking-[-0.025em]
+                              text-neutral-950
+                            "
+                          >
+                            Guest checkout
+                          </h3>
+
+                          <p
+                            className="
+                              mt-1
+                              text-sm
+                              leading-5
+                              text-neutral-500
+                            "
+                          >
+                            Just a few details and you're ready to go.
+                          </p>
+                        </div>
+
+                      </div>
+
+
+                      <div
+                        className="
+                          mt-6
+                          space-y-4
+                        "
+                      >
+
+                        <label className="block">
+                          <span
+                            className="
+                              mb-1.5
+                              block
+                              text-xs
+                              font-semibold
+                              text-neutral-700
+                            "
+                          >
+                            Full Name
+                          </span>
+
+                          <div className="relative">
+                            <UserRound
+                              size={17}
+                              className="
+                                pointer-events-none
+                                absolute
+                                left-3.5
+                                top-1/2
+                                -translate-y-1/2
+                                text-neutral-400
+                              "
+                            />
+
+                            <input
+                              type="text"
+                              value={guestName}
+                              onChange={(event) => {
+                                setGuestName(event.target.value);
+                                setGuestError("");
+                              }}
+                              placeholder="Enter your full name"
+                              autoComplete="name"
+                              className="
+                                w-full
+                                rounded-[14px]
+                                border
+                                border-neutral-200
+                                bg-white
+                                py-3.5
+                                pl-10
+                                pr-3
+                                text-sm
+                                text-neutral-900
+                                outline-none
+                                transition-all
+                                duration-200
+                                focus:border-[#C8A44D]
+                                focus:ring-4
+                                focus:ring-[#C8A44D]/10
+                              "
+                            />
+                          </div>
+                        </label>
+
+
+                        <label className="block">
+                          <span
+                            className="
+                              mb-1.5
+                              block
+                              text-xs
+                              font-semibold
+                              text-neutral-700
+                            "
+                          >
+                            Mobile Number
+                          </span>
+
+                          <div
+                            className="
+                              flex
+                              overflow-hidden
+                              rounded-[14px]
+                              border
+                              border-neutral-200
+                              bg-white
+                              transition-all
+                              duration-200
+                              focus-within:border-[#C8A44D]
+                              focus-within:ring-4
+                              focus-within:ring-[#C8A44D]/10
+                            "
+                          >
+                            <span
+                              className="
+                                flex
+                                shrink-0
+                                items-center
+                                border-r
+                                border-neutral-200
+                                bg-neutral-50
+                                px-3.5
+                                text-sm
+                                font-medium
+                                text-neutral-600
+                              "
+                            >
+                              +91
+                            </span>
+
+                            <input
+                              type="tel"
+                              inputMode="numeric"
+                              value={guestPhone}
+                              onChange={(event) => {
+                                handleGuestPhoneChange(
+                                  event.target.value
+                                );
+                              }}
+                              placeholder="Enter mobile number"
+                              autoComplete="tel"
+                              className="
+                                min-w-0
+                                flex-1
+                                bg-transparent
+                                px-3.5
+                                py-3.5
+                                text-sm
+                                outline-none
+                              "
+                            />
+                          </div>
+                        </label>
+
+
+                        <label className="block">
+                          <div
+                            className="
+                              mb-1.5
+                              flex
+                              items-center
+                              justify-between
+                              gap-3
+                            "
+                          >
+                            <span
+                              className="
+                                text-xs
+                                font-semibold
+                                text-neutral-700
+                              "
+                            >
+                              Email Address
+                            </span>
+
+                            <span
+                              className="
+                                rounded-full
+                                bg-neutral-100
+                                px-2
+                                py-0.5
+                                text-[10px]
+                                font-medium
+                                text-neutral-400
+                              "
+                            >
+                              Optional
+                            </span>
+                          </div>
+
+                          <div className="relative">
+                            <Mail
+                              size={17}
+                              className="
+                                pointer-events-none
+                                absolute
+                                left-3.5
+                                top-1/2
+                                -translate-y-1/2
+                                text-neutral-400
+                              "
+                            />
+
+                            <input
+                              type="email"
+                              value={guestEmail}
+                              onChange={(event) => {
+                                setGuestEmail(event.target.value);
+                                setGuestError("");
+                              }}
+                              placeholder="For order updates"
+                              autoComplete="email"
+                              className="
+                                w-full
+                                rounded-[14px]
+                                border
+                                border-neutral-200
+                                bg-white
+                                py-3.5
+                                pl-10
+                                pr-3
+                                text-sm
+                                text-neutral-900
+                                outline-none
+                                transition-all
+                                duration-200
+                                focus:border-[#C8A44D]
+                                focus:ring-4
+                                focus:ring-[#C8A44D]/10
+                              "
+                            />
+                          </div>
+                        </label>
+
+                      </div>
+
+
+                      {guestError && (
+                        <div
+                          className="
+                            mt-4
+                            rounded-[14px]
+                            border
+                            border-red-100
+                            bg-red-50
+                            px-3.5
+                            py-3
+                            text-xs
+                            leading-5
+                            text-red-600
+                            motion-safe:animate-[loginShake_350ms_ease-out]
+                          "
+                        >
+                          {guestError}
+                        </div>
+                      )}
+
+
+                      {!guestOtpSent ? (
+                        <button
+                          type="button"
+                          onClick={handleGuestContinue}
+                          disabled={guestSubmitting}
+                          className="
+                            group
+                            relative
+                            mt-5
+                            flex
+                            w-full
+                            items-center
+                            justify-center
+                            gap-2
+                            overflow-hidden
+                            rounded-[14px]
+                            bg-black
+                            px-5
+                            py-3.5
+                            text-sm
+                            font-semibold
+                            text-white
+                            shadow-[0_12px_30px_rgba(0,0,0,0.13)]
+                            transition-all
+                            duration-200
+                            hover:-translate-y-0.5
+                            hover:bg-neutral-800
+                            active:scale-[0.985]
+                            disabled:cursor-not-allowed
+                            disabled:opacity-60
+                          "
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="
+                              pointer-events-none
+                              absolute
+                              inset-y-0
+                              left-[-45%]
+                              w-1/3
+                              skew-x-[-18deg]
+                              bg-white/10
+                              transition-transform
+                              duration-700
+                              group-hover:translate-x-[430%]
+                            "
+                          />
+
+                          {guestSubmitting ? (
+                            <>
+                              <Loader2
+                                size={17}
+                                className="animate-spin"
+                              />
+                              Sending OTP...
+                            </>
+                          ) : (
+                            <>
+                              Send OTP & Continue
+                              <span
+                                aria-hidden="true"
+                                className="transition-transform duration-200 group-hover:translate-x-1"
+                              >
+                                →
+                              </span>
+                            </>
+                          )}
+                        </button>
+                      ) : guestOtpVerified ? (
+                        <div
+                          className="
+                            mt-5
+                            rounded-[22px]
+                            border
+                            border-[#C8A44D]/20
+                            bg-gradient-to-br
+                            from-[#fffdf8]
+                            via-white
+                            to-[#faf8f2]
+                            p-5
+                            text-center
+                            shadow-[0_12px_35px_rgba(200,164,77,0.10)]
+                            motion-safe:animate-[loginPanelIn_380ms_cubic-bezier(.22,1,.36,1)]
+                          "
+                        >
+                          <div
+                            className="
+                              mx-auto
+                              flex
+                              h-12
+                              w-12
+                              items-center
+                              justify-center
+                              rounded-full
+                              bg-green-100
+                              text-green-600
+                              text-xl
+                              font-bold
+                              motion-safe:animate-[loginIconPop_420ms_cubic-bezier(.22,1,.36,1)]
+                            "
+                          >
+                            ✓
+                          </div>
+
+                          <h3 className="mt-4 text-xl font-semibold tracking-[-0.025em] text-neutral-950">
+                            Make it more rewarding with T&M ✨
+                          </h3>
+
+                          <p className="mx-auto mt-2 max-w-[430px] text-sm leading-6 text-neutral-500">
+                            Become a T&M Member and enjoy <strong className="font-semibold text-neutral-700">exclusive discounts, members-only offers, early access to new launches & special perks</strong>.
+                          </p>
+
+                          {guestError && (
+                            <div className="mt-4 rounded-[14px] border border-red-100 bg-red-50 px-3.5 py-3 text-xs leading-5 text-red-600 motion-safe:animate-[loginShake_350ms_ease-out]">
+                              {guestError}
+                            </div>
+                          )}
+
+                          <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
+                            <button
+                              type="button"
+                              onClick={() => handleGuestMemberChoice("member")}
+                              disabled={guestMembershipSubmitting}
+                              className="rounded-[14px] bg-black px-4 py-3.5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(0,0,0,0.13)] transition hover:-translate-y-0.5 hover:bg-neutral-800 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {guestMembershipSubmitting ? (
+                                <span className="inline-flex items-center justify-center gap-2">
+                                  <Loader2 size={16} className="animate-spin" />
+                                  Activating...
+                                </span>
+                              ) : (
+                                "Yes, I’d love to join"
+                              )}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleGuestMemberChoice("guest")}
+                              disabled={guestMembershipSubmitting}
+                              className="rounded-[14px] border border-neutral-200 bg-white px-4 py-3.5 text-sm font-semibold text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Continue as Guest
+                            </button>
+                          </div>
+
+                          <p className="mt-4 text-[11px] text-neutral-400">
+                            You can continue without becoming a member.
+                          </p>
+                        </div>
+                      ) : (
+                        <div
+                          className="
+                            mt-5
+                            rounded-[18px]
+                            border
+                            border-[#C8A44D]/20
+                            bg-[#fffdf8]
+                            p-4
+                            motion-safe:animate-[loginPanelIn_320ms_cubic-bezier(.22,1,.36,1)]
+                          "
+                        >
+                          <div className="flex items-start gap-3">
+                            <div
+                              className="
+                                flex
+                                h-10
+                                w-10
+                                shrink-0
+                                items-center
+                                justify-center
+                                rounded-xl
+                                bg-[#C8A44D]/10
+                                text-[#9A7A22]
+                              "
+                            >
+                              <Smartphone size={18} />
+                            </div>
+
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-neutral-900">
+                                Verify your mobile number
+                              </p>
+                              <p className="mt-1 text-xs leading-5 text-neutral-500">
+                                We sent a 6-digit OTP to +91 {guestPhone}.
+                              </p>
+                            </div>
+                          </div>
+
+                          <label className="mt-4 block">
+                            <span className="mb-1.5 block text-xs font-semibold text-neutral-700">
+                              Enter OTP
+                            </span>
+
+                            <input
+                              type="tel"
+                              inputMode="numeric"
+                              autoComplete="one-time-code"
+                              maxLength={6}
+                              value={guestOtp}
+                              onChange={(event) => {
+                                setGuestOtp(
+                                  event.target.value
+                                    .replace(/\D/g, "")
+                                    .slice(0, 6)
+                                );
+                                setGuestError("");
+                              }}
+                              placeholder="Enter 6-digit OTP"
+                              className="
+                                w-full
+                                rounded-[14px]
+                                border
+                                border-neutral-200
+                                bg-white
+                                px-4
+                                py-3.5
+                                text-center
+                                text-lg
+                                font-semibold
+                                tracking-[0.35em]
+                                text-neutral-900
+                                outline-none
+                                transition-all
+                                focus:border-[#C8A44D]
+                                focus:ring-4
+                                focus:ring-[#C8A44D]/10
+                              "
+                            />
+                          </label>
+
+                          <button
+                            type="button"
+                            onClick={handleVerifyGuestOtp}
+                            disabled={
+                              guestOtpVerifying ||
+                              guestOtp.replace(/\D/g, "").length !== 6
+                            }
+                            className="
+                              mt-3
+                              flex
+                              w-full
+                              items-center
+                              justify-center
+                              gap-2
+                              rounded-[14px]
+                              bg-black
+                              px-5
+                              py-3.5
+                              text-sm
+                              font-semibold
+                              text-white
+                              shadow-[0_12px_30px_rgba(0,0,0,0.13)]
+                              transition-all
+                              hover:bg-neutral-800
+                              active:scale-[0.985]
+                              disabled:cursor-not-allowed
+                              disabled:opacity-50
+                            "
+                          >
+                            {guestOtpVerifying ? (
+                              <>
+                                <Loader2
+                                  size={17}
+                                  className="animate-spin"
+                                />
+                                Verifying OTP...
+                              </>
+                            ) : (
+                              <>
+                                Verify OTP & Continue
+                                <span aria-hidden="true">→</span>
+                              </>
+                            )}
+                          </button>
+
+                          <div className="mt-3 flex items-center justify-between gap-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setGuestOtpSent(false);
+                                setGuestOtp("");
+                                setGuestError("");
+                                setGuestCustomerDraft(null);
+                              }}
+                              disabled={guestSubmitting || guestOtpVerifying}
+                              className="
+                                text-xs
+                                font-semibold
+                                text-neutral-500
+                                underline
+                                underline-offset-2
+                                transition
+                                hover:text-neutral-800
+                                disabled:opacity-50
+                              "
+                            >
+                              Change mobile
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={handleResendGuestOtp}
+                              disabled={guestSubmitting || guestOtpVerifying}
+                              className="
+                                text-xs
+                                font-semibold
+                                text-[#9A7A22]
+                                underline
+                                underline-offset-2
+                                transition
+                                hover:text-[#C8A44D]
+                                disabled:opacity-50
+                              "
+                            >
+                              {guestSubmitting ? "Sending..." : "Resend OTP"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+
+
+                      <div
+                        className="
+                          mt-4
+                          flex
+                          items-center
+                          justify-center
+                          gap-2
+                          text-[11px]
+                          font-medium
+                          text-neutral-400
+                        "
+                      >
+                        <ShieldCheck
+                          size={14}
+                          className="text-neutral-500"
+                        />
+                        Your details are safe and secure with us
+                      </div>
+
+                    </div>
+
+                  </div>
+                )}
 
               </div>
 
@@ -4320,6 +5950,115 @@ export default function CheckoutDialog({
             }
             100% {
               transform: translateX(260%);
+            }
+          }
+
+          @keyframes loginChoiceIn {
+            from {
+              opacity: 0;
+              transform: translateY(14px) scale(0.985);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0) scale(1);
+            }
+          }
+
+          @keyframes loginCardIn {
+            from {
+              opacity: 0;
+              transform: translateY(14px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+
+          @keyframes loginIconFloat {
+            0%, 100% {
+              transform: translateY(0);
+            }
+            50% {
+              transform: translateY(-5px);
+            }
+          }
+
+          @keyframes loginIconPop {
+            from {
+              opacity: 0;
+              transform: scale(0.75) rotate(-5deg);
+            }
+            to {
+              opacity: 1;
+              transform: scale(1) rotate(0);
+            }
+          }
+
+          @keyframes loginRing {
+            0% {
+              opacity: 0.65;
+              transform: scale(0.94);
+            }
+            70%, 100% {
+              opacity: 0;
+              transform: scale(1.12);
+            }
+          }
+
+          @keyframes loginSparkle {
+            0%, 100% {
+              opacity: 0.35;
+              transform: scale(0.8) rotate(0deg);
+            }
+            50% {
+              opacity: 1;
+              transform: scale(1.15) rotate(12deg);
+            }
+          }
+
+          @keyframes loginGlow {
+            0%, 100% {
+              transform: translate3d(0, 0, 0) scale(1);
+              opacity: 0.65;
+            }
+            50% {
+              transform: translate3d(-8px, 7px, 0) scale(1.08);
+              opacity: 1;
+            }
+          }
+
+          @keyframes loginFade {
+            from {
+              opacity: 0;
+              transform: translateY(4px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+
+          @keyframes loginPanelIn {
+            from {
+              opacity: 0;
+              transform: translateY(12px) scale(0.99);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0) scale(1);
+            }
+          }
+
+          @keyframes loginShake {
+            0%, 100% {
+              transform: translateX(0);
+            }
+            25% {
+              transform: translateX(-4px);
+            }
+            75% {
+              transform: translateX(4px);
             }
           }
 
