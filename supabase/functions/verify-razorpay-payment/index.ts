@@ -267,7 +267,7 @@ serve(async (req) => {
       )
 
       .select(
-        "id, total_amount, expires_at, used_at"
+        "id, customer_id, total_amount, expires_at, used_at"
       )
 
       .eq(
@@ -380,6 +380,327 @@ serve(async (req) => {
       Math.round(
         expectedAmount * 100
       );
+
+
+    /*
+     * =========================================================
+     * 1A. RESOLVE WALLET PAYMENT SPLIT
+     * =========================================================
+     *
+     * Razorpay must only verify the amount that is actually
+     * being charged after the customer's wallet hold is applied.
+     *
+     * Example:
+     * Order total       = ₹1,500
+     * Wallet hold       = ₹500
+     * Razorpay payment  = ₹1,000
+     *
+     * A wallet-only checkout never reaches this function because
+     * no Razorpay payment is created in that case.
+     */
+
+    let walletHoldId: string | null = null;
+    let walletAmountPaise = 0;
+    let payableAmountPaise = expectedAmountPaise;
+
+
+    const {
+      data: walletHold,
+      error: walletHoldError,
+    } = await supabaseAdmin
+
+      .from("wallet_checkout_holds")
+
+      .select(
+        "id, customer_id, checkout_quote_id, amount_paise, status, expires_at"
+      )
+
+      .eq(
+        "checkout_quote_id",
+        checkoutQuoteId
+      )
+
+      .eq(
+        "customer_id",
+        quote.customer_id
+      )
+
+      .eq(
+        "status",
+        "active"
+      )
+
+      .gt(
+        "expires_at",
+        new Date().toISOString()
+      )
+
+      .maybeSingle();
+
+
+    if (walletHoldError) {
+
+      console.error(
+        "Wallet checkout hold lookup failed:",
+        walletHoldError
+      );
+
+      throw new Error(
+        "Unable to verify the wallet payment hold."
+      );
+
+    }
+
+
+    if (walletHold) {
+
+      const holdAmount =
+        Number(
+          walletHold.amount_paise
+        );
+
+
+      if (
+        !Number.isSafeInteger(
+          holdAmount
+        ) ||
+        holdAmount <= 0
+      ) {
+
+        return jsonResponse(
+
+          {
+            success: false,
+
+            error:
+              "Invalid wallet payment amount.",
+
+          },
+
+          400
+
+        );
+
+      }
+
+
+      if (
+        holdAmount >
+        expectedAmountPaise
+      ) {
+
+        return jsonResponse(
+
+          {
+            success: false,
+
+            error:
+              "Wallet payment exceeds the secure checkout total.",
+
+          },
+
+          400
+
+        );
+
+      }
+
+
+      /*
+       * A wallet hold can only exist for an authenticated
+       * customer. Verify that the caller owns the customer
+       * associated with this checkout quote.
+       */
+
+      const authorizationHeader =
+        req.headers.get(
+          "Authorization"
+        );
+
+
+      if (
+        !authorizationHeader ||
+        !authorizationHeader.startsWith(
+          "Bearer "
+        )
+      ) {
+
+        return jsonResponse(
+
+          {
+            success: false,
+
+            error:
+              "Authentication required for wallet payment.",
+
+          },
+
+          401
+
+        );
+
+      }
+
+
+      const accessToken =
+        authorizationHeader
+          .replace(
+            /^Bearer\s+/i,
+            ""
+          )
+          .trim();
+
+
+      if (!accessToken) {
+
+        return jsonResponse(
+
+          {
+            success: false,
+
+            error:
+              "Authentication required for wallet payment.",
+
+          },
+
+          401
+
+        );
+
+      }
+
+
+      const {
+        data: userData,
+        error: userError,
+      } =
+        await supabaseAdmin.auth.getUser(
+          accessToken
+        );
+
+
+      if (
+        userError ||
+        !userData?.user
+      ) {
+
+        return jsonResponse(
+
+          {
+            success: false,
+
+            error:
+              "Invalid or expired authentication token.",
+
+          },
+
+          401
+
+        );
+
+      }
+
+
+      const {
+        data: customer,
+        error: customerError,
+      } =
+        await supabaseAdmin
+
+          .from("customers")
+
+          .select("id")
+
+          .eq(
+            "id",
+            quote.customer_id
+          )
+
+          .eq(
+            "auth_user_id",
+            userData.user.id
+          )
+
+          .is(
+            "deleted_at",
+            null
+          )
+
+          .maybeSingle();
+
+
+      if (customerError) {
+
+        console.error(
+          "Wallet customer ownership lookup failed:",
+          customerError
+        );
+
+        throw new Error(
+          "Unable to verify wallet customer ownership."
+        );
+
+      }
+
+
+      if (!customer) {
+
+        return jsonResponse(
+
+          {
+            success: false,
+
+            error:
+              "You are not authorized to use this wallet payment.",
+
+          },
+
+          403
+
+        );
+
+      }
+
+
+      walletHoldId =
+        walletHold.id;
+
+      walletAmountPaise =
+        holdAmount;
+
+      payableAmountPaise =
+        expectedAmountPaise -
+        walletAmountPaise;
+
+    }
+
+
+    if (
+      payableAmountPaise <= 0
+    ) {
+
+      /*
+       * This should normally never happen because a wallet-only
+       * checkout does not create a Razorpay order. Keep this
+       * guard here so a forged/direct verification request cannot
+       * treat a zero-value Razorpay payment as valid.
+       */
+
+      return jsonResponse(
+
+        {
+          success: false,
+
+          error:
+            "No Razorpay payment is required for this checkout.",
+
+        },
+
+        400
+
+      );
+
+    }
 
 
     /*
@@ -502,11 +823,17 @@ serve(async (req) => {
     }
 
 
+    /*
+     * IMPORTANT:
+     * Compare Razorpay against the payable amount AFTER wallet
+     * deduction, not against the full checkout quote.
+     */
+
     if (
       Number(
         razorpayOrder.amount
       ) !==
-      expectedAmountPaise
+      payableAmountPaise
     ) {
 
       return jsonResponse(
@@ -515,7 +842,7 @@ serve(async (req) => {
           success: false,
 
           error:
-            "Payment amount does not match the secure checkout total.",
+            "Payment amount does not match the secure payable amount after wallet deduction.",
 
         },
 
@@ -629,7 +956,7 @@ serve(async (req) => {
       Number(
         razorpayPayment.amount
       ) !==
-      expectedAmountPaise
+      payableAmountPaise
     ) {
 
       return jsonResponse(
@@ -638,7 +965,7 @@ serve(async (req) => {
           success: false,
 
           error:
-            "Paid amount does not match the secure checkout total.",
+            "Paid amount does not match the secure payable amount after wallet deduction.",
 
         },
 
@@ -695,7 +1022,7 @@ serve(async (req) => {
             JSON.stringify({
 
               amount:
-                expectedAmountPaise,
+                payableAmountPaise,
 
               currency:
                 "INR",
@@ -821,7 +1148,7 @@ serve(async (req) => {
       Number(
         finalPayment.amount
       ) !==
-      expectedAmountPaise
+      payableAmountPaise
     ) {
 
       return jsonResponse(
@@ -830,7 +1157,7 @@ serve(async (req) => {
           success: false,
 
           error:
-            "Captured payment amount does not match the secure checkout total.",
+            "Captured payment amount does not match the secure payable amount after wallet deduction.",
 
         },
 
@@ -853,8 +1180,21 @@ serve(async (req) => {
 
         razorpayPaymentId,
 
-        amount:
+        orderTotal:
           expectedAmount,
+
+        orderTotalPaise:
+          expectedAmountPaise,
+
+        walletHoldId,
+
+        walletAmountPaise,
+
+        razorpayPayableAmount:
+          payableAmountPaise,
+
+        razorpayPayableAmountRupees:
+          payableAmountPaise / 100,
 
       }
 
@@ -868,6 +1208,9 @@ serve(async (req) => {
      *
      * Existing CheckoutDialog/create_order_transaction flow
      * remains responsible for creating the application order.
+     *
+     * wallet_amount_paise is returned so the frontend can pass
+     * the exact wallet split through to order creation.
      */
 
     return jsonResponse(
@@ -885,10 +1228,22 @@ serve(async (req) => {
         razorpayPaymentId,
 
         amount:
-          expectedAmount,
+          payableAmountPaise / 100,
 
         amountPaise:
+          payableAmountPaise,
+
+        orderTotal:
+          expectedAmount,
+
+        orderTotalPaise:
           expectedAmountPaise,
+
+        walletHoldId,
+
+        walletAmountPaise,
+
+        payableAmountPaise,
 
         paymentStatus:
           finalPayment.status,

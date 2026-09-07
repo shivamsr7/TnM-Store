@@ -144,6 +144,23 @@ export async function createRazorpayOrder(
   }
 
 
+  /*
+   * Wallet-only checkout does not create a Razorpay order.
+   * The Edge Function intentionally returns:
+   *   payment_required: false
+   *   id: null
+   *   amount: 0
+   *
+   * Accept that response so Checkout/Payment can complete
+   * without opening Razorpay.
+   */
+  if (data?.payment_required === false) {
+
+    return data;
+
+  }
+
+
   if (
     !data?.id ||
     !data?.amount

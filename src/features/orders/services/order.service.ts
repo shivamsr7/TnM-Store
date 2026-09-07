@@ -273,6 +273,22 @@ export async function createOrder(
       paymentTransactionId,
 
 
+    /*
+     * Wallet payment split.
+     *
+     * create_order_transaction() validates the hold against
+     * the checkout quote and consumes it atomically with the
+     * order transaction.
+     */
+    wallet_hold_id:
+      payload.wallet_hold_id ??
+      null,
+
+    wallet_amount_paise:
+      payload.wallet_amount_paise ??
+      0,
+
+
     // Coupon
 
     coupon_id:

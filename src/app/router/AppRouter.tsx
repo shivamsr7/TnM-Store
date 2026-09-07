@@ -10,7 +10,8 @@ import App
 
 import ScrollToTop
   from "@/shared/components/ScrollToTop";
-
+import WalletPage
+  from "@/features/customers/pages/WalletPage";
 
 import AccountPage
   from "@/features/customers/pages/AccountPage";
@@ -216,7 +217,12 @@ export default function AppRouter() {
               <AccountPage />
             }
           />
-
+<Route
+  path="/account/wallet"
+  element={
+    <WalletPage />
+  }
+/>
 
           {/* =================================================
               ORDERS

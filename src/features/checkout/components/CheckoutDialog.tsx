@@ -8,6 +8,7 @@ import {
   MapPin,
   CreditCard,
   Loader2,
+  Wallet,
 } from "lucide-react";
 
 import {
@@ -409,6 +410,357 @@ export default function CheckoutDialog({
 
   /*
    * =========================================================
+   * T&M WALLET CHECKOUT
+   * =========================================================
+   *
+   * Wallet credit is reserved with a short-lived server-side
+   * hold before PaymentStep starts. The hold is the source of
+   * truth; the displayed balance/amount is only UI state.
+   */
+
+  const [
+    walletBalancePaise,
+    setWalletBalancePaise,
+  ] = useState(0);
+
+  const [
+    walletLoading,
+    setWalletLoading,
+  ] = useState(false);
+
+  const [
+    walletApplying,
+    setWalletApplying,
+  ] = useState(false);
+
+  const [
+    walletSelected,
+    setWalletSelected,
+  ] = useState(false);
+
+  const [
+    walletHoldId,
+    setWalletHoldId,
+  ] = useState<string | null>(null);
+
+  const [
+    walletAmountPaise,
+    setWalletAmountPaise,
+  ] = useState(0);
+
+  const [
+    walletError,
+    setWalletError,
+  ] = useState("");
+
+
+  /*
+   * Must be declared before the wallet effect because the effect
+   * uses this value in both its body and dependency array.
+   */
+  const isGuestCheckoutCustomer =
+    Boolean(
+      (customer?.customer_type === "guest" &&
+        !customer?.auth_user_id) ||
+      (guestCustomerDraft?.customer_type === "guest" &&
+        !guestCustomerDraft?.auth_user_id)
+    );
+
+
+  useEffect(() => {
+
+    let mounted = true;
+
+    async function loadCheckoutWallet() {
+
+      if (
+        step !== "payment" ||
+        !customer?.id ||
+        isGuestCheckoutCustomer ||
+        !checkoutQuoteId
+      ) {
+        return;
+      }
+
+      try {
+
+        setWalletLoading(true);
+        setWalletError("");
+
+        const {
+          data,
+          error,
+        } = await supabase.rpc(
+          "get_or_create_my_wallet"
+        );
+
+        if (error) {
+          throw error;
+        }
+
+        const wallet =
+          Array.isArray(data)
+            ? data[0]
+            : data;
+
+        if (!mounted) return;
+
+        setWalletBalancePaise(
+          Math.max(
+            0,
+            Number(wallet?.balance_paise || 0)
+          )
+        );
+
+      } catch (error: any) {
+
+        console.error(
+          "Checkout wallet load failed:",
+          error
+        );
+
+        if (!mounted) return;
+
+        setWalletBalancePaise(0);
+        setWalletError(
+          "Wallet is temporarily unavailable. You can continue with online payment."
+        );
+
+      } finally {
+
+        if (mounted) {
+          setWalletLoading(false);
+        }
+
+      }
+
+    }
+
+    loadCheckoutWallet();
+
+    return () => {
+      mounted = false;
+    };
+
+  }, [
+    step,
+    customer?.id,
+    checkoutQuoteId,
+    isGuestCheckoutCustomer,
+  ]);
+
+
+  async function releaseWalletHold() {
+
+    if (!walletHoldId) {
+      return true;
+    }
+
+    let released = false;
+
+    try {
+
+      const {
+        error,
+      } = await supabase.rpc(
+        "release_wallet_checkout_hold",
+        {
+          p_hold_id:
+            walletHoldId,
+        }
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      released = true;
+
+    } catch (error) {
+
+      console.warn(
+        "Wallet checkout hold release failed:",
+        error
+      );
+
+    } finally {
+
+      setWalletHoldId(null);
+      setWalletAmountPaise(0);
+      setWalletSelected(false);
+
+    }
+
+    return released;
+
+  }
+
+
+  async function createWalletHoldForQuote(
+    quoteId: string,
+    totalAmount: number
+  ) {
+
+    if (
+      !customer?.id ||
+      isGuestCheckoutCustomer ||
+      !quoteId
+    ) {
+      return false;
+    }
+
+    const totalPaise =
+      Math.max(
+        0,
+        Math.round(
+          Number(totalAmount || 0) * 100
+        )
+      );
+
+    const requestedAmountPaise =
+      Math.min(
+        Math.max(
+          0,
+          Number(walletBalancePaise || 0)
+        ),
+        totalPaise
+      );
+
+    if (requestedAmountPaise <= 0) {
+      setWalletHoldId(null);
+      setWalletAmountPaise(0);
+      setWalletSelected(false);
+      setWalletError(
+        "You don't have enough wallet balance to use on this order."
+      );
+      return false;
+    }
+
+    try {
+
+      setWalletApplying(true);
+      setWalletError("");
+
+      const {
+        data,
+        error,
+      } = await supabase.rpc(
+        "create_wallet_checkout_hold",
+        {
+          p_customer_id:
+            customer.id,
+
+          p_checkout_quote_id:
+            quoteId,
+
+          p_amount_paise:
+            requestedAmountPaise,
+        }
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      const hold =
+        Array.isArray(data)
+          ? data[0]
+          : data;
+
+      const holdId =
+        hold?.hold_id ??
+        hold?.id ??
+        hold?.wallet_hold_id;
+
+      const returnedAmountPaise =
+        Number(
+          hold?.amount_paise ??
+          hold?.wallet_amount_paise ??
+          requestedAmountPaise
+        );
+
+      if (
+        !holdId ||
+        returnedAmountPaise <= 0
+      ) {
+        console.error(
+          "Unexpected wallet hold response:",
+          data
+        );
+
+        throw new Error(
+          "Wallet could not be reserved for this checkout."
+        );
+      }
+
+      setWalletHoldId(holdId);
+      setWalletAmountPaise(returnedAmountPaise);
+      setWalletSelected(true);
+
+      return true;
+
+    } catch (error: any) {
+
+      console.error(
+        "Wallet checkout hold creation failed:",
+        error
+      );
+
+      setWalletHoldId(null);
+      setWalletAmountPaise(0);
+      setWalletSelected(false);
+
+      setWalletError(
+        error?.message ||
+        "We couldn't apply your wallet right now. Please try again."
+      );
+
+      return false;
+
+    } finally {
+
+      setWalletApplying(false);
+
+    }
+
+  }
+
+
+  async function toggleWallet() {
+
+    if (walletApplying) {
+      return;
+    }
+
+    if (walletSelected) {
+
+      setWalletApplying(true);
+
+      try {
+        await releaseWalletHold();
+        setWalletError("");
+      } finally {
+        setWalletApplying(false);
+      }
+
+      return;
+    }
+
+    if (!checkoutQuoteId) {
+      return;
+    }
+
+    await createWalletHoldForQuote(
+      checkoutQuoteId,
+      verifiedCheckoutPricing?.totalAmount ??
+        finalAmount
+    );
+
+  }
+
+
+  /*
+   * =========================================================
    * SHIPROCKET
    * =========================================================
    */
@@ -446,14 +798,6 @@ export default function CheckoutDialog({
     isBuyNow
       ? [buyNowItem]
       : cartItems;
-
-  const isGuestCheckoutCustomer =
-    Boolean(
-      (customer?.customer_type === "guest" &&
-        !customer?.auth_user_id) ||
-      (guestCustomerDraft?.customer_type === "guest" &&
-        !guestCustomerDraft?.auth_user_id)
-    );
 
   const [buyNowCoupon, setBuyNowCoupon] = useState<any>(null);
   const [buyNowDiscount, setBuyNowDiscount] = useState(0);
@@ -944,6 +1288,10 @@ export default function CheckoutDialog({
    */
   async function handleCheckoutClose() {
     setGuestContinueWithoutSpecialPrice(false);
+
+    if (walletHoldId) {
+      await releaseWalletHold();
+    }
 
     if (guestCheckoutSessionActive) {
       try {
@@ -2267,7 +2615,7 @@ export default function CheckoutDialog({
    * =========================================================
    */
 
-  function handleAddressContinue(
+  async function handleAddressContinue(
     address: any
   ) {
 
@@ -2305,6 +2653,53 @@ export default function CheckoutDialog({
       );
 
       return;
+
+    }
+
+
+    /*
+     * =======================================================
+     * WALLET RE-ATTACHMENT
+     * =======================================================
+     *
+     * A checkout quote is immutable for the payment flow.
+     * Going back to Address creates a fresh quote, so an existing
+     * wallet hold must never be carried over to that new quote.
+     *
+     * Preserve the customer's intent to use Wallet, release the
+     * old quote's hold now, and create a fresh hold after the new
+     * quote has been finalized.
+     * =======================================================
+     */
+
+    const shouldReapplyWallet =
+      walletSelected;
+
+    if (walletHoldId) {
+
+      const released =
+        await releaseWalletHold();
+
+      if (!released) {
+
+        setShippingError(
+          "We couldn't refresh your wallet reservation. Please try again."
+        );
+
+        return;
+
+      }
+
+    } else if (shouldReapplyWallet) {
+
+      /*
+       * The UI may still remember the customer's wallet choice
+       * even when the previous hold has already disappeared.
+       * Clear the stale amount while the new quote is created.
+       */
+      setWalletHoldId(null);
+      setWalletAmountPaise(0);
+      setWalletSelected(false);
 
     }
 
@@ -2665,6 +3060,25 @@ export default function CheckoutDialog({
             });
 
 
+            /*
+             * Re-create the wallet reservation against the NEW
+             * finalized quote when the customer had previously
+             * enabled Wallet.
+             *
+             * The finalized server total is authoritative, so
+             * the wallet amount is recalculated instead of
+             * blindly reusing the old quote's amount.
+             */
+            if (shouldReapplyWallet) {
+
+              await createWalletHoldForQuote(
+                finalized.quote_id,
+                finalized.total_amount
+              );
+
+            }
+
+
             setCalculatingShipping(
               false
             );
@@ -2796,6 +3210,8 @@ export default function CheckoutDialog({
 
 
       const recoveryQuoteId =
+        payment?.verification?.checkoutQuoteId ||
+        payment?.checkoutQuoteId ||
         checkoutQuoteId ||
         recoverySnapshot?.checkoutQuoteId ||
         sessionStorage.getItem(
@@ -2969,7 +3385,21 @@ export default function CheckoutDialog({
 
 
           paymentTransactionId:
-            payment.razorpay_payment_id,
+            payment.paymentTransactionId ??
+            payment.razorpay_payment_id ??
+            null,
+
+          wallet_hold_id:
+            payment.walletHoldId ??
+            recoverySnapshot?.walletHoldId ??
+            null,
+
+          wallet_amount_paise:
+            Number(
+              payment.walletAmountPaise ??
+              recoverySnapshot?.walletAmountPaise ??
+              0
+            ),
 
 
           coupon:
@@ -3055,6 +3485,10 @@ export default function CheckoutDialog({
         false
       );
 
+      setWalletHoldId(null);
+      setWalletAmountPaise(0);
+      setWalletSelected(false);
+
 
       setOrderSuccess(
         true
@@ -3110,12 +3544,31 @@ export default function CheckoutDialog({
     );
 
 
-    sessionStorage.setItem(
-      "tnm_last_verified_razorpay_payment_id",
-      payment.razorpay_payment_id
-    );
+    const paymentTransactionId =
+      payment.paymentTransactionId ??
+      payment.razorpay_payment_id ??
+      null;
 
-    if (!checkoutQuoteId) {
+    const verifiedQuoteId =
+      payment?.verification?.checkoutQuoteId ||
+      payment?.checkoutQuoteId ||
+      checkoutQuoteId ||
+      sessionStorage.getItem(
+        "tnm_last_verified_checkout_quote_id"
+      );
+
+    if (payment.razorpay_payment_id) {
+      sessionStorage.setItem(
+        "tnm_last_verified_razorpay_payment_id",
+        payment.razorpay_payment_id
+      );
+    } else {
+      sessionStorage.removeItem(
+        "tnm_last_verified_razorpay_payment_id"
+      );
+    }
+
+    if (!verifiedQuoteId) {
       setProcessingPayment(false);
       setPaymentRecoveryError(
         "Secure checkout quote is missing. Please contact support before making another payment."
@@ -3125,7 +3578,7 @@ export default function CheckoutDialog({
 
     sessionStorage.setItem(
       "tnm_last_verified_checkout_quote_id",
-      checkoutQuoteId
+      verifiedQuoteId
     );
 
     /*
@@ -3138,7 +3591,7 @@ export default function CheckoutDialog({
       "tnm_payment_order_recovery",
       JSON.stringify({
 
-        checkoutQuoteId,
+        checkoutQuoteId: verifiedQuoteId,
 
         customer: {
 
@@ -3245,7 +3698,17 @@ export default function CheckoutDialog({
         giftMessage,
 
         paymentTransactionId:
-          payment.razorpay_payment_id,
+          paymentTransactionId,
+
+        walletHoldId:
+          payment.walletHoldId ??
+          null,
+
+        walletAmountPaise:
+          Number(
+            payment.walletAmountPaise ??
+            0
+          ),
 
       })
     );
@@ -3279,12 +3742,30 @@ export default function CheckoutDialog({
       return;
     }
 
+    const storedRecoverySnapshot =
+      sessionStorage.getItem(
+        "tnm_payment_order_recovery"
+      );
+
+    let recoverySnapshot: any = null;
+
+    if (storedRecoverySnapshot) {
+      try {
+        recoverySnapshot =
+          JSON.parse(
+            storedRecoverySnapshot
+          );
+      } catch {
+        recoverySnapshot = null;
+      }
+    }
 
     const paymentId =
       sessionStorage.getItem(
         "tnm_last_verified_razorpay_payment_id"
-      );
-
+      ) ||
+      recoverySnapshot?.paymentTransactionId ||
+      null;
 
     if (!paymentId) {
 
@@ -3296,21 +3777,28 @@ export default function CheckoutDialog({
 
     }
 
-
-    setPaymentRecoveryError(
-      ""
-    );
-
-
-    setProcessingPayment(
-      true
-    );
-
+    setPaymentRecoveryError("");
+    setProcessingPayment(true);
 
     await completeOrderAfterPayment({
 
-      razorpay_payment_id:
+      paymentTransactionId:
         paymentId,
+
+      razorpay_payment_id:
+        recoverySnapshot?.walletHoldId
+          ? null
+          : paymentId,
+
+      walletHoldId:
+        recoverySnapshot?.walletHoldId ??
+        null,
+
+      walletAmountPaise:
+        Number(
+          recoverySnapshot?.walletAmountPaise ??
+          0
+        ),
 
     });
 
@@ -6514,6 +7002,520 @@ export default function CheckoutDialog({
 
 
                 {/* =============================================
+                    T&M WALLET
+                ============================================== */}
+
+                {
+                  !isGuestCheckoutCustomer &&
+                  customer?.id && (
+
+                    <div
+                      className={`
+                        group
+                        relative
+                        mb-5
+                        overflow-hidden
+                        rounded-[24px]
+                        border
+                        p-4
+                        shadow-[0_14px_40px_rgba(0,0,0,0.055)]
+                        transition-all
+                        duration-300
+                        motion-safe:animate-[fadeUp_400ms_ease-out]
+
+                        sm:p-5
+
+                        ${
+                          walletSelected
+                            ? "border-[#C8A44D]/45 bg-gradient-to-br from-[#fffdf7] via-white to-[#f8f2e2] shadow-[0_16px_42px_rgba(200,164,77,0.13)]"
+                            : "border-neutral-200 bg-gradient-to-br from-white via-neutral-50/70 to-[#faf8f1]"
+                        }
+                      `}
+                    >
+
+                      {/* Premium ambient glow */}
+                      <span
+                        aria-hidden="true"
+                        className={`
+                          pointer-events-none
+                          absolute
+                          -right-16
+                          -top-16
+                          h-36
+                          w-36
+                          rounded-full
+                          bg-[#C8A44D]/[0.10]
+                          blur-3xl
+                          transition-opacity
+                          duration-500
+                          ${
+                            walletSelected
+                              ? "opacity-100"
+                              : "opacity-60"
+                          }
+                        `}
+                      />
+
+                      <div className="relative">
+
+                        <div
+                          className="
+                            flex
+                            items-center
+                            justify-between
+                            gap-4
+                          "
+                        >
+
+                          <div
+                            className="
+                              flex
+                              min-w-0
+                              items-center
+                              gap-3.5
+                            "
+                          >
+
+                            <div
+                              className={`
+                                relative
+                                flex
+                                h-12
+                                w-12
+                                shrink-0
+                                items-center
+                                justify-center
+                                rounded-[16px]
+                                border
+                                text-white
+                                shadow-[0_8px_22px_rgba(0,0,0,0.14)]
+                                transition-all
+                                duration-300
+                                ${
+                                  walletSelected
+                                    ? "border-[#D9BA69] bg-gradient-to-br from-[#171717] to-black ring-4 ring-[#C8A44D]/10"
+                                    : "border-black bg-black"
+                                }
+                              `}
+                            >
+                              <Wallet
+                                size={21}
+                                strokeWidth={1.9}
+                              />
+
+                              {walletSelected && (
+                                <span
+                                  aria-hidden="true"
+                                  className="
+                                    absolute
+                                    -right-1.5
+                                    -top-1.5
+                                    flex
+                                    h-5
+                                    w-5
+                                    items-center
+                                    justify-center
+                                    rounded-full
+                                    border-2
+                                    border-white
+                                    bg-[#C8A44D]
+                                    text-[10px]
+                                    font-bold
+                                    text-black
+                                    shadow-sm
+                                    motion-safe:animate-[loginIconPop_300ms_ease-out]
+                                  "
+                                >
+                                  ✓
+                                </span>
+                              )}
+
+                            </div>
+
+                            <div className="min-w-0">
+
+                              <div
+                                className="
+                                  flex
+                                  flex-wrap
+                                  items-center
+                                  gap-2
+                                "
+                              >
+
+                                <p
+                                  className="
+                                    text-[15px]
+                                    font-semibold
+                                    tracking-[-0.015em]
+                                    text-neutral-950
+                                  "
+                                >
+                                  T&M Wallet
+                                </p>
+
+                                <span
+                                  className="
+                                    rounded-full
+                                    border
+                                    border-[#C8A44D]/20
+                                    bg-[#C8A44D]/10
+                                    px-2
+                                    py-0.5
+                                    text-[9px]
+                                    font-semibold
+                                    uppercase
+                                    tracking-[0.09em]
+                                    text-[#80651d]
+                                  "
+                                >
+                                  Instant savings
+                                </span>
+
+                              </div>
+
+                              <p
+                                className="
+                                  mt-1
+                                  text-xs
+                                  text-neutral-500
+                                "
+                              >
+                                {
+                                  walletLoading
+                                    ? "Checking your wallet balance..."
+                                    : `Balance: ₹${(
+                                        Number(walletBalancePaise || 0) /
+                                        100
+                                      ).toLocaleString("en-IN", {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                      })}`
+                                }
+                              </p>
+
+                            </div>
+
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={toggleWallet}
+                            disabled={
+                              walletLoading ||
+                              walletApplying ||
+                              walletBalancePaise <= 0
+                            }
+                            className={`
+                              relative
+                              h-7
+                              w-[50px]
+                              shrink-0
+                              rounded-full
+                              border
+                              p-0.5
+                              transition-all
+                              duration-300
+                              focus:outline-none
+                              focus:ring-4
+                              focus:ring-[#C8A44D]/15
+                              disabled:cursor-not-allowed
+                              disabled:opacity-50
+
+                              ${
+                                walletSelected
+                                  ? "border-[#C8A44D] bg-[#C8A44D] shadow-[0_5px_18px_rgba(200,164,77,0.28)]"
+                                  : "border-neutral-300 bg-neutral-200"
+                              }
+                            `}
+                            aria-label={
+                              walletSelected
+                                ? "Remove wallet credit"
+                                : "Use wallet credit"
+                            }
+                          >
+
+                            <span
+                              className={`
+                                absolute
+                                top-1/2
+                                flex
+                                h-6
+                                w-6
+                                -translate-y-1/2
+                                items-center
+                                justify-center
+                                rounded-full
+                                bg-white
+                                shadow-[0_2px_7px_rgba(0,0,0,0.18)]
+                                transition-transform
+                                duration-300
+                                ${
+                                  walletSelected
+                                    ? "translate-x-[21px]"
+                                    : "translate-x-0"
+                                }
+                              `}
+                            >
+                              {walletApplying ? (
+                                <Loader2
+                                  size={12}
+                                  className="animate-spin text-[#9A7A22]"
+                                />
+                              ) : (
+                                <span
+                                  className={`
+                                    h-1.5
+                                    w-1.5
+                                    rounded-full
+                                    ${
+                                      walletSelected
+                                        ? "bg-[#C8A44D]"
+                                        : "bg-neutral-300"
+                                    }
+                                  `}
+                                />
+                              )}
+                            </span>
+
+                          </button>
+
+                        </div>
+
+
+                        {walletSelected && walletAmountPaise > 0 && (
+                          <div
+                            className="
+                              relative
+                              mt-4
+                              overflow-hidden
+                              rounded-[18px]
+                              border
+                              border-[#C8A44D]/20
+                              bg-white/75
+                              shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]
+                              motion-safe:animate-[fadeUp_280ms_ease-out]
+                            "
+                          >
+
+                            <div
+                              className="
+                                flex
+                                items-center
+                                justify-between
+                                gap-3
+                                px-3.5
+                                py-3
+                              "
+                            >
+
+                              <div className="min-w-0">
+
+                                <p
+                                  className="
+                                    text-xs
+                                    font-medium
+                                    text-neutral-500
+                                  "
+                                >
+                                  Wallet savings
+                                </p>
+
+                                <p
+                                  className="
+                                    mt-0.5
+                                    text-sm
+                                    font-semibold
+                                    text-neutral-950
+                                  "
+                                >
+                                  You save ₹{(
+                                    Number(walletAmountPaise) /
+                                    100
+                                  ).toLocaleString("en-IN", {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })}
+                                </p>
+
+                              </div>
+
+                              <div
+                                className="
+                                  shrink-0
+                                  rounded-full
+                                  bg-green-50
+                                  px-2.5
+                                  py-1
+                                  text-[10px]
+                                  font-semibold
+                                  uppercase
+                                  tracking-[0.08em]
+                                  text-green-700
+                                "
+                              >
+                                Applied
+                              </div>
+
+                            </div>
+
+                            <div
+                              className="
+                                border-t
+                                border-[#C8A44D]/10
+                                px-3.5
+                                py-2.5
+                                text-[11px]
+                                text-neutral-500
+                              "
+                            >
+                              {Math.max(
+                                0,
+                                displayedTotal -
+                                  Number(walletAmountPaise) / 100
+                              ) > 0 ? (
+                                <span>
+                                  Remaining to pay online:{" "}
+                                  <strong className="font-semibold text-neutral-800">
+                                    ₹{Math.max(
+                                      0,
+                                      displayedTotal -
+                                        Number(walletAmountPaise) / 100
+                                    ).toLocaleString("en-IN", {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}
+                                  </strong>
+                                </span>
+                              ) : (
+                                <span className="font-medium text-green-700">
+                                  ✓ Your wallet covers the full order total
+                                </span>
+                              )}
+                            </div>
+
+                          </div>
+                        )}
+
+
+                        {!walletSelected &&
+                          !walletLoading &&
+                          walletBalancePaise > 0 && (
+                            <button
+                              type="button"
+                              onClick={toggleWallet}
+                              disabled={walletApplying}
+                              className="
+                                relative
+                                mt-3
+                                flex
+                                w-full
+                                items-center
+                                justify-between
+                                rounded-[15px]
+                                border
+                                border-[#C8A44D]/15
+                                bg-white/70
+                                px-3.5
+                                py-2.5
+                                text-left
+                                transition-all
+                                duration-200
+                                hover:border-[#C8A44D]/35
+                                hover:bg-white
+                                active:scale-[0.99]
+                              "
+                            >
+
+                              <span
+                                className="
+                                  text-xs
+                                  font-medium
+                                  text-neutral-600
+                                "
+                              >
+                                Use wallet balance on this order
+                              </span>
+
+                              <span
+                                className="
+                                  text-xs
+                                  font-semibold
+                                  text-[#9A7A22]
+                                "
+                              >
+                                Save ₹{(
+                                  Number(
+                                    Math.min(
+                                      walletBalancePaise,
+                                      Math.max(
+                                        0,
+                                        Math.round(
+                                          Number(displayedTotal || 0) * 100
+                                        )
+                                      )
+                                    )
+                                  ) / 100
+                                ).toLocaleString("en-IN", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </span>
+
+                            </button>
+                          )
+                        }
+
+
+                        {walletApplying && (
+                          <div
+                            className="
+                              mt-3
+                              flex
+                              items-center
+                              gap-2
+                              text-[11px]
+                              font-medium
+                              text-[#80651d]
+                            "
+                          >
+                            <Loader2
+                              size={13}
+                              className="animate-spin"
+                            />
+                            Securing your wallet savings...
+                          </div>
+                        )}
+
+
+                        {walletError && (
+                          <div
+                            className="
+                              mt-3
+                              rounded-[13px]
+                              border
+                              border-red-100
+                              bg-red-50
+                              px-3
+                              py-2.5
+                              text-xs
+                              leading-5
+                              text-red-600
+                            "
+                          >
+                            {walletError}
+                          </div>
+                        )}
+
+                      </div>
+
+                    </div>
+
+                  )
+                }
+
+
+                {/* =============================================
                     PAYMENT COMPONENT
                 ============================================== */}
 
@@ -6525,7 +7527,14 @@ export default function CheckoutDialog({
                   }
 
                   checkoutQuoteId={checkoutQuoteId ?? ""}
-  onPaymentSuccessStart={() => {
+
+                  walletAmountPaise={
+                    walletSelected
+                      ? walletAmountPaise
+                      : 0
+                  }
+
+                  onPaymentSuccessStart={() => {
     setProcessingPayment(true);
   }}
   onSuccess={handlePaymentSuccess}

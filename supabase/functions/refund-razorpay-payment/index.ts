@@ -1,10 +1,10 @@
 import {
-  createClient,
-} from "https://esm.sh/@supabase/supabase-js@2";
-
-import {
   serve,
 } from "https://deno.land/std/http/server.ts";
+
+import {
+  createClient,
+} from "https://esm.sh/@supabase/supabase-js@2";
 
 
 const corsHeaders = {
@@ -52,28 +52,17 @@ function jsonResponse(
 
 serve(async (req) => {
 
-  /*
-   * =====================================================
-   * CORS
-   * =====================================================
-   */
-
   if (
     req.method ===
     "OPTIONS"
   ) {
 
     return new Response(
-
       "ok",
-
       {
-
         headers:
           corsHeaders,
-
       }
-
     );
 
   }
@@ -82,718 +71,48 @@ serve(async (req) => {
   try {
 
     /*
-     * ===================================================
-     * METHOD
-     * ===================================================
+     * =====================================================
+     * 1. AUTHENTICATE ADMIN
+     * =====================================================
      */
 
-    if (
-      req.method !==
-      "POST"
-    ) {
-
-      return jsonResponse(
-
-        {
-
-          success:
-            false,
-
-          error:
-            "Method not allowed",
-
-        },
-
-        405
-
-      );
-
-    }
-
-
-    /*
-     * ===================================================
-     * SUPABASE SERVER CLIENT
-     * ===================================================
-     */
-
-    const supabaseUrl =
-      Deno.env.get(
-        "SUPABASE_URL"
-      );
-
-    const serviceRoleKey =
-      Deno.env.get(
-        "SUPABASE_SERVICE_ROLE_KEY"
-      );
-
-
-    if (
-      !supabaseUrl ||
-      !serviceRoleKey
-    ) {
-
-      throw new Error(
-
-        "Supabase server credentials are missing."
-
-      );
-
-    }
-
-
-    const supabase =
-      createClient(
-
-        supabaseUrl,
-
-        serviceRoleKey,
-
-        {
-
-          auth: {
-
-            persistSession:
-              false,
-
-            autoRefreshToken:
-              false,
-
-            detectSessionInUrl:
-              false,
-
-          },
-
-        }
-
-      );
-
-
-    /*
-     * ===================================================
-     * AUTHENTICATION
-     * ===================================================
-     */
-
-    const authorizationHeader =
+    const authorization =
       req.headers.get(
         "Authorization"
       );
 
 
     if (
-      !authorizationHeader ||
-      !authorizationHeader.startsWith(
+      !authorization?.startsWith(
         "Bearer "
       )
     ) {
 
       return jsonResponse(
-
         {
-
           success:
             false,
 
           error:
             "Authentication required.",
-
         },
-
         401
-
       );
 
     }
 
 
-    const accessToken =
-      authorizationHeader
-        .replace(
-          /^Bearer\s+/i,
-          ""
-        )
-        .trim();
-
-
-    if (
-      !accessToken
-    ) {
-
-      return jsonResponse(
-
-        {
-
-          success:
-            false,
-
-          error:
-            "Authentication required.",
-
-        },
-
-        401
-
-      );
-
-    }
-
-
-    const {
-      data: userData,
-      error: userError,
-    } =
-      await supabase.auth.getUser(
-        accessToken
+    const supabaseUrl =
+      Deno.env.get(
+        "SUPABASE_URL"
       );
 
 
-    if (
-      userError ||
-      !userData?.user
-    ) {
-
-      console.error(
-
-        "❌ Refund authentication failed:",
-
-        userError
-
+    const serviceRoleKey =
+      Deno.env.get(
+        "SUPABASE_SERVICE_ROLE_KEY"
       );
 
-
-      return jsonResponse(
-
-        {
-
-          success:
-            false,
-
-          error:
-            "Invalid or expired authentication token.",
-
-        },
-
-        401
-
-      );
-
-    }
-
-
-    const userId =
-      userData.user.id;
-
-
-    /*
-     * ===================================================
-     * ADMIN AUTHORIZATION
-     * ===================================================
-     *
-     * Only active users in public.admin_users can
-     * process refunds.
-     */
-
-    const {
-      data: adminUser,
-      error: adminError,
-    } =
-      await supabase
-
-        .from("admin_users")
-
-        .select(
-          "user_id, role, is_active"
-        )
-
-        .eq(
-          "user_id",
-          userId
-        )
-
-        .eq(
-          "is_active",
-          true
-        )
-
-        .maybeSingle();
-
-
-    if (
-      adminError
-    ) {
-
-      console.error(
-
-        "❌ Admin authorization lookup failed:",
-
-        adminError
-
-      );
-
-
-      throw new Error(
-
-        "Unable to verify administrator authorization."
-
-      );
-
-    }
-
-
-    if (
-      !adminUser
-    ) {
-
-      console.warn(
-
-        "⚠️ Unauthorized refund attempt:",
-
-        {
-
-          userId,
-
-        }
-
-      );
-
-
-      return jsonResponse(
-
-        {
-
-          success:
-            false,
-
-          error:
-            "Administrator access required.",
-
-        },
-
-        403
-
-      );
-
-    }
-
-
-    /*
-     * ===================================================
-     * REQUEST BODY
-     * ===================================================
-     */
-
-    const body =
-      await req.json();
-
-
-    const paymentId =
-      String(
-
-        body.paymentId ??
-        ""
-
-      ).trim();
-
-
-    const requestedAmount =
-      Number(
-        body.amount
-      );
-
-
-    const idempotencyKey =
-      String(
-
-        body.idempotencyKey ??
-        ""
-
-      ).trim();
-
-
-    /*
-     * ===================================================
-     * BASIC VALIDATION
-     * ===================================================
-     */
-
-    if (
-      !paymentId
-    ) {
-
-      throw new Error(
-
-        "Razorpay payment ID is required."
-
-      );
-
-    }
-
-
-    if (
-      !paymentId.startsWith(
-        "pay_"
-      )
-    ) {
-
-      throw new Error(
-
-        "Invalid Razorpay payment ID."
-
-      );
-
-    }
-
-
-    if (
-      !Number.isFinite(
-        requestedAmount
-      ) ||
-      requestedAmount <= 0
-    ) {
-
-      throw new Error(
-
-        "Refund amount must be greater than zero."
-
-      );
-
-    }
-
-
-    if (
-      !idempotencyKey
-    ) {
-
-      throw new Error(
-
-        "Refund idempotency key is required."
-
-      );
-
-    }
-
-
-    /*
-     * ===================================================
-     * FIND AUTHORITATIVE ORDER
-     * ===================================================
-     *
-     * Never trust the client to tell us which order
-     * or refund amount should be processed.
-     *
-     * payment_transaction_id is the Razorpay payment ID
-     * stored against the order.
-     */
-
-    const {
-      data: order,
-      error: orderError,
-    } =
-      await supabase
-
-        .from("orders")
-
-        .select(
-          [
-            "id",
-            "order_number",
-            "payment_method",
-            "payment_transaction_id",
-            "order_status",
-            "refund_status",
-            "refund_amount",
-            "advance_amount",
-            "advance_payment_status",
-          ].join(", ")
-        )
-
-        .eq(
-          "payment_transaction_id",
-          paymentId
-        )
-
-        .maybeSingle();
-
-
-    if (
-      orderError
-    ) {
-
-      console.error(
-
-        "❌ Failed to load refund order:",
-
-        orderError
-
-      );
-
-
-      throw new Error(
-
-        "Unable to verify the order for this refund."
-
-      );
-
-    }
-
-
-    if (
-      !order
-    ) {
-
-      return jsonResponse(
-
-        {
-
-          success:
-            false,
-
-          error:
-            "No order was found for this Razorpay payment.",
-
-        },
-
-        404
-
-      );
-
-    }
-
-
-    /*
-     * ===================================================
-     * ORDER VALIDATION
-     * ===================================================
-     */
-
-    if (
-      order.payment_method !==
-      "prepaid"
-    ) {
-
-      return jsonResponse(
-
-        {
-
-          success:
-            false,
-
-          error:
-            "Refunds are available only for prepaid orders.",
-
-        },
-
-        400
-
-      );
-
-    }
-
-
-    if (
-      order.order_status !==
-      "cancelled"
-    ) {
-
-      return jsonResponse(
-
-        {
-
-          success:
-            false,
-
-          error:
-            "Only cancelled orders can be refunded.",
-
-        },
-
-        400
-
-      );
-
-    }
-
-
-    if (
-      order.refund_status ===
-      "processed"
-    ) {
-
-      return jsonResponse(
-
-        {
-
-          success:
-            false,
-
-          error:
-            "This refund has already been processed.",
-
-        },
-
-        409
-
-      );
-
-    }
-
-
-    if (
-      order.refund_status !==
-      "pending"
-    ) {
-
-      return jsonResponse(
-
-        {
-
-          success:
-            false,
-
-          error:
-            "This order does not have a pending refund.",
-
-        },
-
-        400
-
-      );
-
-    }
-
-
-    if (
-      order.payment_transaction_id !==
-      paymentId
-    ) {
-
-      return jsonResponse(
-
-        {
-
-          success:
-            false,
-
-          error:
-            "Payment verification failed.",
-
-        },
-
-        400
-
-      );
-
-    }
-
-
-    /*
-     * ===================================================
-     * SERVER-SIDE REFUND AMOUNT
-     * ===================================================
-     */
-
-    const serverRefundAmount =
-      Number(
-        order.refund_amount ?? 0
-      );
-
-
-    if (
-      !Number.isFinite(
-        serverRefundAmount
-      ) ||
-      serverRefundAmount <= 0
-    ) {
-
-      return jsonResponse(
-
-        {
-
-          success:
-            false,
-
-          error:
-            "The order does not contain a valid refundable amount.",
-
-        },
-
-        400
-
-      );
-
-    }
-
-
-    /*
-     * The amount supplied by the client must match
-     * the authoritative amount stored on the order.
-     */
-
-    const requestedAmountPaise =
-      Math.round(
-        requestedAmount * 100
-      );
-
-
-    const serverRefundAmountPaise =
-      Math.round(
-        serverRefundAmount * 100
-      );
-
-
-    if (
-      requestedAmountPaise !==
-      serverRefundAmountPaise
-    ) {
-
-      console.warn(
-
-        "⚠️ Refund amount mismatch:",
-
-        {
-
-          orderId:
-            order.id,
-
-          orderNumber:
-            order.order_number,
-
-          requestedAmount,
-
-          serverRefundAmount,
-
-          userId,
-
-        }
-
-      );
-
-
-      return jsonResponse(
-
-        {
-
-          success:
-            false,
-
-          error:
-            "Refund amount does not match the authorized order refund amount.",
-
-        },
-
-        400
-
-      );
-
-    }
-
-
-    /*
-     * ===================================================
-     * RAZORPAY SECRETS
-     * ===================================================
-     */
 
     const keyId =
       Deno.env.get(
@@ -808,51 +127,551 @@ serve(async (req) => {
 
 
     if (
+      !supabaseUrl ||
+      !serviceRoleKey
+    ) {
+
+      throw new Error(
+        "Supabase server credentials missing."
+      );
+
+    }
+
+
+    if (
       !keyId ||
       !keySecret
     ) {
 
       throw new Error(
+        "Razorpay credentials missing."
+      );
 
-        "Razorpay credentials are missing."
+    }
 
+
+    const supabaseAdmin =
+      createClient(
+        supabaseUrl,
+        serviceRoleKey,
+        {
+          auth: {
+            persistSession:
+              false,
+
+            autoRefreshToken:
+              false,
+          },
+        }
+      );
+
+
+    const accessToken =
+      authorization.replace(
+        "Bearer ",
+        ""
+      ).trim();
+
+
+    const {
+      data: {
+        user
+      },
+      error: userError,
+    } =
+      await supabaseAdmin.auth.getUser(
+        accessToken
+      );
+
+
+    if (
+      userError ||
+      !user
+    ) {
+
+      return jsonResponse(
+        {
+          success:
+            false,
+
+          error:
+            "Invalid authentication token.",
+        },
+        401
       );
 
     }
 
 
     /*
-     * ===================================================
-     * RAZORPAY AMOUNT
-     * ===================================================
+     * =====================================================
+     * 2. VERIFY ADMIN
+     * =====================================================
      */
 
-    const amountInPaise =
-      serverRefundAmountPaise;
+    const {
+      data: adminUser,
+      error: adminError,
+    } =
+      await supabaseAdmin
+
+        .from(
+          "admin_users"
+        )
+
+        .select(
+          "user_id, role, is_active"
+        )
+
+        .eq(
+          "user_id",
+          user.id
+        )
+
+        .eq(
+          "is_active",
+          true
+        )
+
+        .maybeSingle();
+
+
+    if (adminError) {
+
+      console.error(
+        "❌ Admin authorization lookup failed:",
+        adminError
+      );
+
+      throw new Error(
+        "Unable to verify administrator authorization."
+      );
+
+    }
+
+
+    if (!adminUser) {
+
+      return jsonResponse(
+        {
+          success:
+            false,
+
+          error:
+            "Administrator access required.",
+        },
+        403
+      );
+
+    }
 
 
     /*
-     * ===================================================
-     * BASIC AUTH
-     * ===================================================
+     * =====================================================
+     * 3. REQUEST BODY
+     * =====================================================
      */
 
-    const authorization =
+    const body =
+      await req.json();
+
+
+    const paymentId =
+      String(
+        body?.paymentId ??
+        ""
+      ).trim();
+
+
+    const requestedAmount =
+      Number(
+        body?.amount
+      );
+
+
+    const idempotencyKey =
+      String(
+        body?.idempotencyKey ??
+        ""
+      ).trim();
+
+
+    if (!paymentId) {
+
+      throw new Error(
+        "Razorpay payment ID is required."
+      );
+
+    }
+
+
+    if (
+      !paymentId.startsWith(
+        "pay_"
+      )
+    ) {
+
+      throw new Error(
+        "Invalid Razorpay payment ID."
+      );
+
+    }
+
+
+    if (
+      !Number.isFinite(
+        requestedAmount
+      ) ||
+      requestedAmount <= 0
+    ) {
+
+      throw new Error(
+        "Refund amount must be greater than zero."
+      );
+
+    }
+
+
+    if (!idempotencyKey) {
+
+      throw new Error(
+        "Refund idempotency key is required."
+      );
+
+    }
+
+
+    /*
+     * =====================================================
+     * 4. FIND ORDER
+     * =====================================================
+     */
+
+    const {
+      data: order,
+      error: orderError,
+    } =
+      await supabaseAdmin
+
+        .from(
+          "orders"
+        )
+
+        .select(
+          [
+            "id",
+            "order_number",
+            "payment_method",
+            "payment_transaction_id",
+            "order_status",
+            "refund_status",
+            "refund_amount",
+            "advance_amount",
+            "advance_payment_status",
+            "wallet_refund_amount",
+            "razorpay_refund_amount",
+            "razorpay_refund_transaction_id",
+          ].join(", ")
+        )
+
+        .eq(
+          "payment_transaction_id",
+          paymentId
+        )
+
+        .maybeSingle();
+
+
+    if (orderError) {
+
+      throw orderError;
+
+    }
+
+
+    if (!order) {
+
+      return jsonResponse(
+        {
+          success:
+            false,
+
+          error:
+            "No order was found for this Razorpay payment.",
+        },
+        404
+      );
+
+    }
+
+
+    /*
+     * =====================================================
+     * 5. ORDER VALIDATION
+     * =====================================================
+     */
+
+    if (
+      order.payment_method !==
+      "prepaid"
+    ) {
+
+      return jsonResponse(
+        {
+          success:
+            false,
+
+          error:
+            "Refunds are available only for prepaid orders.",
+        },
+        400
+      );
+
+    }
+
+
+    if (
+      order.order_status !==
+      "cancelled"
+    ) {
+
+      return jsonResponse(
+        {
+          success:
+            false,
+
+          error:
+            "Only cancelled orders can be refunded.",
+        },
+        400
+      );
+
+    }
+
+
+    if (
+      order.payment_transaction_id !==
+      paymentId
+    ) {
+
+      return jsonResponse(
+        {
+          success:
+            false,
+
+          error:
+            "Payment verification failed.",
+        },
+        400
+      );
+
+    }
+
+
+    /*
+     * =====================================================
+     * 6. DETERMINE AUTHORITATIVE RAZORPAY REFUND AMOUNT
+     * =====================================================
+     *
+     * refund_amount = combined refund
+     * wallet_refund_amount = wallet portion
+     *
+     * Razorpay receives only the remainder.
+     *
+     * For an existing processed Razorpay refund, return the
+     * existing ID instead of issuing another refund.
+     * =====================================================
+     */
+
+    if (
+      order.razorpay_refund_transaction_id
+    ) {
+
+      return jsonResponse(
+        {
+          success:
+            true,
+
+          refund:
+            {
+              id:
+                order.razorpay_refund_transaction_id,
+
+              amount:
+                Math.round(
+                  Number(
+                    order.razorpay_refund_amount ??
+                    0
+                  ) * 100
+                ),
+
+              payment_id:
+                paymentId,
+
+              status:
+                "processed",
+            },
+
+          alreadyProcessed:
+            true,
+        },
+        200
+      );
+
+    }
+
+
+    const totalRefundAmount =
+      Number(
+        order.refund_amount ??
+        0
+      );
+
+
+    const walletRefundAmount =
+      Number(
+        order.wallet_refund_amount ??
+        0
+      );
+
+
+    if (
+      !Number.isFinite(
+        totalRefundAmount
+      ) ||
+      totalRefundAmount <= 0
+    ) {
+
+      return jsonResponse(
+        {
+          success:
+            false,
+
+          error:
+            "The order does not contain a valid refundable amount.",
+        },
+        400
+      );
+
+    }
+
+
+    if (
+      !Number.isFinite(
+        walletRefundAmount
+      ) ||
+      walletRefundAmount < 0
+    ) {
+
+      return jsonResponse(
+        {
+          success:
+            false,
+
+          error:
+            "Invalid wallet refund amount.",
+        },
+        400
+      );
+
+    }
+
+
+    const serverRazorpayRefundAmount =
+      Math.max(
+        0,
+        totalRefundAmount -
+        walletRefundAmount
+      );
+
+
+    if (
+      serverRazorpayRefundAmount <= 0
+    ) {
+
+      return jsonResponse(
+        {
+          success:
+            false,
+
+          error:
+            "No Razorpay refund is required for this order.",
+        },
+        400
+      );
+
+    }
+
+
+    /*
+     * Client amount must exactly match the server calculation.
+     */
+
+    const requestedAmountPaise =
+      Math.round(
+        requestedAmount *
+        100
+      );
+
+
+    const serverAmountPaise =
+      Math.round(
+        serverRazorpayRefundAmount *
+        100
+      );
+
+
+    if (
+      requestedAmountPaise !==
+      serverAmountPaise
+    ) {
+
+      console.warn(
+        "⚠️ Razorpay refund amount mismatch:",
+        {
+          orderId:
+            order.id,
+
+          requestedAmount,
+
+          serverRazorpayRefundAmount,
+
+          userId:
+            user.id,
+        }
+      );
+
+
+      return jsonResponse(
+        {
+          success:
+            false,
+
+          error:
+            "Refund amount does not match the authorized Razorpay refund amount.",
+        },
+        400
+      );
+
+    }
+
+
+    /*
+     * =====================================================
+     * 7. RAZORPAY REFUND
+     * =====================================================
+     */
+
+    const authorizationHeader =
       "Basic " +
-
       btoa(
-
         `${keyId}:${keySecret}`
-
       );
 
 
     console.log(
-
       "💳 Starting authorized Razorpay refund",
-
       {
-
         orderId:
           order.id,
 
@@ -862,28 +681,21 @@ serve(async (req) => {
         paymentId,
 
         amount:
-          serverRefundAmount,
+          serverRazorpayRefundAmount,
 
-        amountInPaise,
+        amountInPaise:
+          serverAmountPaise,
 
         idempotencyKey,
 
         adminUserId:
-          userId,
+          user.id,
 
         adminRole:
           adminUser.role,
-
       }
-
     );
 
-
-    /*
-     * ===================================================
-     * RAZORPAY REFUND API
-     * ===================================================
-     */
 
     const response =
       await fetch(
@@ -893,7 +705,6 @@ serve(async (req) => {
         )}/refund`,
 
         {
-
           method:
             "POST",
 
@@ -903,7 +714,7 @@ serve(async (req) => {
               "application/json",
 
             "Authorization":
-              authorization,
+              authorizationHeader,
 
             "X-Refund-Idempotency":
               idempotencyKey,
@@ -911,15 +722,12 @@ serve(async (req) => {
           },
 
           body:
-
             JSON.stringify({
-
               amount:
-                amountInPaise,
+                serverAmountPaise,
 
               speed:
                 "normal",
-
             }),
 
         }
@@ -927,32 +735,23 @@ serve(async (req) => {
       );
 
 
-    /*
-     * ===================================================
-     * RAZORPAY RESPONSE
-     * ===================================================
-     */
-
     const data =
       await response.json();
 
 
     /*
-     * ===================================================
-     * RAZORPAY ERROR
-     * ===================================================
- */
+     * =====================================================
+     * 8. RAZORPAY ERROR
+     * =====================================================
+     */
 
     if (
       !response.ok
     ) {
 
       console.error(
-
         "❌ Razorpay refund failed",
-
         {
-
           status:
             response.status,
 
@@ -962,27 +761,19 @@ serve(async (req) => {
           paymentId,
 
           data,
-
         }
-
       );
 
 
       const message =
-
         data?.error?.description ||
-
         data?.error?.reason ||
-
         data?.error?.code ||
-
         "Razorpay refund request failed.";
 
 
       return jsonResponse(
-
         {
-
           success:
             false,
 
@@ -992,47 +783,112 @@ serve(async (req) => {
           razorpayError:
             data?.error ??
             null,
-
         },
-
         response.status
-
       );
 
     }
 
 
     /*
-     * ===================================================
-     * REFUND ID VALIDATION
-     * ===================================================
- */
+     * =====================================================
+     * 9. VALIDATE RESPONSE
+     * =====================================================
+     */
 
     if (
       !data?.id
     ) {
 
       throw new Error(
-
         "Razorpay returned a successful response without a refund ID."
-
       );
 
     }
 
 
     /*
-     * ===================================================
-     * SUCCESS
-     * ===================================================
- */
+     * =====================================================
+     * 10. STORE RAZORPAY RESULT
+     * =====================================================
+     *
+     * We store this immediately so a retry can never issue
+     * another refund.
+     * =====================================================
+     */
+
+    const {
+      error: updateError
+    } =
+      await supabaseAdmin
+
+        .from(
+          "orders"
+        )
+
+        .update({
+
+          razorpay_refund_amount:
+            serverRazorpayRefundAmount,
+
+          razorpay_refund_transaction_id:
+            data.id,
+
+          updated_at:
+            new Date().toISOString(),
+
+        })
+
+        .eq(
+          "id",
+          order.id
+        );
+
+
+    if (updateError) {
+
+      console.error(
+        "❌ Razorpay refund succeeded but database update failed:",
+        {
+          orderId:
+            order.id,
+
+          refundId:
+            data.id,
+
+          updateError,
+        }
+      );
+
+
+      /*
+       * Do NOT call Razorpay again.
+       *
+       * The Razorpay idempotency key protects the external
+       * operation, and the refund ID is in the error log for
+       * reconciliation.
+       */
+
+      return jsonResponse(
+        {
+          success:
+            true,
+
+          refund:
+            data,
+
+          warning:
+            "Razorpay refund succeeded but the order record could not be updated. Do not issue another manual refund.",
+        },
+        200
+      );
+
+    }
+
 
     console.log(
-
       "✅ Razorpay refund created",
-
       {
-
         orderId:
           order.id,
 
@@ -1050,67 +906,44 @@ serve(async (req) => {
 
         status:
           data.status,
-
       }
-
     );
 
 
     return jsonResponse(
-
       {
-
         success:
           true,
 
         refund:
           data,
 
+        alreadyProcessed:
+          false,
       },
-
       200
-
     );
 
 
-  } catch (
-    error
-  ) {
-
-    /*
-     * ===================================================
-     * UNEXPECTED ERROR
-     * ===================================================
- */
+  } catch (error) {
 
     console.error(
-
       "❌ Refund Edge Function error",
-
       error
-
     );
 
 
     return jsonResponse(
-
       {
-
         success:
           false,
 
         error:
-
           error instanceof Error
-
             ? error.message
-
             : "Unexpected refund error.",
-
       },
-
       500
-
     );
 
   }

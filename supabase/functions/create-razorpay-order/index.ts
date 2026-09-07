@@ -188,7 +188,7 @@ serve(async (req) => {
       )
 
       .select(
-        "id, total_amount, expires_at, used_at"
+        "id, customer_id, total_amount, expires_at, used_at"
       )
 
       .eq(
@@ -283,10 +283,200 @@ serve(async (req) => {
     }
 
 
-    const razorpayAmount =
+    const quoteAmountPaise =
       Math.round(
         amount * 100
       );
+
+
+    /*
+     * =========================================================
+     * 1B. RESOLVE ACTIVE WALLET HOLD
+     * =========================================================
+     *
+     * Wallet credit is a payment component, not a discount.
+     *
+     * The secure checkout quote remains the authority for the
+     * complete order total. An existing wallet hold can only
+     * reduce the amount that must be paid through Razorpay.
+     *
+     * We intentionally do NOT accept wallet amount from the
+     * browser. The amount comes from the server-side hold that
+     * was created by create_wallet_checkout_hold().
+     */
+
+    let walletHold: {
+      id: string;
+      customer_id: string;
+      checkout_quote_id: string;
+      amount_paise: number;
+      status: string;
+      expires_at: string;
+    } | null = null;
+
+
+    const {
+      data: walletHoldData,
+      error: walletHoldError,
+    } = await supabaseAdmin
+
+      .from(
+        "wallet_checkout_holds"
+      )
+
+      .select(
+        "id, customer_id, checkout_quote_id, amount_paise, status, expires_at"
+      )
+
+      .eq(
+        "checkout_quote_id",
+        checkoutQuoteId
+      )
+
+      .eq(
+        "customer_id",
+        quote.customer_id
+      )
+
+      .eq(
+        "status",
+        "active"
+      )
+
+      .gt(
+        "expires_at",
+        new Date().toISOString()
+      )
+
+      .maybeSingle();
+
+
+    if (walletHoldError) {
+
+      throw walletHoldError;
+
+    }
+
+
+    if (walletHoldData) {
+
+      walletHold =
+        walletHoldData as typeof walletHold;
+
+      const walletAmountPaise =
+        Number(
+          walletHold.amount_paise
+        );
+
+
+      if (
+        !Number.isSafeInteger(
+          walletAmountPaise
+        ) ||
+        walletAmountPaise <= 0
+      ) {
+
+        return jsonResponse(
+
+          {
+            error:
+              "Invalid wallet payment amount.",
+          },
+
+          409
+
+        );
+
+      }
+
+
+      if (
+        walletAmountPaise >
+        quoteAmountPaise
+      ) {
+
+        return jsonResponse(
+
+          {
+            error:
+              "Wallet payment exceeds the secure checkout total.",
+          },
+
+          409
+
+        );
+
+      }
+
+    }
+
+
+    const walletAmountPaise =
+      Number(
+        walletHold?.amount_paise || 0
+      );
+
+
+    const payableAmountPaise =
+      quoteAmountPaise -
+      walletAmountPaise;
+
+
+    /*
+     * =========================================================
+     * FULL WALLET PAYMENT
+     * =========================================================
+     *
+     * No Razorpay order is created when the wallet covers the
+     * complete authoritative checkout total.
+     *
+     * The hold will be consumed by the trusted order transaction
+     * after the order is created.
+     */
+
+    if (
+      payableAmountPaise === 0
+    ) {
+
+      return jsonResponse(
+
+        {
+
+          id: null,
+
+          amount: 0,
+
+          currency: "INR",
+
+          secure_quote_id:
+            quote.id,
+
+          verified_amount:
+            amount,
+
+          wallet_hold_id:
+            walletHold?.id || null,
+
+          wallet_amount_paise:
+            walletAmountPaise,
+
+          payable_amount_paise:
+            0,
+
+          payment_required:
+            false,
+
+        },
+
+        200
+
+      );
+
+    }
+
+
+    const razorpayAmount =
+      payableAmountPaise;
 
 
     /*
@@ -435,6 +625,18 @@ serve(async (req) => {
 
         verified_amount:
           amount,
+
+        wallet_hold_id:
+          walletHold?.id || null,
+
+        wallet_amount_paise:
+          walletAmountPaise,
+
+        payable_amount_paise:
+          payableAmountPaise,
+
+        payment_required:
+          true,
 
       },
 

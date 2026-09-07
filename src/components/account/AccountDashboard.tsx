@@ -12,6 +12,7 @@ import {
 } from "@/features/Auth/context/AuthContext";
 
 import {
+  useEffect,
   useState,
 } from "react";
 
@@ -29,7 +30,12 @@ import {
   MapPin,
   Package,
   UserRound,
+  Wallet,
 } from "lucide-react";
+
+import {
+  supabase,
+} from "@/shared/lib/supabase";
 
 
 
@@ -74,6 +80,128 @@ export default function AccountDashboard() {
   ] = useState(false);
 
 
+  // =========================================================
+  // T&M WALLET
+  // =========================================================
+
+  const [
+    walletBalance,
+    setWalletBalance,
+  ] = useState<number | null>(null);
+
+
+  const [
+    walletLoading,
+    setWalletLoading,
+  ] = useState(true);
+
+
+  useEffect(() => {
+
+    let mounted = true;
+
+
+    async function loadWallet() {
+
+      if (!customer?.id) {
+
+        if (mounted) {
+
+          setWalletBalance(null);
+          setWalletLoading(false);
+
+        }
+
+        return;
+
+      }
+
+
+      try {
+
+        setWalletLoading(true);
+
+
+        /*
+         * This securely finds the logged-in customer's
+         * wallet and creates it if it doesn't exist.
+         */
+        const {
+          data,
+          error,
+        } = await supabase.rpc(
+          "get_or_create_my_wallet"
+        );
+
+
+        if (error) {
+
+          console.error(
+            "T&M Wallet error:",
+            error
+          );
+
+          return;
+
+        }
+
+
+        if (!mounted) return;
+
+
+        const wallet =
+          Array.isArray(data)
+            ? data[0]
+            : data;
+
+
+        if (wallet) {
+
+          setWalletBalance(
+            Number(
+              wallet.balance_paise || 0
+            )
+          );
+
+        }
+
+      }
+
+      catch (error) {
+
+        console.error(
+          "Failed to load T&M Wallet:",
+          error
+        );
+
+      }
+
+      finally {
+
+        if (mounted) {
+
+          setWalletLoading(false);
+
+        }
+
+      }
+
+    }
+
+
+    loadWallet();
+
+
+    return () => {
+
+      mounted = false;
+
+    };
+
+  }, [customer?.id]);
+
+
+
 
 
   async function handleLogout() {
@@ -93,6 +221,36 @@ export default function AccountDashboard() {
       setLoggingOut(false);
 
     }
+
+  }
+
+
+
+
+
+  function formatWalletBalance(
+    balancePaise: number | null
+  ) {
+
+    if (
+      balancePaise === null
+    ) {
+
+      return "—";
+
+    }
+
+
+    return new Intl.NumberFormat(
+      "en-IN",
+      {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 2,
+      }
+    ).format(
+      balancePaise / 100
+    );
 
   }
 
@@ -212,7 +370,7 @@ export default function AccountDashboard() {
 
         {/* =================================================
             YOUR T&M
-        ================================================== */}
+        ================================================= */}
 
         <section
           className="
@@ -275,12 +433,14 @@ export default function AccountDashboard() {
               grid
               grid-cols-2
               gap-3
-              lg:grid-cols-3
+              lg:grid-cols-4
             "
           >
 
 
-            {/* Orders */}
+            {/* =================================================
+                ORDERS
+            ================================================== */}
 
             <Link
               to="/account/orders"
@@ -368,7 +528,9 @@ export default function AccountDashboard() {
 
 
 
-            {/* Wishlist */}
+            {/* =================================================
+                WISHLIST
+            ================================================== */}
 
             <Link
               to="/wishlist"
@@ -456,7 +618,9 @@ export default function AccountDashboard() {
 
 
 
-            {/* Addresses */}
+            {/* =================================================
+                ADDRESSES
+            ================================================== */}
 
             <button
               type="button"
@@ -544,6 +708,127 @@ export default function AccountDashboard() {
               </p>
 
             </button>
+
+
+
+
+            {/* =================================================
+                T&M WALLET
+            ================================================== */}
+
+            <Link
+              to="/account/wallet"
+              className="
+                group
+                relative
+                overflow-hidden
+                rounded-2xl
+                border
+                border-[#C8A44D]/30
+                bg-gradient-to-br
+                from-[#15130F]
+                via-[#0D0D0D]
+                to-[#0D0D0D]
+                p-4
+                transition-all
+                duration-300
+                hover:border-[#C8A44D]/70
+                hover:bg-[#15120D]
+                active:scale-[0.98]
+              "
+            >
+
+              {/* Subtle gold glow */}
+
+              <div
+                className="
+                  pointer-events-none
+                  absolute
+                  -right-8
+                  -top-8
+                  h-20
+                  w-20
+                  rounded-full
+                  bg-[#C8A44D]/10
+                  blur-2xl
+                  transition-opacity
+                  duration-300
+                  group-hover:bg-[#C8A44D]/15
+                "
+              />
+
+
+              <div
+                className="
+                  relative
+                  flex
+                  items-start
+                  justify-between
+                  gap-2
+                "
+              >
+
+                <div
+                  className="
+                    flex
+                    h-10
+                    w-10
+                    items-center
+                    justify-center
+                    rounded-xl
+                    bg-[#C8A44D]/10
+                    text-[#C8A44D]
+                  "
+                >
+
+                  <Wallet
+                    size={19}
+                  />
+
+                </div>
+
+
+                <ChevronRight
+                  size={17}
+                  className="
+                    text-neutral-600
+                    transition-colors
+                    group-hover:text-[#C8A44D]
+                  "
+                />
+
+              </div>
+
+
+              <p
+                className="
+                  relative
+                  mt-4
+                  text-sm
+                  font-semibold
+                  text-white
+                "
+              >
+                T&M Wallet
+              </p>
+
+
+              <p
+                className="
+                  relative
+                  mt-1
+                  text-[11px]
+                  leading-4
+                  text-neutral-500
+                "
+              >
+                {walletLoading
+                  ? "Loading balance..."
+                  : `${formatWalletBalance(walletBalance)} available`
+                }
+              </p>
+
+            </Link>
 
           </div>
 

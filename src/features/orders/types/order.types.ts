@@ -159,6 +159,24 @@ export interface CreateOrderPayload {
   paymentTransactionId?: string;
 
 
+  /*
+   * Wallet checkout split.
+   *
+   * wallet_hold_id identifies the server-created wallet hold
+   * for this checkout quote. The secure order transaction
+   * consumes the hold atomically with order creation.
+   */
+  wallet_hold_id?: string | null;
+
+
+  /*
+   * Exact wallet amount reserved for this order, in paise.
+   * This is passed through to the secure RPC and is never
+   * trusted as the final order total.
+   */
+  wallet_amount_paise?: number;
+
+
   advanceAmount:number;
 
 
