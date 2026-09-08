@@ -19,6 +19,10 @@ import {
 } from "react";
 
 import {
+  useNavigate,
+} from "react-router-dom";
+
+import {
   validateCoupon,
 } from "@/features/coupons/services/coupon.service";
 
@@ -70,6 +74,8 @@ interface CartProductPricing {
 }
 
 export default function CartDrawer() {
+
+  const navigate = useNavigate();
 
   /*
    * =========================================================
@@ -1661,6 +1667,60 @@ export default function CartDrawer() {
 
   /*
    * =========================================================
+   * LOGIN OFFER GUIDANCE
+   * =========================================================
+   *
+   * The guest offer card is clickable, but it does not start
+   * a separate login flow. It highlights the existing checkout
+   * button and explains that login happens during checkout.
+   * =========================================================
+   */
+
+  const [
+    loginOfferHighlight,
+    setLoginOfferHighlight,
+  ] = useState(false);
+
+  const loginOfferHighlightTimerRef =
+    useRef<number | null>(null);
+
+
+  const handleLoginOfferClick = () => {
+
+    if (loginOfferHighlightTimerRef.current) {
+      window.clearTimeout(
+        loginOfferHighlightTimerRef.current
+      );
+    }
+
+    setLoginOfferHighlight(true);
+
+    loginOfferHighlightTimerRef.current =
+      window.setTimeout(() => {
+        setLoginOfferHighlight(false);
+        loginOfferHighlightTimerRef.current = null;
+      }, 3500);
+
+  };
+
+
+  useEffect(() => {
+
+    return () => {
+
+      if (loginOfferHighlightTimerRef.current) {
+        window.clearTimeout(
+          loginOfferHighlightTimerRef.current
+        );
+      }
+
+    };
+
+  }, []);
+
+
+  /*
+   * =========================================================
    * COMPACT CHECKOUT SUMMARY
    * =========================================================
    *
@@ -1865,6 +1925,15 @@ export default function CartDrawer() {
 
 
   const handleProceedToCheckout = () => {
+
+    if (loginOfferHighlightTimerRef.current) {
+      window.clearTimeout(
+        loginOfferHighlightTimerRef.current
+      );
+      loginOfferHighlightTimerRef.current = null;
+    }
+
+    setLoginOfferHighlight(false);
 
     /*
      * When an unlockable offer is available, give the customer
@@ -3764,9 +3833,10 @@ export default function CartDrawer() {
 
                   <button
 
-                    onClick={
-                      closeCart
-                    }
+                    onClick={() => {
+                      closeCart();
+                      navigate("/shop");
+                    }}
 
                     className="
 
@@ -4629,27 +4699,29 @@ export default function CartDrawer() {
             !customer &&
             !appliedCoupon && (
 
-              <div
-
-                className="
-
+              <button
+                type="button"
+                onClick={handleLoginOfferClick}
+                aria-expanded={loginOfferHighlight}
+                className={`
                   mt-6
-
+                  w-full
                   rounded-2xl
-
                   border
-                  border-[#C8A44D]/20
-
-                  bg-[#FBF7EA]
-
                   p-4
-
+                  text-left
+                  transition-all
+                  duration-300
                   animate-in
                   fade-in
                   duration-200
 
-                "
-
+                  ${
+                    loginOfferHighlight
+                      ? "border-[#C8A44D]/55 bg-[#FFF9E8] shadow-[0_8px_26px_rgba(200,164,77,0.18)] ring-2 ring-[#C8A44D]/20"
+                      : "border-[#C8A44D]/20 bg-[#FBF7EA] hover:border-[#C8A44D]/40 hover:bg-[#FFFDF6]"
+                  }
+                `}
               >
 
                 <div
@@ -4661,7 +4733,7 @@ export default function CartDrawer() {
                 >
 
                   <div
-                    className="
+                    className={`
                       flex
                       h-9
                       w-9
@@ -4672,7 +4744,14 @@ export default function CartDrawer() {
                       bg-white
                       text-[#B28A20]
                       shadow-sm
-                    "
+                      transition-transform
+                      duration-300
+                      ${
+                        loginOfferHighlight
+                          ? "scale-110"
+                          : ""
+                      }
+                    `}
                   >
 
                     ✨
@@ -4680,7 +4759,7 @@ export default function CartDrawer() {
                   </div>
 
 
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
 
                     <p
                       className="
@@ -4704,15 +4783,75 @@ export default function CartDrawer() {
                       "
                     >
 
-                      Sign in to check and apply coupons available for you.
+                      Sign in at checkout to check exclusive coupons and member benefits.
 
                     </p>
 
                   </div>
 
+                  <span
+                    className={`
+                      shrink-0
+                      text-[10px]
+                      font-semibold
+                      text-[#8A6D25]
+                      transition-all
+                      duration-300
+                      ${
+                        loginOfferHighlight
+                          ? "translate-x-0 opacity-100"
+                          : "translate-x-1 opacity-70"
+                      }
+                    `}
+                  >
+                    {loginOfferHighlight ? "↓" : "Tap"}
+                  </span>
+
                 </div>
 
-              </div>
+
+                {loginOfferHighlight && (
+                  <div
+                    className="
+                      mt-3
+                      rounded-xl
+                      border
+                      border-[#C8A44D]/20
+                      bg-white/80
+                      px-3
+                      py-2.5
+                      animate-in
+                      fade-in
+                      slide-in-from-top-1
+                      duration-250
+                    "
+                  >
+
+                    <p
+                      className="
+                        text-xs
+                        font-semibold
+                        text-neutral-900
+                      "
+                    >
+                      Continue to checkout to sign in
+                    </p>
+
+                    <p
+                      className="
+                        mt-0.5
+                        text-[11px]
+                        leading-4
+                        text-neutral-500
+                      "
+                    >
+                      Your login and OTP options will appear there.
+                    </p>
+
+                  </div>
+                )}
+
+              </button>
 
             )
           }
@@ -7131,7 +7270,7 @@ export default function CartDrawer() {
                       handleProceedToCheckout
                     }
 
-                    className="
+                    className={`
 
                       mt-4
 
@@ -7151,17 +7290,30 @@ export default function CartDrawer() {
                       font-semibold
                       text-white
 
-                      transition
+                      transition-all
+                      duration-200
 
                       active:scale-[0.98]
 
                       hover:bg-neutral-800
 
-                    "
+                      ${
+                        loginOfferHighlight
+                          ? "ring-4 ring-[#C8A44D]/25 shadow-[0_0_0_2px_rgba(200,164,77,0.35),0_10px_28px_rgba(200,164,77,0.22)] motion-safe:animate-pulse"
+                          : ""
+                      }
+
+                    `}
 
                   >
 
-                    Continue To Checkout
+                    {loginOfferHighlight ? (
+                      <span className="flex items-center gap-2">
+                        ↓ Continue To Checkout to Sign In
+                      </span>
+                    ) : (
+                      "Continue To Checkout"
+                    )}
 
                   </button>
 
@@ -7245,9 +7397,10 @@ export default function CartDrawer() {
 
                   <button
 
-                    onClick={
-                      closeCart
-                    }
+                    onClick={() => {
+                      closeCart();
+                      navigate("/shop");
+                    }}
 
                     className="
 
