@@ -279,11 +279,6 @@ export default function CheckoutDialog({
     setMemberUpgradeSubmitting,
   ] = useState(false);
 
-  const [
-    memberUpgradeSuccess,
-    setMemberUpgradeSuccess,
-  ] = useState(false);
-
   /*
    * True when a Guest has explicitly chosen to continue without
    * the Member-only special price.
@@ -1983,7 +1978,6 @@ export default function CheckoutDialog({
     reason: "special_price" | "coupon"
   ) {
     setMemberUpgradeReason(reason);
-    setMemberUpgradeSuccess(false);
     setMemberUpgradeDialogOpen(true);
   }
 
@@ -2117,8 +2111,8 @@ export default function CheckoutDialog({
        */
       setGuestContinueWithoutSpecialPrice(false);
 
+      setMemberUpgradeDialogOpen(false);
       setMemberUpgradeSubmitting(false);
-      setMemberUpgradeSuccess(true);
 
       /*
        * A membership upgrade changes coupon eligibility and
@@ -2151,7 +2145,6 @@ export default function CheckoutDialog({
       );
 
       setMemberUpgradeSubmitting(false);
-      setMemberUpgradeSuccess(false);
 
       setBuyNowCouponError(
         error?.message ||
@@ -8069,12 +8062,7 @@ export default function CheckoutDialog({
           "
           onClick={() => {
             if (!memberUpgradeSubmitting) {
-              if (memberUpgradeSuccess) {
-                setMemberUpgradeDialogOpen(false);
-                setMemberUpgradeSuccess(false);
-              } else {
-                continueAsGuestAfterMemberPrompt();
-              }
+              continueAsGuestAfterMemberPrompt();
             }
           }}
         >
@@ -8097,162 +8085,100 @@ export default function CheckoutDialog({
               sm:p-6
             "
           >
-            {memberUpgradeSuccess ? (
-              <>
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#C8A44D]/10 text-2xl">
-                  ✨
-                </div>
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#C8A44D]/10 text-2xl">
+              {memberUpgradeReason === "coupon" ? "🎟️" : "✨"}
+            </div>
 
-                <h3
-                  id="member-upgrade-title"
-                  className="
-                    mt-4
-                    text-center
-                    text-xl
-                    font-semibold
-                    tracking-[-0.025em]
-                    text-neutral-950
-                  "
-                >
-                  Welcome to T&amp;M Jewels ✨
-                </h3>
+            <h3
+              id="member-upgrade-title"
+              className="
+                mt-4
+                text-center
+                text-xl
+                font-semibold
+                tracking-[-0.025em]
+                text-neutral-950
+              "
+            >
+              {memberUpgradeReason === "coupon"
+                ? "This coupon is for Members"
+                : "Unlock the Member Price"}
+            </h3>
 
-                <p className="mx-auto mt-2 max-w-[330px] text-center text-sm leading-5 text-neutral-500">
-                  You’re officially a T&amp;M Member. Your exclusive member benefits are now unlocked.
-                </p>
+            <p className="mx-auto mt-2 max-w-[330px] text-center text-sm leading-5 text-neutral-500">
+              {memberUpgradeReason === "coupon"
+                ? "This coupon is available to T&M Members. Become a Member now and we'll apply it for you."
+                : "This product has an exclusive Member price. Become a T&M Member to unlock the special price."}
+            </p>
 
-                <div className="mt-5 rounded-2xl bg-[#fffaf0] px-4 py-3 text-center text-xs leading-5 text-[#80651d]">
-                  {memberUpgradeReason === "coupon"
-                    ? "Your member coupon is being applied to this order."
-                    : "Your exclusive Member Price is now unlocked."}
-                </div>
+            <div className="mt-5 rounded-2xl bg-[#fffaf0] px-4 py-3 text-center text-xs leading-5 text-[#80651d]">
+              Exclusive discounts, members-only offers, early access & special perks.
+            </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMemberUpgradeDialogOpen(false);
-                    setMemberUpgradeSuccess(false);
-                  }}
-                  className="
-                    mt-5
-                    inline-flex
-                    min-h-12
-                    w-full
-                    items-center
-                    justify-center
-                    rounded-[14px]
-                    bg-black
-                    px-4
-                    py-3
-                    text-sm
-                    font-semibold
-                    text-white
-                    transition
-                    hover:bg-neutral-800
-                    active:scale-[0.985]
-                  "
-                >
-                  Continue to Checkout
-                </button>
-              </>
-            ) : (
-              <>
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#C8A44D]/10 text-2xl">
-                  {memberUpgradeReason === "coupon" ? "🎟️" : "✨"}
-                </div>
+            <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={handleMemberUpgradeFromDialog}
+                disabled={memberUpgradeSubmitting}
+                className="
+                  inline-flex
+                  min-h-12
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-[14px]
+                  bg-black
+                  px-4
+                  py-3
+                  text-sm
+                  font-semibold
+                  text-white
+                  transition
+                  hover:bg-neutral-800
+                  active:scale-[0.985]
+                  disabled:cursor-not-allowed
+                  disabled:opacity-60
+                "
+              >
+                {memberUpgradeSubmitting ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Activating...
+                  </>
+                ) : (
+                  "Yes, become a Member"
+                )}
+              </button>
 
-                <h3
-                  id="member-upgrade-title"
-                  className="
-                    mt-4
-                    text-center
-                    text-xl
-                    font-semibold
-                    tracking-[-0.025em]
-                    text-neutral-950
-                  "
-                >
-                  {memberUpgradeReason === "coupon"
-                    ? "This coupon is for Members"
-                    : "Unlock the Member Price"}
-                </h3>
+              <button
+                type="button"
+                onClick={continueAsGuestAfterMemberPrompt}
+                disabled={memberUpgradeSubmitting}
+                className="
+                  min-h-12
+                  rounded-[14px]
+                  border
+                  border-neutral-200
+                  bg-white
+                  px-4
+                  py-3
+                  text-sm
+                  font-semibold
+                  text-neutral-700
+                  transition
+                  hover:bg-neutral-50
+                  active:scale-[0.985]
+                  disabled:cursor-not-allowed
+                  disabled:opacity-60
+                "
+              >
+                Continue as Guest
+              </button>
+            </div>
 
-                <p className="mx-auto mt-2 max-w-[330px] text-center text-sm leading-5 text-neutral-500">
-                  {memberUpgradeReason === "coupon"
-                    ? "This coupon is available to T&amp;M Members. Become a Member now and we'll apply it for you."
-                    : "This product has an exclusive Member price. Become a T&amp;M Member to unlock the special price."}
-                </p>
-
-                <div className="mt-5 rounded-2xl bg-[#fffaf0] px-4 py-3 text-center text-xs leading-5 text-[#80651d]">
-                  Exclusive discounts, members-only offers, early access &amp; special perks.
-                </div>
-
-                <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={handleMemberUpgradeFromDialog}
-                    disabled={memberUpgradeSubmitting}
-                    className="
-                      inline-flex
-                      min-h-12
-                      items-center
-                      justify-center
-                      gap-2
-                      rounded-[14px]
-                      bg-black
-                      px-4
-                      py-3
-                      text-sm
-                      font-semibold
-                      text-white
-                      transition
-                      hover:bg-neutral-800
-                      active:scale-[0.985]
-                      disabled:cursor-not-allowed
-                      disabled:opacity-60
-                    "
-                  >
-                    {memberUpgradeSubmitting ? (
-                      <>
-                        <Loader2 size={16} className="animate-spin" />
-                        Activating...
-                      </>
-                    ) : (
-                      "Yes, become a Member"
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={continueAsGuestAfterMemberPrompt}
-                    disabled={memberUpgradeSubmitting}
-                    className="
-                      min-h-12
-                      rounded-[14px]
-                      border
-                      border-neutral-200
-                      bg-white
-                      px-4
-                      py-3
-                      text-sm
-                      font-semibold
-                      text-neutral-700
-                      transition
-                      hover:bg-neutral-50
-                      active:scale-[0.985]
-                      disabled:cursor-not-allowed
-                      disabled:opacity-60
-                    "
-                  >
-                    Continue as Guest
-                  </button>
-                </div>
-
-                <p className="mt-4 text-center text-[10px] font-medium uppercase tracking-[0.1em] text-neutral-400">
-                  You can always continue without membership
-                </p>
-              </>
-            )}
+            <p className="mt-4 text-center text-[10px] font-medium uppercase tracking-[0.1em] text-neutral-400">
+              You can always continue without membership
+            </p>
           </div>
         </div>
       )}
