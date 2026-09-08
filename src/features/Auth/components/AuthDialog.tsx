@@ -17,6 +17,7 @@ import {
   Phone,
   ArrowLeft,
   Crown,
+  Loader2,
 } from "lucide-react";
 
 import {
@@ -123,6 +124,18 @@ export default function AuthDialog({
     timer,
     setTimer,
   ] = useState(30);
+
+
+  const [
+    sendingOtp,
+    setSendingOtp,
+  ] = useState(false);
+
+
+  const [
+    verifyingOtp,
+    setVerifyingOtp,
+  ] = useState(false);
 
 
   const [
@@ -287,6 +300,16 @@ export default function AuthDialog({
     );
 
 
+    setSendingOtp(
+      false
+    );
+
+
+    setVerifyingOtp(
+      false
+    );
+
+
     setAuthSuccess(
       false
     );
@@ -322,6 +345,16 @@ export default function AuthDialog({
     );
 
 
+    setSendingOtp(
+      false
+    );
+
+
+    setVerifyingOtp(
+      false
+    );
+
+
     setOtp([
       "",
       "",
@@ -342,7 +375,18 @@ export default function AuthDialog({
 
   async function handleVerifyOtp() {
 
+    if (
+      verifyingOtp ||
+      !isOtpValid
+    ) {
+      return;
+    }
+
     try {
+
+      setVerifyingOtp(
+        true
+      );
 
       const normalizedPhone =
         phone
@@ -556,6 +600,23 @@ export default function AuthDialog({
 
       /*
        * =====================================================
+       * OTP VERIFIED SUCCESS MESSAGE
+       * =====================================================
+       *
+       * Show a clear confirmation immediately after the OTP
+       * and Supabase session have been successfully verified.
+       * This appears before the existing customer/profile
+       * resolution continues.
+       * =====================================================
+       */
+
+      toast.success(
+        "Mobile number verified successfully ✨"
+      );
+
+
+      /*
+       * =====================================================
        * RESOLVE T&M CUSTOMER
        * =====================================================
        */
@@ -596,11 +657,6 @@ export default function AuthDialog({
        * NEW CUSTOMER
        * =====================================================
        */
-
-      toast.success(
-        "OTP verified successfully ✨"
-      );
-
 
       setTimeout(() => {
 
@@ -643,6 +699,12 @@ export default function AuthDialog({
         );
 
       }
+
+    } finally {
+
+      setVerifyingOtp(
+        false
+      );
 
     }
 
@@ -1157,12 +1219,24 @@ export default function AuthDialog({
 
                   <button
                     disabled={
-                      !isPhoneValid
+                      !isPhoneValid ||
+                      sendingOtp
                     }
 
                     onClick={async () => {
 
+                      if (
+                        !isPhoneValid ||
+                        sendingOtp
+                      ) {
+                        return;
+                      }
+
                       try {
+
+                        setSendingOtp(
+                          true
+                        );
 
                         await supabase.auth.signInWithOtp({
                           phone: `+91${phone}`,
@@ -1211,6 +1285,12 @@ export default function AuthDialog({
                           "Unable to send OTP"
                         );
 
+                      } finally {
+
+                        setSendingOtp(
+                          false
+                        );
+
                       }
 
                     }}
@@ -1231,7 +1311,17 @@ export default function AuthDialog({
                     `}
                   >
 
-                    Continue
+                    {sendingOtp ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Loader2
+                          size={16}
+                          className="animate-spin"
+                        />
+                        Sending OTP...
+                      </span>
+                    ) : (
+                      "Continue"
+                    )}
 
                   </button>
 
@@ -1266,6 +1356,10 @@ export default function AuthDialog({
 
                     onClick={
                       changePhone
+                    }
+
+                    disabled={
+                      verifyingOtp
                     }
 
                     className="
@@ -1524,7 +1618,8 @@ export default function AuthDialog({
                     type="button"
 
                     disabled={
-                      !isOtpValid
+                      !isOtpValid ||
+                      verifyingOtp
                     }
 
                     onClick={
@@ -1548,7 +1643,17 @@ export default function AuthDialog({
                     `}
                   >
 
-                    Verify & Continue
+                    {verifyingOtp ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Loader2
+                          size={16}
+                          className="animate-spin"
+                        />
+                        Verifying...
+                      </span>
+                    ) : (
+                      "Verify & Continue"
+                    )}
 
                   </button>
 
