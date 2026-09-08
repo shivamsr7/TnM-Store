@@ -9,7 +9,6 @@ import {
   CreditCard,
   Loader2,
   Wallet,
-  AlertTriangle,
 } from "lucide-react";
 
 import {
@@ -159,16 +158,6 @@ export default function CheckoutDialog({
     customer,
     setCustomer,
   ] = useState<any>(null);
-
-  /*
-   * =========================================================
-   * CLOSE CHECKOUT CONFIRMATION
-   * =========================================================
-   */
-  const [
-    closeConfirmationOpen,
-    setCloseConfirmationOpen,
-  ] = useState(false);
 
   /*
    * =========================================================
@@ -1441,7 +1430,6 @@ export default function CheckoutDialog({
     setMemberUpgradeDialogOpen(false);
     setMemberUpgradeReason("special_price");
     setMemberUpgradeSubmitting(false);
-    setCloseConfirmationOpen(false);
 
   }, [
     open,
@@ -3994,22 +3982,9 @@ export default function CheckoutDialog({
 
             <button
 
-              type="button"
-
-              onClick={() => {
-                if (
-                  orderSuccess ||
-                  processingPayment ||
-                  paymentRecoveryError
-                ) {
-                  handleCheckoutClose();
-                  return;
-                }
-
-                setCloseConfirmationOpen(true);
-              }}
-
-              aria-label="Close checkout"
+              onClick={
+                onClose
+              }
 
               className="
                 rounded-full
@@ -7821,196 +7796,6 @@ export default function CheckoutDialog({
         />
       )}
 
-
-      {/* ===================================================
-          CLOSE CHECKOUT CONFIRMATION
-      ==================================================== */}
-
-      {
-        closeConfirmationOpen && (
-          <div
-            className="
-              fixed
-              inset-0
-              z-[1300]
-              flex
-              items-center
-              justify-center
-              bg-black/55
-              px-5
-              backdrop-blur-md
-              motion-safe:animate-[fadeIn_180ms_ease-out]
-            "
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="close-checkout-title"
-            aria-describedby="close-checkout-description"
-            onClick={() => setCloseConfirmationOpen(false)}
-          >
-
-            <div
-              className="
-                w-full
-                max-w-[390px]
-                overflow-hidden
-                rounded-[28px]
-                border
-                border-neutral-200/80
-                bg-white
-                shadow-[0_24px_80px_rgba(0,0,0,0.22)]
-                motion-safe:animate-[closeConfirmIn_260ms_cubic-bezier(0.22,1,0.36,1)]
-              "
-              onClick={(event) => event.stopPropagation()}
-            >
-
-              <div
-                className="
-                  px-6
-                  pb-5
-                  pt-7
-                  text-center
-                  md:px-8
-                  md:pt-8
-                "
-              >
-
-                <div
-                  className="
-                    relative
-                    mx-auto
-                    flex
-                    h-[72px]
-                    w-[72px]
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-[#C8A44D]/10
-                    text-[#A27E2E]
-                    ring-8
-                    ring-[#C8A44D]/[0.05]
-                    motion-safe:animate-[softFloat_2.8s_ease-in-out_infinite]
-                  "
-                >
-
-                  <div
-                    className="
-                      absolute
-                      inset-[-7px]
-                      rounded-full
-                      border
-                      border-[#C8A44D]/20
-                      motion-safe:animate-[confirmRing_2s_ease-out_infinite]
-                    "
-                  />
-
-                  <AlertTriangle
-                    size={30}
-                    strokeWidth={1.8}
-                  />
-
-                </div>
-
-                <h3
-                  id="close-checkout-title"
-                  className="
-                    mt-6
-                    text-[22px]
-                    font-semibold
-                    tracking-[-0.025em]
-                    text-neutral-950
-                  "
-                >
-                  Leave checkout?
-                </h3>
-
-                <p
-                  id="close-checkout-description"
-                  className="
-                    mx-auto
-                    mt-2.5
-                    max-w-[315px]
-                    text-sm
-                    leading-6
-                    text-neutral-500
-                  "
-                >
-                  You're almost there. Your checkout progress is waiting for you. Are you sure you want to leave?
-                </p>
-
-              </div>
-
-              <div
-                className="
-                  border-t
-                  border-neutral-100
-                  bg-neutral-50/70
-                  px-5
-                  py-5
-                  md:px-6
-                "
-              >
-
-                <button
-                  type="button"
-                  onClick={() => setCloseConfirmationOpen(false)}
-                  className="
-                    flex
-                    w-full
-                    items-center
-                    justify-center
-                    rounded-xl
-                    bg-black
-                    px-5
-                    py-3.5
-                    text-sm
-                    font-semibold
-                    text-white
-                    transition
-                    duration-200
-                    hover:bg-neutral-800
-                    active:scale-[0.985]
-                  "
-                >
-                  Continue Checkout
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCloseConfirmationOpen(false);
-                    void handleCheckoutClose();
-                  }}
-                  className="
-                    mt-2
-                    flex
-                    w-full
-                    items-center
-                    justify-center
-                    rounded-xl
-                    px-5
-                    py-3
-                    text-sm
-                    font-medium
-                    text-neutral-500
-                    transition
-                    duration-200
-                    hover:bg-white
-                    hover:text-neutral-900
-                    active:scale-[0.985]
-                  "
-                >
-                  Exit Checkout
-                </button>
-
-              </div>
-
-            </div>
-
-          </div>
-        )
-      }
-
-
       {/* Component-local motion used by the mobile-first checkout shell. */}
       <style>
         {`
@@ -8102,32 +7887,6 @@ export default function CheckoutDialog({
             to {
               opacity: 1;
               transform: scale(1) translateY(0);
-            }
-          }
-
-          @keyframes closeConfirmIn {
-            from {
-              opacity: 0;
-              transform: translateY(14px) scale(0.94);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0) scale(1);
-            }
-          }
-
-          @keyframes confirmRing {
-            0% {
-              opacity: 0.8;
-              transform: scale(0.9);
-            }
-            70% {
-              opacity: 0;
-              transform: scale(1.18);
-            }
-            100% {
-              opacity: 0;
-              transform: scale(1.18);
             }
           }
 
