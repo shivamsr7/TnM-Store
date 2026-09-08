@@ -2,6 +2,7 @@ import {
   Check,
   Copy,
   Loader2,
+  LockKeyhole,
   Sparkles,
   Tag,
   X,
@@ -40,6 +41,7 @@ interface EligibleCoupon {
   coupon: any;
   result: any;
   saving: number;
+  memberOnly?: boolean;
 }
 
 export default function CouponModal({
@@ -230,33 +232,46 @@ export default function CouponModal({
          * No normal coupon validation/application logic is changed.
          */
         if (isGuestCustomer) {
+          /*
+           * Guest coupon visibility has two categories:
+           *
+           * 1. Available now:
+           *    normal Guest validation succeeds.
+           *
+           * 2. Unlock with Membership:
+           *    Guest validation fails specifically because the
+           *    coupon is Member-only, but previewAsMember succeeds.
+           *
+           * This keeps the existing validation engine as the
+           * source of truth. We only classify the result for UI.
+           */
           const results = await Promise.all(
             validCoupons.map(
               async (
                 coupon: any
               ): Promise<EligibleCoupon | null> => {
+                const validationTimeout = () =>
+                  new Promise<never>((_, reject) =>
+                    window.setTimeout(
+                      () =>
+                        reject(
+                          new Error(
+                            "Coupon eligibility check timed out"
+                          )
+                        ),
+                      8000
+                    )
+                  );
+
                 try {
                   const result = await Promise.race([
                     validateCoupon(
                       coupon.code,
                       cartTotal,
                       validationCustomerId,
-                      stableCartItems,
-                      {
-                        previewAsMember: true,
-                      }
+                      stableCartItems
                     ),
-                    new Promise<never>((_, reject) =>
-                      window.setTimeout(
-                        () =>
-                          reject(
-                            new Error(
-                              "Coupon eligibility check timed out"
-                            )
-                          ),
-                        8000
-                      )
-                    ),
+                    validationTimeout(),
                   ]);
 
                   return {
@@ -265,9 +280,54 @@ export default function CouponModal({
                     saving: Number(
                       result.discount ?? 0
                     ),
+                    memberOnly: false,
                   };
-                } catch {
-                  return null;
+                } catch (guestError: any) {
+                  /*
+                   * Only a genuine MEMBER_ONLY_COUPON should be
+                   * offered as a membership-unlock option.
+                   *
+                   * Other failures (minimum order, targeting,
+                   * usage, customer restrictions, etc.) remain
+                   * hidden exactly as before.
+                   */
+                  if (
+                    guestError?.code !==
+                    "MEMBER_ONLY_COUPON"
+                  ) {
+                    return null;
+                  }
+
+                  try {
+                    const memberPreviewResult =
+                      await Promise.race([
+                        validateCoupon(
+                          coupon.code,
+                          cartTotal,
+                          validationCustomerId,
+                          stableCartItems,
+                          {
+                            previewAsMember: true,
+                          }
+                        ),
+                        validationTimeout(),
+                      ]);
+
+                    return {
+                      coupon,
+                      result: memberPreviewResult,
+                      saving: Number(
+                        memberPreviewResult.discount ?? 0
+                      ),
+                      memberOnly: true,
+                    };
+                  } catch {
+                    /*
+                     * The coupon is Member-only, but would still
+                     * be ineligible after upgrading. Do not show it.
+                     */
+                    return null;
+                  }
                 }
               }
             )
@@ -284,8 +344,9 @@ export default function CouponModal({
                 )
                 .sort(
                   (a, b) =>
-                    b.saving -
-                    a.saving
+                    Number(Boolean(a.memberOnly)) -
+                      Number(Boolean(b.memberOnly)) ||
+                    b.saving - a.saving
                 )
             );
           }
@@ -381,17 +442,34 @@ export default function CouponModal({
   }, [open, refetch]);
 
 
-  const topOffer =
-    eligibleCoupons[0] ?? null;
+  const availableNowCoupons =
+    useMemo(
+      () =>
+        eligibleCoupons.filter(
+          item => !item.memberOnly
+        ),
+      [eligibleCoupons]
+    );
 
+  const memberOnlyCoupons =
+    useMemo(
+      () =>
+        eligibleCoupons.filter(
+          item => item.memberOnly
+        ),
+      [eligibleCoupons]
+    );
+
+  const topOffer =
+    availableNowCoupons[0] ?? null;
 
   const otherOffers =
     useMemo(
       () =>
         topOffer
-          ? eligibleCoupons.slice(1)
-          : eligibleCoupons,
-      [eligibleCoupons, topOffer]
+          ? availableNowCoupons.slice(1)
+          : availableNowCoupons,
+      [availableNowCoupons, topOffer]
     );
 
 
@@ -635,7 +713,7 @@ export default function CouponModal({
                   "
                 >
                   {isGuestCustomer
-                    ? "Showing offers you can unlock or use."
+                    ? "Use these now or unlock selected offers with Membership."
                     : "Showing only offers you can use right now"}
                 </p>
 
@@ -780,7 +858,7 @@ export default function CouponModal({
 
               <div
                 className="
-                  space-y-3
+                  space-y-5
                 "
               >
 
@@ -1341,6 +1419,231 @@ export default function CouponModal({
                   )
                 }
 
+                {/* =================================================
+                    MEMBER-ONLY OFFERS
+                ================================================== */}
+
+                {isGuestCustomer &&
+                  memberOnlyCoupons.length > 0 && (
+                    <div className="pt-1">
+                      <div
+                        className="
+                          mb-3
+                          flex
+                          items-center
+                          justify-between
+                          gap-3
+                        "
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="
+                                flex
+                                h-7
+                                w-7
+                                shrink-0
+                                items-center
+                                justify-center
+                                rounded-full
+                                bg-[#C8A44D]/12
+                                text-[#9A7A22]
+                              "
+                            >
+                              <LockKeyhole size={13} />
+                            </span>
+                            <p
+                              className="
+                                text-xs
+                                font-semibold
+                                uppercase
+                                tracking-[0.08em]
+                                text-neutral-600
+                              "
+                            >
+                              Unlock with Membership
+                            </p>
+                          </div>
+                          <p className="mt-1 pl-9 text-[11px] leading-4 text-neutral-400">
+                            Become a T&M Member to use these offers.
+                          </p>
+                        </div>
+
+                        <span
+                          className="
+                            shrink-0
+                            rounded-full
+                            bg-[#fffaf0]
+                            px-2
+                            py-1
+                            text-[10px]
+                            font-semibold
+                            text-[#80651d]
+                          "
+                        >
+                          {memberOnlyCoupons.length}
+                        </span>
+                      </div>
+
+                      <div className="grid gap-2.5 sm:grid-cols-2">
+                        {memberOnlyCoupons.map(
+                          (item, index) => (
+                            <div
+                              key={item.coupon.id}
+                              style={{
+                                animationDelay:
+                                  `${index * 60}ms`,
+                              }}
+                              className="
+                                relative
+                                overflow-hidden
+                                rounded-2xl
+                                border
+                                border-[#C8A44D]/25
+                                bg-gradient-to-br
+                                from-[#fffdf7]
+                                via-[#fffaf0]
+                                to-white
+                                p-3.5
+                                shadow-[0_8px_24px_rgba(200,164,77,0.07)]
+                                animate-in
+                                fade-in
+                                slide-in-from-bottom-2
+                              "
+                            >
+                              <div
+                                className="
+                                  pointer-events-none
+                                  absolute
+                                  -right-7
+                                  -top-7
+                                  h-20
+                                  w-20
+                                  rounded-full
+                                  bg-[#C8A44D]/10
+                                  blur-2xl
+                                "
+                              />
+
+                              <div className="relative">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      <p className="truncate text-sm font-bold text-neutral-900">
+                                        {item.coupon.code}
+                                      </p>
+
+                                      <span
+                                        className="
+                                          inline-flex
+                                          items-center
+                                          gap-1
+                                          rounded-full
+                                          bg-[#C8A44D]/12
+                                          px-2
+                                          py-0.5
+                                          text-[9px]
+                                          font-semibold
+                                          text-[#80651d]
+                                        "
+                                      >
+                                        <LockKeyhole size={9} />
+                                        Member
+                                      </span>
+                                    </div>
+
+                                    <p className="mt-1 text-xs text-neutral-700">
+                                      {item.coupon.title ||
+                                        getOfferText(item)}
+                                    </p>
+
+                                    <p className="mt-1 text-[10px] text-neutral-500">
+                                      {getOfferText(item)}
+                                      {item.saving > 0 && (
+                                        <>
+                                          {" · "}
+                                          <span className="font-semibold text-[#80651d]">
+                                            Save ₹{formatSaving(item.saving)}
+                                          </span>
+                                        </>
+                                      )}
+                                    </p>
+                                  </div>
+
+                                  <LockKeyhole
+                                    size={16}
+                                    className="mt-0.5 shrink-0 text-[#A88325]"
+                                  />
+                                </div>
+
+                                <button
+                                  type="button"
+                                  disabled={
+                                    applyingCouponId === item.coupon.id
+                                  }
+                                  onClick={async () => {
+                                    try {
+                                      setApplyingCouponId(
+                                        item.coupon.id
+                                      );
+
+                                      /*
+                                       * Existing CheckoutDialog logic
+                                       * handles MEMBER_ONLY_COUPON and
+                                       * opens the Member upgrade prompt.
+                                       */
+                                      await onApply(item.coupon);
+                                    } finally {
+                                      setApplyingCouponId(null);
+                                    }
+                                  }}
+                                  className="
+                                    mt-3
+                                    flex
+                                    w-full
+                                    items-center
+                                    justify-center
+                                    gap-2
+                                    rounded-xl
+                                    border
+                                    border-[#C8A44D]/35
+                                    bg-[#fffaf0]
+                                    px-3.5
+                                    py-2.5
+                                    text-[11px]
+                                    font-semibold
+                                    text-[#80651d]
+                                    transition
+                                    hover:bg-[#fff7df]
+                                    hover:border-[#C8A44D]/55
+                                    active:scale-[0.985]
+                                    disabled:cursor-not-allowed
+                                    disabled:opacity-60
+                                  "
+                                >
+                                  {applyingCouponId === item.coupon.id ? (
+                                    <>
+                                      <Loader2
+                                        size={13}
+                                        className="animate-spin"
+                                      />
+                                      Unlocking...
+                                    </>
+                                  ) : (
+                                    <>
+                                      Become a Member & Use
+                                      <span aria-hidden="true">→</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
+
               </div>
 
             ) : (
@@ -1441,7 +1744,9 @@ export default function CouponModal({
                 text-neutral-400
               "
             >
-              Offers are checked against your current cart.
+              {isGuestCustomer
+                ? "Offers are matched to your cart. Member-only offers are clearly marked."
+                : "Offers are checked against your current cart."}
             </p>
 
             <button

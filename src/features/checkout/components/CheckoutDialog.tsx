@@ -821,12 +821,37 @@ export default function CheckoutDialog({
   const [buyNowCouponLoading, setBuyNowCouponLoading] = useState(false);
   const [buyNowCouponModalOpen, setBuyNowCouponModalOpen] = useState(false);
   const [buyNowAvailableCouponCount, setBuyNowAvailableCouponCount] = useState(0);
+  const [buyNowMemberOnlyCouponCount, setBuyNowMemberOnlyCouponCount] = useState(0);
   const [buyNowCheckingCouponCount, setBuyNowCheckingCouponCount] = useState(false);
   const [buyNowGiftWrapSelected, setBuyNowGiftWrapSelected] = useState(false);
   const [buyNowGiftMessage, setBuyNowGiftMessage] = useState("");
 
   const appliedCoupon =
     isBuyNow ? buyNowCoupon : cartAppliedCoupon;
+
+  /*
+   * Coupon validation can be reached through different checkout
+   * authentication paths. The local `customer` state is not always
+   * populated at the exact moment the Auth/customer state is ready,
+   * especially on mobile. Always use the first available customer id.
+   */
+  const couponCustomerId =
+    customer?.id ??
+    guestCustomerDraft?.id ??
+    authCustomer?.id ??
+    null;
+
+  const couponIsGuestCustomer =
+    Boolean(
+      customer?.id &&
+      !customer?.auth_user_id &&
+      customer?.customer_type === "guest"
+    ) ||
+    Boolean(
+      guestCustomerDraft?.id &&
+      !guestCustomerDraft?.auth_user_id &&
+      guestCustomerDraft?.customer_type === "guest"
+    );
 
   const discount =
     isBuyNow ? buyNowDiscount : cartDiscount;
@@ -945,9 +970,20 @@ export default function CheckoutDialog({
         pricing?.special_discount_value ?? 0
       );
 
+    const specialEndsAt =
+      pricing?.special_discount_ends_at
+        ? new Date(
+            pricing.special_discount_ends_at
+          ).getTime()
+        : null;
+
     const hasActiveSpecialOffer =
       specialEnabled &&
-      specialValue > 0;
+      specialValue > 0 &&
+      (
+        specialEndsAt === null ||
+        specialEndsAt > Date.now()
+      );
 
     if (
       isGuestCheckoutCustomer &&
@@ -1234,9 +1270,20 @@ export default function CheckoutDialog({
         pricing?.special_discount_value ?? 0
       );
 
+    const specialEndsAt =
+      pricing?.special_discount_ends_at
+        ? new Date(
+            pricing.special_discount_ends_at
+          ).getTime()
+        : null;
+
     const hasSpecialOffer =
       productSpecialEnabled &&
-      productSpecialValue > 0;
+      productSpecialValue > 0 &&
+      (
+        specialEndsAt === null ||
+        specialEndsAt > Date.now()
+      );
 
     const isMemberReceivingSpecialPrice =
       !isGuestCheckoutCustomer &&
@@ -1463,6 +1510,7 @@ export default function CheckoutDialog({
       setBuyNowCouponError("");
       setBuyNowCouponModalOpen(false);
       setBuyNowAvailableCouponCount(0);
+      setBuyNowMemberOnlyCouponCount(0);
       setBuyNowCheckingCouponCount(false);
       setBuyNowGiftWrapSelected(false);
       setBuyNowGiftMessage("");
@@ -1509,7 +1557,6 @@ export default function CheckoutDialog({
 
       if (
         !open ||
-        !customer?.id ||
         checkoutItems.length === 0
       ) {
         if (!cancelled) {
@@ -1535,6 +1582,165 @@ export default function CheckoutDialog({
           throw couponsError;
         }
 
+        /*
+         * Guest checkout uses the same visibility rule as
+         * CouponModal:
+         *
+         * Show every currently active coupon that has started,
+         * has not expired, and has not reached its usage limit.
+         *
+         * We intentionally do NOT call validateCoupon() here for
+         * Guests because CouponModal is designed to let Guests
+         * SEE available offers, including Member-only offers.
+         * Applying the coupon still goes through the secure
+         * validateCoupon() flow.
+         */
+        if (couponIsGuestCustomer) {
+          /*
+           * Keep the checkout summary in sync with CouponModal.
+           *
+           * Guests get two counts:
+           * - Available now: normal Guest validation succeeds.
+           * - Member-only: Guest validation returns
+           *   MEMBER_ONLY_COUPON, and the same coupon succeeds in
+           *   previewAsMember mode.
+           *
+           * Coupons that remain ineligible after membership are
+           * not counted.
+           */
+          const guestCouponResults =
+            await Promise.all(
+              (activeCoupons ?? [])
+                .filter((coupon: any) => {
+                  if (coupon.is_active !== true) {
+                    return false;
+                  }
+
+                  if (
+                    coupon.starts_at &&
+                    new Date(coupon.starts_at) > new Date()
+                  ) {
+                    return false;
+                  }
+
+                  if (
+                    coupon.expires_at &&
+                    new Date(coupon.expires_at) < new Date()
+                  ) {
+                    return false;
+                  }
+
+                  if (
+                    coupon.usage_limit &&
+                    Number(coupon.used_count ?? 0) >=
+                      Number(coupon.usage_limit)
+                  ) {
+                    return false;
+                  }
+
+                  return true;
+                })
+                .map(async (coupon: any) => {
+                  const timeout = () =>
+                    new Promise<never>((_, reject) =>
+                      window.setTimeout(
+                        () =>
+                          reject(
+                            new Error(
+                              "Coupon eligibility check timed out"
+                            )
+                          ),
+                        8000
+                      )
+                    );
+
+                  try {
+                    await Promise.race([
+                      validateCoupon(
+                        coupon.code,
+                        subtotal,
+                        couponCustomerId ?? "",
+                        checkoutItems.map((item: any) => ({
+                          productId: item.productId,
+                          quantity: item.quantity,
+                          price: item.price,
+                        }))
+                      ),
+                      timeout(),
+                    ]);
+
+                    return "available";
+                  } catch (guestError: any) {
+                    if (
+                      guestError?.code !==
+                      "MEMBER_ONLY_COUPON"
+                    ) {
+                      return null;
+                    }
+
+                    try {
+                      await Promise.race([
+                        validateCoupon(
+                          coupon.code,
+                          subtotal,
+                          couponCustomerId ?? "",
+                          checkoutItems.map((item: any) => ({
+                            productId: item.productId,
+                            quantity: item.quantity,
+                            price: item.price,
+                          })),
+                          {
+                            previewAsMember: true,
+                          }
+                        ),
+                        timeout(),
+                      ]);
+
+                      return "member";
+                    } catch {
+                      return null;
+                    }
+                  }
+                })
+            );
+
+          if (!cancelled) {
+            setBuyNowAvailableCouponCount(
+              guestCouponResults.filter(
+                result => result === "available"
+              ).length
+            );
+
+            setBuyNowMemberOnlyCouponCount(
+              guestCouponResults.filter(
+                result => result === "member"
+              ).length
+            );
+          }
+
+          return;
+        }
+
+        /*
+         * Logged-in Members continue using the existing
+         * validateCoupon() source of truth so their count remains
+         * personalized to their account and current cart.
+         */
+        const memberCustomerId =
+          customer?.id ??
+          authCustomer?.id ??
+          null;
+
+        if (!memberCustomerId) {
+
+          if (!cancelled) {
+            setBuyNowAvailableCouponCount(0);
+            setBuyNowMemberOnlyCouponCount(0);
+          }
+
+          return;
+        }
+
         const eligibleResults =
           await Promise.all(
             (activeCoupons ?? []).map(
@@ -1545,7 +1751,7 @@ export default function CheckoutDialog({
                   await validateCoupon(
                     coupon.code,
                     subtotal,
-                    customer.id,
+                    memberCustomerId,
                     checkoutItems.map(
                       (item: any) => ({
                         productId:
@@ -1575,15 +1781,13 @@ export default function CheckoutDialog({
         setBuyNowAvailableCouponCount(
           eligibleResults.filter(Boolean).length
         );
+        setBuyNowMemberOnlyCouponCount(0);
 
       } catch {
 
         if (!cancelled) {
-          /*
-           * If the availability check itself fails, do not show
-           * a misleading offer count.
-           */
           setBuyNowAvailableCouponCount(0);
+          setBuyNowMemberOnlyCouponCount(0);
         }
 
       } finally {
@@ -1605,14 +1809,14 @@ export default function CheckoutDialog({
   }, [
     isBuyNow,
     open,
-    customer?.id,
+    couponCustomerId,
+    couponIsGuestCustomer,
     checkoutItems.length,
     checkoutItems[0]?.productId,
     checkoutItems[0]?.quantity,
     checkoutItems[0]?.price,
     subtotal,
   ]);
-
 
   /*
    * =========================================================
@@ -1645,24 +1849,9 @@ export default function CheckoutDialog({
   function handleViewAvailableCoupons() {
 
     /*
-     * While the checkout is still on the Login step, this
-     * button should behave as a shortcut to the Login section.
-     *
-     * It must NOT open CouponModal from the Login step.
-     */
-    if (
-      step === "login" &&
-      !authCustomer
-    ) {
-      scrollToLoginSection();
-      return;
-    }
-
-
-    /*
-     * Once the Guest has completed Login/OTP and reached the
-     * Address step, "View available coupons" opens the coupon
-     * dialog so the Guest can browse available offers.
+     * This is a dedicated coupon-browsing action.
+     * It should always open the CouponModal so the customer
+     * can actually see the coupons available for this checkout.
      */
     setBuyNowCouponError("");
     setBuyNowCouponModalOpen(true);
@@ -1766,11 +1955,22 @@ export default function CheckoutDialog({
           item.productId
         );
 
+      const specialEndsAt =
+        pricing?.special_discount_ends_at
+          ? new Date(
+              pricing.special_discount_ends_at
+            ).getTime()
+          : null;
+
       return (
         pricing?.special_discount_enabled === true &&
         Number(
           pricing?.special_discount_value ?? 0
-        ) > 0
+        ) > 0 &&
+        (
+          specialEndsAt === null ||
+          specialEndsAt > Date.now()
+        )
       );
     });
 
@@ -2008,7 +2208,7 @@ export default function CheckoutDialog({
       return;
     }
 
-    if (!customer?.id) {
+    if (!couponCustomerId) {
       setBuyNowCouponError("Please log in to use a coupon.");
       return;
     }
@@ -2021,7 +2221,7 @@ export default function CheckoutDialog({
         await validateCoupon(
           code,
           subtotal,
-          customer.id,
+          couponCustomerId,
           checkoutItems.map((item: any) => ({
             productId: item.productId,
             quantity: item.quantity,
@@ -4150,7 +4350,12 @@ export default function CheckoutDialog({
 
                           const available =
                             index <=
-                            currentStepIndex;
+                            currentStepIndex &&
+                            !(
+                              item.key === "login" &&
+                              isGuestCustomer &&
+                              step !== "login"
+                            );
 
                           return (
 
@@ -4178,6 +4383,21 @@ export default function CheckoutDialog({
                                     item.key ===
                                     "login"
                                   ) {
+                                    /*
+                                     * Once a Guest has successfully
+                                     * moved to Address, keep this
+                                     * CheckoutDialog on the forward
+                                     * checkout flow. The Guest must
+                                     * not be taken back to Login from
+                                     * the step indicator.
+                                     */
+                                    if (
+                                      isGuestCustomer &&
+                                      step !== "login"
+                                    ) {
+                                      return;
+                                    }
+
                                     if (!authCustomer) {
                                       setStep("login");
                                     }
@@ -5019,19 +5239,135 @@ export default function CheckoutDialog({
                             </button>
                           </div>
 
-                          {!buyNowCheckingCouponCount &&
-                            buyNowAvailableCouponCount > 0 && (
+                          {buyNowCheckingCouponCount ? (
+                            <div
+                              className="
+                                mt-3
+                                flex
+                                w-full
+                                items-center
+                                justify-center
+                                gap-2.5
+                                rounded-2xl
+                                border
+                                border-[#ead9a8]
+                                bg-gradient-to-r
+                                from-[#fffaf0]
+                                to-[#fffdf8]
+                                px-3.5
+                                py-3
+                                text-center
+                              "
+                            >
+                              <Loader2
+                                size={15}
+                                className="shrink-0 animate-spin text-[#C8A44D]"
+                              />
+                              <div>
+                                <p className="text-xs font-semibold text-neutral-800">
+                                  Checking available offers
+                                </p>
+                                <p className="mt-0.5 text-[10px] text-neutral-500">
+                                  Just a moment while we refresh your coupons.
+                                </p>
+                              </div>
+                            </div>
+                          ) : (
+                            (buyNowAvailableCouponCount +
+                              buyNowMemberOnlyCouponCount) > 0 && (
                               <button
                                 type="button"
                                 onClick={handleViewAvailableCoupons}
-                                className="mt-2 text-xs font-semibold text-[#9A7A22] underline underline-offset-2 transition hover:text-[#C8A44D]"
+                                className="
+                                  group
+                                  mt-3
+                                  w-full
+                                  rounded-2xl
+                                  border
+                                  border-[#ead9a8]
+                                  bg-gradient-to-r
+                                  from-[#fffaf0]
+                                  to-[#fffdf8]
+                                  px-3.5
+                                  py-3
+                                  text-left
+                                  transition-all
+                                  duration-200
+                                  hover:border-[#d9bd68]
+                                  hover:bg-[#fff7df]
+                                  active:scale-[0.99]
+                                "
                               >
-                                {buyNowAvailableCouponCount}{" "}
-                                {buyNowAvailableCouponCount === 1
-                                  ? "offer available for you"
-                                  : "offers available for you"}
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="flex min-w-0 items-center gap-2.5">
+                                    <span
+                                      className="
+                                        flex
+                                        h-8
+                                        w-8
+                                        shrink-0
+                                        items-center
+                                        justify-center
+                                        rounded-full
+                                        bg-[#C8A44D]/12
+                                        text-[#9A7A22]
+                                      "
+                                    >
+                                      🎟️
+                                    </span>
+
+                                    <div className="min-w-0">
+                                      <p className="text-xs font-semibold text-neutral-900">
+                                        {buyNowAvailableCouponCount +
+                                          buyNowMemberOnlyCouponCount}{" "}
+                                        {(buyNowAvailableCouponCount +
+                                          buyNowMemberOnlyCouponCount) === 1
+                                          ? "offer available"
+                                          : "offers available"}
+                                      </p>
+
+                                      {couponIsGuestCustomer ? (
+                                        <p className="mt-0.5 text-[10px] text-neutral-500">
+                                          {buyNowAvailableCouponCount > 0 && (
+                                            <span className="font-medium text-green-700">
+                                              {buyNowAvailableCouponCount} available now
+                                            </span>
+                                          )}
+                                          {buyNowAvailableCouponCount > 0 &&
+                                            buyNowMemberOnlyCouponCount > 0 && (
+                                              <span> · </span>
+                                            )}
+                                          {buyNowMemberOnlyCouponCount > 0 && (
+                                            <span className="font-medium text-[#80651d]">
+                                              {buyNowMemberOnlyCouponCount} Member-only
+                                            </span>
+                                          )}
+                                        </p>
+                                      ) : (
+                                        <p className="mt-0.5 text-[10px] text-neutral-500">
+                                          Available to use on this order
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <span
+                                    className="
+                                      shrink-0
+                                      text-lg
+                                      text-[#A88325]
+                                      transition-transform
+                                      duration-200
+                                      group-hover:translate-x-0.5
+                                    "
+                                    aria-hidden="true"
+                                  >
+                                    →
+                                  </span>
+                                </div>
                               </button>
-                            )}
+                            )
+                          )}
 
                           {buyNowCouponError && (
                             <p className="mt-2 text-xs text-red-600">
@@ -6754,21 +7090,65 @@ export default function CheckoutDialog({
             !orderSuccess &&
             step === "address" && (
 
-              <AddressStep
+              <div className="relative min-h-[320px]">
 
-                customer={
-                  customer
-                }
+                <AddressStep
 
-                onContinue={
-                  handleAddressContinue
-                }
+                  customer={
+                    customer
+                  }
 
-                onAddingAddressChange={
-                  setIsAddingNewAddress
-                }
+                  onContinue={
+                    handleAddressContinue
+                  }
 
-              />
+                  onAddingAddressChange={
+                    setIsAddingNewAddress
+                  }
+
+                />
+
+                {buyNowCheckingCouponCount && (
+                  <div
+                    className="
+                      absolute
+                      inset-0
+                      z-20
+                      flex
+                      items-center
+                      justify-center
+                      rounded-xl
+                      bg-white/95
+                      backdrop-blur-[2px]
+                    "
+                  >
+                    <div
+                      className="
+                        flex
+                        flex-col
+                        items-center
+                        justify-center
+                        px-6
+                        text-center
+                      "
+                    >
+                      <Loader2
+                        size={26}
+                        className="mb-3 animate-spin text-[#C8A44D]"
+                      />
+
+                      <p className="text-sm font-semibold text-neutral-800">
+                        Setting up your checkout
+                      </p>
+
+                      <p className="mt-1 max-w-[260px] text-xs leading-5 text-neutral-500">
+                        Just a moment — we’re checking your available offers.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+              </div>
 
             )
           }
