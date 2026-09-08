@@ -7299,7 +7299,7 @@ export default function CartDrawer() {
 
                       ${
                         loginOfferHighlight
-                          ? "ring-4 ring-[#C8A44D]/25 shadow-[0_0_0_2px_rgba(200,164,77,0.35),0_10px_28px_rgba(200,164,77,0.22)] motion-safe:animate-pulse"
+                          ? "ring-4 ring-[#C8A44D]/70 ring-offset-2 ring-offset-white shadow-[0_8px_24px_rgba(200,164,77,0.24)] md:animate-pulse"
                           : ""
                       }
 
@@ -7308,9 +7308,15 @@ export default function CartDrawer() {
                   >
 
                     {loginOfferHighlight ? (
-                      <span className="flex items-center gap-2">
-                        ↓ Continue To Checkout to Sign In
-                      </span>
+                      <>
+                        <span className="md:hidden">
+                          Continue To Checkout
+                        </span>
+
+                        <span className="hidden items-center gap-2 md:flex">
+                          ↓ Continue To Checkout to Sign In
+                        </span>
+                      </>
                     ) : (
                       "Continue To Checkout"
                     )}
