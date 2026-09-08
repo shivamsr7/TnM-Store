@@ -341,7 +341,28 @@ const getProductStock = async (
  * =========================================================
  * SUPABASE CART SYNC
  * =========================================================
+ *
+ * Keep customer-cart database writes strictly sequential.
+ * Each cart action can trigger an async Supabase sync, and
+ * overlapping read/delete/update/insert operations can cause
+ * an older cart snapshot to finish after a newer one and
+ * remove newly added items.
+ * =========================================================
  */
+
+let cartSyncQueue: Promise<void> = Promise.resolve();
+
+function queueCartSync(
+  task: () => Promise<void>
+) {
+
+  cartSyncQueue = cartSyncQueue
+    .catch(() => {})
+    .then(task);
+
+  return cartSyncQueue;
+
+}
 
 function normalizePhone(
   phone?: string | null
@@ -782,51 +803,57 @@ async function saveCustomerCart(
 
 async function syncCurrentCustomerCart() {
 
-  try {
+  await queueCartSync(
+    async () => {
 
-    const {
-      data,
-    } =
-      await supabase.auth.getSession();
+      try {
 
-    const session =
-      data.session;
+        const {
+          data,
+        } =
+          await supabase.auth.getSession();
 
-    if (!session?.user) {
+        const session =
+          data.session;
 
-      return;
+        if (!session?.user) {
+
+          return;
+
+        }
+
+        const customerId =
+          await getCustomerIdFromSession(
+            session.user.phone
+          );
+
+        if (!customerId) {
+
+          return;
+
+        }
+
+        const {
+          items,
+        } =
+          useCartStore.getState();
+
+        await saveCustomerCart(
+          customerId,
+          items
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Failed to synchronize customer cart:",
+          error
+        );
+
+      }
 
     }
-
-    const customerId =
-      await getCustomerIdFromSession(
-        session.user.phone
-      );
-
-    if (!customerId) {
-
-      return;
-
-    }
-
-    const {
-      items,
-    } =
-      useCartStore.getState();
-
-    await saveCustomerCart(
-      customerId,
-      items
-    );
-
-  } catch (error) {
-
-    console.error(
-      "Failed to synchronize customer cart:",
-      error
-    );
-
-  }
+  );
 
 }
 
@@ -835,80 +862,105 @@ async function synchronizeCartForSession(
   phone?: string | null
 ) {
 
-  const customerId =
-    await getCustomerIdFromSession(
-      phone
-    );
+  await queueCartSync(
+    async () => {
 
-  if (!customerId) {
+      const customerId =
+        await getCustomerIdFromSession(
+          phone
+        );
 
-    return;
+      if (!customerId) {
 
-  }
+        return;
 
-  const state =
-    useCartStore.getState();
+      }
 
-  const localItems =
-    state.cartOwnerId === customerId
-      ? []
-      : state.items;
+      const state =
+        useCartStore.getState();
 
-  const serverItems =
-    await loadCustomerCart(
-      customerId
-    );
+      const localItems =
+        state.cartOwnerId === customerId
+          ? []
+          : state.items;
 
-  if (serverItems === null) {
+      const serverItems =
+        await loadCustomerCart(
+          customerId
+        );
 
-    return;
+      if (serverItems === null) {
 
-  }
+        return;
 
-  let finalItems =
-    serverItems;
+      }
 
-  /*
-   * If this is a different customer, or the
-   * current cart is a guest cart, merge it
-   * into the customer's server cart.
-   */
+      let finalItems =
+        serverItems;
 
-  if (
-    state.cartOwnerId !==
-    customerId &&
-    localItems.length > 0
-  ) {
+      /*
+       * If this is a different customer, or the
+       * current cart is a guest cart, merge it
+       * into the customer's server cart.
+       */
 
-    finalItems =
-      mergeCartItems(
-        serverItems,
-        localItems
-      );
+      if (
+        state.cartOwnerId !==
+        customerId &&
+        localItems.length > 0
+      ) {
 
-    const saved =
-      await saveCustomerCart(
-        customerId,
-        finalItems
-      );
+        finalItems =
+          mergeCartItems(
+            serverItems,
+            localItems
+          );
 
-    if (!saved) {
+        const saved =
+          await saveCustomerCart(
+            customerId,
+            finalItems
+          );
 
-      return;
+        if (!saved) {
+
+          return;
+
+        }
+
+      }
+
+      /*
+       * A cart action can happen while the server cart is
+       * loading. If the local cart changed during that async
+       * operation, do not overwrite the newer local state with
+       * the older server snapshot. The normal queued sync from
+       * that cart action will persist the latest state.
+       */
+      const latestState =
+        useCartStore.getState();
+
+      if (
+        JSON.stringify(latestState.items) !==
+          JSON.stringify(state.items)
+      ) {
+
+        return;
+
+      }
+
+      useCartStore.setState({
+
+        items:
+          finalItems,
+
+        cartOwnerId:
+          customerId,
+
+      });
 
     }
-
-  }
-
-  useCartStore.setState({
-
-    items:
-      finalItems,
-
-    cartOwnerId:
-      customerId,
-
-  });
+  );
 
 }
 
@@ -1972,10 +2024,83 @@ export const useCartStore =
                 );
 
 
+              /*
+               * Do not overwrite cart changes that happened while
+               * the stock checks were running. For example, a customer
+               * can add another product while this refresh is in flight.
+               * Preserve those newer items and only replace the items
+               * that belonged to this refresh snapshot.
+               */
+              const latestItems =
+                get().items;
+
+              const refreshedItemMap =
+                new Map(
+                  finalItems.map(
+                    (item) => [
+                      item.id,
+                      item,
+                    ]
+                  )
+                );
+
+              const refreshedItemIds =
+                new Set(
+                  currentItems.map(
+                    (item) => item.id
+                  )
+                );
+
+              const mergedFinalItems =
+                latestItems.reduce<CartItem[]>(
+                  (merged, latestItem) => {
+
+                    if (
+                      refreshedItemIds.has(
+                        latestItem.id
+                      )
+                    ) {
+
+                      const refreshedItem =
+                        refreshedItemMap.get(
+                          latestItem.id
+                        );
+
+                      /*
+                       * If this item became out of stock during
+                       * the refresh, omit it just as before.
+                       */
+                      if (!refreshedItem) {
+                        return merged;
+                      }
+
+                      merged.push(
+                        refreshedItem
+                      );
+
+                      return merged;
+
+                    }
+
+                    /*
+                     * This item was added after the refresh started.
+                     * Keep the newer local cart item untouched.
+                     */
+                    merged.push(
+                      latestItem
+                    );
+
+                    return merged;
+
+                  },
+                  []
+                );
+
+
               set({
 
                 items:
-                  finalItems,
+                  mergedFinalItems,
 
                 stockErrorMessage:
                   hasStockAdjustment

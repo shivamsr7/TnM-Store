@@ -629,6 +629,8 @@ export default function CartDrawer() {
 
   const {
     data: cartProductPricing = [],
+    isFetching: isCartProductPricingFetching,
+    isFetched: isCartProductPricingFetched,
   } = useQuery<CartProductPricing[]>({
 
     queryKey: [
@@ -766,8 +768,41 @@ export default function CartDrawer() {
     if (
       !isCartOpen ||
       items.length === 0 ||
-      cartProductPricing.length === 0
+      cartProductPricing.length === 0 ||
+      isCartProductPricingFetching ||
+      !isCartProductPricingFetched
     ) {
+      return;
+    }
+
+    /*
+     * The pricing query can temporarily contain the previous
+     * result while a new cart item is being fetched. Never treat
+     * a temporarily missing product as deleted/out of stock.
+     * Reconcile only after the response contains every product
+     * currently in the cart.
+     */
+    const cartProductIds =
+      new Set(
+        items.map(
+          item => item.productId
+        )
+      );
+
+    const pricingProductIds =
+      new Set(
+        cartProductPricing.map(
+          product => product.id
+        )
+      );
+
+    const hasCompletePricingResponse =
+      Array.from(cartProductIds).every(
+        productId =>
+          pricingProductIds.has(productId)
+      );
+
+    if (!hasCompletePricingResponse) {
       return;
     }
 
@@ -853,6 +888,8 @@ export default function CartDrawer() {
     isCartOpen,
     items,
     cartProductPricing,
+    isCartProductPricingFetching,
+    isCartProductPricingFetched,
     removeItem,
     updateQuantity,
   ]);
