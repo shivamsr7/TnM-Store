@@ -555,3 +555,113 @@ entrypoint = "./functions/customer-reengagement/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/customer-reengagement/*.html" ]
+
+[functions.imagekit-auth]
+enabled = true
+verify_jwt = false
+import_map = "./functions/imagekit-auth/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/imagekit-auth/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/imagekit-auth/*.html" ]
+
+[functions.imagekit-delete]
+enabled = true
+verify_jwt = false
+import_map = "./functions/imagekit-delete/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/imagekit-delete/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/imagekit-delete/*.html" ]
+
+[functions.migrate-product-images]
+enabled = true
+verify_jwt = false
+import_map = "./functions/migrate-product-images/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/migrate-product-images/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/migrate-product-images/*.html" ]
+
+[functions.cleanup-product-images]
+enabled = true
+verify_jwt = false
+import_map = "./functions/cleanup-product-images/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/cleanup-product-images/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/cleanup-product-images/*.html" ]
+
+[functions.migrate-banners]
+enabled = true
+verify_jwt = false
+import_map = "./functions/migrate-banners/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/migrate-banners/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/migrate-banners/*.html" ]
+
+[functions.cleanup-banners]
+enabled = true
+verify_jwt = false
+import_map = "./functions/cleanup-banners/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/cleanup-banners/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/cleanup-banners/*.html" ]
+
+[functions.migrate-categories-subcategories]
+enabled = true
+verify_jwt = false
+import_map = "./functions/migrate-categories-subcategories/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/migrate-categories-subcategories/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/migrate-categories-subcategories/*.html" ]
+
+[functions.cleanup-categories-subcategories]
+enabled = true
+verify_jwt = false
+import_map = "./functions/cleanup-categories-subcategories/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/cleanup-categories-subcategories/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/cleanup-categories-subcategories/*.html" ]
+
+[functions.migrate-instagram-reviews]
+enabled = true
+verify_jwt = false
+import_map = "./functions/migrate-instagram-reviews/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/migrate-instagram-reviews/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/migrate-instagram-reviews/*.html" ]
+
+[functions.cleanup-instagram-reviews]
+enabled = true
+verify_jwt = false
+import_map = "./functions/cleanup-instagram-reviews/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/cleanup-instagram-reviews/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/cleanup-instagram-reviews/*.html" ]
