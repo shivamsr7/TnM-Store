@@ -1361,23 +1361,17 @@ export default function CheckoutDialog({
     }
 
     if (guestCheckoutSessionActive) {
-      try {
-        const { error } = await supabase.auth.signOut();
-
-        if (error) {
-          console.warn(
-            "[T&M GUEST] Checkout-close session sign-out failed:",
-            error
-          );
-        }
-      } catch (error) {
-        console.warn(
-          "[T&M GUEST] Checkout-close session sign-out failed:",
-          error
-        );
-      } finally {
-        setGuestCheckoutSessionActive(false);
-      }
+      /*
+       * The customer has already completed the Guest checkout
+       * login/OTP step. Do NOT sign out the temporary Supabase
+       * session when they simply close checkout.
+       *
+       * Keeping the session means that reopening checkout can
+       * resume as an authenticated customer instead of asking
+       * for Login/OTP again. The existing cart and coupon state
+       * are also preserved naturally.
+       */
+      setGuestCheckoutSessionActive(false);
     }
 
     onClose();
@@ -1493,6 +1487,7 @@ export default function CheckoutDialog({
     setMemberUpgradeDialogOpen(false);
     setMemberUpgradeReason("special_price");
     setMemberUpgradeSubmitting(false);
+    setMemberUpgradeSuccess(false);
     setCloseConfirmationOpen(false);
 
   }, [
@@ -1983,7 +1978,6 @@ export default function CheckoutDialog({
     reason: "special_price" | "coupon"
   ) {
     setMemberUpgradeReason(reason);
-    setMemberUpgradeSuccess(false);
     setMemberUpgradeDialogOpen(true);
   }
 
@@ -2163,6 +2157,7 @@ export default function CheckoutDialog({
   function continueAsGuestAfterMemberPrompt() {
     setMemberUpgradeDialogOpen(false);
     setMemberUpgradeSubmitting(false);
+    setMemberUpgradeSuccess(false);
 
     /*
      * A Guest must never continue checkout with a Member-only
@@ -2371,27 +2366,155 @@ export default function CheckoutDialog({
       false
     );
 
-
+    /*
+     * Every new checkout session must start from the correct
+     * authentication step instead of retaining the previous
+     * checkout session's step (for example, Payment).
+     *
+     * Authenticated customers resume at Address. Guests start at
+     * Login, after which the existing session-restoration logic
+     * below can move an already verified Guest to Address.
+     */
     setStep(
       authCustomer
         ? "address"
         : "login"
     );
 
-    if (!authCustomer) {
-      setLoginChoice(null);
-      setGuestName("");
-      setGuestPhone("");
-      setGuestEmail("");
-      setGuestError("");
-      setGuestSubmitting(false);
-      setGuestOtp("");
-      setGuestOtpSent(false);
-      setGuestOtpVerifying(false);
-      setGuestCustomerDraft(null);
-      setGuestOtpVerified(false);
-      setGuestMembershipSubmitting(false);
+
+    /*
+     * If the customer is already available in AuthContext,
+     * resume directly at Address.
+     *
+     * IMPORTANT:
+     * A Guest who verified OTP has a real Supabase Auth session,
+     * but AuthContext may still have `customer === null` when the
+     * checkout is reopened because the CheckoutDialog was closed
+     * before AuthContext finished synchronizing that session.
+     *
+     * In that case, explicitly restore the customer from the
+     * existing Supabase session instead of showing Login again.
+     *
+     * This does NOT create a new session and does NOT send another
+     * OTP. It only reads the session that was intentionally kept
+     * alive when checkout was closed.
+     */
+    if (authCustomer) {
+
+      setCustomer(
+        authCustomer
+      );
+
+      setStep(
+        "address"
+      );
+
+      return;
+
     }
+
+
+    let cancelled = false;
+
+    async function restoreExistingCheckoutSession() {
+
+      try {
+
+        const {
+          data,
+          error,
+        } =
+          await supabase.auth.getSession();
+
+        if (
+          error ||
+          !data.session?.user
+        ) {
+          return;
+        }
+
+        const sessionPhone =
+          String(
+            data.session.user.phone ??
+            ""
+          )
+            .replace(/\D/g, "")
+            .slice(-10);
+
+        if (!sessionPhone) {
+          return;
+        }
+
+        /*
+         * getCustomerByPhone() verifies the currently authenticated
+         * Supabase user and then loads the matching customer row.
+         */
+        const existingCustomer =
+          await getCustomerByPhone(
+            sessionPhone
+          );
+
+        if (
+          cancelled ||
+          !existingCustomer
+        ) {
+          return;
+        }
+
+        setCustomer(
+          existingCustomer
+        );
+
+        useCustomerStore
+          .getState()
+          .setCustomer(
+            existingCustomer
+          );
+
+        /*
+         * If this is the Guest Auth session that was created by
+         * OTP, keep treating it as an active checkout Guest session.
+         * If the customer is a Member, this flag stays false.
+         */
+        setGuestCheckoutSessionActive(
+          existingCustomer?.customer_type === "guest"
+        );
+
+        setGuestCustomerDraft(
+          existingCustomer
+        );
+
+        setGuestOtpVerified(false);
+        setGuestOtpSent(false);
+        setGuestOtp("");
+        setGuestError("");
+        setLoginChoice(null);
+
+        setStep(
+          "address"
+        );
+
+      } catch (error) {
+
+        /*
+         * A valid but currently unsynchronized Auth session should
+         * never crash checkout. If restoration fails, the normal
+         * Login screen remains available.
+         */
+        console.warn(
+          "Unable to restore existing checkout session:",
+          error
+        );
+
+      }
+
+    }
+
+    void restoreExistingCheckoutSession();
+
+    return () => {
+      cancelled = true;
+    };
 
   }, [
     open,
@@ -4357,12 +4480,7 @@ export default function CheckoutDialog({
 
                           const available =
                             index <=
-                            currentStepIndex &&
-                            !(
-                              item.key === "login" &&
-                              isGuestCustomer &&
-                              step !== "login"
-                            );
+                            currentStepIndex;
 
                           return (
 
@@ -4390,21 +4508,6 @@ export default function CheckoutDialog({
                                     item.key ===
                                     "login"
                                   ) {
-                                    /*
-                                     * Once a Guest has successfully
-                                     * moved to Address, keep this
-                                     * CheckoutDialog on the forward
-                                     * checkout flow. The Guest must
-                                     * not be taken back to Login from
-                                     * the step indicator.
-                                     */
-                                    if (
-                                      isGuestCustomer &&
-                                      step !== "login"
-                                    ) {
-                                      return;
-                                    }
-
                                     if (!authCustomer) {
                                       setStep("login");
                                     }
@@ -5246,15 +5349,13 @@ export default function CheckoutDialog({
                             </button>
                           </div>
 
-                          {buyNowCheckingCouponCount ? (
+                          {buyNowCheckingCouponCount && (
                             <div
                               className="
                                 mt-3
                                 flex
-                                w-full
                                 items-center
-                                justify-center
-                                gap-2.5
+                                gap-3
                                 rounded-2xl
                                 border
                                 border-[#ead9a8]
@@ -5263,23 +5364,39 @@ export default function CheckoutDialog({
                                 to-[#fffdf8]
                                 px-3.5
                                 py-3
-                                text-center
                               "
                             >
-                              <Loader2
-                                size={15}
-                                className="shrink-0 animate-spin text-[#C8A44D]"
-                              />
-                              <div>
-                                <p className="text-xs font-semibold text-neutral-800">
+                              <span
+                                className="
+                                  flex
+                                  h-8
+                                  w-8
+                                  shrink-0
+                                  items-center
+                                  justify-center
+                                  rounded-full
+                                  bg-[#C8A44D]/12
+                                  text-[#9A7A22]
+                                "
+                              >
+                                <Loader2
+                                  size={16}
+                                  className="animate-spin"
+                                />
+                              </span>
+
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-neutral-900">
                                   Checking available offers
                                 </p>
-                                <p className="mt-0.5 text-[10px] text-neutral-500">
+                                <p className="mt-0.5 text-[10px] leading-4 text-neutral-500">
                                   Just a moment while we refresh your coupons.
                                 </p>
                               </div>
                             </div>
-                          ) : (
+                          )}
+
+                          {!buyNowCheckingCouponCount &&
                             (buyNowAvailableCouponCount +
                               buyNowMemberOnlyCouponCount) > 0 && (
                               <button
@@ -5373,8 +5490,7 @@ export default function CheckoutDialog({
                                   </span>
                                 </div>
                               </button>
-                            )
-                          )}
+                            )}
 
                           {buyNowCouponError && (
                             <p className="mt-2 text-xs text-red-600">
@@ -7097,65 +7213,21 @@ export default function CheckoutDialog({
             !orderSuccess &&
             step === "address" && (
 
-              <div className="relative min-h-[320px]">
+              <AddressStep
 
-                <AddressStep
+                customer={
+                  customer
+                }
 
-                  customer={
-                    customer
-                  }
+                onContinue={
+                  handleAddressContinue
+                }
 
-                  onContinue={
-                    handleAddressContinue
-                  }
+                onAddingAddressChange={
+                  setIsAddingNewAddress
+                }
 
-                  onAddingAddressChange={
-                    setIsAddingNewAddress
-                  }
-
-                />
-
-                {buyNowCheckingCouponCount && (
-                  <div
-                    className="
-                      absolute
-                      inset-0
-                      z-20
-                      flex
-                      items-center
-                      justify-center
-                      rounded-xl
-                      bg-white/95
-                      backdrop-blur-[2px]
-                    "
-                  >
-                    <div
-                      className="
-                        flex
-                        flex-col
-                        items-center
-                        justify-center
-                        px-6
-                        text-center
-                      "
-                    >
-                      <Loader2
-                        size={26}
-                        className="mb-3 animate-spin text-[#C8A44D]"
-                      />
-
-                      <p className="text-sm font-semibold text-neutral-800">
-                        Setting up your checkout
-                      </p>
-
-                      <p className="mt-1 max-w-[260px] text-xs leading-5 text-neutral-500">
-                        Just a moment — we’re checking your available offers.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-              </div>
+              />
 
             )
           }
@@ -8068,13 +8140,8 @@ export default function CheckoutDialog({
             motion-safe:animate-[fadeIn_180ms_ease-out]
           "
           onClick={() => {
-            if (!memberUpgradeSubmitting) {
-              if (memberUpgradeSuccess) {
-                setMemberUpgradeDialogOpen(false);
-                setMemberUpgradeSuccess(false);
-              } else {
-                continueAsGuestAfterMemberPrompt();
-              }
+            if (!memberUpgradeSubmitting && !memberUpgradeSuccess) {
+              continueAsGuestAfterMemberPrompt();
             }
           }}
         >
@@ -8097,16 +8164,34 @@ export default function CheckoutDialog({
               sm:p-6
             "
           >
-            {memberUpgradeSuccess ? (
+            {memberUpgradeSubmitting ? (
               <>
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#C8A44D]/10 text-2xl">
-                  ✨
+                <div
+                  className="
+                    mx-auto
+                    flex
+                    h-16
+                    w-16
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-[#C8A44D]/10
+                    text-[#9A7A22]
+                    ring-8
+                    ring-[#C8A44D]/[0.05]
+                  "
+                >
+                  <Loader2
+                    size={30}
+                    strokeWidth={2.1}
+                    className="animate-spin"
+                  />
                 </div>
 
                 <h3
                   id="member-upgrade-title"
                   className="
-                    mt-4
+                    mt-5
                     text-center
                     text-xl
                     font-semibold
@@ -8114,17 +8199,111 @@ export default function CheckoutDialog({
                     text-neutral-950
                   "
                 >
-                  Welcome to T&amp;M Jewels ✨
+                  ✨ Activating your T&amp;M Membership
                 </h3>
 
-                <p className="mx-auto mt-2 max-w-[330px] text-center text-sm leading-5 text-neutral-500">
-                  You’re officially a T&amp;M Member. Your exclusive member benefits are now unlocked.
+                <p
+                  className="
+                    mx-auto
+                    mt-2
+                    max-w-[330px]
+                    text-center
+                    text-sm
+                    leading-6
+                    text-neutral-500
+                  "
+                >
+                  Just a moment — we're unlocking your exclusive member benefits and applying your offer.
                 </p>
 
-                <div className="mt-5 rounded-2xl bg-[#fffaf0] px-4 py-3 text-center text-xs leading-5 text-[#80651d]">
-                  {memberUpgradeReason === "coupon"
-                    ? "Your member coupon is being applied to this order."
-                    : "Your exclusive Member Price is now unlocked."}
+                <div
+                  className="
+                    mx-auto
+                    mt-5
+                    h-1.5
+                    w-32
+                    overflow-hidden
+                    rounded-full
+                    bg-neutral-100
+                  "
+                >
+                  <div
+                    className="
+                      h-full
+                      w-1/2
+                      rounded-full
+                      bg-[#C8A44D]
+                      motion-safe:animate-[loadingSlide_1.2s_ease-in-out_infinite]
+                    "
+                  />
+                </div>
+              </>
+            ) : memberUpgradeSuccess ? (
+              <>
+                <div
+                  className="
+                    mx-auto
+                    flex
+                    h-16
+                    w-16
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-green-50
+                    text-2xl
+                    ring-8
+                    ring-green-50/70
+                    motion-safe:animate-[loginIconPop_420ms_cubic-bezier(.22,1,.36,1)]
+                  "
+                >
+                  🎉
+                </div>
+
+                <h3
+                  id="member-upgrade-title"
+                  className="
+                    mt-5
+                    text-center
+                    text-xl
+                    font-semibold
+                    tracking-[-0.025em]
+                    text-neutral-950
+                  "
+                >
+                  Welcome to T&amp;M Jewels!
+                </h3>
+
+                <p
+                  className="
+                    mx-auto
+                    mt-2
+                    max-w-[330px]
+                    text-center
+                    text-sm
+                    leading-6
+                    text-neutral-500
+                  "
+                >
+                  You're officially a T&amp;M Member. Your exclusive member benefits are now unlocked.
+                </p>
+
+                <div
+                  className="
+                    mt-5
+                    rounded-2xl
+                    border
+                    border-[#C8A44D]/20
+                    bg-[#fffaf0]
+                    px-4
+                    py-3
+                    text-center
+                    text-xs
+                    font-semibold
+                    leading-5
+                    text-[#80651d]
+                  "
+                >
+                  Your member offer is being applied to this order.
                 </div>
 
                 <button
@@ -8135,7 +8314,7 @@ export default function CheckoutDialog({
                   }}
                   className="
                     mt-5
-                    inline-flex
+                    flex
                     min-h-12
                     w-full
                     items-center
@@ -8179,12 +8358,12 @@ export default function CheckoutDialog({
 
                 <p className="mx-auto mt-2 max-w-[330px] text-center text-sm leading-5 text-neutral-500">
                   {memberUpgradeReason === "coupon"
-                    ? "This coupon is available to T&amp;M Members. Become a Member now and we'll apply it for you."
-                    : "This product has an exclusive Member price. Become a T&amp;M Member to unlock the special price."}
+                    ? "This coupon is available to T&M Members. Become a Member now and we'll apply it for you."
+                    : "This product has an exclusive Member price. Become a T&M Member to unlock the special price."}
                 </p>
 
                 <div className="mt-5 rounded-2xl bg-[#fffaf0] px-4 py-3 text-center text-xs leading-5 text-[#80651d]">
-                  Exclusive discounts, members-only offers, early access &amp; special perks.
+                  Exclusive discounts, members-only offers, early access & special perks.
                 </div>
 
                 <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
@@ -8212,14 +8391,7 @@ export default function CheckoutDialog({
                       disabled:opacity-60
                     "
                   >
-                    {memberUpgradeSubmitting ? (
-                      <>
-                        <Loader2 size={16} className="animate-spin" />
-                        Activating...
-                      </>
-                    ) : (
-                      "Yes, become a Member"
-                    )}
+                    Yes, become a Member
                   </button>
 
                   <button

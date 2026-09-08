@@ -1005,12 +1005,71 @@ function startCartAuthListener() {
            */
           if (event === "SIGNED_OUT") {
 
+            /*
+             * Checkout cancellation signs out a temporary Guest
+             * Auth session. In that specific case, preserve the
+             * existing cart and simply return it to Guest ownership.
+             *
+             * A normal customer logout still clears the cart.
+             */
+            let preserveGuestCart = false;
+
+            try {
+              preserveGuestCart =
+                sessionStorage.getItem(
+                  "tnm_preserve_guest_cart_on_signout"
+                ) === "true";
+
+              if (preserveGuestCart) {
+                sessionStorage.removeItem(
+                  "tnm_preserve_guest_cart_on_signout"
+                );
+              }
+            } catch {
+              /*
+               * sessionStorage may be unavailable in restricted
+               * browser environments. Fall back to the normal
+               * sign-out behavior in that case.
+               */
+            }
+
+            if (preserveGuestCart) {
+
+              useCartStore.setState({
+
+                cartOwnerId:
+                  null,
+
+                appliedCoupon:
+                  null,
+
+                discount:
+                  0,
+
+                couponErrorMessage:
+                  "",
+
+              });
+
+              return;
+
+            }
+
             useCartStore.setState({
 
               items: [],
 
               cartOwnerId:
                 null,
+
+              appliedCoupon:
+                null,
+
+              discount:
+                0,
+
+              couponErrorMessage:
+                "",
 
             });
 

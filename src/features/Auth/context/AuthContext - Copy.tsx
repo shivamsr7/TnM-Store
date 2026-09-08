@@ -50,6 +50,10 @@ export interface Customer {
 
   deleted_at?: string | null;
 
+  auth_user_id?: string | null;
+
+  customer_type?: "guest" | "member" | null;
+
 }
 
 
@@ -74,6 +78,10 @@ interface AuthContextType {
   updateCustomer: (
     customer: Customer
   ) => void;
+
+  refreshCustomer: (
+    phone?: string | null
+  ) => Promise<Customer | null>;
 
 }
 
@@ -559,6 +567,85 @@ export function AuthProvider({
 
   /*
    * =========================================================
+   * REFRESH CUSTOMER
+   * =========================================================
+   *
+   * Re-reads the customer row from the database while keeping
+   * the existing Supabase Auth session intact. This is important
+   * when a Guest is upgraded to a Member: the Auth session does
+   * not change, so Supabase does not emit a SIGNED_IN event and
+   * the existing customer state would otherwise remain Guest.
+   * =========================================================
+   */
+
+  async function refreshCustomer(
+    phone?: string | null
+  ): Promise<Customer | null> {
+
+    try {
+
+      let resolvedPhone = normalizePhone(phone);
+
+      if (!resolvedPhone) {
+
+        const {
+          data,
+          error,
+        } = await supabase.auth.getUser();
+
+        if (error || !data.user) {
+
+          setCustomer(null);
+          localStorage.removeItem("tnm_customer");
+          return null;
+
+        }
+
+        resolvedPhone = normalizePhone(data.user.phone);
+
+      }
+
+      if (!resolvedPhone) {
+
+        return null;
+
+      }
+
+      const customerData = await fetchCustomer(resolvedPhone);
+
+      setCustomer(customerData);
+
+      if (customerData) {
+
+        localStorage.setItem(
+          "tnm_customer",
+          JSON.stringify(customerData)
+        );
+
+      } else {
+
+        localStorage.removeItem("tnm_customer");
+
+      }
+
+      return customerData;
+
+    } catch (error) {
+
+      console.error(
+        "Failed to refresh customer:",
+        error
+      );
+
+      return null;
+
+    }
+
+  }
+
+
+  /*
+   * =========================================================
    * UPDATE CUSTOMER
    * =========================================================
    *
@@ -606,6 +693,8 @@ export function AuthProvider({
         logout,
 
         updateCustomer,
+
+        refreshCustomer,
 
       }}
     >

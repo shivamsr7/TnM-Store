@@ -184,6 +184,72 @@ export function AuthProvider({
 
   /*
    * =======================================================
+   * RESTORE CACHED CUSTOMER
+   * =======================================================
+   *
+   * Supabase restores its persisted Auth session asynchronously
+   * during page initialization. Hydrate the last known customer
+   * immediately so checkout does not briefly fall back to Login
+   * while the Auth session is being restored.
+   *
+   * The cached customer is only a UI hydration fallback. The
+   * authenticated Supabase session is still verified below
+   * before the customer is treated as authenticated.
+   * =======================================================
+   */
+
+  function loadCachedCustomer(): Customer | null {
+
+    try {
+
+      const cached =
+        localStorage.getItem(
+          "tnm_customer"
+        );
+
+      if (!cached) {
+
+        return null;
+
+      }
+
+      const parsed =
+        JSON.parse(
+          cached
+        ) as Customer;
+
+      if (!parsed?.id) {
+
+        return null;
+
+      }
+
+      setCustomer(
+        parsed
+      );
+
+      return parsed;
+
+    } catch (error) {
+
+      console.warn(
+        "Failed to restore cached customer:",
+        error
+      );
+
+      localStorage.removeItem(
+        "tnm_customer"
+      );
+
+      return null;
+
+    }
+
+  }
+
+
+  /*
+   * =======================================================
    * LOAD CUSTOMER FROM AUTHENTICATED SESSION
    * =======================================================
    */
@@ -198,11 +264,12 @@ export function AuthProvider({
 
     if (!session?.user) {
 
-      setCustomer(null);
-
-      localStorage.removeItem(
-        "tnm_customer"
-      );
+      /*
+       * Do not immediately erase the cached customer here.
+       * Supabase can briefly report no session while its
+       * persisted session is being restored. The initialization
+       * flow below performs the authoritative session check.
+       */
 
       return null;
 
@@ -381,6 +448,13 @@ export function AuthProvider({
 
   async function loadSession() {
 
+    /*
+     * Hydrate the last known customer first. This prevents a
+     * full-page refresh from showing Checkout Login while
+     * Supabase is restoring its persisted OTP/Auth session.
+     */
+    loadCachedCustomer();
+
     try {
 
       const {
@@ -399,16 +473,35 @@ export function AuthProvider({
           error
         );
 
-        setCustomer(null);
-
+        /*
+         * Keep the cached customer visible rather than forcing
+         * Checkout back to Login because of a transient session
+         * initialization error.
+         */
         return;
 
       }
 
 
-      await loadCustomerFromSession(
-        data.session
-      );
+      if (data.session) {
+
+        await loadCustomerFromSession(
+          data.session
+        );
+
+      } else {
+
+        /*
+         * There is genuinely no persisted Auth session.
+         * Only now is it safe to clear the cached customer.
+         */
+        setCustomer(null);
+
+        localStorage.removeItem(
+          "tnm_customer"
+        );
+
+      }
 
     } catch (error) {
 
@@ -417,7 +510,10 @@ export function AuthProvider({
         error
       );
 
-      setCustomer(null);
+      /*
+       * Do not wipe the cached customer on a transient
+       * initialization exception.
+       */
 
     } finally {
 
@@ -463,8 +559,7 @@ export function AuthProvider({
 
 
           if (
-            event === "SIGNED_OUT" ||
-            !session
+            event === "SIGNED_OUT"
           ) {
 
             setCustomer(null);
@@ -472,6 +567,17 @@ export function AuthProvider({
             localStorage.removeItem(
               "tnm_customer"
             );
+
+            return;
+
+          }
+
+          /*
+           * Ignore a transient null session callback during
+           * initialization. loadSession() performs the
+           * authoritative persisted-session check.
+           */
+          if (!session) {
 
             return;
 

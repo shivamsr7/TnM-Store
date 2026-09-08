@@ -314,15 +314,35 @@ export default function CartDrawer() {
 
     if (
       previousCustomerId &&
-      !currentCustomerId &&
-      appliedCoupon
+      !currentCustomerId
     ) {
 
-      removeCoupon();
+      /*
+       * A logout must always clear the coupon-related UI state,
+       * even if the cart store has already cleared `appliedCoupon`.
+       *
+       * The previous version checked `appliedCoupon` before clearing
+       * the local message. Because the store can clear `appliedCoupon`
+       * first, the stale "Coupon applied! You saved ₹..." message
+       * could remain visible in the CartDrawer.
+       *
+       * Keep the cart items unchanged.
+       */
+      if (appliedCoupon) {
+        removeCoupon();
+      }
 
       setCouponCode("");
       setCouponMessage("");
       setCouponError("");
+
+      /*
+       * Mark the logout as handled so the effect does not repeat
+       * the cleanup when `appliedCoupon` changes to null.
+       */
+      previousCustomerIdRef.current = null;
+
+      return;
 
     }
 
