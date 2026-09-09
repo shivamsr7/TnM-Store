@@ -249,7 +249,7 @@ font-semibold
 
 ">
 
-Order Confirmed 🎉
+Order Placed Successfully 🎉
 
 </h2>
 
@@ -271,9 +271,9 @@ text-neutral-500
 
 ">
 
-Thank you for choosing T&M Jewels.
+Thank you for shopping with T&M Jewels.
 
-Your jewellery piece is being prepared with care.
+Your order has been received and our team is getting it ready with care.
 
 </p>
 
@@ -495,16 +495,16 @@ hover:scale-110
 <p className="text-sm font-medium text-neutral-900">
 
 {hasOrderEmail
-  ? "Update email for order updates"
-  : "Want order updates by email?"}
+  ? "Update your order email"
+  : "Stay updated on your order"}
 
 </p>
 
 <p className="mt-1 text-xs leading-relaxed text-neutral-500">
 
 {hasOrderEmail
-  ? "Enter the email address you'd like us to use for this order."
-  : "Add your email to receive your order confirmation and future shipping and delivery updates."}
+  ? "Enter the email address you’d like us to use for your order updates."
+  : "Add your email to receive important updates about your order, including confirmation, shipping and delivery."}
 
 </p>
 
@@ -617,7 +617,7 @@ disabled:opacity-60
   ? "Saving..."
   : hasOrderEmail
     ? "Save Updates"
-    : "Get Updates"}
+    : "Get Order Updates"}
 
 </button>
 
@@ -676,7 +676,7 @@ This order only
 </span>
 
 <span className="mt-0.5 block text-[10px] leading-relaxed text-neutral-400">
-We'll use it only for this order.
+Use this email for updates about this order.
 </span>
 
 </span>
@@ -717,7 +717,7 @@ Use for future orders
 </span>
 
 <span className="mt-0.5 block text-[10px] leading-relaxed text-neutral-400">
-We'll save it to your customer profile too.
+Save this email to receive updates on future orders too.
 </span>
 
 </span>
@@ -788,11 +788,11 @@ hover:scale-110
 <div className="min-w-0 flex-1">
 
 <p className="text-sm font-medium text-neutral-900">
-Email updates
+Order updates enabled
 </p>
 
 <p className="mt-1 text-xs text-neutral-500">
-Your order updates will be sent to your registered email address.
+We’ll send your order updates to your registered email address.
 </p>
 
 </div>
@@ -876,7 +876,7 @@ Email updates enabled
 
 <p className="mt-1 text-xs text-neutral-500">
 
-We'll send order-related updates to your email.
+You’re all set. We’ll send important order updates to this email address.
 
 </p>
 
@@ -941,7 +941,7 @@ font-medium
 
 ">
 
-Your order is being packed
+We’re getting your order ready
 
 </p>
 
@@ -965,7 +965,7 @@ text-neutral-500
 
 ">
 
-We will share updates on your registered mobile number.
+Your order has been successfully placed. We’ll keep you updated at every important step, from confirmation to delivery.
 
 </p>
 
@@ -1108,7 +1108,7 @@ text-neutral-400
 
 ">
 
-Need help? Our support team is always here for you.
+Need help with your order? We’re here for you.
 
 </p>
 
