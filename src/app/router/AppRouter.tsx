@@ -7,7 +7,8 @@ import {
 import App
   from "@/App";
 
-
+import CollaboratePage
+  from "@/features/collaborators/pages/CollaboratePage";
 import ScrollToTop
   from "@/shared/components/ScrollToTop";
 import WalletPage
@@ -67,6 +68,9 @@ import NotificationsPage
 import Wishlist
   from "@/features/wishlist/pages/Wishlist";
 import OrderTrackingPage from "@/features/orders/pages/OrderTrackingPage";
+
+import ReviewProductPage
+  from "@/features/reviews/pages/ReviewProductPage";
 
 export default function AppRouter() {
 
@@ -170,7 +174,12 @@ export default function AppRouter() {
             }
           />
 
-
+<Route
+  path="/collaborate"
+  element={
+    <CollaboratePage />
+  }
+/>
           {/* =================================================
               WISHLIST
           ================================================== */}
@@ -243,7 +252,12 @@ export default function AppRouter() {
             }
           />
 
-
+<Route
+  path="/review/:productSlug"
+  element={
+    <ReviewProductPage />
+  }
+/>
           {/* =================================================
               NOTIFICATIONS
           ================================================== */}

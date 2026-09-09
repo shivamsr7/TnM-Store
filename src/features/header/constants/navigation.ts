@@ -20,4 +20,8 @@ export const navigationItems: NavigationItem[] = [
     label: "About Us",
     href: "/about-us",
   },
+  {
+    label: "Collaborate",
+    href: "/collaborate",
+  }
 ];

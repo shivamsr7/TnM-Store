@@ -4,6 +4,9 @@ import {
 
 import type {
   ProductReview,
+  ReviewRequestResponse,
+  SubmitTokenReviewInput,
+  SubmitTokenReviewResponse,
 } from "../types/review.types";
 
 
@@ -87,9 +90,7 @@ class ReviewService {
 
 
     if (error) {
-
       throw error;
-
     }
 
 
@@ -102,17 +103,12 @@ class ReviewService {
 
   /*
    * =======================================================
-   * CREATE REVIEW
+   * CREATE NORMAL PRODUCT REVIEW
    * =======================================================
    *
-   * IMPORTANT:
+   * Existing logged-in review flow.
    *
-   * customer_id is supplied from the current development
-   * AuthContext.
-   *
-   * order_id and is_verified are NEVER supplied here.
-   *
-   * The database RPC determines them.
+   * DO NOT CHANGE.
    *
    * =======================================================
    */
@@ -158,6 +154,116 @@ class ReviewService {
 
 
     return data as ProductReview;
+
+  }
+
+
+  /*
+   * =======================================================
+   * GET REVIEW REQUEST
+   * =======================================================
+   *
+   * Secure email-review flow.
+   *
+   * The customer does NOT need to be logged in.
+   *
+   * The database validates:
+   *
+   * - token
+   * - token expiry
+   * - order
+   * - delivery status
+   * - 24 hour wait
+   * - product slug
+   * - previous review
+   *
+   * =======================================================
+   */
+
+  async getReviewRequest(
+    token: string,
+    productSlug: string
+  ): Promise<ReviewRequestResponse> {
+
+    const {
+      data,
+      error,
+    } = await supabase.rpc(
+      "get_review_request_by_token",
+      {
+        p_token:
+          token,
+
+        p_product_slug:
+          productSlug,
+      }
+    );
+
+
+    if (error) {
+
+      console.error(
+        "Get review request failed:",
+        error
+      );
+
+      throw error;
+
+    }
+
+
+    return data as ReviewRequestResponse;
+
+  }
+
+
+  /*
+   * =======================================================
+   * SUBMIT REVIEW FROM EMAIL TOKEN
+   * =======================================================
+   */
+
+  async submitReviewFromToken(
+    input: SubmitTokenReviewInput
+  ): Promise<SubmitTokenReviewResponse> {
+
+    const {
+      data,
+      error,
+    } = await supabase.rpc(
+      "submit_review_from_token",
+      {
+        p_token:
+          input.token,
+
+        p_product_slug:
+          input.productSlug,
+
+        p_rating:
+          input.rating,
+
+        p_title:
+          input.title,
+
+        p_review:
+          input.review,
+      }
+    );
+
+
+    if (error) {
+
+      console.error(
+        "Submit token review failed:",
+        error
+      );
+
+      throw error;
+
+    }
+
+
+    return data as SubmitTokenReviewResponse;
 
   }
 
