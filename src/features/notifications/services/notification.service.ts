@@ -455,7 +455,8 @@ class NotificationService {
         : null;
 
     const walletActivitySection =
-      walletUsed > 0
+      (status === "placed" || walletUsed > 0) &&
+      walletBalanceAfter !== null
         ? `
           <tr>
             <td style="padding:24px 24px 0;">
@@ -477,10 +478,16 @@ class NotificationService {
                       `
                       : ""
                   }
+                  ${
+                    walletUsed > 0
+                      ? `
                   <tr>
                     <td style="padding:6px 0;font-size:13px;color:#77736c;">Wallet Used</td>
                     <td align="right" style="padding:6px 0;font-size:13px;font-weight:700;color:#9a5a3a;">−${formatMoney(walletUsed)}</td>
                   </tr>
+                      `
+                      : ""
+                  }
                   ${
                     walletBalanceAfter !== null
                       ? `
@@ -2698,268 +2705,53 @@ class NotificationService {
 
               <tr>
 
+                ${
+                  [
+                    ["placed", "Placed", "1"],
+                    ["confirmed", "Confirmed", "2"],
+                    ["packed", "Packed", "3"],
+                    ["shipped", "Shipped", "4"],
+                    ["delivered", "Delivered", "5"],
+                  ]
+                    .map(
+                      ([stepStatus, stepLabel, stepNumber]) => `
                 <td
-
                   align="center"
-
-                  width="25%"
-
+                  width="20%"
                 >
 
                   <div
-
                     style="
-
                       margin:auto;
-
                       width:34px;
-
                       height:34px;
-
                       line-height:34px;
-
                       border-radius:50%;
-
-                      background:#8b6424;
-
-                      color:#ffffff;
-
-                      font-size:16px;
-
-                    "
-
-                  >
-
-                    ✓
-
-                  </div>
-
-
-
-
-
-                  <div
-
-                    style="
-
-                      margin-top:7px;
-
-                      font-size:10px;
-
-                      line-height:15px;
-
-                      font-weight:600;
-
-                      color:#8b6424;
-
-                    "
-
-                  >
-
-                    Confirmed
-
-                  </div>
-
-                </td>
-
-
-
-
-
-                <td
-
-                  align="center"
-
-                  width="25%"
-
-                >
-
-                  <div
-
-                    style="
-
-                      margin:auto;
-
-                      width:34px;
-
-                      height:34px;
-
-                      line-height:34px;
-
-                      border-radius:50%;
-
-                      background:#f4f0e8;
-
-                      color:#aaa297;
-
+                      background:${status === stepStatus ? "#8b6424" : "#f4f0e8"};
+                      color:${status === stepStatus ? "#ffffff" : "#aaa297"};
                       font-size:15px;
-
                     "
-
                   >
-
-                    2
-
+                    ${status === stepStatus ? "✓" : stepNumber}
                   </div>
 
-
-
-
-
                   <div
-
                     style="
-
                       margin-top:7px;
-
                       font-size:10px;
-
                       line-height:15px;
-
-                      color:#8f8a82;
-
+                      font-weight:${status === stepStatus ? "600" : "400"};
+                      color:${status === stepStatus ? "#8b6424" : "#8f8a82"};
                     "
-
                   >
-
-                    Packed
-
+                    ${stepLabel}
                   </div>
 
                 </td>
-
-
-
-
-
-                <td
-
-                  align="center"
-
-                  width="25%"
-
-                >
-
-                  <div
-
-                    style="
-
-                      margin:auto;
-
-                      width:34px;
-
-                      height:34px;
-
-                      line-height:34px;
-
-                      border-radius:50%;
-
-                      background:#f4f0e8;
-
-                      color:#aaa297;
-
-                      font-size:15px;
-
-                    "
-
-                  >
-
-                    3
-
-                  </div>
-
-
-
-
-
-                  <div
-
-                    style="
-
-                      margin-top:7px;
-
-                      font-size:10px;
-
-                      line-height:15px;
-
-                      color:#8f8a82;
-
-                    "
-
-                  >
-
-                    Shipped
-
-                  </div>
-
-                </td>
-
-
-
-
-
-                <td
-
-                  align="center"
-
-                  width="25%"
-
-                >
-
-                  <div
-
-                    style="
-
-                      margin:auto;
-
-                      width:34px;
-
-                      height:34px;
-
-                      line-height:34px;
-
-                      border-radius:50%;
-
-                      background:#f4f0e8;
-
-                      color:#aaa297;
-
-                      font-size:15px;
-
-                    "
-
-                  >
-
-                    4
-
-                  </div>
-
-
-
-
-
-                  <div
-
-                    style="
-
-                      margin-top:7px;
-
-                      font-size:10px;
-
-                      line-height:15px;
-
-                      color:#8f8a82;
-
-                    "
-
-                  >
-
-                    Delivered
-
-                  </div>
-
-                </td>
-
+                      `
+                    )
+                    .join("")
+                }
               </tr>
 
             </table>
