@@ -13,21 +13,11 @@ import {
   HERO_AUTOPLAY_DELAY,
 } from "../constants/constants";
 
-
-interface HeroSliderProps {
-  variant?: "default" | "expanded";
-}
-
-
-export default function HeroSlider({
-  variant = "default",
-}: HeroSliderProps) {
-
+export default function HeroSlider() {
   const {
     data: banners = [],
     isLoading,
   } = useHeroBanners();
-
 
   const [current, setCurrent] =
     useState(0);
@@ -38,51 +28,29 @@ export default function HeroSlider({
   const [progress, setProgress] =
     useState(0);
 
-
   const {
     data: settings,
   } = useHeroSettings();
 
-
   /*
    * =========================================================
-   * DESKTOP HEIGHT
+   * BANNER ASPECT RATIO
    * =========================================================
    *
-   * Mobile is handled separately using aspect-ratio.
-   *
-   * Desktop:
-   * expanded = 620px
-   * default  = 405px
-   *
-   * =========================================================
-   */
-
-  const desktopHeight =
-    variant === "expanded"
-      ? "lg:h-[620px]"
-      : "lg:h-[405px]";
-
-
-  /*
-   * =========================================================
-   * MOBILE HEIGHT
-   * =========================================================
-   *
-   * 2:1 banner ratio
+   * Desktop + Mobile:
+   * 2:1
    *
    * Example:
    * 1200 × 600
    *
    * The height automatically adapts
-   * to the available mobile width.
+   * to the available width.
    *
    * =========================================================
    */
 
-  const mobileAspect =
+  const bannerAspect =
     "aspect-[2/1]";
-
 
   /*
    * =========================================================
@@ -91,19 +59,16 @@ export default function HeroSlider({
    */
 
   useEffect(() => {
-
     if (
       current >=
       banners.length
     ) {
       setCurrent(0);
     }
-
   }, [
     banners,
     current,
   ]);
-
 
   /*
    * =========================================================
@@ -112,7 +77,6 @@ export default function HeroSlider({
    */
 
   const next = () => {
-
     setProgress(0);
 
     setCurrent(
@@ -120,9 +84,7 @@ export default function HeroSlider({
         (prev + 1) %
         banners.length
     );
-
   };
-
 
   /*
    * =========================================================
@@ -131,7 +93,6 @@ export default function HeroSlider({
    */
 
   const prev = () => {
-
     setProgress(0);
 
     setCurrent(
@@ -142,9 +103,7 @@ export default function HeroSlider({
         ) %
         banners.length
     );
-
   };
-
 
   /*
    * =========================================================
@@ -153,13 +112,11 @@ export default function HeroSlider({
    */
 
   useEffect(() => {
-
     if (paused) return;
 
     if (banners.length <= 1) {
       return;
     }
-
 
     const timer =
       window.setInterval(
@@ -168,16 +125,13 @@ export default function HeroSlider({
           5000
       );
 
-
     return () =>
       clearInterval(timer);
-
   }, [
     banners.length,
     paused,
     settings?.autoplay_speed,
   ]);
-
 
   /*
    * =========================================================
@@ -186,28 +140,22 @@ export default function HeroSlider({
    */
 
   useEffect(() => {
-
     if (paused) return;
 
     if (banners.length <= 1) {
       return;
     }
 
-
     setProgress(0);
-
 
     const start =
       Date.now();
 
-
     const interval =
       window.setInterval(() => {
-
         const elapsed =
           Date.now() -
           start;
-
 
         const percent =
           Math.min(
@@ -218,21 +166,16 @@ export default function HeroSlider({
             100
           );
 
-
         setProgress(percent);
-
       }, 50);
-
 
     return () =>
       clearInterval(interval);
-
   }, [
     current,
     paused,
     banners.length,
   ]);
-
 
   /*
    * =========================================================
@@ -241,14 +184,12 @@ export default function HeroSlider({
    */
 
   if (isLoading) {
-
     return (
       <div
         className={`
           relative
           w-full
-          ${mobileAspect}
-          ${desktopHeight}
+          ${bannerAspect}
           animate-pulse
           overflow-hidden
           rounded-lg
@@ -256,9 +197,7 @@ export default function HeroSlider({
         `}
       />
     );
-
   }
-
 
   /*
    * =========================================================
@@ -267,34 +206,27 @@ export default function HeroSlider({
    */
 
   if (!banners.length) {
-
     return (
       <div
         className={`
           flex
           w-full
-          ${mobileAspect}
-          ${desktopHeight}
+          ${bannerAspect}
           items-center
           justify-center
           rounded-lg
           bg-neutral-100
         `}
       >
-
         <p className="text-neutral-500">
           No active homepage banners found.
         </p>
-
       </div>
     );
-
   }
-
 
   const currentBanner =
     banners[current];
-
 
   /*
    * =========================================================
@@ -307,8 +239,7 @@ export default function HeroSlider({
       className={`
         relative
         w-full
-        ${mobileAspect}
-        ${desktopHeight}
+        ${bannerAspect}
         overflow-hidden
         shadow-[0_30px_80px_rgba(0,0,0,0.18)]
       `}
@@ -319,30 +250,24 @@ export default function HeroSlider({
         setPaused(false)
       }
     >
-
       {/* =====================================================
           SLIDE
       ====================================================== */}
 
       <AnimatePresence mode="wait">
-
         <motion.div
           key={
             currentBanner.id
           }
-
           initial={{
             opacity: 0,
           }}
-
           animate={{
             opacity: 1,
           }}
-
           exit={{
             opacity: 0,
           }}
-
           transition={{
             duration:
               (
@@ -352,38 +277,30 @@ export default function HeroSlider({
 
             ease: "easeInOut",
           }}
-
           className="
             absolute
             inset-0
             h-full
             w-full
           "
-
           drag="x"
-
           dragConstraints={{
             left: 0,
             right: 0,
           }}
-
           dragElastic={0.15}
-
           onDragEnd={(
             _,
             info
           ) => {
-
             if (
               !settings?.enable_swipe
             ) {
               return;
             }
 
-
             const threshold =
               80;
-
 
             if (
               info.offset.x <
@@ -392,27 +309,21 @@ export default function HeroSlider({
               next();
             }
 
-
             if (
               info.offset.x >
               threshold
             ) {
               prev();
             }
-
           }}
         >
-
           <HeroSlide
             banner={
               currentBanner
             }
           />
-
         </motion.div>
-
       </AnimatePresence>
-
 
       {/* =====================================================
           ARROWS
@@ -420,14 +331,11 @@ export default function HeroSlider({
 
       {settings?.show_arrows !==
         false && (
-
         <HeroControls
           onPrev={prev}
           onNext={next}
         />
-
       )}
-
 
       {/* =====================================================
           DOTS
@@ -435,7 +343,6 @@ export default function HeroSlider({
 
       {settings?.show_dots !==
         false && (
-
         <HeroDots
           total={
             banners.length
@@ -447,9 +354,7 @@ export default function HeroSlider({
             setCurrent
           }
         />
-
       )}
-
 
       {/* =====================================================
           PROGRESS
@@ -457,15 +362,12 @@ export default function HeroSlider({
 
       {settings?.show_progress !==
         false && (
-
         <HeroProgress
           progress={
             progress
           }
         />
-
       )}
-
     </div>
   );
 }

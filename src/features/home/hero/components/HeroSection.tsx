@@ -19,13 +19,7 @@ export default function HeroSection() {
             : "grid-cols-1"
         }`}
       >
-        <HeroSlider
-          variant={
-            showSpinPanel
-              ? "default"
-              : "expanded"
-          }
-        />
+        <HeroSlider />
 
         {showSpinPanel && (
           <div
