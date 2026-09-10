@@ -1,16 +1,93 @@
+import { useRef } from "react";
+
 import HeroFrame from "./HeroFrame";
 import type { HeroBanner } from "../types/hero.types";
 
 interface HeroSlideProps {
   banner: HeroBanner;
+  onBannerClick?: () => void;
 }
 
 export default function HeroSlide({
   banner,
+  onBannerClick,
 }: HeroSlideProps) {
-  return (
-    <div className="absolute inset-0 h-full w-full overflow-hidden">
+  const pointerStartX = useRef<number | null>(null);
+  const pointerStartY = useRef<number | null>(null);
 
+  const handlePointerDown = (
+    event: React.PointerEvent<HTMLDivElement>
+  ) => {
+    pointerStartX.current =
+      event.clientX;
+
+    pointerStartY.current =
+      event.clientY;
+  };
+
+  const handlePointerUp = (
+    event: React.PointerEvent<HTMLDivElement>
+  ) => {
+    if (
+      pointerStartX.current === null ||
+      pointerStartY.current === null
+    ) {
+      return;
+    }
+
+    const deltaX =
+      Math.abs(
+        event.clientX -
+          pointerStartX.current
+      );
+
+    const deltaY =
+      Math.abs(
+        event.clientY -
+          pointerStartY.current
+      );
+
+    pointerStartX.current = null;
+    pointerStartY.current = null;
+
+    /*
+     * If the user moved their finger/mouse,
+     * treat it as a swipe/drag and DON'T navigate.
+     *
+     * A small movement is considered a click.
+     */
+    if (
+      deltaX > 10 ||
+      deltaY > 10
+    ) {
+      return;
+    }
+
+    if (
+      banner.button_link &&
+      onBannerClick
+    ) {
+      onBannerClick();
+    }
+  };
+
+  return (
+    <div
+      className="
+        absolute
+        inset-0
+        h-full
+        w-full
+        overflow-hidden
+        cursor-pointer
+      "
+      onPointerDown={
+        handlePointerDown
+      }
+      onPointerUp={
+        handlePointerUp
+      }
+    >
       {/* =====================================================
           BACKGROUND IMAGE
       ====================================================== */}
@@ -19,7 +96,9 @@ export default function HeroSlide({
         {banner.mobile_image_url && (
           <source
             media="(max-width:768px)"
-            srcSet={banner.mobile_image_url}
+            srcSet={
+              banner.mobile_image_url
+            }
           />
         )}
 
@@ -36,7 +115,6 @@ export default function HeroSlide({
           draggable={false}
         />
       </picture>
-
 
       {/* =====================================================
           DESKTOP OVERLAY
@@ -61,13 +139,11 @@ export default function HeroSlide({
         />
       )}
 
-
       {/* =====================================================
           SHIMMER
       ====================================================== */}
 
       <HeroFrame />
-
 
       {/* =====================================================
           OVERLAY CONTENT
@@ -85,7 +161,6 @@ export default function HeroSlide({
             items-center
           "
         >
-
           <div
             className="
               max-w-2xl
@@ -93,7 +168,6 @@ export default function HeroSlide({
               lg:px-20
             "
           >
-
             {/* =================================================
                 SUBTITLE
             ================================================== */}
@@ -113,7 +187,6 @@ export default function HeroSlide({
               </p>
             )}
 
-
             {/* =================================================
                 TITLE
             ================================================== */}
@@ -129,7 +202,6 @@ export default function HeroSlide({
               {banner.title}
             </h1>
 
-
             {/* =================================================
                 BUTTON
             ================================================== */}
@@ -137,11 +209,25 @@ export default function HeroSlide({
             {banner.button_text &&
               banner.button_link && (
                 <div className="mt-10">
-
                   <a
                     href={
                       banner.button_link
                     }
+                    onPointerDown={(
+                      event
+                    ) => {
+                      event.stopPropagation();
+                    }}
+                    onPointerUp={(
+                      event
+                    ) => {
+                      event.stopPropagation();
+                    }}
+                    onClick={(
+                      event
+                    ) => {
+                      event.stopPropagation();
+                    }}
                     className="
                       inline-flex
                       rounded-full
@@ -156,17 +242,15 @@ export default function HeroSlide({
                       hover:bg-[#D4AF37]
                     "
                   >
-                    {banner.button_text}
+                    {
+                      banner.button_text
+                    }
                   </a>
-
                 </div>
               )}
-
           </div>
-
         </div>
       )}
-
     </div>
   );
 }

@@ -43,9 +43,6 @@ export default function HeroSlider() {
    * Example:
    * 1200 × 600
    *
-   * The height automatically adapts
-   * to the available width.
-   *
    * =========================================================
    */
 
@@ -321,6 +318,14 @@ export default function HeroSlider() {
             banner={
               currentBanner
             }
+            onBannerClick={() => {
+              if (
+                currentBanner.button_link
+              ) {
+                window.location.href =
+                  currentBanner.button_link;
+              }
+            }}
           />
         </motion.div>
       </AnimatePresence>
