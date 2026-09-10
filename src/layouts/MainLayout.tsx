@@ -62,9 +62,13 @@ export default function MainLayout() {
 
 
     /*
-     * Give AuthContext a moment to finish restoring the
-     * authenticated customer before deciding whether to show
-     * the daily profile-completion reminder.
+     * This runs whenever a customer becomes available, so it
+     * covers both fresh login and an already-authenticated
+     * customer whose persisted session was restored on page load.
+     *
+     * The customer should first see the page normally.
+     * Only after authentication/customer loading has completed
+     * do we wait 2.5 seconds before showing the reminder.
      */
     const timer = window.setTimeout(() => {
 
@@ -76,7 +80,7 @@ export default function MainLayout() {
         setProfilePromptOpen(true);
       }
 
-    }, 500);
+    }, 2500);
 
 
     return () => {
