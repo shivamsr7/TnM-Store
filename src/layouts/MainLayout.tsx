@@ -25,6 +25,7 @@ import WhatsAppSupportChat
 
 import {
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -34,7 +35,31 @@ import {
 
 import ProfileCompletionModal, {
   shouldShowProfileCompletionPrompt,
+  type BirthdayCouponForModal,
 } from "@/features/profile/components/ProfileCompletionModal";
+
+import {
+  getOrCreateBirthdayCoupon,
+} from "@/features/coupons/services/birthdayCoupon.service";
+
+
+const BIRTHDAY_PROMPT_KEY =
+  "tnm_birthday_coupon_prompt_date";
+
+
+function getTodayKey() {
+  const now = new Date();
+
+  const year = now.getFullYear();
+  const month = String(
+    now.getMonth() + 1
+  ).padStart(2, "0");
+  const day = String(
+    now.getDate()
+  ).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
 
 
 export default function MainLayout() {
@@ -44,11 +69,42 @@ export default function MainLayout() {
     loading: authLoading,
   } = useAuth();
 
+
   const [
     profilePromptOpen,
     setProfilePromptOpen,
   ] = useState(false);
 
+  const [
+    birthdayCoupon,
+    setBirthdayCoupon,
+  ] =
+    useState<BirthdayCouponForModal | null>(
+      null
+    );
+
+
+  /*
+   * =========================================================
+   * BIRTHDAY COUPON GENERATION GUARD
+   * =========================================================
+   *
+   * Prevents repeated RPC calls while the same customer
+   * remains mounted in the application.
+   *
+   * The database RPC also prevents duplicate birthday
+   * coupons for the same customer/year.
+   */
+
+  const birthdayCouponAttemptedForCustomer =
+    useRef<string | null>(null);
+
+
+  /*
+   * =========================================================
+   * PROFILE COMPLETION REMINDER
+   * =========================================================
+   */
 
   useEffect(() => {
 
@@ -56,35 +112,50 @@ export default function MainLayout() {
       authLoading ||
       !customer
     ) {
+
       setProfilePromptOpen(false);
+      setBirthdayCoupon(null);
+
       return;
+
     }
 
 
     /*
-     * This runs whenever a customer becomes available, so it
-     * covers both fresh login and an already-authenticated
-     * customer whose persisted session was restored on page load.
+     * This runs whenever a customer becomes available.
      *
-     * The customer should first see the page normally.
-     * Only after authentication/customer loading has completed
-     * do we wait 2.5 seconds before showing the reminder.
+     * It covers:
+     *
+     * - Fresh login
+     * - Existing authenticated session
+     * - Persisted session restored on page load
+     *
+     * The page loads normally first, then the profile
+     * completion reminder waits 2.5 seconds.
      */
-    const timer = window.setTimeout(() => {
 
-      if (
-        shouldShowProfileCompletionPrompt(
-          customer
-        )
-      ) {
-        setProfilePromptOpen(true);
-      }
+    const timer =
+      window.setTimeout(() => {
 
-    }, 2500);
+        if (
+          shouldShowProfileCompletionPrompt(
+            customer
+          )
+        ) {
+
+          setProfilePromptOpen(true);
+
+        }
+
+      }, 2500);
 
 
     return () => {
-      window.clearTimeout(timer);
+
+      window.clearTimeout(
+        timer
+      );
+
     };
 
   }, [
@@ -92,6 +163,191 @@ export default function MainLayout() {
     authLoading,
   ]);
 
+
+  /*
+   * =========================================================
+   * BIRTHDAY COUPON GENERATION
+   * =========================================================
+   *
+   * Once an authenticated customer is available, call the
+   * secure Supabase RPC.
+   *
+   * The database decides whether the customer is eligible.
+   *
+   * The RPC checks:
+   *
+   * - authenticated customer
+   * - DOB availability
+   * - birthday month
+   * - birthday reward settings
+   * - current birthday year
+   * - existing birthday coupon
+   *
+   * The frontend does not decide eligibility.
+   */
+
+  useEffect(() => {
+
+    if (
+      authLoading ||
+      !customer
+    ) {
+
+      setBirthdayCoupon(null);
+
+      return;
+
+    }
+
+
+    const currentCustomer =
+      customer;
+
+
+    if (
+      birthdayCouponAttemptedForCustomer.current ===
+      currentCustomer.id
+    ) {
+
+      return;
+
+    }
+
+
+    birthdayCouponAttemptedForCustomer.current =
+      currentCustomer.id;
+
+
+    let cancelled = false;
+
+
+    async function generateBirthdayCoupon() {
+
+      try {
+
+        const coupon =
+          await getOrCreateBirthdayCoupon(
+            currentCustomer.id
+          );
+
+
+        if (
+          cancelled ||
+          !coupon
+        ) {
+
+          return;
+
+        }
+
+
+        /*
+         * The birthday popup is only for customers whose
+         * profile is already complete. If a profile field is
+         * missing, the profile-completion reminder remains
+         * the priority.
+         */
+        const profileComplete =
+          !!currentCustomer.email?.trim() &&
+          !!currentCustomer.date_of_birth;
+
+
+        if (!profileComplete) {
+
+          return;
+
+        }
+
+
+        /*
+         * A birthday reward is shown at most once per local
+         * calendar day. The coupon itself remains safely
+         * stored in Supabase and can still be applied from
+         * the normal coupon flow.
+         */
+        if (
+          localStorage.getItem(
+            BIRTHDAY_PROMPT_KEY
+          ) === getTodayKey()
+        ) {
+
+          return;
+
+        }
+
+
+        setBirthdayCoupon(
+          coupon as BirthdayCouponForModal
+        );
+
+        setProfilePromptOpen(true);
+
+        localStorage.setItem(
+          BIRTHDAY_PROMPT_KEY,
+          getTodayKey()
+        );
+
+      } catch (error) {
+
+        /*
+         * Birthday coupon generation/prompting must never
+         * interrupt the normal website experience.
+         */
+        console.error(
+          "Birthday coupon generation failed:",
+          error
+        );
+
+      }
+
+    }
+
+
+    void generateBirthdayCoupon();
+
+
+    return () => {
+
+      cancelled = true;
+
+    };
+
+  }, [
+    customer,
+    authLoading,
+  ]);
+
+
+  /*
+   * =========================================================
+   * RESET BIRTHDAY ATTEMPT WHEN CUSTOMER LOGS OUT
+   * =========================================================
+   *
+   * Allows a different customer to trigger their own
+   * birthday-coupon generation after logout/login.
+   */
+
+  useEffect(() => {
+
+    if (
+      !customer
+    ) {
+
+      birthdayCouponAttemptedForCustomer.current =
+        null;
+
+    }
+
+  }, [
+    customer,
+  ]);
+
+
+  /*
+   * =========================================================
+   * RENDER
+   * =========================================================
+   */
 
   return (
 
@@ -103,9 +359,13 @@ export default function MainLayout() {
 
       <ProfileCompletionModal
         open={profilePromptOpen}
-        onClose={() =>
-          setProfilePromptOpen(false)
+        birthdayCoupon={
+          birthdayCoupon
         }
+        onClose={() => {
+          setProfilePromptOpen(false);
+          setBirthdayCoupon(null);
+        }}
       />
 
 

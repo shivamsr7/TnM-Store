@@ -27,6 +27,10 @@ import {
 } from "@/features/coupons/services/coupon.service";
 
 import {
+  getOrCreateBirthdayCoupon,
+} from "@/features/coupons/services/birthdayCoupon.service";
+
+import {
   useAuth,
 } from "@/features/Auth/context/AuthContext";
 
@@ -42,7 +46,10 @@ import {
 
 import CheckoutDialog from "@/features/checkout/components/CheckoutDialog";
 
-import { useQuery } from "@tanstack/react-query";
+import {
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 
 import { supabase } from "@/shared/lib/supabase";
 
@@ -115,6 +122,101 @@ export default function CartDrawer() {
   const {
     customer,
   } = useAuth();
+
+  const queryClient =
+    useQueryClient();
+
+
+  /*
+   * =========================================================
+   * BIRTHDAY COUPON GENERATION
+   * =========================================================
+   *
+   * Ask the secure Supabase RPC to prepare the customer's
+   * birthday coupon whenever an authenticated customer becomes
+   * available.
+   *
+   * This covers:
+   * - fresh login
+   * - persisted session restoration
+   * - page refresh while already logged in
+   *
+   * The RPC itself decides whether the customer is eligible.
+   * If the coupon already exists for the current year, the
+   * existing coupon is returned. Otherwise it is created and
+   * assigned to this customer.
+   *
+   * Birthday coupon generation must never block or break the
+   * cart if the RPC encounters an error.
+   * =========================================================
+   */
+
+  useEffect(() => {
+
+    if (!customer?.id) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const ensureBirthdayCoupon =
+      async () => {
+
+        try {
+
+          const birthdayCoupon =
+            await getOrCreateBirthdayCoupon(
+              customer.id
+            );
+
+          if (
+            cancelled ||
+            !birthdayCoupon
+          ) {
+            return;
+          }
+
+          /*
+           * The birthday coupon is now available in the same
+           * coupons table used by the existing best-coupon
+           * validation flow.
+           *
+           * Invalidate the current best-coupon query so the
+           * newly generated/returned birthday coupon can be
+           * considered immediately.
+           */
+          await queryClient.invalidateQueries({
+            queryKey: [
+              "eligible-best-coupon",
+              customer.id,
+            ],
+          });
+
+        } catch (error) {
+
+          /*
+           * Birthday coupon preparation is an enhancement and
+           * must never break cart or checkout functionality.
+           */
+          console.error(
+            "Unable to prepare birthday coupon:",
+            error
+          );
+
+        }
+
+      };
+
+    void ensureBirthdayCoupon();
+
+    return () => {
+      cancelled = true;
+    };
+
+  }, [
+    customer?.id,
+    queryClient,
+  ]);
 
 
   /*
@@ -2040,20 +2142,50 @@ export default function CartDrawer() {
 
         });
 
-        setBestCouponAppliedDialog({
-          code:
-            result.coupon.code,
-          discount:
-            Number(
-              result.discount ?? 0
-            ),
-        });
+        const isBirthdayCoupon =
+          bestCoupon?.coupon_type ===
+            "birthday" ||
+          result.coupon?.coupon_type ===
+            "birthday" ||
+          String(
+            result.coupon?.code ??
+              bestCoupon?.code ??
+              ""
+          )
+            .toUpperCase()
+            .startsWith("BDAY-");
 
-        window.setTimeout(() => {
-          setBestCouponAppliedDialog(
-            null
-          );
-        }, 2600);
+        if (isBirthdayCoupon) {
+
+          setBirthdayCouponSuccess({
+            code:
+              result.coupon?.code ??
+              bestCoupon?.code ??
+              "",
+            discount:
+              Number(
+                result.discount ?? 0
+              ),
+          });
+
+        } else {
+
+          setBestCouponAppliedDialog({
+            code:
+              result.coupon.code,
+            discount:
+              Number(
+                result.discount ?? 0
+              ),
+          });
+
+          window.setTimeout(() => {
+            setBestCouponAppliedDialog(
+              null
+            );
+          }, 2600);
+
+        }
 
       } catch (error: any) {
 
@@ -2154,7 +2286,38 @@ export default function CartDrawer() {
         });
 
         setShowCheckoutCouponReminder(false);
-        showCouponSuccess();
+
+        const isBirthdayCoupon =
+          bestCoupon?.coupon_type ===
+            "birthday" ||
+          result.coupon?.coupon_type ===
+            "birthday" ||
+          String(
+            result.coupon?.code ??
+              bestCoupon?.code ??
+              ""
+          )
+            .toUpperCase()
+            .startsWith("BDAY-");
+
+        if (isBirthdayCoupon) {
+
+          setBirthdayCouponSuccess({
+            code:
+              result.coupon?.code ??
+              bestCoupon?.code ??
+              "",
+            discount:
+              Number(
+                result.discount ?? 0
+              ),
+          });
+
+        } else {
+
+          showCouponSuccess();
+
+        }
 
         window.setTimeout(() => {
           setCheckoutOpen(true);
@@ -2486,6 +2649,21 @@ export default function CartDrawer() {
   ] = useState(false);
 
 
+  /*
+   * =========================================================
+   * BIRTHDAY COUPON SUCCESS MESSAGE
+   * =========================================================
+   */
+
+  const [
+    birthdayCouponSuccess,
+    setBirthdayCouponSuccess,
+  ] = useState<{
+    code: string;
+    discount: number;
+  } | null>(null);
+
+
   const [
     couponAnimationKey,
     setCouponAnimationKey,
@@ -2660,21 +2838,45 @@ export default function CartDrawer() {
         });
 
 
-        setCouponMessage(
+        const isBirthdayCoupon =
+          result.coupon?.coupon_type ===
+            "birthday" ||
+          String(
+            result.coupon?.code ??
+              couponCode ??
+              ""
+          )
+            .toUpperCase()
+            .startsWith("BDAY-");
 
-          result.freeShipping
+        if (isBirthdayCoupon) {
 
-            ? "🎉 Free shipping coupon applied!"
+          setCouponMessage("");
 
-            : result.freeGift
+          setBirthdayCouponSuccess({
+            code:
+              result.coupon?.code ??
+              couponCode ??
+              "",
+            discount:
+              Number(
+                result.discount ?? 0
+              ),
+          });
 
-              ? "🎁 Free gift coupon applied!"
+        } else {
 
-              : `Coupon applied! You saved ₹${result.discount}`
+          setCouponMessage(
+            result.freeShipping
+              ? "🎉 Free shipping coupon applied!"
+              : result.freeGift
+                ? "🎁 Free gift coupon applied!"
+                : `Coupon applied! You saved ₹${result.discount}`
+          );
 
-        );
+          showCouponSuccess();
 
-        showCouponSuccess();
+        }
 
       }
 
@@ -8227,21 +8429,70 @@ export default function CartDrawer() {
               });
 
 
-              setCouponMessage(
+              /*
+               * Detect birthday coupons from both the original
+               * CouponModal item and the freshly validated result.
+               *
+               * The modal item already comes from the coupons query,
+               * while validateCoupon() may return a normalized coupon
+               * object. Checking both makes the birthday celebration
+               * reliable even if the normalized object does not carry
+               * coupon_type.
+               */
+              const isBirthdayCoupon =
+                coupon?.coupon_type ===
+                  "birthday" ||
+                result.coupon?.coupon_type ===
+                  "birthday" ||
+                String(
+                  result.coupon?.code ??
+                    coupon?.code ??
+                    ""
+                )
+                  .toUpperCase()
+                  .startsWith("BDAY-");
 
-                result.freeShipping
 
-                  ? "🎉 Free shipping coupon applied!"
+              if (isBirthdayCoupon) {
 
-                  : result.freeGift
+                /*
+                 * Do not show the ordinary "Coupon applied!" toast
+                 * for a birthday reward. The birthday celebration
+                 * replaces it.
+                 */
+                setCouponMessage("");
 
-                    ? "🎁 Free gift coupon applied!"
+                setBirthdayCouponSuccess({
+                  code:
+                    result.coupon?.code ??
+                    coupon?.code ??
+                    "",
+                  discount:
+                    Number(
+                      result.discount ?? 0
+                    ),
+                });
 
-                    : `Coupon applied! You saved ₹${result.discount}`
+              } else {
 
-              );
+                setCouponMessage(
 
-              showCouponSuccess();
+                  result.freeShipping
+
+                    ? "🎉 Free shipping coupon applied!"
+
+                    : result.freeGift
+
+                      ? "🎁 Free gift coupon applied!"
+
+                      : `Coupon applied! You saved ₹${result.discount}`
+
+                );
+
+                showCouponSuccess();
+
+              }
+
 
               setShowCoupons(
                 false
@@ -8552,6 +8803,305 @@ export default function CartDrawer() {
               "
             >
               Your cart total has been updated
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
+
+      {birthdayCouponSuccess && (
+
+        <div
+          className="
+            fixed
+            inset-0
+            z-[1500]
+            flex
+            items-center
+            justify-center
+            bg-black/45
+            px-5
+            backdrop-blur-sm
+            animate-in
+            fade-in
+            duration-300
+          "
+          onClick={() =>
+            setBirthdayCouponSuccess(null)
+          }
+        >
+
+          <div
+            className="
+              relative
+              w-full
+              max-w-md
+              overflow-hidden
+              rounded-[30px]
+              border
+              border-[#E8D7A8]
+              bg-gradient-to-b
+              from-[#FFFDF7]
+              via-white
+              to-[#FFF8E8]
+              px-7
+              py-8
+              text-center
+              shadow-[0_25px_80px_rgba(0,0,0,0.22)]
+              animate-in
+              zoom-in-95
+              slide-in-from-bottom-3
+              duration-400
+            "
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+
+            <div
+              className="
+                pointer-events-none
+                absolute
+                -right-16
+                -top-16
+                h-40
+                w-40
+                rounded-full
+                bg-[#F4D98B]/25
+                blur-2xl
+              "
+            />
+
+            <div
+              className="
+                pointer-events-none
+                absolute
+                -bottom-20
+                -left-16
+                h-40
+                w-40
+                rounded-full
+                bg-[#E8C7D8]/20
+                blur-2xl
+              "
+            />
+
+
+            <div
+              className="
+                relative
+                mx-auto
+                flex
+                h-20
+                w-20
+                items-center
+                justify-center
+                rounded-full
+                border
+                border-[#E5CB83]
+                bg-gradient-to-br
+                from-[#FFF8D9]
+                to-[#F7E6AE]
+                shadow-lg
+                animate-in
+                zoom-in
+                duration-500
+              "
+            >
+
+              <span
+                className="
+                  text-[38px]
+                  leading-none
+                  animate-bounce
+                "
+              >
+                🎂
+              </span>
+
+              <span
+                className="
+                  absolute
+                  -right-1
+                  -top-1
+                  text-lg
+                  animate-pulse
+                "
+              >
+                ✨
+              </span>
+
+              <span
+                className="
+                  absolute
+                  -bottom-1
+                  -left-1
+                  text-base
+                  animate-pulse
+                "
+              >
+                ✨
+              </span>
+
+            </div>
+
+
+            <div className="relative mt-5">
+
+              <p
+                className="
+                  text-[11px]
+                  font-semibold
+                  uppercase
+                  tracking-[0.28em]
+                  text-[#B18A2C]
+                "
+              >
+                A little something from T&M Jewels
+              </p>
+
+              <h3
+                className="
+                  mt-2
+                  text-2xl
+                  font-semibold
+                  tracking-tight
+                  text-neutral-900
+                "
+              >
+                Happy Birthday! 💛
+              </h3>
+
+              <p
+                className="
+                  mx-auto
+                  mt-2
+                  max-w-sm
+                  text-sm
+                  leading-6
+                  text-neutral-500
+                "
+              >
+                Your birthday treat is officially unlocked.
+                Enjoy your special discount and celebrate
+                yourself a little extra today. ✨
+              </p>
+
+
+              <div
+                className="
+                  mx-auto
+                  mt-5
+                  inline-flex
+                  items-center
+                  gap-2
+                  rounded-full
+                  border
+                  border-[#E8D7A8]
+                  bg-white
+                  px-4
+                  py-2.5
+                  shadow-sm
+                "
+              >
+
+                <Gift
+                  size={16}
+                  className="text-[#B18A2C]"
+                />
+
+                <span
+                  className="
+                    text-sm
+                    font-semibold
+                    text-neutral-800
+                  "
+                >
+                  {birthdayCouponSuccess.discount > 0
+                    ? `You saved ₹${birthdayCouponSuccess.discount}`
+                    : "Birthday reward applied"}
+                </span>
+
+              </div>
+
+
+              <div
+                className="
+                  mt-4
+                  rounded-2xl
+                  border
+                  border-dashed
+                  border-[#DEC98E]
+                  bg-[#FFFCF2]
+                  px-4
+                  py-3
+                "
+              >
+
+                <p
+                  className="
+                    text-[10px]
+                    font-medium
+                    uppercase
+                    tracking-[0.2em]
+                    text-neutral-400
+                  "
+                >
+                  Your birthday code
+                </p>
+
+                <p
+                  className="
+                    mt-1
+                    text-sm
+                    font-bold
+                    tracking-[0.12em]
+                    text-[#9A7621]
+                  "
+                >
+                  {birthdayCouponSuccess.code}
+                </p>
+
+              </div>
+
+
+              <button
+                type="button"
+                onClick={() =>
+                  setBirthdayCouponSuccess(null)
+                }
+                className="
+                  mt-6
+                  w-full
+                  rounded-2xl
+                  bg-neutral-900
+                  px-5
+                  py-3
+                  text-sm
+                  font-semibold
+                  text-white
+                  shadow-lg
+                  transition
+                  hover:bg-neutral-800
+                  active:scale-[0.98]
+                "
+              >
+                Continue Shopping ✨
+              </button>
+
+              <p
+                className="
+                  mt-3
+                  text-[10px]
+                  text-neutral-400
+                "
+              >
+                Your cart total has been updated.
+              </p>
+
             </div>
 
           </div>

@@ -1,5 +1,8 @@
 import {
   CalendarDays,
+  Check,
+  Copy,
+  Gift,
   Mail,
   ShieldCheck,
   Sparkles,
@@ -18,9 +21,16 @@ import { supabase } from "@/shared/lib/supabase";
 
 import { useAuth } from "@/features/Auth/context/AuthContext";
 
+import {
+  getOrCreateBirthdayCoupon,
+} from "@/features/coupons/services/birthdayCoupon.service";
+
 
 const DAILY_PROMPT_KEY =
   "tnm_profile_completion_prompt_date";
+
+const BIRTHDAY_PROMPT_KEY =
+  "tnm_birthday_coupon_prompt_date";
 
 
 function getTodayKey() {
@@ -39,15 +49,33 @@ function isValidEmail(email: string) {
 }
 
 
+export interface BirthdayCouponForModal {
+  id: string;
+  code: string;
+  title?: string | null;
+  description?: string | null;
+  discount_type: "fixed" | "percentage";
+  discount_value: number;
+  minimum_order_amount: number;
+  maximum_discount?: number | null;
+  one_use_per_customer?: boolean;
+  starts_at?: string | null;
+  expires_at?: string | null;
+  is_active?: boolean;
+  coupon_type?: "standard" | "birthday";
+}
+
 interface ProfileCompletionModalProps {
   open: boolean;
   onClose: () => void;
+  birthdayCoupon?: BirthdayCouponForModal | null;
 }
 
 
 export default function ProfileCompletionModal({
   open,
   onClose,
+  birthdayCoupon = null,
 }: ProfileCompletionModalProps) {
   const {
     customer,
@@ -57,6 +85,17 @@ export default function ProfileCompletionModal({
   const [email, setEmail] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const [birthdayReward, setBirthdayReward] =
+    useState<BirthdayCouponForModal | null>(
+      birthdayCoupon
+    );
+
+  const [copied, setCopied] =
+    useState(false);
+
+  const isBirthdayMode =
+    !!birthdayReward;
 
   const emailMissing =
     !customer?.email?.trim();
@@ -104,14 +143,521 @@ export default function ProfileCompletionModal({
     setEmail(customer.email ?? "");
     setDateOfBirth(customer.date_of_birth ?? "");
     setSaving(false);
+    setCopied(false);
+
+    setBirthdayReward(
+      birthdayCoupon ?? null
+    );
   }, [
     open,
     customer,
+    birthdayCoupon,
   ]);
 
 
   if (!customer || !open) {
     return null;
+  }
+
+
+  function formatBirthdayDate(
+    value: string | null | undefined
+  ) {
+    if (!value) {
+      return "";
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+
+    return date.toLocaleDateString(
+      "en-IN",
+      {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }
+    );
+  }
+
+
+  function formatDiscount(
+    coupon: BirthdayCouponForModal
+  ) {
+    if (
+      coupon.discount_type ===
+      "percentage"
+    ) {
+      return `${coupon.discount_value}% OFF`;
+    }
+
+    return `₹${coupon.discount_value} OFF`;
+  }
+
+
+  async function copyBirthdayCode() {
+    if (!birthdayReward?.code) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(
+        birthdayReward.code
+      );
+
+      setCopied(true);
+
+      window.setTimeout(() => {
+        setCopied(false);
+      }, 1800);
+
+    } catch (error) {
+      console.error(
+        "Unable to copy birthday coupon:",
+        error
+      );
+
+      toast.error(
+        "Unable to copy the coupon code."
+      );
+    }
+  }
+
+
+  function closeBirthdayReward() {
+    localStorage.setItem(
+      BIRTHDAY_PROMPT_KEY,
+      getTodayKey()
+    );
+
+    setBirthdayReward(null);
+    setCopied(false);
+    onClose();
+  }
+
+
+  function renderBirthdayReward() {
+    if (!birthdayReward) {
+      return null;
+    }
+
+    const startsAt =
+      formatBirthdayDate(
+        birthdayReward.starts_at
+      );
+
+    const expiresAt =
+      formatBirthdayDate(
+        birthdayReward.expires_at
+      );
+
+    const validity =
+      startsAt && expiresAt
+        ? `${startsAt} – ${expiresAt}`
+        : expiresAt
+          ? `Valid until ${expiresAt}`
+          : "Valid throughout your birthday month";
+
+    return (
+      <div
+        className="
+          relative
+          overflow-hidden
+          rounded-[28px]
+          border
+          border-[#E7D49A]
+          bg-gradient-to-b
+          from-[#FFFDF8]
+          via-white
+          to-[#FFF8E9]
+          shadow-[0_25px_80px_rgba(0,0,0,0.25)]
+        "
+      >
+
+        <div
+          className="
+            pointer-events-none
+            absolute
+            -right-16
+            -top-16
+            h-44
+            w-44
+            rounded-full
+            bg-[#F2D58A]/25
+            blur-3xl
+          "
+        />
+
+        <div
+          className="
+            pointer-events-none
+            absolute
+            -bottom-20
+            -left-16
+            h-40
+            w-40
+            rounded-full
+            bg-[#E9C8D7]/20
+            blur-3xl
+          "
+        />
+
+
+        <button
+          type="button"
+          onClick={closeBirthdayReward}
+          aria-label="Close birthday reward"
+          className="
+            absolute
+            right-5
+            top-5
+            z-10
+            flex
+            h-9
+            w-9
+            items-center
+            justify-center
+            rounded-full
+            border
+            border-neutral-200
+            bg-white/80
+            text-neutral-500
+            shadow-sm
+            transition
+            hover:bg-white
+            hover:text-neutral-900
+          "
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+
+        <div
+          className="
+            relative
+            px-6
+            pb-7
+            pt-8
+            text-center
+            sm:px-8
+            sm:pt-9
+          "
+        >
+
+          <div
+            className="
+              mx-auto
+              flex
+              h-20
+              w-20
+              items-center
+              justify-center
+              rounded-full
+              border
+              border-[#E7C96E]
+              bg-gradient-to-br
+              from-[#FFF8D8]
+              to-[#F8E6A8]
+              shadow-[0_10px_30px_rgba(188,148,45,0.18)]
+            "
+          >
+            <span className="text-[38px] leading-none">
+              🎂
+            </span>
+          </div>
+
+
+          <p
+            className="
+              mt-6
+              text-[11px]
+              font-semibold
+              uppercase
+              tracking-[0.28em]
+              text-[#B18427]
+            "
+          >
+            A Little Something From T&M Jewels
+          </p>
+
+
+          <h2
+            className="
+              mt-2
+              text-[28px]
+              font-semibold
+              tracking-tight
+              text-neutral-900
+              sm:text-[30px]
+            "
+          >
+            Happy Birthday! 💛
+          </h2>
+
+
+          <p
+            className="
+              mx-auto
+              mt-2
+              max-w-[430px]
+              text-sm
+              leading-6
+              text-neutral-500
+            "
+          >
+            Your birthday treat is ready.
+            Enjoy a little extra sparkle from
+            T&M Jewels. ✨
+          </p>
+
+
+          <div
+            className="
+              mt-6
+              rounded-[22px]
+              border
+              border-[#E9D9AB]
+              bg-white/80
+              px-5
+              py-5
+              shadow-sm
+            "
+          >
+
+            <p
+              className="
+                text-[10px]
+                font-semibold
+                uppercase
+                tracking-[0.22em]
+                text-neutral-400
+              "
+            >
+              Your Birthday Reward
+            </p>
+
+
+            <p
+              className="
+                mt-1
+                text-3xl
+                font-bold
+                tracking-tight
+                text-neutral-900
+              "
+            >
+              {formatDiscount(
+                birthdayReward
+              )}
+            </p>
+
+
+            <p
+              className="
+                mt-1
+                text-xs
+                text-neutral-500
+              "
+            >
+              on orders above ₹
+              {birthdayReward.minimum_order_amount.toLocaleString(
+                "en-IN"
+              )}
+            </p>
+
+          </div>
+
+
+          <div
+            className="
+              mt-4
+              rounded-[20px]
+              border
+              border-dashed
+              border-[#DDBD69]
+              bg-[#FFFCF2]
+              p-4
+            "
+          >
+
+            <p
+              className="
+                text-[10px]
+                font-semibold
+                uppercase
+                tracking-[0.22em]
+                text-neutral-400
+              "
+            >
+              Your Birthday Code
+            </p>
+
+
+            <div
+              className="
+                mt-2
+                flex
+                items-center
+                gap-2
+              "
+            >
+
+              <div
+                className="
+                  min-w-0
+                  flex-1
+                  rounded-xl
+                  bg-white
+                  px-3
+                  py-2.5
+                  text-center
+                  shadow-sm
+                "
+              >
+                <p
+                  className="
+                    truncate
+                    text-sm
+                    font-bold
+                    tracking-[0.12em]
+                    text-[#9A7420]
+                  "
+                >
+                  {birthdayReward.code}
+                </p>
+              </div>
+
+
+              <button
+                type="button"
+                onClick={copyBirthdayCode}
+                className="
+                  flex
+                  h-11
+                  shrink-0
+                  items-center
+                  gap-2
+                  rounded-xl
+                  bg-neutral-950
+                  px-4
+                  text-xs
+                  font-semibold
+                  text-white
+                  shadow-sm
+                  transition
+                  hover:bg-neutral-800
+                  active:scale-[0.98]
+                "
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-3.5 w-3.5" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3.5 w-3.5" />
+                    Copy
+                  </>
+                )}
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <div
+            className="
+              mt-4
+              flex
+              items-center
+              justify-center
+              gap-2
+              rounded-xl
+              bg-white/70
+              px-3
+              py-2.5
+              text-xs
+              text-neutral-500
+            "
+          >
+            <CalendarDays
+              className="
+                h-3.5
+                w-3.5
+                text-[#B18427]
+              "
+            />
+            <span>
+              <span className="font-medium text-neutral-700">
+                Valid:
+              </span>{" "}
+              {validity}
+            </span>
+          </div>
+
+
+          <div
+            className="
+              mt-2
+              flex
+              items-center
+              justify-center
+              gap-2
+              text-[11px]
+              text-neutral-400
+            "
+          >
+            <Gift className="h-3.5 w-3.5" />
+            {birthdayReward.one_use_per_customer
+              ? "One-time birthday reward"
+              : "Birthday reward"}
+          </div>
+
+
+          <button
+            type="button"
+            onClick={closeBirthdayReward}
+            className="
+              mt-6
+              flex
+              h-12
+              w-full
+              items-center
+              justify-center
+              rounded-2xl
+              bg-neutral-950
+              px-5
+              text-sm
+              font-semibold
+              text-white
+              shadow-lg
+              transition
+              hover:bg-neutral-800
+              active:scale-[0.99]
+            "
+          >
+            Start Shopping ✨
+          </button>
+
+
+          <p
+            className="
+              mt-3
+              text-[10px]
+              text-neutral-400
+            "
+          >
+            Your birthday reward is ready whenever you are. 💛
+          </p>
+
+        </div>
+      </div>
+    );
   }
 
 
@@ -202,6 +748,53 @@ export default function ProfileCompletionModal({
       updateCustomer(data);
 
 
+      /*
+       * Profile completion is saved first. If the customer is
+       * currently in their birthday month, the secure generator
+       * returns their existing birthday coupon or creates it.
+       *
+       * Showing the reward here means a customer who just added
+       * their DOB gets the same premium birthday experience as
+       * a returning customer on refresh.
+       */
+      try {
+
+        const coupon =
+          await getOrCreateBirthdayCoupon(
+            currentCustomer.id
+          );
+
+        if (coupon) {
+
+          setBirthdayReward(
+            coupon as BirthdayCouponForModal
+          );
+
+          setCopied(false);
+
+          localStorage.setItem(
+            BIRTHDAY_PROMPT_KEY,
+            getTodayKey()
+          );
+
+          localStorage.setItem(
+            DAILY_PROMPT_KEY,
+            getTodayKey()
+          );
+
+          return;
+        }
+
+      } catch (birthdayError) {
+
+        console.error(
+          "Birthday coupon preparation after profile save failed:",
+          birthdayError
+        );
+
+      }
+
+
       toast.success(
         fieldsRemaining > 1
           ? "Profile details saved successfully."
@@ -209,11 +802,9 @@ export default function ProfileCompletionModal({
       );
 
 
-      const todayKey = getTodayKey();
-
       localStorage.setItem(
         DAILY_PROMPT_KEY,
-        todayKey
+        getTodayKey()
       );
 
       onClose();
@@ -243,6 +834,35 @@ export default function ProfileCompletionModal({
     );
 
     onClose();
+  }
+
+
+  if (isBirthdayMode) {
+    return (
+      <div
+        className="
+          fixed
+          inset-0
+          z-[110]
+          flex
+          items-center
+          justify-center
+          bg-black/55
+          p-4
+          backdrop-blur-[4px]
+        "
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="birthday-reward-title"
+      >
+        <div
+          id="birthday-reward-title"
+          className="w-full max-w-[560px]"
+        >
+          {renderBirthdayReward()}
+        </div>
+      </div>
+    );
   }
 
 
