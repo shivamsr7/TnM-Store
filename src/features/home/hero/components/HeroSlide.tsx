@@ -41,22 +41,25 @@ export default function HeroSlide({
       {/* =====================================================
           DESKTOP OVERLAY
           -----------------------------------------------------
-          Keep the existing dark gradient for desktop banners.
-          Mobile banners remain completely clear/light.
+          Only shown when overlay content is enabled.
+          
+          Mobile remains clear/light.
       ====================================================== */}
 
-      <div
-        className="
-          absolute
-          inset-0
-          hidden
-          lg:block
-          bg-gradient-to-r
-          from-black/70
-          via-black/35
-          to-transparent
-        "
-      />
+      {banner.show_overlay_content && (
+        <div
+          className="
+            absolute
+            inset-0
+            hidden
+            lg:block
+            bg-gradient-to-r
+            from-black/70
+            via-black/35
+            to-transparent
+          "
+        />
+      )}
 
 
       {/* =====================================================
@@ -67,92 +70,102 @@ export default function HeroSlide({
 
 
       {/* =====================================================
-          CONTENT
+          OVERLAY CONTENT
+          -----------------------------------------------------
+          When OFF, the banner is displayed as pure artwork.
       ====================================================== */}
 
-      <div
-        className="
-          relative
-          z-10
-          flex
-          h-full
-          items-center
-        "
-      >
-
+      {banner.show_overlay_content && (
         <div
           className="
-            max-w-2xl
-            px-12
-            lg:px-20
+            relative
+            z-10
+            flex
+            h-full
+            items-center
           "
         >
 
-          {/* SUBTITLE */}
-
-          {banner.subtitle && (
-            <p
-              className="
-                mb-3
-                text-sm
-                font-medium
-                uppercase
-                tracking-[4px]
-                text-[#D4AF37]
-              "
-            >
-              {banner.subtitle}
-            </p>
-          )}
-
-
-          {/* TITLE */}
-
-          <h1
+          <div
             className="
-              text-4xl
-              font-bold
-              text-white
-              lg:text-5xl
+              max-w-2xl
+              px-12
+              lg:px-20
             "
           >
-            {banner.title}
-          </h1>
 
+            {/* =================================================
+                SUBTITLE
+            ================================================== */}
 
-          {/* BUTTON */}
-
-          {banner.button_text &&
-            banner.button_link && (
-              <div className="mt-10">
-
-                <a
-                  href={
-                    banner.button_link
-                  }
-                  className="
-                    inline-flex
-                    rounded-full
-                    bg-[#C8A44D]
-                    px-8
-                    py-4
-                    font-semibold
-                    text-black
-                    transition-all
-                    duration-300
-                    hover:scale-105
-                    hover:bg-[#D4AF37]
-                  "
-                >
-                  {banner.button_text}
-                </a>
-
-              </div>
+            {banner.subtitle && (
+              <p
+                className="
+                  mb-3
+                  text-sm
+                  font-medium
+                  uppercase
+                  tracking-[4px]
+                  text-[#D4AF37]
+                "
+              >
+                {banner.subtitle}
+              </p>
             )}
 
-        </div>
 
-      </div>
+            {/* =================================================
+                TITLE
+            ================================================== */}
+
+            <h1
+              className="
+                text-4xl
+                font-bold
+                text-white
+                lg:text-5xl
+              "
+            >
+              {banner.title}
+            </h1>
+
+
+            {/* =================================================
+                BUTTON
+            ================================================== */}
+
+            {banner.button_text &&
+              banner.button_link && (
+                <div className="mt-10">
+
+                  <a
+                    href={
+                      banner.button_link
+                    }
+                    className="
+                      inline-flex
+                      rounded-full
+                      bg-[#C8A44D]
+                      px-8
+                      py-4
+                      font-semibold
+                      text-black
+                      transition-all
+                      duration-300
+                      hover:scale-105
+                      hover:bg-[#D4AF37]
+                    "
+                  >
+                    {banner.button_text}
+                  </a>
+
+                </div>
+              )}
+
+          </div>
+
+        </div>
+      )}
 
     </div>
   );

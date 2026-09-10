@@ -1,5 +1,6 @@
 export interface HeroBanner {
   id: string;
+
   title: string;
   subtitle: string | null;
 
@@ -20,6 +21,8 @@ export interface HeroBanner {
   ends_at: string | null;
 
   is_active: boolean;
+
+  show_overlay_content: boolean;
 
   created_at: string;
   updated_at: string;
