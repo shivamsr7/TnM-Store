@@ -109,11 +109,14 @@ export default function HomeProductSection({
         className="
           bg-black
           px-4
-          py-12
+          pt-8
+          pb-12
           sm:px-6
-          sm:py-16
+          sm:pt-10
+          sm:pb-16
           lg:px-8
-          lg:py-20
+          lg:pt-12
+          lg:pb-20
         "
       >
 
@@ -331,11 +334,6 @@ export default function HomeProductSection({
    * VIEW ALL URL
    * =========================================================
    *
-   * IMPORTANT:
-   *
-   * This uses the existing Shop URL
-   * filtering system.
-   *
    * Best Sellers:
    * /shop?bestSeller=true
    *
@@ -363,11 +361,14 @@ export default function HomeProductSection({
       className="
         bg-black
         px-4
-        py-12
+        pt-8
+        pb-12
         sm:px-6
-        sm:py-16
+        sm:pt-10
+        sm:pb-16
         lg:px-8
-        lg:py-20
+        lg:pt-12
+        lg:pb-20
       "
     >
 
@@ -453,15 +454,12 @@ export default function HomeProductSection({
             overflow-x-auto
             px-4
             pb-2
-
             [scrollbar-width:none]
             [-ms-overflow-style:none]
             [&::-webkit-scrollbar]:hidden
-
             sm:-mx-6
             sm:gap-4
             sm:px-6
-
             lg:hidden
           "
         >

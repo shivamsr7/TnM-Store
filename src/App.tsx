@@ -2,6 +2,8 @@ import HeroSection from "@/features/home/hero/components/HeroSection";
 
 import HangingCategories from "@/features/categories/components/HangingCategories";
 
+import TMJewelsDivider from "@/features/home/components/TMJewelsDivider";
+
 import HomeProductSection from "@/features/home/components/HomeProductSection";
 
 import PriceProductSection from "@/features/home/components/PriceProductSection";
@@ -14,9 +16,26 @@ export default function App() {
   return (
     <main>
 
+      {/* =================================================
+          HERO
+      ================================================== */}
+
       <HeroSection />
 
+
+      {/* =================================================
+          EXPLORE OUR COLLECTION
+      ================================================== */}
+
       <HangingCategories />
+
+
+      {/* =================================================
+          T&M JEWELS DIVIDER
+      ================================================== */}
+
+      <TMJewelsDivider />
+
 
       {/* =================================================
           BEST SELLERS
@@ -28,6 +47,7 @@ export default function App() {
         subtitle="The pieces our customers can't get enough of."
       />
 
+
       {/* =================================================
           NEW ARRIVALS
       ================================================== */}
@@ -37,6 +57,7 @@ export default function App() {
         title="New Arrivals"
         subtitle="Fresh pieces, made to become your next favourite."
       />
+
 
       {/* =================================================
           UNDER ₹299
@@ -48,6 +69,7 @@ export default function App() {
         subtitle="Beautiful pieces that don't break the budget."
       />
 
+
       {/* =================================================
           UNDER ₹499
       ================================================== */}
@@ -58,7 +80,13 @@ export default function App() {
         subtitle="A little extra luxe, still at an easy price."
       />
 
+
+      {/* =================================================
+          CUSTOMER LOVE
+      ================================================== */}
+
       <CustomerLove />
+
 
       {/* =================================================
           INSTAGRAM
