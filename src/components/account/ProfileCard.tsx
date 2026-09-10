@@ -2,47 +2,43 @@ import {
   User,
   Mail,
   Phone,
+  CalendarDays,
   ChevronRight,
 } from "lucide-react";
-
 
 import {
   useAuth,
 } from "@/features/Auth/context/AuthContext";
 
-
-
 interface Props {
-
   onEditProfile: () => void;
-
 }
 
-
-
 export default function ProfileCard({
-
   onEditProfile,
-
 }: Props) {
-
-
   const {
     customer,
   } = useAuth();
 
-
-
   if (!customer) {
-
     return null;
-
   }
 
+  const formattedDateOfBirth = customer.date_of_birth
+    ? (() => {
+        const [year, month, day] =
+          customer.date_of_birth.split("-");
 
+        if (!year || !month || !day) {
+          return customer.date_of_birth;
+        }
+
+        return `${day}/${month}/${year}`;
+      })()
+    : "Date of birth not added";
 
   return (
-
     <section
       className="
         overflow-hidden
@@ -53,8 +49,6 @@ export default function ProfileCard({
         shadow-[0_10px_35px_rgba(0,0,0,0.18)]
       "
     >
-
-
       {/* =====================================================
           PROFILE HEADER
       ====================================================== */}
@@ -72,8 +66,6 @@ export default function ProfileCard({
           sm:py-5
         "
       >
-
-
         {/* ===================================================
             AVATAR
         ==================================================== */}
@@ -97,51 +89,33 @@ export default function ProfileCard({
             sm:w-16
           "
         >
-
-          {
-            customer.avatar
-
-              ? (
-
-                <img
-                  src={
-                    customer.avatar ||
-                    "/default-avatar.png"
-                  }
-                  alt="Profile"
-                  onError={(
-                    event
-                  ) => {
-
-                    event.currentTarget.src =
-                      "/default-avatar.png";
-
-                  }}
-                  className="
-                    h-full
-                    w-full
-                    object-cover
-                  "
-                />
-
-              )
-
-              : (
-
-                <User
-                  size={26}
-                  className="
-                    text-[#C8A44D]
-                  "
-                  strokeWidth={1.8}
-                />
-
-              )
-          }
-
+          {customer.avatar ? (
+            <img
+              src={
+                customer.avatar ||
+                "/default-avatar.png"
+              }
+              alt="Profile"
+              onError={(event) => {
+                event.currentTarget.src =
+                  "/default-avatar.png";
+              }}
+              className="
+                h-full
+                w-full
+                object-cover
+              "
+            />
+          ) : (
+            <User
+              size={26}
+              className="
+                text-[#C8A44D]
+              "
+              strokeWidth={1.8}
+            />
+          )}
         </div>
-
-
 
         {/* ===================================================
             CUSTOMER INFO
@@ -153,7 +127,6 @@ export default function ProfileCard({
             flex-1
           "
         >
-
           <p
             className="
               text-[10px]
@@ -166,7 +139,6 @@ export default function ProfileCard({
             T&M Member
           </p>
 
-
           <h2
             className="
               mt-1
@@ -178,15 +150,12 @@ export default function ProfileCard({
               sm:text-xl
             "
           >
-
             {customer.first_name}
 
             {" "}
 
             {customer.last_name}
-
           </h2>
-
 
           <p
             className="
@@ -197,10 +166,7 @@ export default function ProfileCard({
           >
             Your personal account
           </p>
-
         </div>
-
-
 
         {/* ===================================================
             EDIT BUTTON
@@ -234,7 +200,6 @@ export default function ProfileCard({
             sm:px-3.5
           "
         >
-
           <span>
             Edit
           </span>
@@ -247,12 +212,8 @@ export default function ProfileCard({
               group-hover:translate-x-0.5
             "
           />
-
         </button>
-
       </div>
-
-
 
       {/* =====================================================
           CONTACT DETAILS
@@ -264,13 +225,11 @@ export default function ProfileCard({
           grid-cols-1
           divide-y
           divide-neutral-800
-          sm:grid-cols-2
+          sm:grid-cols-3
           sm:divide-x
           sm:divide-y-0
         "
       >
-
-
         {/* ===================================================
             EMAIL
         ==================================================== */}
@@ -286,7 +245,6 @@ export default function ProfileCard({
             sm:px-5
           "
         >
-
           <div
             className="
               flex
@@ -300,21 +258,17 @@ export default function ProfileCard({
               text-[#C8A44D]
             "
           >
-
             <Mail
               size={15}
               strokeWidth={1.8}
             />
-
           </div>
-
 
           <div
             className="
               min-w-0
             "
           >
-
             <p
               className="
                 text-[9px]
@@ -326,7 +280,6 @@ export default function ProfileCard({
             >
               Email
             </p>
-
 
             <p
               className="
@@ -340,19 +293,13 @@ export default function ProfileCard({
                 "Email not added"
               }
             >
-
               {
                 customer.email ||
                 "Email not added"
               }
-
             </p>
-
           </div>
-
         </div>
-
-
 
         {/* ===================================================
             PHONE
@@ -369,7 +316,6 @@ export default function ProfileCard({
             sm:px-5
           "
         >
-
           <div
             className="
               flex
@@ -383,21 +329,17 @@ export default function ProfileCard({
               text-[#C8A44D]
             "
           >
-
             <Phone
               size={15}
               strokeWidth={1.8}
             />
-
           </div>
-
 
           <div
             className="
               min-w-0
             "
           >
-
             <p
               className="
                 text-[9px]
@@ -410,6 +352,72 @@ export default function ProfileCard({
               Phone
             </p>
 
+            <p
+              className="
+                mt-0.5
+                truncate
+                text-xs
+                text-neutral-300
+              "
+            >
+              {
+                customer.phone ||
+                "Phone not added"
+              }
+            </p>
+          </div>
+        </div>
+
+        {/* ===================================================
+            DATE OF BIRTH
+        ==================================================== */}
+
+        <div
+          className="
+            flex
+            min-w-0
+            items-center
+            gap-3
+            px-4
+            py-3.5
+            sm:px-5
+          "
+        >
+          <div
+            className="
+              flex
+              h-8
+              w-8
+              shrink-0
+              items-center
+              justify-center
+              rounded-lg
+              bg-[#C8A44D]/10
+              text-[#C8A44D]
+            "
+          >
+            <CalendarDays
+              size={15}
+              strokeWidth={1.8}
+            />
+          </div>
+
+          <div
+            className="
+              min-w-0
+            "
+          >
+            <p
+              className="
+                text-[9px]
+                font-medium
+                uppercase
+                tracking-[0.14em]
+                text-neutral-500
+              "
+            >
+              Date of Birth
+            </p>
 
             <p
               className="
@@ -419,24 +427,11 @@ export default function ProfileCard({
                 text-neutral-300
               "
             >
-
-              {
-                customer.phone ||
-                "Phone not added"
-              }
-
+              {formattedDateOfBirth}
             </p>
-
           </div>
-
         </div>
-
-
       </div>
-
-
     </section>
-
   );
-
 }

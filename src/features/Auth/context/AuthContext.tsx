@@ -32,6 +32,10 @@ export interface Customer {
 
   phone?: string | null;
 
+  date_of_birth?: string | null;
+
+  date_of_birth_update_count?: number;
+
   avatar?: string | null;
 
   status?: string;

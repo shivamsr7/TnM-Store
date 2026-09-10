@@ -5,41 +5,23 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-import {
-  X,
-} from "lucide-react";
+import { X } from "lucide-react";
 
-import {
-  useEffect,
-  useState,
-} from "react";
+import { useEffect, useState } from "react";
 
-import {
-  useForm,
-} from "react-hook-form";
+import { useForm } from "react-hook-form";
 
-import {
-  zodResolver,
-} from "@hookform/resolvers/zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-import {
-  z,
-} from "zod";
+import { z } from "zod";
 
-import {
-  toast,
-} from "sonner";
+import { toast } from "sonner";
 
-import {
-  useAuth,
-} from "@/features/Auth/context/AuthContext";
+import { useAuth } from "@/features/Auth/context/AuthContext";
 
-import {
-  useCustomerProfileMutation,
-} from "@/features/customers/hooks/useCustomerProfileMutation";
+import { useCustomerProfileMutation } from "@/features/customers/hooks/useCustomerProfileMutation";
 
 import AvatarUpload from "./AvatarUpload";
-
 
 /*
  * =========================================================
@@ -48,24 +30,20 @@ import AvatarUpload from "./AvatarUpload";
  */
 
 const schema = z.object({
+  first_name: z
+    .string()
+    .min(2, "First name is required"),
 
-  first_name:
-    z.string()
-      .min(
-        2,
-        "First name is required"
-      ),
+  last_name: z
+    .string()
+    .optional(),
 
-  last_name:
-    z.string()
-      .optional(),
-
+  date_of_birth: z
+    .string()
+    .optional(),
 });
 
-
-type FormData =
-  z.infer<typeof schema>;
-
+type FormData = z.infer<typeof schema>;
 
 /*
  * =========================================================
@@ -74,13 +52,9 @@ type FormData =
  */
 
 interface Props {
-
   open: boolean;
-
   onClose: () => void;
-
 }
-
 
 /*
  * =========================================================
@@ -89,35 +63,16 @@ interface Props {
  */
 
 export default function EditProfileDialog({
-
   open,
-
   onClose,
-
 }: Props) {
-
-
   /*
    * =======================================================
    * AUTH CUSTOMER
    * =======================================================
-   *
-   * IMPORTANT:
-   *
-   * Use the same AuthContext customer that powers the
-   * login/account system.
-   *
-   * This avoids the mobile issue where useCurrentCustomer()
-   * was not immediately providing the complete customer
-   * object.
-   *
-   * =======================================================
    */
 
-  const {
-    customer,
-  } = useAuth();
-
+  const { customer } = useAuth();
 
   /*
    * =======================================================
@@ -125,13 +80,8 @@ export default function EditProfileDialog({
    * =======================================================
    */
 
-  const {
-    updateMutation,
-  } =
-    useCustomerProfileMutation(
-      customer?.id
-    );
-
+  const { updateMutation } =
+    useCustomerProfileMutation(customer?.id);
 
   /*
    * =======================================================
@@ -139,13 +89,22 @@ export default function EditProfileDialog({
    * =======================================================
    */
 
-  const [
-    avatar,
-    setAvatar,
-  ] = useState<
-    string | null
-  >(null);
+  const [avatar, setAvatar] =
+    useState<string | null>(null);
 
+  /*
+   * =======================================================
+   * DOB LIMIT
+   * =======================================================
+   */
+
+  const dobUpdateCount =
+    customer?.date_of_birth_update_count ?? 0;
+
+  const dobUpdateLimit = 2;
+
+  const dobLocked =
+    dobUpdateCount >= dobUpdateLimit;
 
   /*
    * =======================================================
@@ -154,88 +113,43 @@ export default function EditProfileDialog({
    */
 
   const {
-
     register,
-
     handleSubmit,
-
     reset,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
 
-    formState: {
-      errors,
+    defaultValues: {
+      first_name: "",
+      last_name: "",
+      date_of_birth: "",
     },
-
-  } =
-    useForm<FormData>({
-
-      resolver:
-        zodResolver(
-          schema
-        ),
-
-      defaultValues: {
-
-        first_name:
-          "",
-
-        last_name:
-          "",
-
-      },
-
-    });
-
+  });
 
   /*
    * =======================================================
    * SYNC CUSTOMER → FORM
    * =======================================================
-   *
-   * Whenever the dialog opens or the AuthContext customer
-   * becomes available, populate the form.
-   *
-   * This is especially important on mobile because the
-   * customer can hydrate after the component has mounted.
-   *
-   * =======================================================
    */
 
   useEffect(() => {
-
-    if (
-      !customer
-    ) {
-
+    if (!customer) {
       return;
-
     }
 
-
     reset({
-
-      first_name:
-        customer.first_name ||
-        "",
-
-      last_name:
-        customer.last_name ||
-        "",
-
+      first_name: customer.first_name || "",
+      last_name: customer.last_name || "",
+      date_of_birth: customer.date_of_birth || "",
     });
 
-
-    setAvatar(
-      customer.avatar ||
-      null
-    );
-
-
+    setAvatar(customer.avatar || null);
   }, [
     customer,
     open,
     reset,
   ]);
-
 
   /*
    * =======================================================
@@ -243,65 +157,58 @@ export default function EditProfileDialog({
    * =======================================================
    */
 
-  function submit(
-    data: FormData
-  ) {
-
-    if (
-      !customer?.id
-    ) {
-
+  function submit(data: FormData) {
+    if (!customer?.id) {
       toast.error(
         "Customer information is not available."
       );
 
       return;
-
     }
 
-
     updateMutation.mutate(
-
       {
-
-        first_name:
-          data.first_name,
-
-        last_name:
-          data.last_name,
-
+        first_name: data.first_name,
+        last_name: data.last_name,
         avatar,
-
+        date_of_birth: dobLocked
+          ? customer.date_of_birth ?? null
+          : data.date_of_birth || null,
       },
-
       {
-
         onSuccess: () => {
-
           toast.success(
             "Profile updated successfully"
           );
 
-
           onClose();
-
         },
 
+        onError: (error) => {
+          const message =
+            error instanceof Error
+              ? error.message
+              : "";
 
-        onError: () => {
+          if (
+            message.includes(
+              "DATE_OF_BIRTH_UPDATE_LIMIT_REACHED"
+            )
+          ) {
+            toast.error(
+              "Your date of birth can no longer be changed."
+            );
+
+            return;
+          }
 
           toast.error(
             "Unable to update profile"
           );
-
         },
-
       }
-
     );
-
   }
-
 
   /*
    * =======================================================
@@ -310,29 +217,15 @@ export default function EditProfileDialog({
    */
 
   return (
-
     <Dialog
-
-      open={
-        open
-      }
-
+      open={open}
       onOpenChange={(value) => {
-
-        if (
-          !value
-        ) {
-
+        if (!value) {
           onClose();
-
         }
-
       }}
-
     >
-
       <DialogContent
-
         className="
           max-h-[90vh]
           w-[95vw]
@@ -346,15 +239,12 @@ export default function EditProfileDialog({
           sm:max-w-xl
           [&>button]:hidden
         "
-
       >
-
         {/* =================================================
             HEADER
         ================================================== */}
 
         <div
-
           className="
             flex
             items-center
@@ -364,35 +254,21 @@ export default function EditProfileDialog({
             px-6
             py-5
           "
-
         >
-
           <DialogHeader>
-
             <DialogTitle
-
               className="
                 text-xl
                 font-semibold
               "
-
             >
-
               Edit Profile
-
             </DialogTitle>
-
           </DialogHeader>
 
-
           <button
-
             type="button"
-
-            onClick={
-              onClose
-            }
-
+            onClick={onClose}
             className="
               flex
               h-9
@@ -405,71 +281,41 @@ export default function EditProfileDialog({
               transition
               hover:bg-neutral-100
             "
-
+            aria-label="Close edit profile"
           >
-
-            <X
-              size={18}
-            />
-
+            <X size={18} />
           </button>
-
         </div>
-
 
         {/* =================================================
             FORM
         ================================================== */}
 
         <form
-
-          onSubmit={
-            handleSubmit(
-              submit
-            )
-          }
-
+          onSubmit={handleSubmit(submit)}
           className="
             space-y-5
             p-6
           "
-
         >
-
           {/* =================================================
               AVATAR
           ================================================== */}
 
           <AvatarUpload
-
-            customerId={
-              customer?.id ||
-              ""
-            }
-
-            avatar={
-              avatar
-            }
-
+            customerId={customer?.id || ""}
+            avatar={avatar}
             onUpload={(url) => {
-
-              setAvatar(
-                url
-              );
-
+              setAvatar(url);
             }}
-
           />
-
 
           {/* =================================================
               FIRST NAME
           ================================================== */}
 
           <div>
-
             <label
-
               className="
                 mb-2
                 block
@@ -477,22 +323,13 @@ export default function EditProfileDialog({
                 font-medium
                 text-neutral-700
               "
-
             >
-
               First Name
-
             </label>
 
-
             <input
-
-              {...register(
-                "first_name"
-              )}
-
+              {...register("first_name")}
               placeholder="First name"
-
               className="
                 w-full
                 rounded-xl
@@ -507,39 +344,25 @@ export default function EditProfileDialog({
                 focus:border-[#C8A44D]
                 focus:bg-white
               "
-
             />
 
-
             <p
-
               className="
                 mt-1
                 text-xs
                 text-red-500
               "
-
             >
-
-              {
-                errors
-                  .first_name
-                  ?.message
-              }
-
+              {errors.first_name?.message}
             </p>
-
           </div>
-
 
           {/* =================================================
               LAST NAME
           ================================================== */}
 
           <div>
-
             <label
-
               className="
                 mb-2
                 block
@@ -547,22 +370,13 @@ export default function EditProfileDialog({
                 font-medium
                 text-neutral-700
               "
-
             >
-
               Last Name
-
             </label>
 
-
             <input
-
-              {...register(
-                "last_name"
-              )}
-
+              {...register("last_name")}
               placeholder="Last name"
-
               className="
                 w-full
                 rounded-xl
@@ -577,20 +391,73 @@ export default function EditProfileDialog({
                 focus:border-[#C8A44D]
                 focus:bg-white
               "
-
             />
-
           </div>
 
+          {/* =================================================
+              DATE OF BIRTH
+          ================================================== */}
+
+          <div>
+            <label
+              className="
+                mb-2
+                block
+                text-sm
+                font-medium
+                text-neutral-700
+              "
+            >
+              Date of Birth
+            </label>
+
+            <input
+              type="date"
+              {...register("date_of_birth")}
+              max={
+                new Date()
+                  .toISOString()
+                  .split("T")[0]
+              }
+              disabled={dobLocked}
+              className={`
+                w-full
+                rounded-xl
+                border
+                border-neutral-200
+                px-4
+                py-3
+                text-sm
+                outline-none
+                transition
+                ${
+                  dobLocked
+                    ? "cursor-not-allowed bg-neutral-100 text-neutral-400"
+                    : "bg-neutral-50 focus:border-[#C8A44D] focus:bg-white"
+                }
+              `}
+            />
+
+            <p
+              className="
+                mt-2
+                text-xs
+                leading-5
+                text-neutral-500
+              "
+            >
+              {dobLocked
+                ? "Your date of birth can no longer be changed."
+                : `You can update your date of birth up to 2 times. Changes used: ${dobUpdateCount}/2.`}
+            </p>
+          </div>
 
           {/* =================================================
               EMAIL
           ================================================== */}
 
           <div>
-
             <label
-
               className="
                 mb-2
                 block
@@ -598,23 +465,13 @@ export default function EditProfileDialog({
                 font-medium
                 text-neutral-700
               "
-
             >
-
               Email
-
             </label>
 
-
             <input
-
-              value={
-                customer?.email ||
-                ""
-              }
-
+              value={customer?.email || ""}
               readOnly
-
               className="
                 w-full
                 rounded-xl
@@ -627,20 +484,15 @@ export default function EditProfileDialog({
                 text-neutral-500
                 outline-none
               "
-
             />
-
           </div>
-
 
           {/* =================================================
               PHONE
           ================================================== */}
 
           <div>
-
             <label
-
               className="
                 mb-2
                 block
@@ -648,23 +500,13 @@ export default function EditProfileDialog({
                 font-medium
                 text-neutral-700
               "
-
             >
-
               Phone Number
-
             </label>
 
-
             <input
-
-              value={
-                customer?.phone ||
-                ""
-              }
-
+              value={customer?.phone || ""}
               readOnly
-
               className="
                 w-full
                 rounded-xl
@@ -677,25 +519,19 @@ export default function EditProfileDialog({
                 text-neutral-500
                 outline-none
               "
-
             />
-
           </div>
-
 
           {/* =================================================
               SAVE
           ================================================== */}
 
           <button
-
             type="submit"
-
             disabled={
               updateMutation.isPending ||
               !customer?.id
             }
-
             className="
               w-full
               rounded-xl
@@ -708,27 +544,13 @@ export default function EditProfileDialog({
               disabled:cursor-not-allowed
               disabled:opacity-70
             "
-
           >
-
-            {
-
-              updateMutation.isPending
-
-                ? "Saving..."
-
-                : "Save Changes"
-
-            }
-
+            {updateMutation.isPending
+              ? "Saving..."
+              : "Save Changes"}
           </button>
-
         </form>
-
       </DialogContent>
-
     </Dialog>
-
   );
-
 }
