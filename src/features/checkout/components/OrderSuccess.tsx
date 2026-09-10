@@ -37,6 +37,8 @@ interface Props {
    */
   customerPhone?: string | null;
 
+  duplicateCartItemRemoved?: boolean;
+
 }
 
 
@@ -52,6 +54,8 @@ export default function OrderSuccess({
   hasOrderEmail = false,
 
   customerPhone = null,
+
+  duplicateCartItemRemoved = false,
 
 }:Props){
 
@@ -877,6 +881,79 @@ Email updates enabled
 <p className="mt-1 text-xs text-neutral-500">
 
 You’re all set. We’ll send important order updates to this email address.
+
+</p>
+
+</div>
+
+</div>
+
+</div>
+
+)}
+
+{duplicateCartItemRemoved && (
+
+<div
+className="
+mt-5
+overflow-hidden
+rounded-2xl
+border
+border-[#C8A44D]/25
+bg-gradient-to-br
+from-[#fffdf7]
+via-white
+to-[#faf6ea]
+px-4
+py-3.5
+text-left
+shadow-[0_10px_30px_rgba(0,0,0,0.06)]
+"
+style={{ animation: "orderSuccessEmailIn 420ms ease-out both" }}
+>
+
+<div className="flex items-start gap-3">
+
+<div
+className="
+flex
+h-9
+w-9
+shrink-0
+items-center
+justify-center
+rounded-full
+bg-[#C8A44D]/10
+text-[#9A7A22]
+"
+>
+
+<span aria-hidden="true">✦</span>
+
+</div>
+
+<div className="min-w-0">
+
+<p className="
+text-[13px]
+font-semibold
+tracking-wide
+text-neutral-900
+">
+
+Cart cleaned up
+
+</p>
+
+<p className="
+mt-0.5
+text-xs
+leading-5
+text-neutral-500
+">
+
+You just purchased this item, so we’ve automatically removed the duplicate from your cart.
 
 </p>
 

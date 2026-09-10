@@ -338,19 +338,6 @@ export default function CheckoutDialog({
 
   /*
    * =========================================================
-   * BUY NOW DUPLICATE CART CLEANUP
-   * =========================================================
-   *
-   * When Buy Now is successfully completed, remove only the
-   * matching item/variant from the persistent cart.
-   */
-  const [
-    duplicateCartItemRemoved,
-    setDuplicateCartItemRemoved,
-  ] = useState(false);
-
-  /*
-   * =========================================================
    * PAYMENT PROCESSING
    * =========================================================
    *
@@ -818,7 +805,6 @@ export default function CheckoutDialog({
     giftMessage: cartGiftMessage,
     setGiftWrapSelected,
     setGiftMessage,
-    removeItem,
 
   } = useCartStore();
 
@@ -1449,10 +1435,6 @@ export default function CheckoutDialog({
 
     setOrderNumber(
       ""
-    );
-
-    setDuplicateCartItemRemoved(
-      false
     );
 
     setProcessingPayment(
@@ -3842,57 +3824,7 @@ export default function CheckoutDialog({
 
 
       if (!isBuyNow) {
-
-        /*
-         * Normal cart checkout:
-         * every persistent cart item was part of the order,
-         * so the complete cart can be cleared.
-         */
         clearCart();
-
-      } else {
-
-        /*
-         * Buy Now checkout:
-         *
-         * Buy Now is a separate checkout flow, so the persistent
-         * cart must remain untouched except for a duplicate of
-         * the exact purchased item/variant.
-         *
-         * Ring size is included in the comparison so buying one
-         * ring size cannot accidentally remove another size from
-         * the customer's cart.
-         */
-        const purchasedItem =
-          recoveryItems?.[0] ??
-          buyNowItem ??
-          null;
-
-        if (purchasedItem?.productId) {
-
-          const duplicateCartItem =
-            cartItems.find(
-              (cartItem) =>
-                cartItem.productId ===
-                  purchasedItem.productId &&
-                (cartItem.ringSize ?? null) ===
-                  (purchasedItem.ringSize ?? null)
-            );
-
-          if (duplicateCartItem) {
-
-            removeItem(
-              duplicateCartItem.id
-            );
-
-            setDuplicateCartItemRemoved(
-              true
-            );
-
-          }
-
-        }
-
       }
 
       sessionStorage.removeItem(
@@ -5950,10 +5882,6 @@ export default function CheckoutDialog({
                   authCustomer?.phone ??
                   selectedAddress?.phone ??
                   null
-                }
-
-                duplicateCartItemRemoved={
-                  duplicateCartItemRemoved
                 }
 
               />
