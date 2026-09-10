@@ -49,21 +49,7 @@ export interface SendEmailPayload {
 
 
 
-export type OrderStatusEmailStatus =
-  | "placed"
-  | "confirmed"
-  | "packed"
-  | "shipped"
-  | "delivered";
-
-export interface ReviewEmailLink {
-  productId: string;
-  productName: string;
-  productImage: string | null;
-  reviewUrl: string;
-}
-
-export interface OrderStatusEmailPayload {
+export interface OrderConfirmationEmailPayload {
 
   to: string;
 
@@ -73,7 +59,7 @@ export interface OrderStatusEmailPayload {
 
   orderDate: string;
 
-  status: OrderStatusEmailStatus;
+  orderStatus: string;
 
   items: {
 
@@ -110,16 +96,6 @@ export interface OrderStatusEmailPayload {
   advanceAmount: number;
 
   remainingAmount: number;
-
-  walletAmount?: number;
-
-  walletBalanceRemaining?: number | null;
-
-  courierName?: string | null;
-
-  trackingNumber?: string | null;
-
-  reviewLinks?: ReviewEmailLink[];
 
   paymentTransactionId?: string | null;
 
@@ -309,7 +285,7 @@ class NotificationService {
 
 
 
-  async sendOrderStatusEmail({
+  async sendOrderConfirmationEmail({
 
     to,
 
@@ -319,7 +295,7 @@ class NotificationService {
 
     orderDate,
 
-    status,
+    orderStatus,
 
     items,
 
@@ -349,13 +325,7 @@ class NotificationService {
 
     shipping,
 
-    walletAmount = 0,
-    walletBalanceRemaining = null,
-    courierName = null,
-    trackingNumber = null,
-    reviewLinks = [],
-
-  }: OrderStatusEmailPayload) {
+  }: OrderConfirmationEmailPayload) {
 
 
 
@@ -363,6 +333,28 @@ class NotificationService {
 
     const isPrepaid =
       paymentMethod === "prepaid";
+
+
+
+
+
+    const paymentLabel =
+      isPrepaid
+        ? "Prepaid"
+        : "Partial COD";
+
+
+
+
+
+    const paymentStatus =
+      isPrepaid
+        ? "Payment Received"
+        : "Advance Payment Received";
+
+
+
+
 
     const formattedDate =
       new Date(orderDate).toLocaleDateString(
@@ -409,152 +401,6 @@ class NotificationService {
         .replace(/"/g, "&quot;")
 
         .replace(/'/g, "&#039;");
-
-
-
-
-
-    const statusLabels: Record<OrderStatusEmailStatus, string> = {
-      placed: "Order Placed",
-      confirmed: "Order Confirmed",
-      packed: "Order Packed",
-      shipped: "Order Shipped",
-      delivered: "Order Delivered",
-    };
-
-    const statusLabel = statusLabels[status];
-
-    const statusMessage: Record<OrderStatusEmailStatus, string> = {
-      placed: "We’ve received your order and our team is now getting everything ready for you.",
-      confirmed: "Your order has been confirmed and is now moving forward for processing.",
-      packed: "Your jewellery has been carefully packed and is ready for dispatch.",
-      shipped: "Your order is on its way. You can track its latest status anytime.",
-      delivered: "Your order has been delivered. We hope you love your jewellery!",
-    };
-
-    const totalPaid =
-      paymentMethod === "prepaid"
-        ? Math.max(0, totalAmount - Math.max(0, walletAmount))
-        : Math.max(0, advanceAmount);
-
-    const walletUsed =
-      Math.max(0, walletAmount);
-
-    const walletBalanceAfter =
-      walletBalanceRemaining !== null &&
-      walletBalanceRemaining !== undefined
-        ? Math.max(0, walletBalanceRemaining)
-        : null;
-
-    const walletBalanceBefore =
-      walletBalanceAfter !== null
-        ? Math.max(
-            0,
-            walletBalanceAfter + walletUsed
-          )
-        : null;
-
-    const walletActivitySection =
-      walletUsed > 0
-        ? `
-          <tr>
-            <td style="padding:24px 24px 0;">
-              <div style="padding:16px;background:#faf8f3;border:1px solid #e8dfd0;">
-                <div style="font-family:Georgia,'Times New Roman',serif;font-size:18px;line-height:24px;font-weight:600;color:#49371d;">
-                  T&amp;M Wallet Activity
-                </div>
-                <div style="margin-top:6px;font-size:12px;line-height:19px;color:#77736c;">
-                  Your wallet activity for this order
-                </div>
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:12px;">
-                  ${
-                    walletBalanceBefore !== null
-                      ? `
-                        <tr>
-                          <td style="padding:6px 0;font-size:13px;color:#77736c;">Wallet Balance Before Order</td>
-                          <td align="right" style="padding:6px 0;font-size:13px;font-weight:600;color:#333333;">${formatMoney(walletBalanceBefore)}</td>
-                        </tr>
-                      `
-                      : ""
-                  }
-                  <tr>
-                    <td style="padding:6px 0;font-size:13px;color:#77736c;">Wallet Used</td>
-                    <td align="right" style="padding:6px 0;font-size:13px;font-weight:700;color:#9a5a3a;">−${formatMoney(walletUsed)}</td>
-                  </tr>
-                  ${
-                    walletBalanceAfter !== null
-                      ? `
-                        <tr>
-                          <td style="padding:8px 0 2px;font-size:13px;font-weight:600;color:#55514b;border-top:1px solid #eeeae2;">Wallet Balance After Order</td>
-                          <td align="right" style="padding:8px 0 2px;font-size:14px;font-weight:700;color:#4d8a4b;border-top:1px solid #eeeae2;">${formatMoney(walletBalanceAfter)}</td>
-                        </tr>
-                      `
-                      : ""
-                  }
-                </table>
-              </div>
-            </td>
-          </tr>
-        `
-        : "";
-
-
-
-
-    const trackingSection =
-      status === "shipped" || status === "delivered"
-        ? `
-          <tr><td style="padding:24px 24px 0;">
-            <div style="padding:16px;background:#faf8f3;border:1px solid #e8dfd0;">
-              <div style="font-family:Georgia,'Times New Roman',serif;font-size:18px;font-weight:600;color:#49371d;">Shipping &amp; Tracking</div>
-              <div style="margin-top:10px;font-size:13px;line-height:22px;color:#55514b;">
-                ${courierName ? `<strong>Courier:</strong> ${escapeHtml(courierName)}<br>` : ""}
-                ${trackingNumber ? `<strong>Tracking Number:</strong> ${escapeHtml(trackingNumber)}` : "Your tracking details will appear here once available."}
-              </div>
-              <div style="margin-top:14px;text-align:center;">
-                <a href="https://www.tnmonline.in/track-order" target="_blank" style="display:inline-block;padding:11px 20px;background:#8b6424;color:#ffffff;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:.7px;">TRACK YOUR ORDER →</a>
-              </div>
-            </div>
-          </td></tr>
-        `
-        : `
-          <tr><td style="padding:24px 24px 0;text-align:center;">
-            <a href="https://www.tnmonline.in/track-order" target="_blank" style="display:inline-block;padding:11px 20px;background:#8b6424;color:#ffffff;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:.7px;">TRACK YOUR ORDER →</a>
-          </td></tr>
-        `;
-
-    const reviewSection =
-      status === "delivered" && reviewLinks.length > 0
-        ? `
-          <tr><td style="padding:24px 24px 0;">
-            <div style="padding:16px;background:#faf8f3;border:1px solid #e8dfd0;">
-              <div style="font-family:Georgia,'Times New Roman',serif;font-size:18px;font-weight:600;color:#49371d;">How did you like your jewellery?</div>
-              <div style="margin-top:6px;font-size:13px;line-height:21px;color:#77736c;">Your review helps other customers shop with confidence.</div>
-              ${reviewLinks.map(link => `<div style="margin-top:14px;padding-top:12px;border-top:1px solid #eeeae2;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td style="font-size:13px;font-weight:600;color:#333;">${escapeHtml(link.productName)}</td><td align="right"><a href="${escapeHtml(link.reviewUrl)}" target="_blank" style="display:inline-block;padding:9px 12px;background:#8b6424;color:#fff;text-decoration:none;font-size:10px;font-weight:700;letter-spacing:.5px;">REVIEW PRODUCT</a></td></tr></table></div>`).join("")}
-            </div>
-          </td></tr>
-        `
-        : "";
-
-
-
-
-
-    const paymentLabel =
-      isPrepaid
-        ? "Prepaid"
-        : "Partial COD";
-
-
-
-
-
-    const paymentStatus =
-      status === "placed"
-        ? "Payment Received"
-        : isPrepaid
-          ? "Payment Received"
-          : "Advance Payment Received";
 
 
 
@@ -1154,7 +1000,7 @@ class NotificationService {
 
       subject:
 
-        `T&M Jewels — ${statusLabel} #${orderNumber}`,
+        `T&M Jewels — Order Confirmed #${orderNumber}`,
 
 
 
@@ -1196,7 +1042,7 @@ class NotificationService {
 
   <title>
 
-    T&amp;M Jewels — Order Update
+    T&amp;M Jewels — Order Confirmation
 
   </title>
 
@@ -1438,7 +1284,7 @@ class NotificationService {
 
             >
 
-              ${statusLabel}! 🎉
+              Order Confirmed! 🎉
 
             </h1>
 
@@ -1468,7 +1314,7 @@ class NotificationService {
 
               <br>
 
-              ${statusMessage[status]}
+              Your order has been successfully placed.
 
             </p>
 
@@ -1750,7 +1596,9 @@ class NotificationService {
 
                   >
 
-                    ${escapeHtml(statusLabel)}
+                    ${escapeHtml(
+                      orderStatus
+                    )}
 
                   </div>
 
@@ -2462,9 +2310,13 @@ class NotificationService {
 
                   >
 
-                    Total Paid
+                    Advance Paid
 
                   </td>
+
+
+
+
 
                   <td
 
@@ -2476,14 +2328,14 @@ class NotificationService {
 
                       font-size:13px;
 
-                      font-weight:700;
+                      font-weight:600;
 
                     "
 
                   >
 
                     ${formatMoney(
-                      totalPaid
+                      advanceAmount
                     )}
 
                   </td>
@@ -2509,8 +2361,6 @@ class NotificationService {
 
 
 
-
-        ${walletActivitySection}
 
         <!-- SHIPPING ADDRESS -->
 
@@ -3021,10 +2871,6 @@ class NotificationService {
 
 
 
-
-        ${trackingSection}
-
-        ${reviewSection}
 
         <!-- FOOTER -->
 

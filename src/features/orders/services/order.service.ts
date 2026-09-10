@@ -114,6 +114,104 @@ export async function saveOrderEmail({
 
 
 
+async function getWalletPaymentAmount(
+  orderId: string
+): Promise<number> {
+  try {
+    const {
+      data,
+      error,
+    } = await supabase.rpc(
+      "get_order_wallet_payment",
+      {
+        p_order_id:
+          orderId,
+      }
+    );
+
+    if (error) {
+      console.error(
+        "⚠️ Failed to fetch wallet payment amount:",
+        error
+      );
+      return 0;
+    }
+
+    const row =
+      Array.isArray(data)
+        ? data[0]
+        : data;
+
+    return Math.max(
+      0,
+      Number(
+        row?.wallet_amount ??
+        0
+      )
+    );
+  } catch (error) {
+    console.error(
+      "⚠️ Wallet payment lookup failed:",
+      error
+    );
+    return 0;
+  }
+}
+
+
+async function getWalletBalanceRemaining(
+  customerId: string | null
+): Promise<number | null> {
+  if (!customerId) {
+    return null;
+  }
+
+  try {
+    const {
+      data,
+      error,
+    } = await supabase.rpc(
+      "admin_get_customer_wallet",
+      {
+        p_customer_id:
+          customerId,
+      }
+    );
+
+    if (error) {
+      console.error(
+        "⚠️ Failed to fetch wallet balance remaining:",
+        error
+      );
+      return null;
+    }
+
+    const wallet =
+      Array.isArray(data)
+        ? data[0]
+        : data;
+
+    if (!wallet) {
+      return null;
+    }
+
+    return Math.max(
+      0,
+      Number(
+        wallet.balance_paise ??
+        0
+      ) / 100
+    );
+  } catch (error) {
+    console.error(
+      "⚠️ Wallet balance lookup failed:",
+      error
+    );
+    return null;
+  }
+}
+
+
 export async function createOrder(
   payload: CreateOrderPayload
 ) {
@@ -483,9 +581,8 @@ export async function createOrder(
 
   /*
    * Gift Wrap values come from the created order so the
-   * confirmation email uses the server-authoritative amount.
+   * first customer email uses the server-authoritative amount.
    */
-
   const finalGiftWrapAmount =
     Number(
       createdOrder.gift_wrap_amount ??
@@ -500,138 +597,246 @@ export async function createOrder(
         )
       : null;
 
-  // Email: Complete Order Confirmation
 
+  /*
+   * First customer email after checkout.
+   *
+   * This intentionally uses the unified order-status email with
+   * status = "placed", so the first email is "Order Placed".
+   *
+   * The later admin lifecycle transition to "confirmed" sends the
+   * separate Order Confirmed email.
+   */
   if (payload.customer.email) {
 
-    await notificationService.sendOrderConfirmationEmail({
+    const walletPaymentAmount =
+      await getWalletPaymentAmount(
+        orderId
+      );
 
-      to:
-        payload.customer.email,
+    const walletBalanceRemaining =
+      await getWalletBalanceRemaining(
+        payload.customerId ??
+        null
+      );
 
-      customerName:
-        payload.customer.name,
+    const finalSubtotal =
+      Number(
+        createdOrder.subtotal ??
+        payload.subtotal
+      );
 
-      orderNumber:
-        finalOrderNumber,
+    const finalDiscount =
+      Number(
+        createdOrder.discount ??
+        payload.discount
+      );
 
-      orderDate:
-        new Date().toISOString(),
+    const finalShippingCharge =
+      Number(
+        createdOrder.shipping_charge ??
+        payload.shippingCharge
+      );
 
-      orderStatus:
-        "Order Confirmed",
+    const finalTax =
+      Number(
+        createdOrder.tax ??
+        payload.tax
+      );
 
-      items:
+    const finalTotalAmount =
+      Number(
+        createdOrder.total_amount ??
+        payload.totalAmount
+      );
 
-        payload.items.map(
-          item => ({
+    /*
+     * For prepaid orders:
+     *   Total Paid = actual Razorpay amount
+     *              = Order Total - Wallet Used
+     *
+     * For partial COD:
+     *   Total Paid = advance amount
+     *
+     * The notification service handles this calculation while
+     * displaying Wallet Used separately.
+     */
+    const finalAdvanceAmount =
+      Number(
+        payload.advanceAmount ??
+        0
+      );
 
-            productName:
-              item.productName,
+    const finalRemainingAmount =
+      Math.max(
+        0,
+        finalTotalAmount -
+        finalAdvanceAmount
+      );
 
-            productImage:
-              item.productImage ??
-              null,
+    const finalCustomerEmail =
+      payload.customer.email.trim();
 
-            price:
-              item.price,
+    const finalCustomerName =
+      payload.customer.name;
 
-            quantity:
-              item.quantity,
+    const finalOrderDate =
+      createdOrder.created_at ??
+      new Date().toISOString();
 
-            ring_size:
-              item.ringSize ??
-              null,
+    const finalPaymentMethod =
+      payload.paymentMethod;
 
-            total:
-              item.total,
+    const finalCouponCode =
+      payload.coupon?.code ??
+      null;
 
-          })
-        ),
+    const finalShipping = {
+      fullName:
+        payload.shipping.fullName,
 
-      subtotal:
-        Number(
-          createdOrder.subtotal ??
-          payload.subtotal
-        ),
+      phone:
+        payload.shipping.phone,
 
-      discount:
-        Number(
-          createdOrder.discount ??
-          payload.discount
-        ),
+      address:
+        payload.shipping.address,
 
-      shippingCharge:
-        Number(
-          createdOrder.shipping_charge ??
-          payload.shippingCharge
-        ),
+      city:
+        payload.shipping.city,
 
-      giftWrapAmount:
-        finalGiftWrapAmount,
+      state:
+        payload.shipping.state,
 
-      giftMessage:
-        finalGiftMessage,
+      pincode:
+        payload.shipping.pincode,
 
-      tax:
-        Number(
-          createdOrder.tax ??
-          payload.tax
-        ),
-
-      totalAmount:
-        Number(
-          createdOrder.total_amount ??
-          payload.totalAmount
-        ),
-
-      paymentMethod:
-        payload.paymentMethod,
-
-      advanceAmount:
-        payload.advanceAmount,
-
-      remainingAmount:
-        Number(
-          createdOrder.total_amount ??
-          payload.totalAmount
-        ) -
-        payload.advanceAmount,
-
-      paymentTransactionId:
-        paymentTransactionId,
-
-      couponCode:
-        payload.coupon?.code ??
+      landmark:
+        payload.shipping.landmark ??
         null,
+    };
 
-      shipping: {
+    const finalItems =
+      payload.items.map(
+        item => ({
+          productName:
+            item.productName,
 
-        fullName:
-          payload.shipping.fullName,
+          productImage:
+            item.productImage ??
+            null,
 
-        phone:
-          payload.shipping.phone,
+          price:
+            Number(
+              item.price
+            ),
 
-        address:
-          payload.shipping.address,
+          quantity:
+            item.quantity,
 
-        city:
-          payload.shipping.city,
+          total:
+            Number(
+              item.total
+            ),
+        })
+      );
 
-        state:
-          payload.shipping.state,
+    try {
 
-        pincode:
-          payload.shipping.pincode,
+      const result =
+        await notificationService.sendOrderStatusEmail({
 
-        landmark:
-          payload.shipping.landmark ??
-          null,
+          to:
+            finalCustomerEmail,
 
-      },
+          customerName:
+            finalCustomerName,
 
-    });
+          orderNumber:
+            finalOrderNumber,
+
+          orderDate:
+            finalOrderDate,
+
+          status:
+            "placed",
+
+          items:
+            finalItems,
+
+          subtotal:
+            finalSubtotal,
+
+          discount:
+            finalDiscount,
+
+          shippingCharge:
+            finalShippingCharge,
+
+          giftWrapAmount:
+            finalGiftWrapAmount,
+
+          giftMessage:
+            finalGiftMessage,
+
+          tax:
+            finalTax,
+
+          totalAmount:
+            finalTotalAmount,
+
+          paymentMethod:
+            finalPaymentMethod,
+
+          advanceAmount:
+            finalAdvanceAmount,
+
+          remainingAmount:
+            finalRemainingAmount,
+
+          paymentTransactionId:
+            paymentTransactionId,
+
+          couponCode:
+            finalCouponCode,
+
+          walletAmount:
+            walletPaymentAmount,
+
+          walletBalanceRemaining:
+            walletBalanceRemaining,
+
+          shipping:
+            finalShipping,
+
+          courierName:
+            null,
+
+          trackingNumber:
+            null,
+
+          reviewLinks:
+            [],
+
+        });
+
+      console.log(
+        "✅ Order placed email request completed:",
+        result
+      );
+
+    } catch (error) {
+
+      /*
+       * The order has already been created successfully.
+       * Do not fail checkout because the transactional email
+       * provider/service is temporarily unavailable.
+       */
+      console.error(
+        "❌ Order placed email failed:",
+        error
+      );
+
+    }
 
   }
 
