@@ -110,7 +110,7 @@ export default function ProfileCompletionModal({
   ]);
 
 
-  if (!customer) {
+  if (!customer || !open) {
     return null;
   }
 
