@@ -159,13 +159,23 @@ async function getWalletPaymentAmount(
 }
 
 
-async function getWalletBalanceRemaining(): Promise<number | null> {
+async function getWalletBalanceRemaining(
+  customerId: string | null
+): Promise<number | null> {
+  if (!customerId) {
+    return null;
+  }
+
   try {
     const {
       data,
       error,
     } = await supabase.rpc(
-      "get_my_wallet_balance"
+      "admin_get_customer_wallet",
+      {
+        p_customer_id:
+          customerId,
+      }
     );
 
     if (error) {
@@ -182,7 +192,7 @@ async function getWalletBalanceRemaining(): Promise<number | null> {
         : data;
 
     if (!wallet) {
-      return 0;
+      return null;
     }
 
     return Math.max(
@@ -605,7 +615,10 @@ export async function createOrder(
       );
 
     const walletBalanceRemaining =
-      await getWalletBalanceRemaining();
+      await getWalletBalanceRemaining(
+        payload.customerId ??
+        null
+      );
 
     const finalSubtotal =
       Number(
@@ -661,54 +674,94 @@ export async function createOrder(
         finalAdvanceAmount
       );
 
+    const finalCustomerEmail =
+      payload.customer.email.trim();
+
+    const finalCustomerName =
+      payload.customer.name;
+
+    const finalOrderDate =
+      createdOrder.created_at ??
+      new Date().toISOString();
+
+    const finalPaymentMethod =
+      payload.paymentMethod;
+
+    const finalCouponCode =
+      payload.coupon?.code ??
+      null;
+
+    const finalShipping = {
+      fullName:
+        payload.shipping.fullName,
+
+      phone:
+        payload.shipping.phone,
+
+      address:
+        payload.shipping.address,
+
+      city:
+        payload.shipping.city,
+
+      state:
+        payload.shipping.state,
+
+      pincode:
+        payload.shipping.pincode,
+
+      landmark:
+        payload.shipping.landmark ??
+        null,
+    };
+
+    const finalItems =
+      payload.items.map(
+        item => ({
+          productName:
+            item.productName,
+
+          productImage:
+            item.productImage ??
+            null,
+
+          price:
+            Number(
+              item.price
+            ),
+
+          quantity:
+            item.quantity,
+
+          total:
+            Number(
+              item.total
+            ),
+        })
+      );
+
     try {
 
       const result =
         await notificationService.sendOrderStatusEmail({
 
           to:
-            payload.customer.email,
+            finalCustomerEmail,
 
           customerName:
-            payload.customer.name,
+            finalCustomerName,
 
           orderNumber:
             finalOrderNumber,
 
           orderDate:
-            createdOrder.created_at ??
-            new Date().toISOString(),
+            finalOrderDate,
 
           status:
             "placed",
 
           items:
-
-            payload.items.map(
-              item => ({
-
-                productName:
-                  item.productName,
-
-                productImage:
-                  item.productImage ??
-                  null,
-
-                price:
-                  Number(
-                    item.price
-                  ),
-
-                quantity:
-                  item.quantity,
-
-                total:
-                  Number(
-                    item.total
-                  ),
-
-              })
-            ),
+            finalItems,
 
           subtotal:
             finalSubtotal,
@@ -732,7 +785,7 @@ export async function createOrder(
             finalTotalAmount,
 
           paymentMethod:
-            payload.paymentMethod,
+            finalPaymentMethod,
 
           advanceAmount:
             finalAdvanceAmount,
@@ -744,8 +797,7 @@ export async function createOrder(
             paymentTransactionId,
 
           couponCode:
-            payload.coupon?.code ??
-            null,
+            finalCouponCode,
 
           walletAmount:
             walletPaymentAmount,
@@ -753,29 +805,8 @@ export async function createOrder(
           walletBalanceRemaining:
             walletBalanceRemaining,
 
-          shipping: {
-            fullName:
-              payload.shipping.fullName,
-
-            phone:
-              payload.shipping.phone,
-
-            address:
-              payload.shipping.address,
-
-            city:
-              payload.shipping.city,
-
-            state:
-              payload.shipping.state,
-
-            pincode:
-              payload.shipping.pincode,
-
-            landmark:
-              payload.shipping.landmark ??
-              null,
-          },
+          shipping:
+            finalShipping,
 
           courierName:
             null,
