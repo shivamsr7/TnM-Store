@@ -4313,7 +4313,7 @@ export default function CheckoutDialog({
 
               {
                 orderSuccess
-                  ? "Order Confirmed"
+                  ? "Order Placed"
                   : processingPayment
                     ? "Processing Payment"
                     : "Checkout"
