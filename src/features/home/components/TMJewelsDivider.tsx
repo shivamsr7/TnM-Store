@@ -4,9 +4,9 @@ export default function TMJewelsDivider() {
       className="
         bg-black
         px-5
-        py-3
-        sm:py-4
-        md:py-5
+        py-1.5
+        sm:py-2
+        md:py-2.5
       "
       aria-label="T&M Jewels"
     >
@@ -21,7 +21,7 @@ export default function TMJewelsDivider() {
           sm:gap-4
         "
       >
-        {/* Left line */}
+        {/* Left gold line */}
         <div
           className="
             h-px
@@ -33,7 +33,7 @@ export default function TMJewelsDivider() {
           "
         />
 
-        {/* Center */}
+        {/* Center T&M Jewels */}
         <div
           className="
             flex
@@ -43,7 +43,12 @@ export default function TMJewelsDivider() {
             sm:gap-2
           "
         >
-          <span className="text-[8px] text-[#D4AF37]">
+          <span
+            className="
+              text-[8px]
+              text-[#D4AF37]
+            "
+          >
             ✦
           </span>
 
@@ -61,12 +66,17 @@ export default function TMJewelsDivider() {
             T&M JEWELS
           </span>
 
-          <span className="text-[8px] text-[#D4AF37]">
+          <span
+            className="
+              text-[8px]
+              text-[#D4AF37]
+            "
+          >
             ✦
           </span>
         </div>
 
-        {/* Right line */}
+        {/* Right gold line */}
         <div
           className="
             h-px
