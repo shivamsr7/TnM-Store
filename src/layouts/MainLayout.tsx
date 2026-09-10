@@ -42,6 +42,10 @@ import {
   getOrCreateBirthdayCoupon,
 } from "@/features/coupons/services/birthdayCoupon.service";
 
+import {
+  notificationService,
+} from "@/features/notifications/services/notification.service";
+
 
 const BIRTHDAY_PROMPT_KEY =
   "tnm_birthday_coupon_prompt_date";
@@ -255,6 +259,50 @@ export default function MainLayout() {
         if (!profileComplete) {
 
           return;
+
+        }
+
+
+        /*
+         * =====================================================
+         * DAILY BIRTHDAY EMAIL
+         * =====================================================
+         *
+         * Email delivery is tracked in Supabase.
+         *
+         * This is intentionally separate from the popup's
+         * localStorage key. A customer can therefore switch
+         * devices/browsers without receiving a duplicate email.
+         */
+        if (currentCustomer.email?.trim()) {
+
+          void notificationService
+            .sendBirthdayCouponEmailOnceDaily({
+              customerId:
+                currentCustomer.id,
+
+              coupon,
+
+              email:
+                currentCustomer.email.trim(),
+
+              customerName:
+                [
+                  currentCustomer.first_name,
+                  currentCustomer.last_name,
+                ]
+                  .filter(Boolean)
+                  .join(" ")
+                  .trim() || null,
+            })
+            .catch((error) => {
+
+              console.error(
+                "Birthday coupon email trigger failed:",
+                error
+              );
+
+            });
 
         }
 
