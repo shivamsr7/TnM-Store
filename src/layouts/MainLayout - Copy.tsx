@@ -23,87 +23,12 @@ import PageTransition
 import WhatsAppSupportChat
   from "@/features/Support/components/WhatsAppSupportChat";
 
-import {
-  useEffect,
-  useState,
-} from "react";
-
-import {
-  useAuth,
-} from "@/features/Auth/context/AuthContext";
-
-import ProfileCompletionModal, {
-  shouldShowProfileCompletionPrompt,
-} from "@/features/profile/components/ProfileCompletionModal";
-
 
 export default function MainLayout() {
-
-  const {
-    customer,
-    loading: authLoading,
-  } = useAuth();
-
-  const [
-    profilePromptOpen,
-    setProfilePromptOpen,
-  ] = useState(false);
-
-
-  useEffect(() => {
-
-    if (
-      authLoading ||
-      !customer
-    ) {
-      setProfilePromptOpen(false);
-      return;
-    }
-
-
-    /*
-     * Give AuthContext a moment to finish restoring the
-     * authenticated customer before deciding whether to show
-     * the daily profile-completion reminder.
-     */
-    const timer = window.setTimeout(() => {
-
-      if (
-        shouldShowProfileCompletionPrompt(
-          customer
-        )
-      ) {
-        setProfilePromptOpen(true);
-      }
-
-    }, 500);
-
-
-    return () => {
-      window.clearTimeout(timer);
-    };
-
-  }, [
-    customer,
-    authLoading,
-  ]);
-
 
   return (
 
     <>
-
-      {/* =====================================================
-          PROFILE COMPLETION REMINDER
-      ====================================================== */}
-
-      <ProfileCompletionModal
-        open={profilePromptOpen}
-        onClose={() =>
-          setProfilePromptOpen(false)
-        }
-      />
-
 
       {/* =====================================================
           CART DRAWER
