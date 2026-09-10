@@ -19,8 +19,6 @@ export default function App() {
       {/* HERO */}
       <HeroSection />
 
-      <TMJewelsDivider />
-
       {/* EXPLORE OUR COLLECTION */}
       <HangingCategories />
 
