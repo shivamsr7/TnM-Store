@@ -67,93 +67,133 @@ export default function GuestSignupPrompt() {
   }
 
   return (
-    <div
+    <>
+      <style>{`
+        @keyframes tnmGuestOverlayIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes tnmGuestPopupIn {
+          from {
+            opacity: 0;
+            transform: scale(0.94);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+      `}</style>
+
+      <div
       className="
         fixed
-        inset-x-0
-        bottom-4
-        z-[90]
+        inset-0
+        z-[100]
         flex
+        items-center
         justify-center
-        px-3
-        sm:bottom-5
-        sm:px-4
-        pointer-events-none
+        bg-black/25
+        px-4
+        backdrop-blur-[2px]
+        animate-[tnmGuestOverlayIn_0.25s_ease-out]
       "
+      role="presentation"
     >
       <div
         role="dialog"
+        aria-modal="true"
         aria-label="Join T&M Members"
         className="
-          pointer-events-auto
           relative
           w-full
-          max-w-md
+          max-w-[390px]
           overflow-hidden
-          rounded-2xl
+          rounded-3xl
           border
-          border-[#C8A44D]/45
-          bg-black
-          text-white
-          shadow-[0_18px_55px_rgba(0,0,0,0.35)]
-          animate-[tnmGuestPromptUp_0.45s_ease-out]
+          border-[#C8A44D]/40
+          bg-[#FFFDF8]
+          text-[#171717]
+          shadow-[0_25px_80px_rgba(0,0,0,0.28)]
+          animate-[tnmGuestPopupIn_0.35s_ease-out]
         "
       >
+        {/* Premium gold accent */}
+        <div
+          className="
+            h-1
+            w-full
+            bg-gradient-to-r
+            from-[#B88A20]
+            via-[#E4C15A]
+            to-[#B88A20]
+          "
+        />
+
+        {/* Close */}
         <button
           type="button"
           onClick={dismissForToday}
           aria-label="Close"
           className="
             absolute
-            right-3
-            top-3
+            right-4
+            top-5
             z-10
             flex
-            h-7
-            w-7
+            h-8
+            w-8
             items-center
             justify-center
             rounded-full
-            bg-white/10
-            text-neutral-300
+            border
+            border-black/10
+            bg-white
+            text-neutral-600
+            shadow-sm
             transition
-            hover:bg-white/20
-            hover:text-white
+            hover:border-[#C8A44D]/50
+            hover:text-black
           "
         >
-          <X size={15} />
+          <X size={16} strokeWidth={2} />
         </button>
 
-        <div className="p-4 sm:p-5">
-          <div className="flex items-start gap-3 pr-7">
+        <div className="px-5 pb-5 pt-6 sm:px-6 sm:pb-6">
+          <div className="flex items-start gap-3 pr-9">
             <div
               className="
                 flex
-                h-10
-                w-10
+                h-11
+                w-11
                 shrink-0
                 items-center
                 justify-center
-                rounded-xl
+                rounded-2xl
                 border
-                border-[#C8A44D]/35
+                border-[#C8A44D]/45
                 bg-[#C8A44D]/10
               "
             >
               <Sparkles
-                size={19}
-                className="text-[#C8A44D]"
+                size={20}
+                className="text-[#B18A2C]"
               />
             </div>
 
-            <div>
+            <div className="pt-0.5">
               <p
                 className="
                   text-[10px]
-                  font-semibold
+                  font-bold
                   uppercase
-                  tracking-[0.22em]
-                  text-[#C8A44D]
+                  tracking-[0.24em]
+                  text-[#A47B20]
                 "
               >
                 T&M Members
@@ -161,37 +201,58 @@ export default function GuestSignupPrompt() {
 
               <h3
                 className="
-                  mt-0.5
-                  text-base
+                  mt-1
+                  text-xl
                   font-semibold
-                  tracking-wide
-                  sm:text-lg
+                  leading-tight
+                  tracking-tight
+                  text-[#171717]
                 "
               >
                 Get more from every order ✨
               </h3>
+            </div>
+          </div>
 
-              <p
-                className="
-                  mt-1
-                  text-xs
-                  leading-relaxed
-                  text-neutral-300
-                  sm:text-sm
-                "
-              >
-                Save your favourites, track orders &
-                unlock exclusive member rewards.
+          <p
+            className="
+              mt-4
+              text-sm
+              leading-6
+              text-neutral-600
+            "
+          >
+            Save your favourites, track orders & unlock
+            exclusive member rewards.
+          </p>
+
+          <div
+            className="
+              mt-4
+              rounded-2xl
+              border
+              border-[#C8A44D]/20
+              bg-[#FBF6E9]
+              px-3.5
+              py-3
+            "
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-base">💎</span>
+              <p className="text-xs font-medium text-neutral-700">
+                Join the T&M Family and make every purchase
+                more rewarding.
               </p>
             </div>
           </div>
 
-          <div className="mt-4 flex gap-2">
+          <div className="mt-5 flex gap-2.5">
             <button
               type="button"
               onClick={handleAuth}
               className="
                 flex
+                min-w-0
                 flex-1
                 items-center
                 justify-center
@@ -199,18 +260,22 @@ export default function GuestSignupPrompt() {
                 rounded-xl
                 bg-[#C8A44D]
                 px-3
-                py-3
+                py-3.5
                 text-xs
-                font-semibold
+                font-bold
                 tracking-wide
                 text-black
+                shadow-sm
                 transition
-                hover:bg-white
+                hover:bg-[#D8B95A]
+                active:scale-[0.98]
                 sm:text-sm
               "
             >
-              <UserPlus size={16} />
-              JOIN T&M MEMBERS
+              <UserPlus size={17} />
+              <span className="truncate">
+                JOIN T&M MEMBERS
+              </span>
             </button>
 
             <button
@@ -223,29 +288,38 @@ export default function GuestSignupPrompt() {
                 gap-1.5
                 rounded-xl
                 border
-                border-white/20
-                bg-white/5
+                border-neutral-300
+                bg-white
                 px-4
-                py-3
+                py-3.5
                 text-xs
-                font-medium
-                text-white
+                font-semibold
+                text-neutral-800
                 transition
-                hover:border-[#C8A44D]/50
-                hover:bg-white/10
+                hover:border-[#C8A44D]
+                hover:bg-[#FFFCF4]
+                active:scale-[0.98]
                 sm:text-sm
               "
             >
-              <LogIn size={15} />
+              <LogIn size={16} />
               Login
             </button>
           </div>
 
-          <p className="mt-2 text-center text-[10px] text-neutral-500">
+          <p
+            className="
+              mt-3
+              text-center
+              text-[10px]
+              text-neutral-500
+            "
+          >
             Takes less than a minute • Your account stays secure
           </p>
         </div>
       </div>
     </div>
+    </>
   );
 }
