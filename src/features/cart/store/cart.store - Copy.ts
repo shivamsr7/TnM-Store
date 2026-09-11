@@ -516,195 +516,44 @@ async function loadCustomerCart(
 
   }
 
-  /*
-   * IMPORTANT:
-   * cart_items.product_image is only a cached snapshot.
-   *
-   * Product images have been migrated from Supabase Storage
-   * to ImageKit. Existing cart rows can therefore contain
-   * old Supabase URLs.
-   *
-   * Always resolve the CURRENT primary image from
-   * product_images using product_id. This keeps existing
-   * carts working after an image migration or replacement.
-   */
-  const cartItems = data ?? [];
+  return (data ?? []).map(
+    (item) => ({
 
-  const productIds = Array.from(
-    new Set(
-      cartItems
-        .map((item) => item.product_id)
-        .filter(Boolean)
-    )
-  );
+      id:
+        item.id,
 
-  let currentImageByProductId = new Map<string, string>();
+      productId:
+        item.product_id,
 
-  if (productIds.length > 0) {
-    const {
-      data: productImages,
-      error: productImagesError,
-    } = await supabase
-      .from("product_images")
-      .select(
-        "product_id, image_url, is_primary, sort_order"
-      )
-      .in(
-        "product_id",
-        productIds
-      )
-      .order("is_primary", {
-        ascending: false,
-      })
-      .order("sort_order", {
-        ascending: true,
-      });
+      name:
+        item.product_name,
 
-    if (productImagesError) {
-      /*
-       * Image lookup failure must never prevent the cart
-       * from loading. Fall back to the cached image below.
-       */
-      console.error(
-        "Failed to load current cart product images:",
-        productImagesError
-      );
-    } else {
-      for (const image of productImages ?? []) {
-        if (
-          !image.product_id ||
-          !image.image_url ||
-          currentImageByProductId.has(
-            image.product_id
-          )
-        ) {
-          continue;
-        }
+      price:
+        Number(
+          item.price
+        ),
 
-        currentImageByProductId.set(
-          image.product_id,
-          image.image_url
-        );
-      }
-    }
-  }
+      image:
+        item.product_image ??
+        undefined,
 
-  const mappedItems: CartItem[] =
-    cartItems.map(
-      (item) => {
-
-        const currentImage =
-          currentImageByProductId.get(
-            item.product_id
-          );
-
-        return {
-
-          id:
-            item.id,
-
-          productId:
-            item.product_id,
-
-          name:
-            item.product_name,
-
-          price:
-            Number(
-              item.price
-            ),
-
-          /*
-           * Prefer the current ImageKit image.
-           * Fall back to the old cached image only if the
-           * current product image cannot be resolved.
-           */
-          image:
-            currentImage ??
-            item.product_image ??
-            undefined,
-
-          quantity:
-            Math.max(
-              Number(
-                item.quantity
-              ),
-              1
-            ),
-
-          ringSize:
-            item.ring_size ??
-            null,
-
-          stock:
-            null,
-
-        };
-
-      }
-    );
-
-  /*
-   * Repair stale cart image snapshots in the database.
-   *
-   * This is intentionally best-effort. A failure here must
-   * never block the customer from seeing the cart.
-   */
-  const imageUpdates =
-    cartItems
-      .map((item) => ({
-        itemId: item.id,
-        currentImage:
-          currentImageByProductId.get(
-            item.product_id
+      quantity:
+        Math.max(
+          Number(
+            item.quantity
           ),
-        storedImage:
-          item.product_image ?? null,
-      }))
-      .filter(
-        ({
-          currentImage,
-          storedImage,
-        }) =>
-          Boolean(currentImage) &&
-          currentImage !== storedImage
-      );
+          1
+        ),
 
-  if (imageUpdates.length > 0) {
-    await Promise.all(
-      imageUpdates.map(
-        async ({
-          itemId,
-          currentImage,
-        }) => {
+      ringSize:
+        item.ring_size ??
+        null,
 
-          const {
-            error: updateError,
-          } = await supabase
-            .from("cart_items")
-            .update({
-              product_image:
-                currentImage,
-            })
-            .eq(
-              "id",
-              itemId
-            );
+      stock:
+        null,
 
-          if (updateError) {
-            console.error(
-              "Failed to refresh cart item image:",
-              itemId,
-              updateError
-            );
-          }
-
-        }
-      )
-    );
-  }
-
-  return mappedItems;
+    })
+  );
 
 }
 
