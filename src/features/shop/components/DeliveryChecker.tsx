@@ -436,6 +436,25 @@ export default function DeliveryChecker({
 
   /*
    * =========================================================
+   * OUT OF STOCK
+   * =========================================================
+   *
+   * Delivery checking is not relevant for unavailable
+   * products, so render nothing in that state.
+   * =========================================================
+   */
+
+  if (
+    Number(product?.stock ?? 0) <= 0
+  ) {
+
+    return null;
+
+  }
+
+
+  /*
+   * =========================================================
    * RENDER
    * =========================================================
    */

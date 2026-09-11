@@ -1,6 +1,7 @@
 import {
   ShoppingBag,
   CheckCircle2,
+  Bell,
   Minus,
   Plus,
 } from "lucide-react";
@@ -13,6 +14,7 @@ import {
 } from "@/features/cart/hooks/useCartActions";
 
 import WishlistButton from "@/features/wishlist/components/WishlistButton";
+import NotifyDialog from "@/features/notify/components/NotifyDialog";
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
@@ -65,6 +67,11 @@ export default function ProductActions({
     setBuyNowPopupOpen,
   ] = useState(false);
 
+  const [
+    notifyDialogOpen,
+    setNotifyDialogOpen,
+  ] = useState(false);
+
 
   /* =======================================================
      STOCK
@@ -111,6 +118,21 @@ export default function ProductActions({
       ...product,
       ringSize: selectedRingSize,
     });
+
+  };
+
+
+  /* =======================================================
+     NOTIFY ME
+  ======================================================= */
+
+  const handleNotifyMe = () => {
+
+    if (!isOutOfStock) {
+      return;
+    }
+
+    setNotifyDialogOpen(true);
 
   };
 
@@ -346,132 +368,233 @@ export default function ProductActions({
 
       {/* =================================================
           MAIN ACTIONS
-      ================================================= */}
+      ================================================== */}
 
-      <div
-        className="
-          mt-6
-          flex
-          gap-3
-        "
-      >
+      {isOutOfStock ? (
 
-        {/* =================================================
-            ADD TO CART
-        ================================================= */}
+        /*
+         * =================================================
+         * OUT OF STOCK ACTIONS
+         * =================================================
+         *
+         * Only Notify Me + Wishlist are available when the
+         * product cannot currently be purchased.
+         */
 
-        <button
-          type="button"
-
-          /*
-           * IMPORTANT:
-           * MobileStickyCart uses this attribute to detect
-           * when the original Add to Cart button is visible.
-           */
-          data-product-add-to-cart
-
-          onClick={handleAddToCart}
-
-          disabled={isOutOfStock}
-
+        <div
           className="
+            mt-6
             flex
-            min-h-14
-            flex-1
-            items-center
-            justify-center
-            gap-2
-            rounded-xl
-            bg-[#D4AF37]
-            py-4
-            text-sm
-            font-semibold
-            text-black
-            transition-colors
-            duration-200
-            hover:bg-[#e5c45a]
-            disabled:cursor-not-allowed
-            disabled:opacity-50
+            w-full
+            gap-3
           "
         >
 
-          <ShoppingBag size={18} />
+          {/* Notify Me */}
 
-          {isOutOfStock
-            ? "OUT OF STOCK"
-            : "ADD TO CART"
-          }
+          <button
+            type="button"
+            onClick={handleNotifyMe}
+            className="
+              flex
+              min-h-14
+              flex-1
+              items-center
+              justify-center
+              gap-2
+              rounded-xl
+              bg-[#D4AF37]
+              py-4
+              text-sm
+              font-semibold
+              text-black
+              transition-colors
+              duration-200
+              hover:bg-[#e5c45a]
+              active:scale-[0.99]
+            "
+          >
 
-        </button>
+            <Bell size={18} />
 
+            NOTIFY ME
 
-        {/* =================================================
-            WISHLIST
-        ================================================= */}
-
-        <WishlistButton
-          productId={product.id}
-          iconSize={22}
-          className="
-            flex
-            h-14
-            w-14
-            shrink-0
-            items-center
-            justify-center
-            rounded-xl
-            border
-            border-neutral-700
-            bg-transparent
-            text-white
-            transition-all
-            duration-200
-            hover:border-[#D4AF37]
-            hover:bg-[#D4AF37]/10
-            hover:text-[#D4AF37]
-            active:scale-95
-          "
-        />
-
-      </div>
+          </button>
 
 
-      {/* =================================================
-          BUY NOW
-      ================================================= */}
+          {/* Wishlist */}
 
-      <button
-        type="button"
-        disabled={isOutOfStock}
-        onClick={handleBuyNow}
+          <WishlistButton
+            productId={product.id}
+            iconSize={22}
+            className="
+              flex
+              h-14
+              w-14
+              shrink-0
+              items-center
+              justify-center
+              rounded-xl
+              border
+              border-neutral-700
+              bg-transparent
+              text-white
+              transition-all
+              duration-200
+              hover:border-[#D4AF37]
+              hover:bg-[#D4AF37]/10
+              hover:text-[#D4AF37]
+              active:scale-95
+            "
+          />
 
-        className="
-          mt-3
-          w-full
-          rounded-xl
-          bg-white
-          py-4
-          text-sm
-          font-semibold
-          text-black
-          transition-colors
-          duration-200
-          hover:bg-[#D4AF37]
-          disabled:cursor-not-allowed
-          disabled:opacity-50
-        "
-      >
-        BUY IT NOW
-      </button>
+        </div>
+
+      ) : (
+
+        <>
+          {/* =================================================
+              IN-STOCK ACTIONS
+          ================================================== */}
+
+          <div
+            className="
+              mt-6
+              flex
+              gap-3
+            "
+          >
+
+            {/* Add To Cart */}
+
+            <button
+              type="button"
+
+              /*
+               * IMPORTANT:
+               * MobileStickyCart uses this attribute to detect
+               * when the original Add to Cart button is visible.
+               */
+
+              data-product-add-to-cart
+
+              onClick={handleAddToCart}
+
+              className="
+                flex
+                min-h-14
+                flex-1
+                items-center
+                justify-center
+                gap-2
+                rounded-xl
+                bg-[#D4AF37]
+                py-4
+                text-sm
+                font-semibold
+                text-black
+                transition-colors
+                duration-200
+                hover:bg-[#e5c45a]
+              "
+            >
+
+              <ShoppingBag size={18} />
+
+              ADD TO CART
+
+            </button>
+
+
+            {/* Wishlist */}
+
+            <WishlistButton
+              productId={product.id}
+              iconSize={22}
+              className="
+                flex
+                h-14
+                w-14
+                shrink-0
+                items-center
+                justify-center
+                rounded-xl
+                border
+                border-neutral-700
+                bg-transparent
+                text-white
+                transition-all
+                duration-200
+                hover:border-[#D4AF37]
+                hover:bg-[#D4AF37]/10
+                hover:text-[#D4AF37]
+                active:scale-95
+              "
+            />
+
+          </div>
+
+
+          {/* =================================================
+              BUY NOW
+          ================================================== */}
+
+          <button
+            type="button"
+            onClick={handleBuyNow}
+
+            className="
+              mt-3
+              w-full
+              rounded-xl
+              bg-white
+              py-4
+              text-sm
+              font-semibold
+              text-black
+              transition-colors
+              duration-200
+              hover:bg-[#D4AF37]
+            "
+          >
+            BUY IT NOW
+          </button>
+
+        </>
+
+      )}
 
 
       {/* =================================================
           DELIVERY CHECKER
       ================================================= */}
 
-      <DeliveryChecker
-        product={product}
+      {!isOutOfStock && (
+        <DeliveryChecker
+          product={product}
+        />
+      )}
+
+
+      {/* =================================================
+          NOTIFY DIALOG
+      ================================================= */}
+
+      <NotifyDialog
+        open={notifyDialogOpen}
+        onClose={() => setNotifyDialogOpen(false)}
+        product={{
+          id: product.id,
+          name: product.name,
+          image:
+            product.product_images?.find(
+              (image: any) => image.is_primary
+            )?.image_url ??
+            product.product_images?.[0]?.image_url ??
+            null,
+        }}
       />
+
 
       {buyNowPopupOpen &&
         createPortal(
