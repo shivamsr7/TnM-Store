@@ -442,15 +442,33 @@ export default function CheckoutDialog({
    * T&M WALLET CHECKOUT
    * =========================================================
    *
-   * Wallet credit is reserved with a short-lived server-side
-   * hold before PaymentStep starts. The hold is the source of
-   * truth; the displayed balance/amount is only UI state.
+   * Wallet eligibility is verified server-side for the current
+   * checkout quote. The checkout-specific wallet record is only
+   * an authorization for this Checkout ID; the actual wallet
+   * debit still happens during final order creation.
    */
 
   const [
     walletBalancePaise,
     setWalletBalancePaise,
   ] = useState(0);
+
+  const [
+    walletEligibility,
+    setWalletEligibility,
+  ] = useState<{
+    wallet_enabled: boolean;
+    eligible_subtotal_paise: number;
+    maximum_wallet_paise: number;
+    min_order_value_paise: number;
+    min_redemption_paise: number;
+    max_redemption_percentage: number;
+    max_redemption_per_order_paise: number;
+    has_coupon: boolean;
+    special_offer_paise: number;
+    eligible_item_count: number;
+    total_item_count: number;
+  } | null>(null);
 
   const [
     walletLoading,
@@ -508,6 +526,9 @@ export default function CheckoutDialog({
         isGuestCheckoutCustomer ||
         !checkoutQuoteId
       ) {
+        if (mounted) {
+          setWalletEligibility(null);
+        }
         return;
       }
 
@@ -541,6 +562,129 @@ export default function CheckoutDialog({
           )
         );
 
+        const {
+          data: eligibilityData,
+          error: eligibilityError,
+        } = await supabase.rpc(
+          "get_wallet_checkout_eligibility",
+          {
+            p_customer_id:
+              customer.id,
+
+            p_checkout_quote_id:
+              checkoutQuoteId,
+          }
+        );
+
+        if (eligibilityError) {
+          throw eligibilityError;
+        }
+
+        const eligibility =
+          Array.isArray(eligibilityData)
+            ? eligibilityData[0]
+            : eligibilityData;
+
+        if (!mounted) return;
+
+        setWalletEligibility(
+          eligibility
+            ? {
+                wallet_enabled:
+                  Boolean(eligibility.wallet_enabled),
+
+                eligible_subtotal_paise:
+                  Math.max(
+                    0,
+                    Number(
+                      eligibility.eligible_subtotal_paise || 0
+                    )
+                  ),
+
+                maximum_wallet_paise:
+                  Math.max(
+                    0,
+                    Number(
+                      eligibility.maximum_wallet_paise || 0
+                    )
+                  ),
+
+                min_order_value_paise:
+                  Math.max(
+                    0,
+                    Number(
+                      eligibility.min_order_value_paise || 0
+                    )
+                  ),
+
+                min_redemption_paise:
+                  Math.max(
+                    0,
+                    Number(
+                      eligibility.min_redemption_paise || 0
+                    )
+                  ),
+
+                max_redemption_percentage:
+                  Math.max(
+                    0,
+                    Number(
+                      eligibility.max_redemption_percentage || 0
+                    )
+                  ),
+
+                max_redemption_per_order_paise:
+                  Math.max(
+                    0,
+                    Number(
+                      eligibility.max_redemption_per_order_paise || 0
+                    )
+                  ),
+
+                has_coupon:
+                  Boolean(eligibility.has_coupon),
+
+                special_offer_paise:
+                  Math.max(
+                    0,
+                    Number(
+                      eligibility.special_offer_paise || 0
+                    )
+                  ),
+
+                eligible_item_count:
+                  Math.max(
+                    0,
+                    Number(
+                      eligibility.eligible_item_count || 0
+                    )
+                  ),
+
+                total_item_count:
+                  Math.max(
+                    0,
+                    Number(
+                      eligibility.total_item_count || 0
+                    )
+                  ),
+              }
+            : null
+        );
+
+        /*
+         * If the server says Wallet cannot be used for this quote,
+         * clear only the wallet UI state. No other checkout state
+         * is changed.
+         */
+        if (
+          !eligibility?.wallet_enabled ||
+          Number(eligibility?.maximum_wallet_paise || 0) <= 0
+        ) {
+          setWalletHoldId(null);
+          setWalletAmountPaise(0);
+          setWalletSelected(false);
+        }
+
       } catch (error: any) {
 
         console.error(
@@ -551,6 +695,11 @@ export default function CheckoutDialog({
         if (!mounted) return;
 
         setWalletBalancePaise(0);
+        setWalletEligibility(null);
+        setWalletHoldId(null);
+        setWalletAmountPaise(0);
+        setWalletSelected(false);
+
         setWalletError(
           "Wallet is temporarily unavailable. You can continue with online payment."
         );
@@ -577,6 +726,7 @@ export default function CheckoutDialog({
     checkoutQuoteId,
     isGuestCheckoutCustomer,
   ]);
+
 
 
   async function releaseWalletHold() {
@@ -646,12 +796,21 @@ export default function CheckoutDialog({
         )
       );
 
+    const maximumEligibleWalletPaise =
+      Math.max(
+        0,
+        Number(
+          walletEligibility?.maximum_wallet_paise || 0
+        )
+      );
+
     const requestedAmountPaise =
       Math.min(
         Math.max(
           0,
           Number(walletBalancePaise || 0)
         ),
+        maximumEligibleWalletPaise,
         totalPaise
       );
 
@@ -660,7 +819,11 @@ export default function CheckoutDialog({
       setWalletAmountPaise(0);
       setWalletSelected(false);
       setWalletError(
-        "You don't have enough wallet balance to use on this order."
+        maximumEligibleWalletPaise <= 0
+          ? walletEligibility?.has_coupon
+            ? "Wallet cannot be applied with this coupon."
+            : "Wallet cannot be used on the eligible items in this order."
+          : "You don't have enough wallet balance to use on this order."
       );
       return false;
     }
@@ -3046,11 +3209,12 @@ export default function CheckoutDialog({
      *
      * A checkout quote is immutable for the payment flow.
      * Going back to Address creates a fresh quote, so an existing
-     * wallet hold must never be carried over to that new quote.
+     * wallet authorization must never be carried over to that new
+     * quote.
      *
      * Preserve the customer's intent to use Wallet, release the
-     * old quote's hold now, and create a fresh hold after the new
-     * quote has been finalized.
+     * old quote authorization now, and create a fresh one after
+     * the new quote has been finalized.
      * =======================================================
      */
 
@@ -3443,13 +3607,13 @@ export default function CheckoutDialog({
 
 
             /*
-             * Re-create the wallet reservation against the NEW
+             * Re-create the wallet authorization against the NEW
              * finalized quote when the customer had previously
              * enabled Wallet.
              *
-             * The finalized server total is authoritative, so
-             * the wallet amount is recalculated instead of
-             * blindly reusing the old quote's amount.
+             * The finalized server total and wallet eligibility
+             * are authoritative, so the wallet amount is
+             * recalculated instead of reusing the old quote's amount.
              */
             if (shouldReapplyWallet) {
 
@@ -7599,7 +7763,12 @@ export default function CheckoutDialog({
 
                 {
                   !isGuestCheckoutCustomer &&
-                  customer?.id && (
+                  customer?.id &&
+                  walletEligibility?.wallet_enabled &&
+                  (
+                    Number(walletEligibility?.maximum_wallet_paise || 0) > 0 ||
+                    walletEligibility?.has_coupon
+                  ) && (
 
                     <div
                       className={`
@@ -8040,11 +8209,8 @@ export default function CheckoutDialog({
                                   Number(
                                     Math.min(
                                       walletBalancePaise,
-                                      Math.max(
-                                        0,
-                                        Math.round(
-                                          Number(displayedTotal || 0) * 100
-                                        )
+                                      Number(
+                                        walletEligibility?.maximum_wallet_paise || 0
                                       )
                                     )
                                   ) / 100
@@ -8075,7 +8241,7 @@ export default function CheckoutDialog({
                               size={13}
                               className="animate-spin"
                             />
-                            Securing your wallet savings...
+                            Applying your wallet savings...
                           </div>
                         )}
 
@@ -8103,6 +8269,35 @@ export default function CheckoutDialog({
 
                     </div>
 
+                  )
+                }
+
+
+                {
+                  !isGuestCheckoutCustomer &&
+                  customer?.id &&
+                  !walletLoading &&
+                  walletEligibility &&
+                  walletEligibility.special_offer_paise > 0 &&
+                  walletEligibility.eligible_item_count > 0 &&
+                  walletEligibility.maximum_wallet_paise > 0 && (
+                    <div
+                      className="
+                        mb-5
+                        rounded-[14px]
+                        border
+                        border-[#C8A44D]/15
+                        bg-[#fffaf0]
+                        px-3.5
+                        py-2.5
+                        text-[11px]
+                        leading-5
+                        text-[#80651d]
+                      "
+                    >
+                      Wallet savings are applied only to eligible regular-price items.
+                      Special Offer items are excluded.
+                    </div>
                   )
                 }
 
