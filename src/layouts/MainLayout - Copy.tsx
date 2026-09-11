@@ -23,9 +23,6 @@ import PageTransition
 import WhatsAppSupportChat
   from "@/features/Support/components/WhatsAppSupportChat";
 
-import GuestSignupPrompt
-  from "@/features/Auth/components/GuestSignupPrompt";
-
 import {
   useEffect,
   useRef,
@@ -404,19 +401,6 @@ export default function MainLayout() {
 
     <>
 
-      <style>{`
-        @keyframes tnmGuestPromptUp {
-          from {
-            opacity: 0;
-            transform: translateY(28px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
-
       {/* =====================================================
           PROFILE COMPLETION REMINDER
       ====================================================== */}
@@ -431,12 +415,6 @@ export default function MainLayout() {
           setBirthdayCoupon(null);
         }}
       />
-
-      {/* =====================================================
-          GUEST SIGN-UP / LOGIN PROMPT
-      ====================================================== */}
-
-      <GuestSignupPrompt />
 
 
       {/* =====================================================
