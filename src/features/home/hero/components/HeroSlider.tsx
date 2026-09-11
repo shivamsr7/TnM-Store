@@ -46,8 +46,7 @@ export default function HeroSlider() {
    * =========================================================
    */
 
-  const bannerAspect =
-    "aspect-[2/1]";
+const bannerAspect = "aspect-[1.85/1] lg:aspect-[2/1]";
 
   /*
    * =========================================================
