@@ -716,7 +716,6 @@ export default function ProductCard({
         tabIndex={0}
 
         className="
-          shop-product-card
           group
           relative
           flex
@@ -832,7 +831,6 @@ export default function ProductCard({
           }}
 
           className="
-            shop-product-image
             relative
             aspect-[4/5]
             overflow-hidden
@@ -1173,7 +1171,6 @@ export default function ProductCard({
 
         <div
           className="
-            shop-product-details
             flex
             flex-col
             p-3
@@ -1186,7 +1183,6 @@ export default function ProductCard({
 
           <h3
             className="
-              shop-product-title
               line-clamp-2
               text-sm
               font-medium
@@ -1290,7 +1286,6 @@ export default function ProductCard({
 
                 <span
                   className="
-                    shop-product-rating
                     shrink-0
                     font-medium
                     text-white
@@ -1311,7 +1306,6 @@ export default function ProductCard({
 
                   <span
                     className="
-                      shop-product-review-count
                       shrink-0
                       text-neutral-500
                     "
@@ -1369,7 +1363,6 @@ export default function ProductCard({
             >
               <span
                 className="
-                  shop-product-price
                   text-lg
                   font-semibold
                   tracking-tight
@@ -1504,7 +1497,6 @@ export default function ProductCard({
 
           <div
             className="
-              shop-product-actions
               mt-3
               flex
               min-h-11
@@ -1632,7 +1624,6 @@ export default function ProductCard({
                 }
 
                 className="
-                  shop-product-wishlist
                   h-10
                   w-10
                   shrink-0
@@ -1721,71 +1712,6 @@ export default function ProductCard({
         }}
 
       />
-
-      {/* =====================================================
-          SHOP LIGHT THEME OVERRIDES
-          The Shop page exposes data-shop-theme on its <main>.
-          These scoped overrides keep ProductCard's existing
-          dark styling for Dark mode and adapt only the card
-          itself for Light mode.
-      ====================================================== */}
-
-      <style>{`
-        [data-shop-theme="light"] .shop-product-card {
-          background: #ffffff !important;
-          border-color: rgba(154, 122, 34, 0.20) !important;
-          box-shadow: 0 8px 28px rgba(70, 55, 20, 0.06);
-        }
-
-        [data-shop-theme="light"] .shop-product-card:hover {
-          border-color: rgba(154, 122, 34, 0.50) !important;
-          box-shadow: 0 14px 34px rgba(70, 55, 20, 0.10);
-        }
-
-        [data-shop-theme="light"] .shop-product-image {
-          background: #f1eee6 !important;
-        }
-
-        [data-shop-theme="light"] .shop-product-title {
-          color: #29251c !important;
-        }
-
-        [data-shop-theme="light"] .shop-product-card:hover .shop-product-title {
-          color: #9a7a22 !important;
-        }
-
-        [data-shop-theme="light"] .shop-product-rating {
-          color: #29251c !important;
-        }
-
-        [data-shop-theme="light"] .shop-product-review-count {
-          color: #737373 !important;
-        }
-
-        [data-shop-theme="light"] .shop-product-price {
-          color: #29251c !important;
-        }
-
-        [data-shop-theme="light"] .shop-product-actions {
-          border-top-color: rgba(41, 37, 28, 0.10) !important;
-          background: linear-gradient(
-            to top,
-            #ffffff,
-            rgba(255, 255, 255, 0.96),
-            transparent
-          ) !important;
-        }
-
-        [data-shop-theme="light"] .shop-product-wishlist {
-          border-color: rgba(41, 37, 28, 0.18) !important;
-          color: #29251c !important;
-        }
-
-        [data-shop-theme="light"] .shop-product-wishlist:hover {
-          border-color: #d4af37 !important;
-          color: #9a7a22 !important;
-        }
-      `}</style>
 
     </>
 

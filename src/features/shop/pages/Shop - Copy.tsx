@@ -5,11 +5,6 @@ import {
 } from "react";
 
 import {
-  Moon,
-  Sun,
-} from "lucide-react";
-
-import {
   useSearchParams,
 } from "react-router-dom";
 
@@ -288,68 +283,6 @@ function matchesSearch(
  */
 
 export default function Shop() {
-
-  /*
-   * =======================================================
-   * SHOP THEME
-   * =======================================================
-   *
-   * Uses the same persisted theme preference as the
-   * Account dashboard.
-   *
-   * Light = soft ivory / white / gold
-   * Dark  = black / charcoal / gold
-   * =======================================================
-   */
-
-  const [
-    isDarkTheme,
-    setIsDarkTheme,
-  ] = useState<boolean>(() => {
-    try {
-      const saved =
-        localStorage.getItem(
-          "tnm-account-theme"
-        );
-
-      if (
-        saved === "dark"
-      ) {
-        return true;
-      }
-
-      if (
-        saved === "light"
-      ) {
-        return false;
-      }
-
-      return false;
-    } catch {
-      return false;
-    }
-  });
-
-
-  const theme:
-    "light" | "dark" =
-    isDarkTheme
-      ? "dark"
-      : "light";
-
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        "tnm-account-theme",
-        theme
-      );
-    } catch {
-      // Ignore storage errors.
-    }
-  }, [
-    theme,
-  ]);
 
 
   /*
@@ -2419,18 +2352,14 @@ export default function Shop() {
     return (
 
       <div
-        className={`
+        className="
           min-h-screen
+          bg-black
           px-4
           py-10
           sm:px-5
           lg:py-16
-          ${
-            theme === "light"
-              ? "bg-[#f7f5f0] text-neutral-900"
-              : "bg-black text-white"
-          }
-        `}
+        "
       >
 
         <div
@@ -2494,16 +2423,13 @@ export default function Shop() {
                     key={
                       index
                     }
-                    className={`
+                    className="
                       overflow-hidden
                       rounded-2xl
                       border
-                      ${
-                        theme === "light"
-                          ? "border-neutral-200 bg-white"
-                          : "border-white/[0.06] bg-white/[0.02]"
-                      }
-                    `}
+                      border-white/[0.06]
+                      bg-white/[0.02]
+                    "
                   >
 
                     <div
@@ -2574,17 +2500,14 @@ export default function Shop() {
     return (
 
       <div
-        className={`
+        className="
           flex
           min-h-screen
           items-center
           justify-center
-          ${
-            theme === "light"
-              ? "bg-[#f7f5f0] text-red-600"
-              : "bg-black text-red-400"
-          }
-        `}
+          bg-black
+          text-red-400
+        "
       >
 
         Unable to load Shop.
@@ -2605,86 +2528,16 @@ export default function Shop() {
   return (
 
     <main
-      className={`
-        shop-theme
+      className="
         min-h-screen
+        bg-black
         px-4
         py-10
         sm:px-5
         sm:py-12
         lg:py-16
-        transition-colors
-        duration-300
-        ${
-          theme === "light"
-            ? "bg-[#f7f5f0] text-neutral-900"
-            : "bg-black text-white"
-        }
-      `}
-      data-shop-theme={theme}
+      "
     >
-
-      {/* =================================================
-          THEME TOGGLE
-      ================================================== */}
-
-      <button
-        type="button"
-        onClick={() =>
-          setIsDarkTheme(
-            (current) =>
-              !current
-          )
-        }
-        aria-label={
-          isDarkTheme
-            ? "Switch to light theme"
-            : "Switch to dark theme"
-        }
-        className={`
-          fixed
-          right-4
-          top-4
-          z-[100]
-          flex
-          items-center
-          gap-2
-          rounded-full
-          border
-          px-4
-          py-2.5
-          text-sm
-          font-medium
-          shadow-lg
-          backdrop-blur-md
-          transition-all
-          duration-200
-          sm:right-6
-          sm:top-6
-          ${
-            theme === "light"
-              ? "border-neutral-200 bg-white/95 text-neutral-700 hover:bg-white"
-              : "border-white/10 bg-[#111111]/95 text-neutral-200 hover:bg-[#181818]"
-          }
-        `}
-      >
-        {isDarkTheme ? (
-          <Sun
-            size={17}
-            className="text-[#C8A44D]"
-          />
-        ) : (
-          <Moon
-            size={17}
-            className="text-[#9A7A22]"
-          />
-        )}
-
-        {isDarkTheme
-          ? "Light"
-          : "Dark"}
-      </button>
-
 
       <div
         className="
@@ -2866,75 +2719,6 @@ export default function Shop() {
         />
 
       </div>
-
-
-      {/* =================================================
-          THEME COMPATIBILITY
-          The existing Shop child components contain their
-          own dark utility classes. These scoped overrides
-          make the already-built ShopHeader/ProductGrid/
-          ProductCard/filter UI follow this page theme
-          without changing their data or behavior.
-      ================================================== */}
-
-      <style>{`
-        .shop-theme[data-shop-theme="light"] [class~="bg-black"] {
-          background-color: #f7f5f0 !important;
-        }
-
-        .shop-theme[data-shop-theme="light"] [class~="bg-neutral-950"],
-        .shop-theme[data-shop-theme="light"] [class~="bg-neutral-900"],
-        .shop-theme[data-shop-theme="light"] [class~="bg-neutral-800"] {
-          background-color: #ffffff !important;
-        }
-
-        .shop-theme[data-shop-theme="light"] [class~="bg-[#111111]"],
-        .shop-theme[data-shop-theme="light"] [class~="bg-[#0D0D0D]"],
-        .shop-theme[data-shop-theme="light"] [class~="bg-[#151515]"] {
-          background-color: #faf8f2 !important;
-        }
-
-        .shop-theme[data-shop-theme="light"] [class~="text-white"] {
-          color: #171717 !important;
-        }
-
-        .shop-theme[data-shop-theme="light"] [class~="text-neutral-300"],
-        .shop-theme[data-shop-theme="light"] [class~="text-neutral-400"] {
-          color: #525252 !important;
-        }
-
-        .shop-theme[data-shop-theme="light"] [class~="text-neutral-500"] {
-          color: #737373 !important;
-        }
-
-        .shop-theme[data-shop-theme="light"] [class~="text-neutral-600"],
-        .shop-theme[data-shop-theme="light"] [class~="text-neutral-700"] {
-          color: #737373 !important;
-        }
-
-        .shop-theme[data-shop-theme="light"] [class~="border-neutral-800"],
-        .shop-theme[data-shop-theme="light"] [class~="border-neutral-700"] {
-          border-color: #e5e0d6 !important;
-        }
-
-        .shop-theme[data-shop-theme="light"] [class~="border-white/[0.06]"],
-        .shop-theme[data-shop-theme="light"] [class~="border-white/10"] {
-          border-color: #e5e0d6 !important;
-        }
-
-        .shop-theme[data-shop-theme="light"] [class~="hover:bg-[#111111]"]:hover,
-        .shop-theme[data-shop-theme="light"] [class~="hover:bg-[#151515]"]:hover {
-          background-color: #faf8f2 !important;
-        }
-
-        .shop-theme[data-shop-theme="light"] [class~="hover:text-white"]:hover {
-          color: #171717 !important;
-        }
-
-        .shop-theme[data-shop-theme="light"] [class~="bg-white/[0.02]"] {
-          background-color: #ffffff !important;
-        }
-      `}</style>
 
 
       {/* =================================================
