@@ -165,7 +165,7 @@ export default function ContactUs() {
 
     setFormData((previous) => ({
       ...previous,
-      email: customer.email,
+      email: customer.email ?? "",
     }));
 
     setTrackEmail(customer.email);
