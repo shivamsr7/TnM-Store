@@ -34,21 +34,7 @@ order_status,
 
 total_amount,
 
-created_at,
-
-order_items (
-
-  id,
-
-  product_id,
-
-  product_name,
-
-  product_image,
-
-  quantity
-
-)
+created_at
 
 `)
 

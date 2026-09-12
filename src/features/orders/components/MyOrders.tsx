@@ -212,6 +212,41 @@ function StatusBadge({
 
 
 
+function getOrderPreview(
+  order: any
+) {
+
+  const items = Array.isArray(
+    order.order_items
+  )
+    ? order.order_items
+    : [];
+
+  const firstItem =
+    items[0] ?? null;
+
+  const totalQuantity =
+    items.reduce(
+      (
+        total: number,
+        item: any
+      ) =>
+        total +
+        Number(
+          item?.quantity ?? 0
+        ),
+      0
+    );
+
+  return {
+    firstItem,
+    itemCount: items.length,
+    totalQuantity,
+  };
+
+}
+
+
 
 export default function MyOrders() {
 
@@ -670,7 +705,7 @@ export default function MyOrders() {
                 py-2
                 text-xs
                 font-medium
-                text-[#D8B65D]
+                text-[#9A7A22]
               "
             >
 
@@ -1123,6 +1158,14 @@ export default function MyOrders() {
               {visibleOrders.map(
                 (order: any) => {
 
+                  const {
+                    firstItem,
+                    itemCount,
+                    totalQuantity,
+                  } = getOrderPreview(
+                    order
+                  );
+
 
                   return (
 
@@ -1226,27 +1269,61 @@ export default function MyOrders() {
 
                           <div
                             className="
-                              flex
                               h-14
                               w-14
                               shrink-0
-                              items-center
-                              justify-center
+                              overflow-hidden
                               rounded-xl
                               border
-                              border-[#C8A44D]/20
-                              bg-[#C8A44D]/[0.08]
-                              text-[#9A7A22]
+                              border-[#e6e1d7]
+                              bg-[#f7f5f0]
 
                               sm:h-16
                               sm:w-16
                             "
                           >
 
-                            <Package
-                              size={23}
-                              strokeWidth={1.5}
-                            />
+                            {firstItem?.product_image ? (
+
+                              <img
+                                src={
+                                  firstItem.product_image
+                                }
+                                alt={
+                                  firstItem.product_name ||
+                                  "Order product"
+                                }
+                                className="
+                                  h-full
+                                  w-full
+                                  object-cover
+                                  transition
+                                  duration-300
+                                  group-hover:scale-[1.04]
+                                "
+                              />
+
+                            ) : (
+
+                              <div
+                                className="
+                                  flex
+                                  h-full
+                                  w-full
+                                  items-center
+                                  justify-center
+                                  text-[#9A7A22]
+                                "
+                              >
+
+                                <Package
+                                  size={23}
+                                  strokeWidth={1.5}
+                                />
+
+                              </div>
+
+                            )}
 
                           </div>
 
@@ -1260,14 +1337,17 @@ export default function MyOrders() {
 
                             <p
                               className="
+                                line-clamp-2
                                 text-sm
                                 font-medium
-                                text-neutral-800
+                                leading-5
+                                text-neutral-900
 
                                 sm:text-[15px]
                               "
                             >
-                              T&amp;M Jewels Order
+                              {firstItem?.product_name ||
+                                "T&amp;M Jewels Order"}
                             </p>
 
                             <p
@@ -1284,7 +1364,16 @@ export default function MyOrders() {
                                 order.order_status
                               ).label}
                               {" · "}
-                              View complete order details
+                              {itemCount > 0
+                                ? `${totalQuantity} ${
+                                    totalQuantity === 1
+                                      ? "item"
+                                      : "items"
+                                  }`
+                                : "Order details"}
+                              {itemCount > 1
+                                ? ` · +${itemCount - 1} more`
+                                : ""}
                             </p>
 
                           </div>
@@ -1374,7 +1463,7 @@ export default function MyOrders() {
 
                               hover:border-[#C8A44D]/60
                               hover:bg-[#C8A44D]/[0.06]
-                              hover:text-[#D8B65D]
+                              hover:text-[#9A7A22]
 
                               active:scale-[0.98]
                             "
@@ -1440,7 +1529,7 @@ export default function MyOrders() {
                   px-6
                   text-xs
                   font-semibold
-                  text-[#D8B65D]
+                  text-[#9A7A22]
                   transition
 
                   hover:border-[#C8A44D]/60
