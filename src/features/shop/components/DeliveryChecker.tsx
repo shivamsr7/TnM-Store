@@ -1,6 +1,8 @@
 import {
   MapPin,
   Loader2,
+  CheckCircle2,
+  Truck,
 } from "lucide-react";
 
 import {
@@ -553,39 +555,94 @@ export default function DeliveryChecker({
         !showInput && (
 
           <div
-
             className="
-              mt-4
-              rounded-xl
+              mt-5
+              overflow-hidden
+              rounded-2xl
               border
-              border-neutral-700
-              px-5
-              py-4
-              text-sm
-              text-neutral-300
+              border-[#D4AF37]/30
+              bg-gradient-to-br
+              from-[#D4AF37]/10
+              via-neutral-900
+              to-neutral-950
+              shadow-[0_8px_28px_rgba(0,0,0,0.18)]
             "
-
           >
 
-            Delivery by{" "}
-
-            <span
-
+            <div
               className="
-                font-medium
-                text-white
+                flex
+                items-center
+                gap-3
+                px-4
+                py-4
               "
-
             >
 
-              {
-                savedDelivery
-                  ?.deliveryDate
-                  ?.start ||
-                "Calculating..."
-              }
+              <div
+                className="
+                  flex
+                  h-10
+                  w-10
+                  shrink-0
+                  items-center
+                  justify-center
+                  rounded-full
+                  border
+                  border-[#D4AF37]/30
+                  bg-[#D4AF37]/10
+                "
+              >
+                <CheckCircle2
+                  size={21}
+                  className="text-[#D4AF37]"
+                />
+              </div>
 
-            </span>
+              <div className="min-w-0 flex-1">
+                <div
+                  className="
+                    flex
+                    items-center
+                    gap-2
+                    text-sm
+                    font-semibold
+                    text-white
+                  "
+                >
+                  <span>Delivery available</span>
+                </div>
+
+                <div
+                  className="
+                    mt-1
+                    flex
+                    items-center
+                    gap-1.5
+                    text-xs
+                    text-neutral-400
+                  "
+                >
+                  <MapPin
+                    size={13}
+                    className="shrink-0 text-[#D4AF37]"
+                  />
+                  <span>
+                    Available for delivery to{" "}
+                    <span className="font-medium text-neutral-200">
+                      {savedDelivery.pincode}
+                    </span>
+                  </span>
+                </div>
+              </div>
+
+              <Truck
+                size={20}
+                className="hidden shrink-0 text-[#D4AF37] sm:block"
+                aria-hidden="true"
+              />
+
+            </div>
 
           </div>
 
@@ -609,10 +666,11 @@ export default function DeliveryChecker({
               mt-5
               flex
               overflow-hidden
-              rounded-xl
+              rounded-2xl
               border
               border-neutral-700
-              bg-neutral-900
+              bg-neutral-900/90
+              shadow-[0_6px_22px_rgba(0,0,0,0.14)]
             "
 
           >
@@ -681,8 +739,10 @@ export default function DeliveryChecker({
                 bg-[#D4AF37]
                 px-6
                 text-sm
-                font-medium
+                font-semibold
                 text-black
+                transition
+                hover:bg-[#E2C24A]
                 disabled:cursor-not-allowed
                 disabled:opacity-60
               "
