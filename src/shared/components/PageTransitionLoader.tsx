@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import logo from "@/assets/logo/mainLogo.png";
 
+const MIN_LOADING_TIME = 650;
 const MAX_LOADING_TIME = 10_000;
 
 export default function PageTransitionLoader() {
@@ -13,6 +14,8 @@ export default function PageTransitionLoader() {
   const previousPathRef = useRef(location.pathname);
   const navigationStartedRef = useRef(false);
   const recoveryTimerRef = useRef<number | null>(null);
+  const navigationStartedAtRef = useRef<number | null>(null);
+  const routeCompletedRef = useRef(false);
 
   const clearRecoveryTimer = () => {
     if (recoveryTimerRef.current !== null) {
@@ -23,9 +26,23 @@ export default function PageTransitionLoader() {
 
   const finishNavigation = () => {
     clearRecoveryTimer();
-    navigationStartedRef.current = false;
-    setShowRecovery(false);
-    setIsLoading(false);
+    routeCompletedRef.current = true;
+
+    const startedAt = navigationStartedAtRef.current;
+    const elapsed = startedAt === null ? MIN_LOADING_TIME : Date.now() - startedAt;
+    const remaining = Math.max(0, MIN_LOADING_TIME - elapsed);
+
+    window.setTimeout(() => {
+      if (!navigationStartedRef.current || !routeCompletedRef.current) {
+        return;
+      }
+
+      navigationStartedRef.current = false;
+      navigationStartedAtRef.current = null;
+      routeCompletedRef.current = false;
+      setShowRecovery(false);
+      setIsLoading(false);
+    }, remaining);
   };
 
   // Route completion: once the pathname changes, the destination route has
@@ -88,6 +105,9 @@ export default function PageTransitionLoader() {
       document.removeEventListener("click", handleDocumentClick, true);
       window.removeEventListener("popstate", handlePopState);
       clearRecoveryTimer();
+      navigationStartedRef.current = false;
+      navigationStartedAtRef.current = null;
+      routeCompletedRef.current = false;
     };
   }, []);
 
