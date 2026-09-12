@@ -7,8 +7,11 @@ import {
 } from "react-dom";
 
 import {
+  ImagePlus,
+  Info,
   Loader2,
   Star,
+  Video,
   X,
 } from "lucide-react";
 
@@ -20,12 +23,59 @@ import {
   reviewService,
 } from "../services/review.service";
 
+import {
+  reviewMediaService,
+  type CreateReviewMediaInput,
+} from "../services/reviewMedia.service";
+
+import {
+  storageService,
+} from "@/shared/services/storage.service";
+
 
 interface WriteReviewDialogProps {
   productId: string;
   open: boolean;
   onClose: () => void;
 }
+
+
+interface SelectedReviewMedia {
+  id: string;
+  file: File;
+  previewUrl: string;
+  mediaType: "image" | "video";
+}
+
+
+/*
+ * =========================================================
+ * MEDIA LIMITS
+ * =========================================================
+ */
+
+const MAX_IMAGES = 5;
+
+const MAX_VIDEOS = 1;
+
+const MAX_IMAGE_SIZE =
+  5 * 1024 * 1024;
+
+const MAX_VIDEO_SIZE =
+  50 * 1024 * 1024;
+
+
+const ACCEPTED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+];
+
+
+const ACCEPTED_VIDEO_TYPES = [
+  "video/mp4",
+  "video/webm",
+];
 
 
 export default function WriteReviewDialog({
@@ -51,11 +101,17 @@ export default function WriteReviewDialog({
    * =========================================================
    */
 
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] =
+    useState(0);
 
-  const [title, setTitle] = useState("");
+  const [title, setTitle] =
+    useState("");
 
-  const [review, setReview] = useState("");
+  const [review, setReview] =
+    useState("");
+
+  const [selectedMedia, setSelectedMedia] =
+    useState<SelectedReviewMedia[]>([]);
 
   const [isSubmitting, setIsSubmitting] =
     useState(false);
@@ -69,6 +125,9 @@ export default function WriteReviewDialog({
   const [success, setSuccess] =
     useState(false);
 
+  const [showWalletInfo, setShowWalletInfo] =
+    useState(false);
+
 
   /*
    * =========================================================
@@ -77,12 +136,30 @@ export default function WriteReviewDialog({
    */
 
   const resetForm = () => {
+
+    selectedMedia.forEach(
+      (media) => {
+        URL.revokeObjectURL(
+          media.previewUrl
+        );
+      }
+    );
+
     setRating(0);
+
     setTitle("");
+
     setReview("");
+
+    setSelectedMedia([]);
+
     setError(null);
+
     setIsDuplicate(false);
+
     setSuccess(false);
+
+    setShowWalletInfo(false);
   };
 
 
@@ -99,7 +176,397 @@ export default function WriteReviewDialog({
     }
 
     resetForm();
+
     onClose();
+  };
+
+
+  /*
+   * =========================================================
+   * ADD MEDIA
+   * =========================================================
+   */
+
+  const handleMediaChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+
+    setError(null);
+
+    const files =
+      Array.from(
+        event.target.files ?? []
+      );
+
+    if (
+      files.length === 0
+    ) {
+      return;
+    }
+
+
+    const currentImages =
+      selectedMedia.filter(
+        (media) =>
+          media.mediaType ===
+          "image"
+      ).length;
+
+
+    const currentVideos =
+      selectedMedia.filter(
+        (media) =>
+          media.mediaType ===
+          "video"
+      ).length;
+
+
+    let imageCount =
+      currentImages;
+
+    let videoCount =
+      currentVideos;
+
+
+    const newMedia:
+      SelectedReviewMedia[] = [];
+
+
+    for (
+      const file of files
+    ) {
+
+      /*
+       * =====================================================
+       * IMAGE
+       * =====================================================
+       */
+
+      if (
+        ACCEPTED_IMAGE_TYPES.includes(
+          file.type
+        )
+      ) {
+
+        if (
+          imageCount >=
+          MAX_IMAGES
+        ) {
+
+          setError(
+            `You can upload up to ${MAX_IMAGES} photos.`
+          );
+
+          continue;
+        }
+
+
+        if (
+          file.size >
+          MAX_IMAGE_SIZE
+        ) {
+
+          setError(
+            `"${file.name}" is larger than 5 MB.`
+          );
+
+          continue;
+        }
+
+
+        imageCount += 1;
+
+
+        newMedia.push({
+          id:
+            crypto.randomUUID(),
+
+          file,
+
+          previewUrl:
+            URL.createObjectURL(
+              file
+            ),
+
+          mediaType:
+            "image",
+        });
+
+        continue;
+      }
+
+
+      /*
+       * =====================================================
+       * VIDEO
+       * =====================================================
+       */
+
+      if (
+        ACCEPTED_VIDEO_TYPES.includes(
+          file.type
+        )
+      ) {
+
+        if (
+          videoCount >=
+          MAX_VIDEOS
+        ) {
+
+          setError(
+            "You can upload only one video."
+          );
+
+          continue;
+        }
+
+
+        if (
+          file.size >
+          MAX_VIDEO_SIZE
+        ) {
+
+          setError(
+            `"${file.name}" is larger than 50 MB.`
+          );
+
+          continue;
+        }
+
+
+        videoCount += 1;
+
+
+        newMedia.push({
+          id:
+            crypto.randomUUID(),
+
+          file,
+
+          previewUrl:
+            URL.createObjectURL(
+              file
+            ),
+
+          mediaType:
+            "video",
+        });
+
+        continue;
+      }
+
+
+      /*
+       * =====================================================
+       * INVALID FILE
+       * =====================================================
+       */
+
+      setError(
+        `"${file.name}" is not a supported image or video.`
+      );
+    }
+
+
+    if (
+      newMedia.length > 0
+    ) {
+
+      setSelectedMedia(
+        (current) => [
+          ...current,
+          ...newMedia,
+        ]
+      );
+    }
+
+
+    /*
+     * Allow selecting the same file
+     * again after removing it.
+     */
+
+    event.target.value = "";
+  };
+
+
+  /*
+   * =========================================================
+   * REMOVE MEDIA
+   * =========================================================
+   */
+
+  const handleRemoveMedia = (
+    mediaId: string
+  ) => {
+
+    setSelectedMedia(
+      (current) => {
+
+        const media =
+          current.find(
+            (item) =>
+              item.id === mediaId
+          );
+
+
+        if (media) {
+
+          URL.revokeObjectURL(
+            media.previewUrl
+          );
+        }
+
+
+        return current.filter(
+          (item) =>
+            item.id !== mediaId
+        );
+      }
+    );
+  };
+
+
+  /*
+   * =========================================================
+   * UPLOAD REVIEW MEDIA
+   * =========================================================
+   */
+
+  const uploadReviewMedia = async (
+    reviewId: string
+  ) => {
+
+    if (
+      selectedMedia.length === 0
+    ) {
+      return;
+    }
+
+
+    const uploadedFiles: {
+      path: string;
+      publicUrl: string;
+      mediaType:
+        | "image"
+        | "video";
+      thumbnailUrl:
+        string | null;
+    }[] = [];
+
+
+    try {
+
+      /*
+       * =====================================================
+       * UPLOAD TO IMAGEKIT
+       * =====================================================
+       */
+
+      for (
+        const media of selectedMedia
+      ) {
+
+        const uploaded =
+          await storageService.upload(
+            media.file,
+            "reviews"
+          );
+
+
+        uploadedFiles.push({
+          path:
+            uploaded.path,
+
+          publicUrl:
+            uploaded.publicUrl,
+
+          mediaType:
+            media.mediaType,
+
+          thumbnailUrl:
+            null,
+        });
+      }
+
+
+      /*
+       * =====================================================
+       * CREATE MEDIA RECORDS
+       * =====================================================
+       */
+
+      const mediaRecords:
+        CreateReviewMediaInput[] =
+        uploadedFiles.map(
+          (
+            uploaded,
+            index
+          ) => ({
+            review_id:
+              reviewId,
+
+            media_type:
+              uploaded.mediaType,
+
+            media_url:
+              uploaded.publicUrl,
+
+            storage_path:
+              uploaded.path,
+
+            thumbnail_url:
+              uploaded.thumbnailUrl,
+
+            sort_order:
+              index,
+          })
+        );
+
+
+      await reviewMediaService.createMany(
+        mediaRecords
+      );
+
+
+    } catch (
+      mediaError
+    ) {
+
+      /*
+       * =====================================================
+       * CLEAN UP IMAGEKIT FILES
+       * =====================================================
+       */
+
+      await Promise.allSettled(
+        uploadedFiles.map(
+          async (
+            uploaded
+          ) => {
+
+            try {
+
+              await storageService.remove(
+                uploaded.path
+              );
+
+            } catch (
+              cleanupError
+            ) {
+
+              console.error(
+                "Review media cleanup failed:",
+                cleanupError
+              );
+            }
+          }
+        )
+      );
+
+
+      throw mediaError;
+    }
   };
 
 
@@ -116,6 +583,7 @@ export default function WriteReviewDialog({
     event.preventDefault();
 
     setError(null);
+
     setIsDuplicate(false);
 
 
@@ -237,25 +705,47 @@ export default function WriteReviewDialog({
       setIsSubmitting(true);
 
 
-      await reviewService.createReview({
+      /*
+       * =====================================================
+       * CREATE REVIEW
+       * =====================================================
+       */
 
-        product_id:
-          productId,
+      const createdReview =
+        await reviewService.createReview({
 
-        customer_id:
-          customer.id,
+          product_id:
+            productId,
 
-        rating:
-          rating,
+          customer_id:
+            customer.id,
 
-        title:
-          trimmedTitle ||
-          null,
+          rating:
+            rating,
 
-        review:
-          trimmedReview,
+          title:
+            trimmedTitle ||
+            null,
 
-      });
+          review:
+            trimmedReview,
+        });
+
+
+      /*
+       * =====================================================
+       * UPLOAD MEDIA
+       * =====================================================
+       */
+
+      if (
+        selectedMedia.length > 0
+      ) {
+
+        await uploadReviewMedia(
+          createdReview.id
+        );
+      }
 
 
       /*
@@ -265,6 +755,7 @@ export default function WriteReviewDialog({
        */
 
       setSuccess(true);
+
 
     } catch (
       submitError
@@ -278,7 +769,7 @@ export default function WriteReviewDialog({
 
       /*
        * =====================================================
-       * SUPABASE ERROR HANDLING
+       * ERROR MESSAGE
        * =====================================================
        */
 
@@ -446,6 +937,24 @@ export default function WriteReviewDialog({
 
       /*
        * =====================================================
+       * MEDIA ERROR
+       * =====================================================
+       */
+
+      if (
+        selectedMedia.length > 0
+      ) {
+
+        setError(
+          "We couldn't finish uploading your photos or video. Please try again."
+        );
+
+        return;
+      }
+
+
+      /*
+       * =====================================================
        * GENERIC ERROR
        * =====================================================
        */
@@ -454,12 +963,12 @@ export default function WriteReviewDialog({
         "We're having a little trouble submitting your review right now. Please try again in a moment. ♡"
       );
 
+
     } finally {
 
       setIsSubmitting(false);
 
     }
-
   };
 
 
@@ -476,14 +985,29 @@ export default function WriteReviewDialog({
 
   /*
    * =========================================================
-   * DIALOG CONTENT
-   *
-   * IMPORTANT:
-   *
-   * Render directly into document.body.
-   *
-   * This prevents ProductDetails/ProductReviews parent
-   * stacking contexts from affecting the modal.
+   * MEDIA COUNTS
+   * =========================================================
+   */
+
+  const imageCount =
+    selectedMedia.filter(
+      (media) =>
+        media.mediaType ===
+        "image"
+    ).length;
+
+
+  const videoCount =
+    selectedMedia.filter(
+      (media) =>
+        media.mediaType ===
+        "video"
+    ).length;
+
+
+  /*
+   * =========================================================
+   * DIALOG
    * =========================================================
    */
 
@@ -497,7 +1021,7 @@ export default function WriteReviewDialog({
         flex
         items-center
         justify-center
-        overflow-y-auto
+        overflow-hidden
         bg-black/80
         px-4
         py-6
@@ -515,9 +1039,7 @@ export default function WriteReviewDialog({
         ) {
 
           handleClose();
-
         }
-
       }}
     >
 
@@ -532,10 +1054,12 @@ export default function WriteReviewDialog({
         className="
           relative
           my-auto
+          flex
           max-h-[90vh]
           w-full
           max-w-lg
-          overflow-y-auto
+          flex-col
+          overflow-hidden
           rounded-3xl
           border
           border-neutral-200
@@ -548,524 +1072,294 @@ export default function WriteReviewDialog({
       >
 
         {/* ===================================================
-            CLOSE BUTTON
-        ==================================================== */}
-
-        <button
-          type="button"
-          onClick={
-            handleClose
-          }
-          disabled={
-            isSubmitting
-          }
-          aria-label="Close review dialog"
-          className="
-            absolute
-            right-4
-            top-4
-            z-20
-            flex
-            h-10
-            w-10
-            items-center
-            justify-center
-            rounded-full
-            border
-            border-neutral-200
-            bg-neutral-100
-            text-neutral-700
-            transition
-
-            hover:bg-neutral-200
-            hover:text-black
-
-            focus:outline-none
-            focus-visible:ring-2
-            focus-visible:ring-[#C8A44D]
-
-            disabled:cursor-not-allowed
-            disabled:opacity-50
-          "
-        >
-
-          <X
-            className="
-              h-4
-              w-4
-            "
-          />
-
-        </button>
-
-
-        {/* ===================================================
-            CONTENT
+            STATIC HEADER
         ==================================================== */}
 
         <div
           className="
-            p-5
-            sm:p-7
+            relative
+            shrink-0
+            border-b
+            border-neutral-100
+            bg-white
+            px-5
+            py-5
+
+            sm:px-7
+            sm:py-6
           "
         >
 
-          {!success ? (
+          {/* ===============================================
+              CLOSE BUTTON
+          ================================================ */}
 
-            <>
+          <button
+            type="button"
+            onClick={
+              handleClose
+            }
+            disabled={
+              isSubmitting
+            }
+            aria-label="Close review dialog"
+            className="
+              absolute
+              right-4
+              top-4
+              z-20
+              flex
+              h-10
+              w-10
+              items-center
+              justify-center
+              rounded-full
+              border
+              border-neutral-200
+              bg-neutral-100
+              text-neutral-700
+              transition
 
-              {/* =============================================
-                  HEADER
-              ============================================== */}
+              hover:bg-neutral-200
+              hover:text-black
 
-              <div
+              focus:outline-none
+              focus-visible:ring-2
+              focus-visible:ring-[#C8A44D]
+
+              disabled:cursor-not-allowed
+              disabled:opacity-50
+            "
+          >
+
+            <X
+              className="
+                h-4
+                w-4
+              "
+            />
+
+          </button>
+
+
+          {/* ===============================================
+              HEADER TEXT
+          ================================================ */}
+
+          <div
+            className="
+              pr-12
+            "
+          >
+
+            <span
+              className="
+                text-[10px]
+                font-medium
+                uppercase
+                tracking-[0.3em]
+                text-[#C8A44D]
+              "
+            >
+              Customer Love
+            </span>
+
+
+            <h2
+              id="write-review-title"
+              className="
+                mt-2
+                text-2xl
+                font-semibold
+                text-neutral-900
+              "
+            >
+              Write a Review
+            </h2>
+
+
+            <p
+              className="
+                mt-1
+                text-sm
+                leading-6
+                text-neutral-500
+              "
+            >
+              We'd love to hear about
+              your experience.
+            </p>
+
+
+            {/* =============================================
+                WALLET REWARDS
+                STATIC WITH HEADER
+            ============================================== */}
+
+            <div
+              className="
+                mt-4
+              "
+            >
+
+              <button
+                type="button"
+                onClick={() =>
+                  setShowWalletInfo(
+                    (current) =>
+                      !current
+                  )
+                }
                 className="
-                  pr-12
+                  inline-flex
+                  items-center
+                  gap-1.5
+                  rounded-full
+                  border
+                  border-[#C8A44D]/30
+                  bg-[#C8A44D]/5
+                  px-3
+                  py-1.5
+                  text-xs
+                  font-medium
+                  text-[#8F7128]
+                  transition
+
+                  hover:border-[#C8A44D]/50
+                  hover:bg-[#C8A44D]/10
+
+                  focus:outline-none
+                  focus-visible:ring-2
+                  focus-visible:ring-[#C8A44D]
                 "
               >
+
+                <Info
+                  className="
+                    h-3.5
+                    w-3.5
+                  "
+                />
+
+                Wallet Rewards
 
                 <span
                   className="
+                    ml-0.5
                     text-[10px]
-                    font-medium
-                    uppercase
-                    tracking-[0.3em]
-                    text-[#C8A44D]
                   "
                 >
-                  Customer Love
+                  {showWalletInfo
+                    ? "Hide"
+                    : "ⓘ"}
                 </span>
 
+              </button>
 
-                <h2
-                  id="write-review-title"
+
+              {showWalletInfo && (
+
+                <div
                   className="
                     mt-2
-                    text-2xl
-                    font-semibold
-                    text-neutral-900
+                    rounded-xl
+                    border
+                    border-[#C8A44D]/20
+                    bg-[#C8A44D]/5
+                    px-4
+                    py-3
+                    text-xs
+                    leading-5
+                    text-neutral-600
                   "
                 >
-                  Write a Review
-                </h2>
 
-
-                <p
-                  className="
-                    mt-1
-                    text-sm
-                    leading-6
-                    text-neutral-500
-                  "
-                >
-                  We'd love to hear about
-                  your experience.
-                </p>
-
-              </div>
-
-
-              {/* =============================================
-                  FORM
-              ============================================== */}
-
-              <form
-                onSubmit={
-                  handleSubmit
-                }
-                className="
-                  mt-6
-                  space-y-5
-                "
-              >
-
-                {/* ===========================================
-                    RATING
-                ============================================ */}
-
-                <div>
-
-                  <label
+                  <p
                     className="
-                      text-sm
                       font-medium
-                      text-neutral-900
+                      text-neutral-800
                     "
                   >
-                    Your rating
-                  </label>
+                    Earn wallet rewards with your review
+                  </p>
 
 
                   <div
                     className="
-                      mt-3
+                      mt-1.5
                       flex
-                      items-center
-                      gap-1
+                      flex-wrap
+                      gap-x-4
+                      gap-y-1
                     "
                   >
 
-                    {Array.from({
-                      length: 5,
-                    }).map(
-                      (_, index) => {
-
-                        const star =
-                          index + 1;
-
-
-                        return (
-
-                          <button
-                            key={
-                              star
-                            }
-                            type="button"
-                            onClick={() =>
-                              setRating(
-                                star
-                              )
-                            }
-                            aria-label={`Rate ${star} out of 5`}
-                            className="
-                              rounded-md
-                              p-1
-                              transition
-                              hover:scale-110
-                              focus:outline-none
-                              focus-visible:ring-2
-                              focus-visible:ring-[#C8A44D]
-                            "
-                          >
-
-                            <Star
-                              className={`
-                                h-7
-                                w-7
-                                transition-colors
-
-                                ${
-                                  star <=
-                                  rating
-                                    ? "fill-[#C8A44D] text-[#C8A44D]"
-                                    : "text-neutral-300"
-                                }
-                              `}
-                            />
-
-                          </button>
-
-                        );
-
-                      }
-                    )}
-
-                  </div>
-
-                </div>
-
-
-                {/* ===========================================
-                    TITLE
-                ============================================ */}
-
-                <div>
-
-                  <label
-                    htmlFor="review-title"
-                    className="
-                      text-sm
-                      font-medium
-                      text-neutral-900
-                    "
-                  >
-
-                    Review title
-
-                    <span
-                      className="
-                        ml-1
-                        font-normal
-                        text-neutral-400
-                      "
-                    >
-                      (optional)
+                    <span>
+                      Text ·{" "}
+                      <strong>
+                        ₹5
+                      </strong>
                     </span>
 
-                  </label>
+
+                    <span>
+                      Photo ·{" "}
+                      <strong>
+                        ₹10
+                      </strong>
+                    </span>
 
 
-                  <input
-                    id="review-title"
-                    type="text"
-                    value={
-                      title
-                    }
-                    onChange={(event) =>
-                      setTitle(
-                        event.target.value
-                      )
-                    }
-                    maxLength={100}
-                    placeholder="e.g. Absolutely beautiful!"
-                    className="
-                      mt-2
-                      h-11
-                      w-full
-                      rounded-xl
-                      border
-                      border-neutral-200
-                      bg-neutral-50
-                      px-4
-                      text-sm
-                      text-neutral-900
-                      outline-none
-
-                      placeholder:text-neutral-400
-
-                      focus:border-[#C8A44D]
-                      focus:ring-1
-                      focus:ring-[#C8A44D]/20
-                    "
-                  />
-
-                </div>
-
-
-                {/* ===========================================
-                    REVIEW
-                ============================================ */}
-
-                <div>
-
-                  <div
-                    className="
-                      flex
-                      items-center
-                      justify-between
-                    "
-                  >
-
-                    <label
-                      htmlFor="review-text"
-                      className="
-                        text-sm
-                        font-medium
-                        text-neutral-900
-                      "
-                    >
-                      Your review
-                    </label>
-
-
-                    <span
-                      className="
-                        text-[11px]
-                        text-neutral-400
-                      "
-                    >
-                      {review.length}/2000
+                    <span>
+                      Video ·{" "}
+                      <strong>
+                        ₹20
+                      </strong>
                     </span>
 
                   </div>
 
 
-                  <textarea
-                    id="review-text"
-                    value={
-                      review
-                    }
-                    onChange={(event) =>
-                      setReview(
-                        event.target.value
-                      )
-                    }
-                    maxLength={2000}
-                    rows={5}
-                    placeholder="Tell us what you loved about this piece..."
+                  <p
                     className="
-                      mt-2
-                      w-full
-                      resize-none
-                      rounded-xl
-                      border
-                      border-neutral-200
-                      bg-neutral-50
-                      px-4
-                      py-3
-                      text-sm
-                      leading-6
-                      text-neutral-900
-                      outline-none
-
-                      placeholder:text-neutral-400
-
-                      focus:border-[#C8A44D]
-                      focus:ring-1
-                      focus:ring-[#C8A44D]/20
+                      mt-1.5
+                      text-[11px]
+                      text-neutral-500
                     "
-                  />
+                  >
+                    Wallet rewards are credited
+                    after your review is approved.
+                  </p>
 
                 </div>
 
+              )}
 
-                {/* ===========================================
-                    MESSAGE
-                ============================================ */}
+            </div>
 
-                {error && (
+          </div>
 
-                  <div
-                    className={`
-                      rounded-xl
-                      px-4
-                      py-3
-                      text-sm
-                      leading-5
-
-                      ${
-                        isDuplicate
-                          ? `
-                            border
-                            border-[#C8A44D]/25
-                            bg-[#C8A44D]/[0.06]
-                            text-neutral-700
-                          `
-                          : `
-                            border
-                            border-red-200
-                            bg-red-50
-                            text-red-600
-                          `
-                      }
-                    `}
-                  >
-
-                    {error}
+        </div>
 
 
-                    {isDuplicate && (
+        {/* ===================================================
+            SUCCESS STATE
+        ==================================================== */}
 
-                      <p
-                        className="
-                          mt-1
-                          text-xs
-                          text-neutral-500
-                        "
-                      >
-                        Each product can be reviewed
-                        only once.
-                      </p>
+        {success ? (
 
-                    )}
+          <div
+            className="
+              min-h-0
+              flex-1
+              overflow-y-auto
+              px-5
+              py-6
 
-                  </div>
-
-                )}
-
-
-                {/* ===========================================
-                    INFO
-                ============================================ */}
-
-                {!isDuplicate && (
-
-                  <div
-                    className="
-                      rounded-xl
-                      border
-                      border-[#C8A44D]/20
-                      bg-[#C8A44D]/5
-                      px-4
-                      py-3
-                      text-xs
-                      leading-5
-                      text-neutral-600
-                    "
-                  >
-                    Your review will be published
-                    after our team reviews it.
-                  </div>
-
-                )}
-
-
-                {/* ===========================================
-                    SUBMIT BUTTON
-                ============================================ */}
-
-                <button
-                  type="submit"
-                  disabled={
-                    isSubmitting ||
-                    isDuplicate
-                  }
-                  className="
-                    flex
-                    h-12
-                    w-full
-                    items-center
-                    justify-center
-                    gap-2
-                    rounded-full
-                    bg-[#C8A44D]
-                    px-5
-                    text-sm
-                    font-semibold
-                    text-black
-                    transition
-
-                    hover:bg-[#D6B65C]
-
-                    active:scale-[0.99]
-
-                    focus:outline-none
-                    focus-visible:ring-2
-                    focus-visible:ring-[#C8A44D]
-                    focus-visible:ring-offset-2
-
-                    disabled:cursor-not-allowed
-                    disabled:opacity-60
-                  "
-                >
-
-                  {isSubmitting ? (
-
-                    <>
-
-                      <Loader2
-                        className="
-                          h-4
-                          w-4
-                          animate-spin
-                        "
-                      />
-
-                      Submitting...
-
-                    </>
-
-                  ) : isDuplicate ? (
-
-                    "Already Reviewed"
-
-                  ) : (
-
-                    "Submit Review"
-
-                  )}
-
-                </button>
-
-              </form>
-
-            </>
-
-          ) : (
-
-            /* =================================================
-               SUCCESS
-            ================================================== */
+              sm:px-7
+              sm:py-7
+            "
+          >
 
             <div
               className="
@@ -1159,9 +1453,779 @@ export default function WriteReviewDialog({
 
             </div>
 
-          )}
+          </div>
 
-        </div>
+        ) : (
+
+          /* =================================================
+             NORMAL REVIEW
+          ================================================== */
+
+          <>
+
+            {/* ===============================================
+                SCROLLABLE CONTENT
+            ================================================ */}
+
+            <div
+              className="
+                min-h-0
+                flex-1
+                overflow-y-auto
+                px-5
+                py-5
+
+                sm:px-7
+                sm:py-6
+              "
+            >
+
+              <form
+                id="write-review-form"
+                onSubmit={
+                  handleSubmit
+                }
+                className="
+                  space-y-5
+                "
+              >
+
+                {/* =========================================
+                    RATING
+                ========================================== */}
+
+                <div>
+
+                  <label
+                    className="
+                      text-sm
+                      font-medium
+                      text-neutral-900
+                    "
+                  >
+                    Your rating
+                  </label>
+
+
+                  <div
+                    className="
+                      mt-3
+                      flex
+                      items-center
+                      gap-1
+                    "
+                  >
+
+                    {Array.from({
+                      length: 5,
+                    }).map(
+                      (_, index) => {
+
+                        const star =
+                          index + 1;
+
+
+                        return (
+
+                          <button
+                            key={
+                              star
+                            }
+                            type="button"
+                            onClick={() =>
+                              setRating(
+                                star
+                              )
+                            }
+                            aria-label={`Rate ${star} out of 5`}
+                            className="
+                              rounded-md
+                              p-1
+                              transition
+                              hover:scale-110
+                              focus:outline-none
+                              focus-visible:ring-2
+                              focus-visible:ring-[#C8A44D]
+                            "
+                          >
+
+                            <Star
+                              className={`
+                                h-7
+                                w-7
+                                transition-colors
+
+                                ${
+                                  star <=
+                                  rating
+                                    ? "fill-[#C8A44D] text-[#C8A44D]"
+                                    : "text-neutral-300"
+                                }
+                              `}
+                            />
+
+                          </button>
+
+                        );
+                      }
+                    )}
+
+                  </div>
+
+                </div>
+
+
+                {/* =========================================
+                    TITLE
+                ========================================== */}
+
+                <div>
+
+                  <label
+                    htmlFor="review-title"
+                    className="
+                      text-sm
+                      font-medium
+                      text-neutral-900
+                    "
+                  >
+
+                    Review title
+
+                    <span
+                      className="
+                        ml-1
+                        font-normal
+                        text-neutral-400
+                      "
+                    >
+                      (optional)
+                    </span>
+
+                  </label>
+
+
+                  <input
+                    id="review-title"
+                    type="text"
+                    value={
+                      title
+                    }
+                    onChange={(event) =>
+                      setTitle(
+                        event.target.value
+                      )
+                    }
+                    maxLength={100}
+                    placeholder="e.g. Absolutely beautiful!"
+                    className="
+                      mt-2
+                      h-11
+                      w-full
+                      rounded-xl
+                      border
+                      border-neutral-200
+                      bg-neutral-50
+                      px-4
+                      text-sm
+                      text-neutral-900
+                      outline-none
+
+                      placeholder:text-neutral-400
+
+                      focus:border-[#C8A44D]
+                      focus:ring-1
+                      focus:ring-[#C8A44D]/20
+                    "
+                  />
+
+                </div>
+
+
+                {/* =========================================
+                    REVIEW
+                ========================================== */}
+
+                <div>
+
+                  <div
+                    className="
+                      flex
+                      items-center
+                      justify-between
+                    "
+                  >
+
+                    <label
+                      htmlFor="review-text"
+                      className="
+                        text-sm
+                        font-medium
+                        text-neutral-900
+                      "
+                    >
+                      Your review
+                    </label>
+
+
+                    <span
+                      className="
+                        text-[11px]
+                        text-neutral-400
+                      "
+                    >
+                      {review.length}/2000
+                    </span>
+
+                  </div>
+
+
+                  <textarea
+                    id="review-text"
+                    value={
+                      review
+                    }
+                    onChange={(event) =>
+                      setReview(
+                        event.target.value
+                      )
+                    }
+                    maxLength={2000}
+                    rows={5}
+                    placeholder="Tell us what you loved about this piece..."
+                    className="
+                      mt-2
+                      w-full
+                      resize-none
+                      rounded-xl
+                      border
+                      border-neutral-200
+                      bg-neutral-50
+                      px-4
+                      py-3
+                      text-sm
+                      leading-6
+                      text-neutral-900
+                      outline-none
+
+                      placeholder:text-neutral-400
+
+                      focus:border-[#C8A44D]
+                      focus:ring-1
+                      focus:ring-[#C8A44D]/20
+                    "
+                  />
+
+                </div>
+
+
+                {/* =========================================
+                    MEDIA UPLOAD
+                ========================================== */}
+
+                <div>
+
+                  <div
+                    className="
+                      flex
+                      items-end
+                      justify-between
+                      gap-3
+                    "
+                  >
+
+                    <div>
+
+                      <label
+                        className="
+                          text-sm
+                          font-medium
+                          text-neutral-900
+                        "
+                      >
+                        Add photos or video
+                      </label>
+
+
+                      <p
+                        className="
+                          mt-1
+                          text-xs
+                          text-neutral-400
+                        "
+                      >
+                        Up to 5 photos and 1 video
+                      </p>
+
+                    </div>
+
+
+                    <span
+                      className="
+                        shrink-0
+                        text-[11px]
+                        text-neutral-400
+                      "
+                    >
+                      {imageCount}/{MAX_IMAGES}
+                      {" "}
+                      photos
+                      {" · "}
+                      {videoCount}/{MAX_VIDEOS}
+                      {" "}
+                      video
+                    </span>
+
+                  </div>
+
+
+                  {/* =======================================
+                      UPLOAD BUTTON
+                  ======================================== */}
+
+                  <label
+                    className={`
+                      mt-3
+                      flex
+                      min-h-24
+                      cursor-pointer
+                      flex-col
+                      items-center
+                      justify-center
+                      rounded-2xl
+                      border
+                      border-dashed
+                      border-neutral-300
+                      bg-neutral-50
+                      px-4
+                      py-4
+                      text-center
+                      transition
+
+                      hover:border-[#C8A44D]
+                      hover:bg-[#C8A44D]/5
+
+                      ${
+                        imageCount >=
+                          MAX_IMAGES &&
+                        videoCount >=
+                          MAX_VIDEOS
+                          ? `
+                            pointer-events-none
+                            cursor-not-allowed
+                            opacity-50
+                          `
+                          : ""
+                      }
+                    `}
+                  >
+
+                    <div
+                      className="
+                        flex
+                        h-10
+                        w-10
+                        items-center
+                        justify-center
+                        rounded-full
+                        bg-[#C8A44D]/10
+                        text-[#A78632]
+                      "
+                    >
+
+                      <ImagePlus
+                        className="
+                          h-5
+                          w-5
+                        "
+                      />
+
+                    </div>
+
+
+                    <span
+                      className="
+                        mt-2
+                        text-sm
+                        font-medium
+                        text-neutral-700
+                      "
+                    >
+                      Add Photos / Video
+                    </span>
+
+
+                    <span
+                      className="
+                        mt-1
+                        text-[11px]
+                        text-neutral-400
+                      "
+                    >
+                      JPG, PNG, WebP up to 5 MB
+                      {" · "}
+                      MP4/WebM up to 50 MB
+                    </span>
+
+
+                    <input
+                      type="file"
+                      accept="
+                        image/jpeg,
+                        image/png,
+                        image/webp,
+                        video/mp4,
+                        video/webm
+                      "
+                      multiple
+                      disabled={
+                        isSubmitting ||
+                        (
+                          imageCount >=
+                            MAX_IMAGES &&
+                          videoCount >=
+                            MAX_VIDEOS
+                        )
+                      }
+                      onChange={
+                        handleMediaChange
+                      }
+                      className="
+                        hidden
+                      "
+                    />
+
+                  </label>
+
+
+                  {/* =======================================
+                      PREVIEWS
+                  ======================================== */}
+
+                  {selectedMedia.length >
+                    0 && (
+
+                    <div
+                      className="
+                        mt-3
+                        grid
+                        grid-cols-3
+                        gap-2
+                      "
+                    >
+
+                      {selectedMedia.map(
+                        (media) => (
+
+                          <div
+                            key={
+                              media.id
+                            }
+                            className="
+                              group
+                              relative
+                              aspect-square
+                              overflow-hidden
+                              rounded-xl
+                              border
+                              border-neutral-200
+                              bg-neutral-100
+                            "
+                          >
+
+                            {media.mediaType ===
+                            "image" ? (
+
+                              <img
+                                src={
+                                  media.previewUrl
+                                }
+                                alt="Review upload preview"
+                                className="
+                                  h-full
+                                  w-full
+                                  object-cover
+                                "
+                              />
+
+                            ) : (
+
+                              <video
+                                src={
+                                  media.previewUrl
+                                }
+                                controls
+                                playsInline
+                                className="
+                                  h-full
+                                  w-full
+                                  object-cover
+                                "
+                              />
+
+                            )}
+
+
+                            {media.mediaType ===
+                              "video" && (
+
+                              <div
+                                className="
+                                  absolute
+                                  left-2
+                                  top-2
+                                  flex
+                                  items-center
+                                  gap-1
+                                  rounded-full
+                                  bg-black/70
+                                  px-2
+                                  py-1
+                                  text-[10px]
+                                  font-medium
+                                  text-white
+                                "
+                              >
+
+                                <Video
+                                  className="
+                                    h-3
+                                    w-3
+                                  "
+                                />
+
+                                Video
+
+                              </div>
+
+                            )}
+
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleRemoveMedia(
+                                  media.id
+                                )
+                              }
+                              disabled={
+                                isSubmitting
+                              }
+                              aria-label="Remove media"
+                              className="
+                                absolute
+                                right-2
+                                top-2
+                                flex
+                                h-7
+                                w-7
+                                items-center
+                                justify-center
+                                rounded-full
+                                bg-black/70
+                                text-white
+                                transition
+
+                                hover:bg-black
+
+                                disabled:cursor-not-allowed
+                                disabled:opacity-50
+                              "
+                            >
+
+                              <X
+                                className="
+                                  h-3.5
+                                  w-3.5
+                                "
+                              />
+
+                            </button>
+
+                          </div>
+
+                        )
+                      )}
+
+                    </div>
+
+                  )}
+
+                </div>
+
+
+                {/* =========================================
+                    ERROR
+                ========================================== */}
+
+                {error && (
+
+                  <div
+                    className={`
+                      rounded-xl
+                      px-4
+                      py-3
+                      text-sm
+                      leading-5
+
+                      ${
+                        isDuplicate
+                          ? `
+                            border
+                            border-[#C8A44D]/25
+                            bg-[#C8A44D]/[0.06]
+                            text-neutral-700
+                          `
+                          : `
+                            border
+                            border-red-200
+                            bg-red-50
+                            text-red-600
+                          `
+                      }
+                    `}
+                  >
+
+                    {error}
+
+
+                    {isDuplicate && (
+
+                      <p
+                        className="
+                          mt-1
+                          text-xs
+                          text-neutral-500
+                        "
+                      >
+                        Each product can be reviewed
+                        only once.
+                      </p>
+
+                    )}
+
+                  </div>
+
+                )}
+
+
+                {/* =========================================
+                    APPROVAL INFO
+                ========================================== */}
+
+                {!isDuplicate && (
+
+                  <div
+                    className="
+                      rounded-xl
+                      border
+                      border-[#C8A44D]/20
+                      bg-[#C8A44D]/5
+                      px-4
+                      py-3
+                      text-xs
+                      leading-5
+                      text-neutral-600
+                    "
+                  >
+                    Your review will be published
+                    after our team reviews it.
+                  </div>
+
+                )}
+
+              </form>
+
+            </div>
+
+
+            {/* ===============================================
+                STATIC FOOTER
+            ================================================ */}
+
+            <div
+              className="
+                shrink-0
+                border-t
+                border-neutral-100
+                bg-white
+                px-5
+                py-4
+
+                sm:px-7
+                sm:py-5
+              "
+            >
+
+              <button
+                type="submit"
+                form="write-review-form"
+                disabled={
+                  isSubmitting ||
+                  isDuplicate
+                }
+                className="
+                  flex
+                  h-12
+                  w-full
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-full
+                  bg-[#C8A44D]
+                  px-5
+                  text-sm
+                  font-semibold
+                  text-black
+                  transition
+
+                  hover:bg-[#D6B65C]
+
+                  active:scale-[0.99]
+
+                  focus:outline-none
+                  focus-visible:ring-2
+                  focus-visible:ring-[#C8A44D]
+                  focus-visible:ring-offset-2
+
+                  disabled:cursor-not-allowed
+                  disabled:opacity-60
+                "
+              >
+
+                {isSubmitting ? (
+
+                  <>
+
+                    <Loader2
+                      className="
+                        h-4
+                        w-4
+                        animate-spin
+                      "
+                    />
+
+                    Submitting...
+
+                  </>
+
+                ) : isDuplicate ? (
+
+                  "Already Reviewed"
+
+                ) : (
+
+                  "Submit Review"
+
+                )}
+
+              </button>
+
+            </div>
+
+          </>
+
+        )}
 
       </div>
 
@@ -1172,9 +2236,6 @@ export default function WriteReviewDialog({
   /*
    * =========================================================
    * PORTAL
-   *
-   * IMPORTANT:
-   * The modal is mounted directly under document.body.
    * =========================================================
    */
 

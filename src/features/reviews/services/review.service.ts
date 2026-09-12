@@ -44,6 +44,11 @@ class ReviewService {
    * =======================================================
    * GET PRODUCT REVIEWS
    * =======================================================
+   *
+   * Returns only approved reviews for the public
+   * product page.
+   *
+   * =======================================================
    */
 
   async getProductReviews(
@@ -97,6 +102,82 @@ class ReviewService {
     return (
       data ?? []
     ) as ProductReview[];
+
+  }
+
+
+  /*
+   * =======================================================
+   * CHECK WHETHER CURRENT CUSTOMER HAS REVIEWED PRODUCT
+   * =======================================================
+   *
+   * This is used by the product page to decide whether
+   * to show:
+   *
+   *   "Write a Review"
+   *
+   * or:
+   *
+   *   "Already Reviewed"
+   *
+   * IMPORTANT:
+   *
+   * This checks for ANY existing review belonging to the
+   * current authenticated customer.
+   *
+   * Therefore:
+   *
+   * - pending  -> already reviewed
+   * - approved -> already reviewed
+   * - rejected -> already reviewed
+   *
+   * The database remains the final authority for preventing
+   * duplicate reviews.
+   *
+   * =======================================================
+   */
+
+  async hasCustomerReviewedProduct(
+    productId: string
+  ): Promise<boolean> {
+
+    if (
+      !productId ||
+      !productId.trim()
+    ) {
+
+      return false;
+
+    }
+
+
+    const {
+      data,
+      error,
+    } = await supabase.rpc(
+      "has_customer_reviewed_product",
+      {
+        p_product_id:
+          productId,
+      }
+    );
+
+
+    if (error) {
+
+      console.error(
+        "Check customer review status failed:",
+        error
+      );
+
+      throw error;
+
+    }
+
+
+    return Boolean(
+      data
+    );
 
   }
 
