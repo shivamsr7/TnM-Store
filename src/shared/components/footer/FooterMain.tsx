@@ -3,7 +3,6 @@ import OrderTrackingDialog from "@/features/orders/components/OrderTrackingDialo
 import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
 
 import {
   FaInstagram,
@@ -172,6 +171,38 @@ export default function FooterMain() {
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
 
+  const [newsletterPopup, setNewsletterPopup] = useState<{
+    open: boolean;
+    type: "success" | "error";
+    title: string;
+    message: string;
+  }>({
+    open: false,
+    type: "success",
+    title: "",
+    message: "",
+  });
+
+  const showNewsletterPopup = (
+    type: "success" | "error",
+    title: string,
+    message: string
+  ) => {
+    setNewsletterPopup({
+      open: true,
+      type,
+      title,
+      message,
+    });
+  };
+
+  const closeNewsletterPopup = () => {
+    setNewsletterPopup((current) => ({
+      ...current,
+      open: false,
+    }));
+  };
+
   const handleNewsletterSubmit = async (
     event: FormEvent<HTMLFormElement>
   ) => {
@@ -180,7 +211,11 @@ export default function FooterMain() {
     const email = newsletterEmail.trim().toLowerCase();
 
     if (!email) {
-      toast.error("Please enter your email address.");
+      showNewsletterPopup(
+        "error",
+        "Almost there ✨",
+        "Please enter your email address to join our sparkling community."
+      );
       return;
     }
 
@@ -188,7 +223,11 @@ export default function FooterMain() {
       email.length > 254 ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)
     ) {
-      toast.error("Please enter a valid email address.");
+      showNewsletterPopup(
+        "error",
+        "Please check your email",
+        "Enter a valid email address and try again."
+      );
       return;
     }
 
@@ -218,21 +257,30 @@ export default function FooterMain() {
       }
 
       if (data?.status === "already_subscribed") {
-        toast.success("You're already on the T&M list ✨");
+        showNewsletterPopup(
+          "success",
+          "You're already on the list ✨",
+          "This email is already part of the T&M Jewels community. Keep sparkling!"
+        );
         setNewsletterEmail("");
         return;
       }
 
       if (data?.status === "subscribed") {
-        toast.success("You're on the list! ✨");
+        showNewsletterPopup(
+          "success",
+          "You're on the list! ✨",
+          "Welcome to the T&M Jewels community. We'll keep you posted on new launches, exclusive offers & special perks."
+        );
         setNewsletterEmail("");
         return;
       }
 
       if (data?.status === "invalid") {
-        toast.error(
-          data?.message ||
-            "Please enter a valid email address."
+        showNewsletterPopup(
+          "error",
+          "Please check your email",
+          data?.message || "Please enter a valid email address."
         );
         return;
       }
@@ -246,7 +294,9 @@ export default function FooterMain() {
         error
       );
 
-      toast.error(
+      showNewsletterPopup(
+        "error",
+        "Something went wrong",
         error instanceof Error
           ? error.message
           : "We couldn't subscribe you right now. Please try again."
@@ -999,6 +1049,162 @@ console.log("FOOTER SOCIAL SETTINGS", settings);
         open={trackingDialogOpen}
         onClose={() => setTrackingDialogOpen(false)}
       />
+
+      {newsletterPopup.open && (
+        <div
+          className="
+            fixed
+            inset-0
+            z-[100]
+            flex
+            items-center
+            justify-center
+            bg-black/60
+            px-5
+            backdrop-blur-sm
+          "
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="newsletter-popup-title"
+          onClick={closeNewsletterPopup}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 8 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            onClick={(event) => event.stopPropagation()}
+            className="
+              relative
+              w-full
+              max-w-[420px]
+              overflow-hidden
+              rounded-3xl
+              border
+              border-[#D4AF37]/45
+              bg-[#fffdf8]
+              px-7
+              py-8
+              text-center
+              shadow-[0_25px_80px_rgba(0,0,0,0.28)]
+              sm:px-9
+            "
+          >
+            <button
+              type="button"
+              onClick={closeNewsletterPopup}
+              aria-label="Close newsletter message"
+              className="
+                absolute
+                right-4
+                top-4
+                flex
+                h-9
+                w-9
+                items-center
+                justify-center
+                rounded-full
+                border
+                border-neutral-200
+                text-neutral-500
+                transition
+                hover:border-[#D4AF37]
+                hover:text-[#9A7A22]
+              "
+            >
+              <span className="text-xl leading-none">×</span>
+            </button>
+
+            <div
+              className={`
+                mx-auto
+                flex
+                h-16
+                w-16
+                items-center
+                justify-center
+                rounded-full
+                border
+                ${
+                  newsletterPopup.type === "success"
+                    ? "border-[#D4AF37]/55 bg-[#D4AF37]/10"
+                    : "border-red-300 bg-red-50"
+                }
+              `}
+            >
+              <span
+                className={`text-2xl ${
+                  newsletterPopup.type === "success"
+                    ? "text-[#B8862E]"
+                    : "text-red-500"
+                }`}
+              >
+                {newsletterPopup.type === "success" ? "✦" : "!"}
+              </span>
+            </div>
+
+            <p
+              className="
+                mt-5
+                text-[11px]
+                font-semibold
+                uppercase
+                tracking-[0.22em]
+                text-[#B8862E]
+              "
+            >
+              T&M JEWELS
+            </p>
+
+            <h2
+              id="newsletter-popup-title"
+              className="
+                mt-2
+                font-serif
+                text-2xl
+                font-semibold
+                text-[#29251C]
+              "
+            >
+              {newsletterPopup.title}
+            </h2>
+
+            <p
+              className="
+                mx-auto
+                mt-3
+                max-w-[330px]
+                text-sm
+                leading-6
+                text-neutral-600
+              "
+            >
+              {newsletterPopup.message}
+            </p>
+
+            <button
+              type="button"
+              onClick={closeNewsletterPopup}
+              className="
+                mt-7
+                rounded-full
+                border
+                border-[#D4AF37]
+                bg-white
+                px-7
+                py-2.5
+                text-sm
+                font-medium
+                text-[#7D621B]
+                transition
+                hover:bg-[#D4AF37]/10
+              "
+            >
+              {newsletterPopup.type === "success" ? "Keep Sparkling ✨" : "Try Again"}
+            </button>
+          </motion.div>
+        </div>
+      )}
 
       {/* =================================================
           MOBILE NEWSLETTER

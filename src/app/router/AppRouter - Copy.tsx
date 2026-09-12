@@ -11,8 +11,6 @@ import CollaboratePage
   from "@/features/collaborators/pages/CollaboratePage";
 import ScrollToTop
   from "@/shared/components/ScrollToTop";
-import PageTransitionLoader
-  from "@/shared/components/PageTransitionLoader";
 import WalletPage
   from "@/features/customers/pages/WalletPage";
 
@@ -84,7 +82,6 @@ export default function AppRouter() {
     <>
 
       <ScrollToTop />
-      <PageTransitionLoader />
 
 
       <Routes>
