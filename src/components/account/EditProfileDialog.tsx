@@ -92,6 +92,9 @@ export default function EditProfileDialog({
   const [avatar, setAvatar] =
     useState<string | null>(null);
 
+  const [initialAvatar, setInitialAvatar] =
+    useState<string | null>(null);
+
   /*
    * =======================================================
    * DOB LIMIT
@@ -116,7 +119,7 @@ export default function EditProfileDialog({
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
 
@@ -144,7 +147,11 @@ export default function EditProfileDialog({
       date_of_birth: customer.date_of_birth || "",
     });
 
-    setAvatar(customer.avatar || null);
+    const customerAvatar =
+      customer.avatar || null;
+
+    setAvatar(customerAvatar);
+    setInitialAvatar(customerAvatar);
   }, [
     customer,
     open,
@@ -227,9 +234,11 @@ export default function EditProfileDialog({
     >
       <DialogContent
         className="
+          flex
           max-h-[90vh]
           w-[95vw]
-          overflow-y-auto
+          flex-col
+          overflow-hidden
           rounded-3xl
           border-neutral-200
           bg-white
@@ -247,10 +256,12 @@ export default function EditProfileDialog({
         <div
           className="
             flex
+            shrink-0
             items-center
             justify-between
             border-b
             border-neutral-200
+            bg-white
             px-6
             py-5
           "
@@ -292,9 +303,13 @@ export default function EditProfileDialog({
         ================================================== */}
 
         <form
+          id="edit-profile-form"
           onSubmit={handleSubmit(submit)}
           className="
+            min-h-0
+            flex-1
             space-y-5
+            overflow-y-auto
             p-6
           "
         >
@@ -522,34 +537,49 @@ export default function EditProfileDialog({
             />
           </div>
 
-          {/* =================================================
-              SAVE
-          ================================================== */}
+        </form>
 
-          <button
-            type="submit"
-            disabled={
-              updateMutation.isPending ||
-              !customer?.id
-            }
+        {/* =================================================
+            SAVE — STATIC FOOTER
+        ================================================== */}
+
+        {(isDirty || avatar !== initialAvatar) && (
+          <div
             className="
-              w-full
-              rounded-xl
-              bg-[#C8A44D]
-              py-3.5
-              font-semibold
-              text-black
-              transition
-              hover:bg-[#b8943f]
-              disabled:cursor-not-allowed
-              disabled:opacity-70
+              shrink-0
+              border-t
+              border-neutral-200
+              bg-white
+              p-6
+              pt-4
             "
           >
-            {updateMutation.isPending
-              ? "Saving..."
-              : "Save Changes"}
-          </button>
-        </form>
+            <button
+              type="submit"
+              form="edit-profile-form"
+              disabled={
+                updateMutation.isPending ||
+                !customer?.id
+              }
+              className="
+                w-full
+                rounded-xl
+                bg-[#C8A44D]
+                py-3.5
+                font-semibold
+                text-black
+                transition
+                hover:bg-[#b8943f]
+                disabled:cursor-not-allowed
+                disabled:opacity-70
+              "
+            >
+              {updateMutation.isPending
+                ? "Saving..."
+                : "Save Changes"}
+            </button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -403,9 +403,11 @@ export default function SavedAddressesDialog({
         <DialogContent
 
           className="
+            flex
             max-h-[90vh]
             w-[95vw]
-            overflow-y-auto
+            flex-col
+            overflow-hidden
             rounded-3xl
             border-neutral-200
             bg-white
@@ -427,11 +429,16 @@ export default function SavedAddressesDialog({
           <div
 
             className="
+              sticky
+              top-0
+              z-20
               flex
+              shrink-0
               items-center
               justify-between
               border-b
               border-neutral-200
+              bg-white
               px-6
               py-5
             "
@@ -497,6 +504,9 @@ export default function SavedAddressesDialog({
           <div
 
             className="
+              min-h-0
+              flex-1
+              overflow-y-auto
               space-y-4
               p-6
             "
@@ -975,9 +985,25 @@ export default function SavedAddressesDialog({
             )}
 
 
-            {/* =================================================
-                ADD ADDRESS
-            ================================================== */}
+          </div>
+
+
+          {/* =================================================
+              ADD ADDRESS — STATIC FOOTER
+          ================================================== */}
+
+          <div
+
+            className="
+              shrink-0
+              border-t
+              border-neutral-200
+              bg-white
+              p-6
+              pt-4
+            "
+
+          >
 
             <button
 
