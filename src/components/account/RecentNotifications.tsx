@@ -58,8 +58,32 @@ function getNotificationIcon(
 
 
 function getNotificationColor(
-  type: string
+  type: string,
+  theme: "light" | "dark"
 ) {
+
+  if (theme === "light") {
+
+    switch (type) {
+
+      case "payment":
+        return "bg-emerald-50 text-emerald-600";
+
+      case "reward":
+        return "bg-purple-50 text-purple-600";
+
+      case "shipping":
+        return "bg-blue-50 text-blue-600";
+
+      case "order":
+        return "bg-[#C8A44D]/10 text-[#9A7A22]";
+
+      default:
+        return "bg-neutral-100 text-neutral-500";
+
+    }
+
+  }
 
   switch (type) {
 
@@ -84,7 +108,14 @@ function getNotificationColor(
 
 
 
-export default function RecentNotifications() {
+interface RecentNotificationsProps {
+  theme: "light" | "dark";
+}
+
+
+export default function RecentNotifications({
+  theme,
+}: RecentNotificationsProps) {
 
 
   const {
@@ -127,13 +158,17 @@ export default function RecentNotifications() {
     return (
 
       <div
-        className="
+        className={`
           px-4
           py-8
           text-center
           text-sm
-          text-neutral-400
-        "
+          ${
+            theme === "light"
+              ? "text-neutral-500"
+              : "text-neutral-400"
+          }
+        `}
       >
 
         Loading activity...
@@ -187,12 +222,16 @@ export default function RecentNotifications() {
 
 
             <p
-              className="
+              className={`
                 mt-4
                 text-sm
                 font-medium
-                text-white
-              "
+                ${
+                  theme === "light"
+                    ? "text-neutral-900"
+                    : "text-white"
+                }
+              `}
             >
               You're all caught up
             </p>
@@ -215,10 +254,14 @@ export default function RecentNotifications() {
         ) : (
 
           <div
-            className="
+            className={`
               divide-y
-              divide-neutral-800
-            "
+              ${
+                theme === "light"
+                  ? "divide-neutral-200"
+                  : "divide-neutral-800"
+              }
+            `}
           >
 
             {
@@ -258,14 +301,19 @@ export default function RecentNotifications() {
                           text-left
                           transition-colors
                           duration-200
-                          hover:bg-[#111111]
-                          active:bg-[#151515]
+                          ${
+                            theme === "light"
+                              ? "hover:bg-[#faf8f2] active:bg-[#f5f1e7]"
+                              : "hover:bg-[#111111] active:bg-[#151515]"
+                          }
                           sm:px-5
 
                           ${
                             item.is_read
                               ? ""
-                              : "bg-[#C8A44D]/[0.035]"
+                              : theme === "light"
+                                ? "bg-[#C8A44D]/[0.055]"
+                                : "bg-[#C8A44D]/[0.035]"
                           }
                         `}
                       >
@@ -285,7 +333,8 @@ export default function RecentNotifications() {
                             justify-center
                             rounded-xl
                             ${getNotificationColor(
-                              item.type
+                              item.type,
+                              theme
                             )}
                           `}
                         >
@@ -319,14 +368,18 @@ export default function RecentNotifications() {
                           >
 
                             <p
-                              className="
+                              className={`
                                 min-w-0
                                 flex-1
                                 line-clamp-1
                                 text-sm
                                 font-medium
-                                text-white
-                              "
+                                ${
+                                  theme === "light"
+                                    ? "text-neutral-900"
+                                    : "text-white"
+                                }
+                              `}
                             >
 
                               {
@@ -359,13 +412,17 @@ export default function RecentNotifications() {
 
 
                           <p
-                            className="
+                            className={`
                               mt-1
                               line-clamp-1
                               text-[11px]
                               leading-4
-                              text-neutral-500
-                            "
+                              ${
+                                theme === "light"
+                                  ? "text-neutral-500"
+                                  : "text-neutral-500"
+                              }
+                            `}
                           >
 
                             {
@@ -376,11 +433,15 @@ export default function RecentNotifications() {
 
 
                           <p
-                            className="
+                            className={`
                               mt-1.5
                               text-[10px]
-                              text-neutral-600
-                            "
+                              ${
+                                theme === "light"
+                                  ? "text-neutral-500"
+                                  : "text-neutral-600"
+                              }
+                            `}
                           >
 
                             {
@@ -401,15 +462,19 @@ export default function RecentNotifications() {
 
                         <ChevronRight
                           size={17}
-                          className="
+                          className={`
                             mt-2
                             shrink-0
-                            text-neutral-700
+                            ${
+                              theme === "light"
+                                ? "text-neutral-400"
+                                : "text-neutral-700"
+                            }
                             transition-all
                             duration-200
                             group-hover:translate-x-0.5
                             group-hover:text-[#C8A44D]
-                          "
+                          `}
                         />
 
                       </button>
@@ -436,23 +501,30 @@ export default function RecentNotifications() {
 
           <Link
             to="/account/notifications"
-            className="
+            className={`
               flex
               items-center
               justify-center
               gap-1
               border-t
-              border-neutral-800
+              ${
+                theme === "light"
+                  ? "border-neutral-200"
+                  : "border-neutral-800"
+              }
               px-4
               py-3.5
               text-xs
               font-medium
               text-[#C8A44D]
               transition-colors
-              hover:bg-[#111111]
-              hover:text-white
+              ${
+                theme === "light"
+                  ? "hover:bg-[#faf8f2] hover:text-[#9A7A22]"
+                  : "hover:bg-[#111111] hover:text-white"
+              }
               sm:px-5
-            "
+            `}
           >
 
             View all activity

@@ -12,10 +12,12 @@ import {
 
 interface Props {
   onEditProfile: () => void;
+  theme: "light" | "dark";
 }
 
 export default function ProfileCard({
   onEditProfile,
+  theme,
 }: Props) {
   const {
     customer,
@@ -40,13 +42,28 @@ export default function ProfileCard({
 
   return (
     <section
+      style={{
+        "--profile-surface":
+          theme === "light" ? "#FFFFFF" : "#0D0D0D",
+        "--profile-border":
+          theme === "light" ? "#E5E0D5" : "#262626",
+        "--profile-text":
+          theme === "light" ? "#171717" : "#FFFFFF",
+        "--profile-secondary":
+          theme === "light" ? "#525252" : "#A3A3A3",
+        "--profile-muted":
+          theme === "light" ? "#737373" : "#737373",
+      } as React.CSSProperties}
       className="
         overflow-hidden
         rounded-2xl
         border
-        border-neutral-800
-        bg-[#0D0D0D]
+        border-[var(--profile-border)]
+        bg-[var(--profile-surface)]
+        text-[var(--profile-text)]
         shadow-[0_10px_35px_rgba(0,0,0,0.18)]
+        transition-colors
+        duration-300
       "
     >
       {/* =====================================================
@@ -59,7 +76,7 @@ export default function ProfileCard({
           items-center
           gap-4
           border-b
-          border-neutral-800
+          border-[var(--profile-border)]
           px-4
           py-4
           sm:px-5
@@ -146,7 +163,7 @@ export default function ProfileCard({
               text-lg
               font-semibold
               tracking-[-0.01em]
-              text-white
+              text-[var(--profile-text)]
               sm:text-xl
             "
           >
@@ -161,7 +178,7 @@ export default function ProfileCard({
             className="
               mt-0.5
               text-xs
-              text-neutral-500
+              text-[var(--profile-muted)]
             "
           >
             Your personal account
@@ -224,7 +241,7 @@ export default function ProfileCard({
           grid
           grid-cols-1
           divide-y
-          divide-neutral-800
+          divide-[var(--profile-border)]
           sm:grid-cols-3
           sm:divide-x
           sm:divide-y-0
@@ -275,7 +292,7 @@ export default function ProfileCard({
                 font-medium
                 uppercase
                 tracking-[0.14em]
-                text-neutral-500
+                text-[var(--profile-muted)]
               "
             >
               Email
@@ -286,7 +303,7 @@ export default function ProfileCard({
                 mt-0.5
                 truncate
                 text-xs
-                text-neutral-300
+                text-[var(--profile-secondary)]
               "
               title={
                 customer.email ||
@@ -346,7 +363,7 @@ export default function ProfileCard({
                 font-medium
                 uppercase
                 tracking-[0.14em]
-                text-neutral-500
+                text-[var(--profile-muted)]
               "
             >
               Phone
@@ -357,7 +374,7 @@ export default function ProfileCard({
                 mt-0.5
                 truncate
                 text-xs
-                text-neutral-300
+                text-[var(--profile-secondary)]
               "
             >
               {
@@ -413,7 +430,7 @@ export default function ProfileCard({
                 font-medium
                 uppercase
                 tracking-[0.14em]
-                text-neutral-500
+                text-[var(--profile-muted)]
               "
             >
               Date of Birth
@@ -424,7 +441,7 @@ export default function ProfileCard({
                 mt-0.5
                 truncate
                 text-xs
-                text-neutral-300
+                text-[var(--profile-secondary)]
               "
             >
               {formattedDateOfBirth}

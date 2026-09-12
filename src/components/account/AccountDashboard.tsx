@@ -52,11 +52,14 @@ export default function AccountDashboard() {
     logout,
   } = useAuth();
 
-
   /*
    * =========================================================
    * ACCOUNT THEME
    * =========================================================
+   *
+   * Keep a single source of truth for the account theme.
+   * RecentOrders and the rest of the dashboard must use
+   * the same theme state.
    */
 
   const [
@@ -80,6 +83,15 @@ export default function AccountDashboard() {
       return true;
     }
   });
+
+
+  /*
+   * Single theme value shared with child components.
+   */
+  const theme: "light" | "dark" =
+    isDarkTheme
+      ? "dark"
+      : "light";
 
 
   useEffect(() => {
@@ -508,6 +520,7 @@ export default function AccountDashboard() {
           onEditProfile={() =>
             setShowEditProfile(true)
           }
+          theme={theme}
         />
 
 
@@ -1235,7 +1248,7 @@ export default function AccountDashboard() {
             "
           >
 
-            <RecentOrders />
+            <RecentOrders theme={theme} />
 
           </div>
 
@@ -1339,7 +1352,7 @@ export default function AccountDashboard() {
             "
           >
 
-            <RecentNotifications />
+            <RecentNotifications theme={theme} />
 
           </div>
 

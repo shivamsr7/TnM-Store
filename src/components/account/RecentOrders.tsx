@@ -122,12 +122,12 @@ function OrderStatusBadge({
 
 
 interface RecentOrdersProps {
-  theme?: "light" | "dark";
+  theme: "light" | "dark";
 }
 
 
 export default function RecentOrders({
-  theme = "dark",
+  theme,
 }: RecentOrdersProps) {
 
 
