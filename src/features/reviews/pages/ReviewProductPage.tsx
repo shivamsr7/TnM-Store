@@ -1,4 +1,5 @@
 import {
+  useRef,
   useState,
 } from "react";
 
@@ -11,14 +12,19 @@ import {
 import {
   ArrowLeft,
   CheckCircle2,
+  ImagePlus,
   Loader2,
+  PlayCircle,
   Star,
+  Trash2,
 } from "lucide-react";
 
 import {
   useReviewRequest,
   useSubmitReviewFromToken,
 } from "../hooks/useReviewRequest";
+
+import { supabase } from "@/shared/lib/supabase";
 
 
 /*
@@ -146,6 +152,79 @@ function RatingStars({
 }
 
 
+
+/*
+ * =========================================================
+ * REVIEW MEDIA
+ * =========================================================
+ */
+
+type SelectedReviewMedia = {
+  id: string;
+  file: File;
+  previewUrl: string;
+  mediaType: "image" | "video";
+};
+
+const MAX_REVIEW_IMAGES = 5;
+const MAX_REVIEW_VIDEOS = 1;
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
+
+const REVIEW_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+const REVIEW_VIDEO_TYPES = new Set([
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+]);
+
+function validateReviewMedia(
+  file: File,
+  selected: SelectedReviewMedia[]
+): string | null {
+  const isImage = REVIEW_IMAGE_TYPES.has(file.type);
+  const isVideo = REVIEW_VIDEO_TYPES.has(file.type);
+
+  if (!isImage && !isVideo) {
+    return "Please choose a JPG, PNG, WEBP image or MP4, WEBM, MOV video.";
+  }
+
+  if (isImage) {
+    const count = selected.filter(
+      (item) => item.mediaType === "image"
+    ).length;
+
+    if (count >= MAX_REVIEW_IMAGES) {
+      return `You can add up to ${MAX_REVIEW_IMAGES} photos.`;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      return "Each photo must be 10 MB or smaller.";
+    }
+  }
+
+  if (isVideo) {
+    const count = selected.filter(
+      (item) => item.mediaType === "video"
+    ).length;
+
+    if (count >= MAX_REVIEW_VIDEOS) {
+      return "You can add only 1 video.";
+    }
+
+    if (file.size > MAX_VIDEO_SIZE) {
+      return "The video must be 50 MB or smaller.";
+    }
+  }
+
+  return null;
+}
+
 /*
  * =========================================================
  * PAGE
@@ -206,6 +285,27 @@ export default function ReviewProductPage() {
     review,
     setReview,
   ] = useState("");
+
+  const [
+    selectedMedia,
+    setSelectedMedia,
+  ] = useState<SelectedReviewMedia[]>([]);
+
+  const [
+    mediaError,
+    setMediaError,
+  ] = useState<string | null>(null);
+
+  const [
+    mediaUploading,
+    setMediaUploading,
+  ] = useState(false);
+
+  const imageInputRef =
+    useRef<HTMLInputElement | null>(null);
+
+  const videoInputRef =
+    useRef<HTMLInputElement | null>(null);
 
   const [
     error,
@@ -572,6 +672,252 @@ export default function ReviewProductPage() {
   }
 
 
+
+  const handleMediaSelection = (
+    files: FileList | null
+  ) => {
+    if (!files || files.length === 0) {
+      return;
+    }
+
+    setMediaError(null);
+
+    const next = [...selectedMedia];
+
+    for (const file of Array.from(files)) {
+      const validationError =
+        validateReviewMedia(file, next);
+
+      if (validationError) {
+        setMediaError(validationError);
+        continue;
+      }
+
+      const mediaType =
+        REVIEW_IMAGE_TYPES.has(file.type)
+          ? "image"
+          : "video";
+
+      next.push({
+        id: crypto.randomUUID(),
+        file,
+        previewUrl: URL.createObjectURL(file),
+        mediaType,
+      });
+    }
+
+    setSelectedMedia(next);
+
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
+
+    if (videoInputRef.current) {
+      videoInputRef.current.value = "";
+    }
+  };
+
+  const removeMedia = (id: string) => {
+    setSelectedMedia((current) => {
+      const item = current.find(
+        (media) => media.id === id
+      );
+
+      if (item) {
+        URL.revokeObjectURL(item.previewUrl);
+      }
+
+      return current.filter(
+        (media) => media.id !== id
+      );
+    });
+
+    setMediaError(null);
+  };
+
+  const uploadReviewMedia = async (
+    reviewId: string
+  ) => {
+    if (selectedMedia.length === 0) {
+      return;
+    }
+
+    setMediaUploading(true);
+
+    try {
+      const uploadedMedia: Array<{
+        media_type: "image" | "video";
+        media_url: string;
+        storage_path: string;
+        thumbnail_url: string | null;
+        sort_order: number;
+      }> = [];
+
+      for (const media of selectedMedia) {
+        /*
+         * The Edge Function validates the email-review token
+         * before returning temporary ImageKit credentials.
+         */
+        const {
+          data: authData,
+          error: authError,
+        } = await supabase.functions.invoke(
+          "review-media-upload",
+          {
+            body: {
+              mode: "authorize",
+              token,
+              productSlug: product.slug,
+              reviewId,
+              mediaType: media.mediaType,
+              fileName: media.file.name,
+              contentType: media.file.type,
+            },
+          }
+        );
+
+        if (authError) {
+          throw authError;
+        }
+
+        if (
+          !authData?.token ||
+          !authData?.signature ||
+          !authData?.expire ||
+          !authData?.publicKey ||
+          !authData?.folder
+        ) {
+          throw new Error(
+            "Unable to prepare the media upload."
+          );
+        }
+
+        const formData = new FormData();
+
+        formData.append(
+          "file",
+          media.file
+        );
+
+        formData.append(
+          "fileName",
+          `${media.mediaType}-${crypto.randomUUID()}-${media.file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`
+        );
+
+        formData.append(
+          "publicKey",
+          authData.publicKey
+        );
+
+        formData.append(
+          "signature",
+          authData.signature
+        );
+
+        formData.append(
+          "expire",
+          String(authData.expire)
+        );
+
+        formData.append(
+          "token",
+          authData.token
+        );
+
+        formData.append(
+          "useUniqueFileName",
+          "true"
+        );
+
+        formData.append(
+          "folder",
+          authData.folder
+        );
+
+        const uploadResponse =
+          await fetch(
+            "https://upload.imagekit.io/api/v1/files/upload",
+            {
+              method: "POST",
+              body: formData,
+            }
+          );
+
+        let uploadResult: any = null;
+
+        try {
+          uploadResult =
+            await uploadResponse.json();
+        } catch {
+          uploadResult = null;
+        }
+
+        if (
+          !uploadResponse.ok ||
+          !uploadResult?.fileId ||
+          !uploadResult?.url
+        ) {
+          throw new Error(
+            uploadResult?.message ||
+              "Media upload failed."
+          );
+        }
+
+        uploadedMedia.push({
+          media_type:
+            media.mediaType,
+
+          media_url:
+            uploadResult.url,
+
+          storage_path:
+            `imagekit:${uploadResult.fileId}`,
+
+          thumbnail_url:
+            uploadResult.thumbnailUrl ||
+            null,
+
+          sort_order:
+            uploadedMedia.length,
+        });
+      }
+
+      /*
+       * The same Edge Function performs the token-authorized
+       * attachment using its service-role client.
+       */
+      const {
+        data: attachData,
+        error: attachError,
+      } = await supabase.functions.invoke(
+        "review-media-upload",
+        {
+          body: {
+            mode: "attach",
+            token,
+            productSlug: product.slug,
+            reviewId,
+            media: uploadedMedia,
+          },
+        }
+      );
+
+      if (attachError) {
+        throw attachError;
+      }
+
+      if (
+        attachData?.success !== true
+      ) {
+        throw new Error(
+          "Uploaded media could not be attached to the review."
+        );
+      }
+    } finally {
+      setMediaUploading(false);
+    }
+  };
+
   /*
    * =======================================================
    * SUBMIT
@@ -649,24 +995,43 @@ export default function ReviewProductPage() {
 
     try {
 
-      await submitMutation.mutateAsync({
+      const result =
+        await submitMutation.mutateAsync({
 
-        token,
+          token,
 
-        productSlug:
-          product.slug,
+          productSlug:
+            product.slug,
 
-        rating,
+          rating,
 
-        title:
-          trimmedTitle ||
-          null,
+          title:
+            trimmedTitle ||
+            null,
 
-        review:
-          trimmedReview,
+          review:
+            trimmedReview,
 
-      });
+        });
 
+      if (
+        selectedMedia.length > 0 &&
+        result?.reviewId
+      ) {
+        await uploadReviewMedia(
+          result.reviewId
+        );
+      }
+
+      selectedMedia.forEach(
+        (media) => {
+          URL.revokeObjectURL(
+            media.previewUrl
+          );
+        }
+      );
+
+      setSelectedMedia([]);
 
       setSuccess(true);
 
@@ -1173,6 +1538,296 @@ export default function ReviewProductPage() {
           </div>
 
 
+          {/* Review Media */}
+
+          <div
+            className="
+              mt-6
+              rounded-2xl
+              border
+              border-white/[0.08]
+              bg-black/20
+              p-4
+              sm:p-5
+            "
+          >
+
+            <div
+              className="
+                flex
+                items-start
+                justify-between
+                gap-4
+              "
+            >
+
+              <div>
+                <p
+                  className="
+                    text-sm
+                    font-semibold
+                    text-white
+                  "
+                >
+                  Add photos or a video
+                </p>
+
+                <p
+                  className="
+                    mt-1
+                    text-xs
+                    leading-5
+                    text-neutral-500
+                  "
+                >
+                  Show us how you styled your
+                  T&amp;M jewellery and earn a
+                  higher review reward.
+                </p>
+              </div>
+
+              <UploadMediaIcon />
+
+            </div>
+
+
+            <div
+              className="
+                mt-4
+                grid
+                grid-cols-2
+                gap-3
+              "
+            >
+
+              <button
+                type="button"
+                onClick={() =>
+                  imageInputRef.current?.click()
+                }
+                disabled={
+                  selectedMedia.filter(
+                    (item) =>
+                      item.mediaType === "image"
+                  ).length >=
+                  MAX_REVIEW_IMAGES
+                }
+                className="
+                  flex
+                  min-h-12
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-2xl
+                  border
+                  border-white/[0.1]
+                  bg-white/[0.025]
+                  px-3
+                  py-3
+                  text-xs
+                  font-semibold
+                  text-white
+                  transition
+                  hover:border-[#C8A44D]/40
+                  hover:text-[#C8A44D]
+                  disabled:cursor-not-allowed
+                  disabled:opacity-40
+                "
+              >
+                <ImagePlus className="h-4 w-4" />
+                Add Photos
+              </button>
+
+
+              <button
+                type="button"
+                onClick={() =>
+                  videoInputRef.current?.click()
+                }
+                disabled={
+                  selectedMedia.some(
+                    (item) =>
+                      item.mediaType === "video"
+                  )
+                }
+                className="
+                  flex
+                  min-h-12
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-2xl
+                  border
+                  border-white/[0.1]
+                  bg-white/[0.025]
+                  px-3
+                  py-3
+                  text-xs
+                  font-semibold
+                  text-white
+                  transition
+                  hover:border-[#C8A44D]/40
+                  hover:text-[#C8A44D]
+                  disabled:cursor-not-allowed
+                  disabled:opacity-40
+                "
+              >
+                <PlayCircle className="h-4 w-4" />
+                Add Video
+              </button>
+
+            </div>
+
+
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              className="hidden"
+              onChange={(event) =>
+                handleMediaSelection(
+                  event.target.files
+                )
+              }
+            />
+
+
+            <input
+              ref={videoInputRef}
+              type="file"
+              accept="video/mp4,video/webm,video/quicktime"
+              className="hidden"
+              onChange={(event) =>
+                handleMediaSelection(
+                  event.target.files
+                )
+              }
+            />
+
+
+            {mediaError && (
+              <p
+                className="
+                  mt-3
+                  text-xs
+                  leading-5
+                  text-red-300
+                "
+              >
+                {mediaError}
+              </p>
+            )}
+
+
+            {selectedMedia.length > 0 && (
+              <div
+                className="
+                  mt-4
+                  grid
+                  grid-cols-2
+                  gap-3
+                  sm:grid-cols-3
+                "
+              >
+
+                {selectedMedia.map(
+                  (media) => (
+                    <div
+                      key={media.id}
+                      className="
+                        group
+                        relative
+                        aspect-square
+                        overflow-hidden
+                        rounded-2xl
+                        border
+                        border-white/[0.08]
+                        bg-neutral-900
+                      "
+                    >
+
+                      {media.mediaType === "image" ? (
+                        <img
+                          src={
+                            media.previewUrl
+                          }
+                          alt="Selected review photo"
+                          className="
+                            h-full
+                            w-full
+                            object-cover
+                          "
+                        />
+                      ) : (
+                        <video
+                          src={
+                            media.previewUrl
+                          }
+                          controls
+                          muted
+                          playsInline
+                          className="
+                            h-full
+                            w-full
+                            object-cover
+                          "
+                        />
+                      )}
+
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          removeMedia(
+                            media.id
+                          )
+                        }
+                        className="
+                          absolute
+                          right-2
+                          top-2
+                          flex
+                          h-8
+                          w-8
+                          items-center
+                          justify-center
+                          rounded-full
+                          bg-black/75
+                          text-white
+                          backdrop-blur
+                          transition
+                          hover:bg-red-500
+                        "
+                        aria-label="Remove selected media"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+
+                    </div>
+                  )
+                )}
+
+              </div>
+            )}
+
+
+            <p
+              className="
+                mt-3
+                text-[10px]
+                leading-4
+                text-neutral-600
+              "
+            >
+              Up to 5 photos (10 MB each) and
+              1 video (50 MB). JPG, PNG, WEBP,
+              MP4, WEBM or MOV.
+            </p>
+
+          </div>
+
+
           {/* Error */}
 
           {error && (
@@ -1202,7 +1857,8 @@ export default function ReviewProductPage() {
           <button
             type="submit"
             disabled={
-              submitMutation.isPending
+              submitMutation.isPending ||
+              mediaUploading
             }
             className="
               mt-6
@@ -1226,7 +1882,8 @@ export default function ReviewProductPage() {
             "
           >
 
-            {submitMutation.isPending ? (
+            {submitMutation.isPending ||
+            mediaUploading ? (
 
               <>
 
@@ -1238,7 +1895,9 @@ export default function ReviewProductPage() {
                   "
                 />
 
-                Submitting...
+                {mediaUploading
+                  ? "Uploading your media..."
+                  : "Submitting..."}
 
               </>
 
@@ -1274,6 +1933,32 @@ export default function ReviewProductPage() {
 
 }
 
+
+
+function UploadMediaIcon() {
+  return (
+    <div
+      className="
+        flex
+        h-9
+        w-9
+        shrink-0
+        items-center
+        justify-center
+        rounded-full
+        bg-[#C8A44D]/10
+      "
+    >
+      <ImagePlus
+        className="
+          h-4
+          w-4
+          text-[#C8A44D]
+        "
+      />
+    </div>
+  );
+}
 
 /*
  * =========================================================
