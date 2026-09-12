@@ -32,8 +32,6 @@ import {
   Package,
   UserRound,
   Wallet,
-  Sun,
-  Moon,
 } from "lucide-react";
 
 import {
@@ -51,77 +49,6 @@ export default function AccountDashboard() {
     customer,
     logout,
   } = useAuth();
-
-
-  /*
-   * =========================================================
-   * ACCOUNT THEME
-   * =========================================================
-   */
-
-  const [
-    isDarkTheme,
-    setIsDarkTheme,
-  ] = useState<boolean>(() => {
-    try {
-      const savedTheme =
-        localStorage.getItem("tnm-account-theme");
-
-      if (savedTheme === "light") {
-        return false;
-      }
-
-      if (savedTheme === "dark") {
-        return true;
-      }
-
-      return true;
-    } catch {
-      return true;
-    }
-  });
-
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        "tnm-account-theme",
-        isDarkTheme ? "dark" : "light"
-      );
-    } catch {
-      // Ignore localStorage failures.
-    }
-  }, [isDarkTheme]);
-
-
-  const accountTheme = isDarkTheme
-    ? {
-        page: "#000000",
-        surface: "#0D0D0D",
-        surfaceHover: "#111111",
-        border: "#262626",
-        text: "#FFFFFF",
-        secondary: "#A3A3A3",
-        muted: "#737373",
-        highlight: "#15120D",
-        reviewHighlight: "#17130B",
-      }
-    : {
-        page: "#F7F5F0",
-        surface: "#FFFFFF",
-        surfaceHover: "#FAF8F3",
-        border: "#E5E0D5",
-        text: "#171717",
-        secondary: "#525252",
-        muted: "#737373",
-        highlight: "#FFFCF4",
-        reviewHighlight: "#FFF9E9",
-      };
-
-
-  const toggleAccountTheme = () => {
-    setIsDarkTheme((current) => !current);
-  };
 
 
   const [
@@ -337,27 +264,14 @@ export default function AccountDashboard() {
     <div
       className="
         min-h-screen
-        bg-[var(--account-bg)]
+        bg-black
         px-4
         pb-8
         pt-5
-        text-[var(--account-text)]
-        transition-colors
-        duration-300
+        text-white
         sm:px-6
         lg:px-8
       "
-      style={{
-        "--account-bg": accountTheme.page,
-        "--account-surface": accountTheme.surface,
-        "--account-surface-hover": accountTheme.surfaceHover,
-        "--account-border": accountTheme.border,
-        "--account-text": accountTheme.text,
-        "--account-secondary": accountTheme.secondary,
-        "--account-muted": accountTheme.muted,
-        "--account-highlight": accountTheme.highlight,
-        "--account-review-highlight": accountTheme.reviewHighlight,
-      } as React.CSSProperties}
     >
 
 
@@ -375,88 +289,29 @@ export default function AccountDashboard() {
             BACK TO HOME
         ================================================== */}
 
-        <div
+        <Link
+          to="/"
           className="
-            flex
+            inline-flex
             items-center
-            justify-between
-            gap-4
+            gap-2
+            text-sm
+            text-neutral-400
+            transition-colors
+            hover:text-[#C8A44D]
           "
         >
 
-          <Link
-            to="/"
-            className="
-              inline-flex
-              items-center
-              gap-2
-              text-sm
-              text-[var(--account-secondary)]
-              transition-colors
-              hover:text-[#C8A44D]
-            "
-          >
-            <ArrowLeft
-              size={17}
-              strokeWidth={1.8}
-            />
+          <ArrowLeft
+            size={17}
+            strokeWidth={1.8}
+          />
 
-            <span>
-              Back to T&M Jewels
-            </span>
-          </Link>
+          <span>
+            Back to T&M Jewels
+          </span>
 
-
-          {/* =================================================
-              LIGHT / DARK THEME TOGGLE
-          ================================================== */}
-
-          <button
-            type="button"
-            onClick={toggleAccountTheme}
-            aria-label={
-              isDarkTheme
-                ? "Switch to light theme"
-                : "Switch to dark theme"
-            }
-            title={
-              isDarkTheme
-                ? "Switch to light theme"
-                : "Switch to dark theme"
-            }
-            className="
-              inline-flex
-              h-10
-              items-center
-              gap-2
-              rounded-full
-              border
-              border-[var(--account-border)]
-              bg-[var(--account-surface)]
-              px-3
-              text-xs
-              font-medium
-              text-[var(--account-secondary)]
-              shadow-sm
-              transition-all
-              duration-200
-              hover:border-[#C8A44D]/60
-              hover:text-[#C8A44D]
-              active:scale-95
-            "
-          >
-            {isDarkTheme ? (
-              <Sun size={16} />
-            ) : (
-              <Moon size={16} />
-            )}
-
-            <span className="hidden sm:inline">
-              {isDarkTheme ? "Light" : "Dark"}
-            </span>
-          </button>
-
-        </div>
+        </Link>
 
 
 
@@ -488,7 +343,7 @@ export default function AccountDashboard() {
           <p
             className="
               text-sm
-              text-[var(--account-secondary)]
+              text-neutral-400
             "
           >
             Welcome back, {customer?.first_name}
@@ -552,7 +407,7 @@ export default function AccountDashboard() {
                   mt-1
                   text-lg
                   font-semibold
-                  text-[var(--account-text)]
+                  text-white
                 "
               >
                 Quick access
@@ -563,7 +418,7 @@ export default function AccountDashboard() {
             <span
               className="
                 text-[11px]
-                text-[var(--account-muted)]
+                text-neutral-500
               "
             >
               Everything in one place
@@ -594,13 +449,13 @@ export default function AccountDashboard() {
                 group
                 rounded-2xl
                 border
-                border-[var(--account-border)]
-                bg-[var(--account-surface)]
+                border-neutral-800
+                bg-[#0D0D0D]
                 p-4
                 transition-all
                 duration-200
                 hover:border-[#C8A44D]/50
-                hover:bg-[var(--account-surface-hover)]
+                hover:bg-[#111111]
                 active:scale-[0.98]
               "
             >
@@ -637,7 +492,7 @@ export default function AccountDashboard() {
                 <ChevronRight
                   size={17}
                   className="
-                    text-[var(--account-muted)]
+                    text-neutral-600
                     transition-colors
                     group-hover:text-[#C8A44D]
                   "
@@ -651,7 +506,7 @@ export default function AccountDashboard() {
                   mt-4
                   text-sm
                   font-semibold
-                  text-[var(--account-text)]
+                  text-white
                 "
               >
                 My Orders
@@ -663,7 +518,7 @@ export default function AccountDashboard() {
                   mt-1
                   text-[11px]
                   leading-4
-                  text-[var(--account-muted)]
+                  text-neutral-500
                 "
               >
                 Track and manage orders
@@ -687,7 +542,10 @@ export default function AccountDashboard() {
                 rounded-2xl
                 border
                 border-[#C8A44D]/70
-                bg-[var(--account-review-highlight)]
+                bg-gradient-to-br
+                from-[#211B0F]
+                via-[#14110C]
+                to-[#0D0D0D]
                 p-4
                 shadow-[0_0_20px_rgba(200,164,77,0.12)]
                 transition-all
@@ -795,7 +653,7 @@ export default function AccountDashboard() {
                   mt-4
                   text-sm
                   font-semibold
-                  text-[var(--account-text)]
+                  text-white
                 "
               >
                 Review & Earn
@@ -808,7 +666,7 @@ export default function AccountDashboard() {
                   mt-1
                   text-[11px]
                   leading-4
-                  text-[var(--account-secondary)]
+                  text-neutral-400
                 "
               >
                 Review your purchases & earn wallet rewards
@@ -844,13 +702,13 @@ export default function AccountDashboard() {
                 group
                 rounded-2xl
                 border
-                border-[var(--account-border)]
-                bg-[var(--account-surface)]
+                border-neutral-800
+                bg-[#0D0D0D]
                 p-4
                 transition-all
                 duration-200
                 hover:border-[#C8A44D]/50
-                hover:bg-[var(--account-surface-hover)]
+                hover:bg-[#111111]
                 active:scale-[0.98]
               "
             >
@@ -887,7 +745,7 @@ export default function AccountDashboard() {
                 <ChevronRight
                   size={17}
                   className="
-                    text-[var(--account-muted)]
+                    text-neutral-600
                     transition-colors
                     group-hover:text-[#C8A44D]
                   "
@@ -901,7 +759,7 @@ export default function AccountDashboard() {
                   mt-4
                   text-sm
                   font-semibold
-                  text-[var(--account-text)]
+                  text-white
                 "
               >
                 Wishlist
@@ -913,7 +771,7 @@ export default function AccountDashboard() {
                   mt-1
                   text-[11px]
                   leading-4
-                  text-[var(--account-muted)]
+                  text-neutral-500
                 "
               >
                 Your saved favourites
@@ -937,14 +795,14 @@ export default function AccountDashboard() {
                 group
                 rounded-2xl
                 border
-                border-[var(--account-border)]
-                bg-[var(--account-surface)]
+                border-neutral-800
+                bg-[#0D0D0D]
                 p-4
                 text-left
                 transition-all
                 duration-200
                 hover:border-[#C8A44D]/50
-                hover:bg-[var(--account-surface-hover)]
+                hover:bg-[#111111]
                 active:scale-[0.98]
               "
             >
@@ -981,7 +839,7 @@ export default function AccountDashboard() {
                 <ChevronRight
                   size={17}
                   className="
-                    text-[var(--account-muted)]
+                    text-neutral-600
                     transition-colors
                     group-hover:text-[#C8A44D]
                   "
@@ -995,7 +853,7 @@ export default function AccountDashboard() {
                   mt-4
                   text-sm
                   font-semibold
-                  text-[var(--account-text)]
+                  text-white
                 "
               >
                 Addresses
@@ -1007,7 +865,7 @@ export default function AccountDashboard() {
                   mt-1
                   text-[11px]
                   leading-4
-                  text-[var(--account-muted)]
+                  text-neutral-500
                 "
               >
                 Manage delivery addresses
@@ -1031,7 +889,10 @@ export default function AccountDashboard() {
                 rounded-2xl
                 border
                 border-[#C8A44D]/30
-                bg-[var(--account-highlight)]
+                bg-gradient-to-br
+                from-[#15130F]
+                via-[#0D0D0D]
+                to-[#0D0D0D]
                 p-4
                 transition-all
                 duration-300
@@ -1094,7 +955,7 @@ export default function AccountDashboard() {
                 <ChevronRight
                   size={17}
                   className="
-                    text-[var(--account-muted)]
+                    text-neutral-600
                     transition-colors
                     group-hover:text-[#C8A44D]
                   "
@@ -1109,7 +970,7 @@ export default function AccountDashboard() {
                   mt-4
                   text-sm
                   font-semibold
-                  text-[var(--account-text)]
+                  text-white
                 "
               >
                 T&M Wallet
@@ -1122,7 +983,7 @@ export default function AccountDashboard() {
                   mt-1
                   text-[11px]
                   leading-4
-                  text-[var(--account-muted)]
+                  text-neutral-500
                 "
               >
                 {walletLoading
@@ -1150,15 +1011,15 @@ export default function AccountDashboard() {
             overflow-hidden
             rounded-2xl
             border
-            border-[var(--account-border)]
-            bg-[var(--account-surface)]
+            border-neutral-800
+            bg-[#0D0D0D]
           "
         >
 
           <div
             className="
               border-b
-              border-[var(--account-border)]
+              border-neutral-800
               px-4
               py-4
               sm:px-5
@@ -1193,7 +1054,7 @@ export default function AccountDashboard() {
                     mt-1
                     text-lg
                     font-semibold
-                    text-[var(--account-text)]
+                    text-white
                   "
                 >
                   Recent Orders
@@ -1212,7 +1073,7 @@ export default function AccountDashboard() {
                   font-medium
                   text-[#C8A44D]
                   transition-colors
-                  hover:text-[var(--account-text)]
+                  hover:text-white
                 "
               >
 
@@ -1254,15 +1115,15 @@ export default function AccountDashboard() {
             overflow-hidden
             rounded-2xl
             border
-            border-[var(--account-border)]
-            bg-[var(--account-surface)]
+            border-neutral-800
+            bg-[#0D0D0D]
           "
         >
 
           <div
             className="
               border-b
-              border-[var(--account-border)]
+              border-neutral-800
               px-4
               py-4
               sm:px-5
@@ -1297,7 +1158,7 @@ export default function AccountDashboard() {
                     mt-1
                     text-lg
                     font-semibold
-                    text-[var(--account-text)]
+                    text-white
                   "
                 >
                   Recent Activity
@@ -1316,7 +1177,7 @@ export default function AccountDashboard() {
                   font-medium
                   text-[#C8A44D]
                   transition-colors
-                  hover:text-[var(--account-text)]
+                  hover:text-white
                 "
               >
 
@@ -1378,7 +1239,7 @@ export default function AccountDashboard() {
                 mt-1
                 text-lg
                 font-semibold
-                text-[var(--account-text)]
+                text-white
               "
             >
               Manage your account
@@ -1392,8 +1253,8 @@ export default function AccountDashboard() {
               overflow-hidden
               rounded-2xl
               border
-              border-[var(--account-border)]
-              bg-[var(--account-surface)]
+              border-neutral-800
+              bg-[#0D0D0D]
             "
           >
 
@@ -1412,12 +1273,12 @@ export default function AccountDashboard() {
                 items-center
                 gap-3
                 border-b
-                border-[var(--account-border)]
+                border-neutral-800
                 px-4
                 py-4
                 text-left
                 transition-colors
-                hover:bg-[var(--account-surface-hover)]
+                hover:bg-[#111111]
               "
             >
 
@@ -1453,7 +1314,7 @@ export default function AccountDashboard() {
                   className="
                     text-sm
                     font-medium
-                    text-[var(--account-text)]
+                    text-white
                   "
                 >
                   Personal Information
@@ -1463,7 +1324,7 @@ export default function AccountDashboard() {
                   className="
                     mt-0.5
                     text-[11px]
-                    text-[var(--account-muted)]
+                    text-neutral-500
                   "
                 >
                   Edit your profile details
@@ -1476,7 +1337,7 @@ export default function AccountDashboard() {
                 size={17}
                 className="
                   shrink-0
-                  text-[var(--account-muted)]
+                  text-neutral-600
                   transition-colors
                   group-hover:text-[#C8A44D]
                 "
@@ -1498,12 +1359,12 @@ export default function AccountDashboard() {
                 items-center
                 gap-3
                 border-b
-                border-[var(--account-border)]
+                border-neutral-800
                 px-4
                 py-4
                 text-left
                 transition-colors
-                hover:bg-[var(--account-surface-hover)]
+                hover:bg-[#111111]
               "
             >
 
@@ -1539,7 +1400,7 @@ export default function AccountDashboard() {
                   className="
                     text-sm
                     font-medium
-                    text-[var(--account-text)]
+                    text-white
                   "
                 >
                   Notifications
@@ -1549,7 +1410,7 @@ export default function AccountDashboard() {
                   className="
                     mt-0.5
                     text-[11px]
-                    text-[var(--account-muted)]
+                    text-neutral-500
                   "
                 >
                   View all your updates
@@ -1562,7 +1423,7 @@ export default function AccountDashboard() {
                 size={17}
                 className="
                   shrink-0
-                  text-[var(--account-muted)]
+                  text-neutral-600
                   transition-colors
                   group-hover:text-[#C8A44D]
                 "
@@ -1587,12 +1448,12 @@ export default function AccountDashboard() {
                 items-center
                 gap-3
                 border-b
-                border-[var(--account-border)]
+                border-neutral-800
                 px-4
                 py-4
                 text-left
                 transition-colors
-                hover:bg-[var(--account-surface-hover)]
+                hover:bg-[#111111]
               "
             >
 
@@ -1628,7 +1489,7 @@ export default function AccountDashboard() {
                   className="
                     text-sm
                     font-medium
-                    text-[var(--account-text)]
+                    text-white
                   "
                 >
                   Contact Support
@@ -1638,7 +1499,7 @@ export default function AccountDashboard() {
                   className="
                     mt-0.5
                     text-[11px]
-                    text-[var(--account-muted)]
+                    text-neutral-500
                   "
                 >
                   Need help? We're here for you
@@ -1651,7 +1512,7 @@ export default function AccountDashboard() {
                 size={17}
                 className="
                   shrink-0
-                  text-[var(--account-muted)]
+                  text-neutral-600
                   transition-colors
                   group-hover:text-[#C8A44D]
                 "
@@ -1725,7 +1586,7 @@ export default function AccountDashboard() {
                   className="
                     mt-0.5
                     text-[11px]
-                    text-[var(--account-muted)]
+                    text-neutral-600
                   "
                 >
                   Sign out of your T&M account
@@ -1738,7 +1599,7 @@ export default function AccountDashboard() {
                 size={17}
                 className="
                   shrink-0
-                  text-[var(--account-secondary)]
+                  text-neutral-700
                   transition-colors
                   group-hover:text-red-400
                 "

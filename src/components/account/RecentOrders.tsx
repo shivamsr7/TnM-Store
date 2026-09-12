@@ -30,35 +30,59 @@ import OrderDetailsDialog from "@/features/orders/components/OrderDetailsDialog"
 
 function OrderStatusBadge({
   status,
+  theme,
 }: {
   status: string;
+  theme: "light" | "dark";
 }) {
 
 
   const styles: Record<
     string,
     string
-  > = {
+  > = theme === "light"
+    ? {
 
-    pending:
-      "border-yellow-500/25 bg-yellow-500/10 text-yellow-400",
+        pending:
+          "border-yellow-300 bg-yellow-50 text-yellow-700",
 
-    confirmed:
-      "border-blue-500/25 bg-blue-500/10 text-blue-400",
+        confirmed:
+          "border-blue-200 bg-blue-50 text-blue-700",
 
-    packed:
-      "border-purple-500/25 bg-purple-500/10 text-purple-400",
+        packed:
+          "border-purple-200 bg-purple-50 text-purple-700",
 
-    shipped:
-      "border-indigo-500/25 bg-indigo-500/10 text-indigo-400",
+        shipped:
+          "border-indigo-200 bg-indigo-50 text-indigo-700",
 
-    delivered:
-      "border-green-500/25 bg-green-500/10 text-green-400",
+        delivered:
+          "border-green-200 bg-green-50 text-green-700",
 
-    cancelled:
-      "border-red-500/25 bg-red-500/10 text-red-400",
+        cancelled:
+          "border-red-200 bg-red-50 text-red-600",
 
-  };
+      }
+    : {
+
+        pending:
+          "border-yellow-500/25 bg-yellow-500/10 text-yellow-400",
+
+        confirmed:
+          "border-blue-500/25 bg-blue-500/10 text-blue-400",
+
+        packed:
+          "border-purple-500/25 bg-purple-500/10 text-purple-400",
+
+        shipped:
+          "border-indigo-500/25 bg-indigo-500/10 text-indigo-400",
+
+        delivered:
+          "border-green-500/25 bg-green-500/10 text-green-400",
+
+        cancelled:
+          "border-red-500/25 bg-red-500/10 text-red-400",
+
+      };
 
 
   return (
@@ -78,7 +102,9 @@ function OrderStatusBadge({
         tracking-wide
         ${
           styles[status] ??
-          "border-neutral-700 bg-neutral-800 text-neutral-400"
+          (theme === "light"
+            ? "border-neutral-200 bg-neutral-50 text-neutral-500"
+            : "border-neutral-700 bg-neutral-800 text-neutral-400")
         }
       `}
     >
@@ -95,7 +121,14 @@ function OrderStatusBadge({
 
 
 
-export default function RecentOrders() {
+interface RecentOrdersProps {
+  theme?: "light" | "dark";
+}
+
+
+export default function RecentOrders({
+  theme = "dark",
+}: RecentOrdersProps) {
 
 
   const {
@@ -125,13 +158,13 @@ export default function RecentOrders() {
     return (
 
       <div
-        className="
+        className={`
           px-4
           py-8
           text-center
           text-sm
-          text-neutral-400
-        "
+          ${theme === "light" ? "text-neutral-500" : "text-neutral-400"}
+        `}
       >
 
         Loading orders...
@@ -194,25 +227,25 @@ export default function RecentOrders() {
 
 
               <p
-                className="
+                className={`
                   mt-4
                   text-sm
                   font-medium
-                  text-white
-                "
+                  ${theme === "light" ? "text-neutral-900" : "text-white"}
+                `}
               >
                 No orders yet
               </p>
 
 
               <p
-                className="
+                className={`
                   mt-1
                   max-w-[250px]
                   text-xs
                   leading-5
-                  text-neutral-500
-                "
+                  ${theme === "light" ? "text-neutral-500" : "text-neutral-500"}
+                `}
               >
                 Your recent purchases will appear here.
               </p>
@@ -252,10 +285,10 @@ export default function RecentOrders() {
           ) : (
 
             <div
-              className="
+              className={`
                 divide-y
-                divide-neutral-800
-              "
+                ${theme === "light" ? "divide-neutral-200" : "divide-neutral-800"}
+              `}
             >
 
               {
@@ -276,7 +309,7 @@ export default function RecentOrders() {
                             order.id
                           )
                         }
-                        className="
+                        className={`
                           group
                           flex
                           w-full
@@ -286,10 +319,13 @@ export default function RecentOrders() {
                           py-4
                           text-left
                           transition-colors
-                          hover:bg-[#111111]
-                          active:bg-[#151515]
+                          ${
+                            theme === "light"
+                              ? "hover:bg-[#faf8f2] active:bg-[#f5f1e7]"
+                              : "hover:bg-[#111111] active:bg-[#151515]"
+                          }
                           sm:px-5
-                        "
+                        `}
                       >
 
 
@@ -340,19 +376,19 @@ export default function RecentOrders() {
                           >
 
                             <p
-                              className="
-                                truncate
+                              className={`
+                                shrink-0
+                                whitespace-nowrap
                                 text-sm
-                                font-medium
-                                text-white
-                              "
+                                font-semibold
+                                ${
+                                  theme === "light"
+                                    ? "text-neutral-900"
+                                    : "text-white"
+                                }
+                              `}
                             >
-
-                              #
-                              {
-                                order.order_number
-                              }
-
+                              #{order.order_number}
                             </p>
 
 
@@ -360,20 +396,27 @@ export default function RecentOrders() {
                               status={
                                 order.order_status
                               }
+                              theme={
+                                theme
+                              }
                             />
 
                           </div>
 
 
                           <div
-                            className="
+                            className={`
                               mt-1
                               flex
                               items-center
                               gap-2
                               text-[11px]
-                              text-neutral-500
-                            "
+                              ${
+                                theme === "light"
+                                  ? "text-neutral-500"
+                                  : "text-neutral-500"
+                              }
+                            `}
                           >
 
                             <span>
@@ -393,12 +436,16 @@ export default function RecentOrders() {
 
 
                             <span
-                              className="
+                              className={`
                                 h-1
                                 w-1
                                 rounded-full
-                                bg-neutral-700
-                              "
+                                ${
+                                  theme === "light"
+                                    ? "bg-neutral-300"
+                                    : "bg-neutral-700"
+                                }
+                              `}
                             />
 
 
@@ -459,23 +506,30 @@ export default function RecentOrders() {
 
           <Link
             to="/account/orders"
-            className="
+            className={`
               flex
               items-center
               justify-center
               gap-1
               border-t
-              border-neutral-800
+              ${
+                theme === "light"
+                  ? "border-neutral-200"
+                  : "border-neutral-800"
+              }
               px-4
               py-3.5
               text-xs
               font-medium
               text-[#C8A44D]
               transition-colors
-              hover:bg-[#111111]
-              hover:text-white
+              ${
+                theme === "light"
+                  ? "hover:bg-[#faf8f2] hover:text-[#9A7A22]"
+                  : "hover:bg-[#111111] hover:text-white"
+              }
               sm:px-5
-            "
+            `}
           >
 
             View all orders
