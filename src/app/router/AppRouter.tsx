@@ -72,6 +72,9 @@ import OrderTrackingPage from "@/features/orders/pages/OrderTrackingPage";
 import ReviewProductPage
   from "@/features/reviews/pages/ReviewProductPage";
 
+import ReviewEarnPage
+  from "@/features/reviews/pages/ReviewEarnPage";
+
 export default function AppRouter() {
 
   return (
@@ -256,6 +259,13 @@ export default function AppRouter() {
   path="/review/:productSlug"
   element={
     <ReviewProductPage />
+  }
+/>
+
+<Route
+  path="/account/review-earn"
+  element={
+    <ReviewEarnPage />
   }
 />
           {/* =================================================

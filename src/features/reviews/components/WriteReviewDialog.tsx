@@ -1,4 +1,6 @@
 import {
+  useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -18,6 +20,10 @@ import {
 import {
   useAuth,
 } from "@/features/Auth/context/AuthContext";
+
+import {
+  supabase,
+} from "@/shared/lib/supabase";
 
 import {
   reviewService,
@@ -48,6 +54,14 @@ interface SelectedReviewMedia {
 }
 
 
+interface ReviewWalletRewardSettings {
+  enabled: boolean;
+  text_reward_paise: number;
+  image_reward_paise: number;
+  video_reward_paise: number;
+}
+
+
 /*
  * =========================================================
  * MEDIA LIMITS
@@ -75,6 +89,28 @@ const ACCEPTED_IMAGE_TYPES = [
 const ACCEPTED_VIDEO_TYPES = [
   "video/mp4",
   "video/webm",
+];
+
+
+/*
+ * =========================================================
+ * REVIEW EMOJIS
+ * =========================================================
+ */
+
+const REVIEW_EMOJIS = [
+  "😍",
+  "🥰",
+  "✨",
+  "❤️",
+  "💕",
+  "😊",
+  "🤩",
+  "👌",
+  "💎",
+  "🔥",
+  "🌸",
+  "💖",
 ];
 
 
@@ -131,6 +167,175 @@ export default function WriteReviewDialog({
 
   /*
    * =========================================================
+   * DYNAMIC WALLET REWARD SETTINGS
+   * =========================================================
+   */
+
+  const [
+    rewardSettings,
+    setRewardSettings,
+  ] = useState<ReviewWalletRewardSettings | null>(
+    null
+  );
+
+
+  const [
+    rewardSettingsLoading,
+    setRewardSettingsLoading,
+  ] = useState(true);
+
+
+  /*
+   * =========================================================
+   * REVIEW TEXTAREA REF
+   * =========================================================
+   */
+
+  const reviewTextareaRef =
+    useRef<HTMLTextAreaElement | null>(
+      null
+    );
+
+
+  /*
+   * =========================================================
+   * LOAD WALLET REWARD SETTINGS
+   * =========================================================
+   *
+   * These values come from the customer-safe Supabase RPC.
+   *
+   * The admin settings remain the authoritative source.
+   *
+   * =========================================================
+   */
+
+  useEffect(() => {
+
+    if (!open) {
+      return;
+    }
+
+
+    let mounted = true;
+
+
+    const loadRewardSettings =
+      async () => {
+
+        try {
+
+          setRewardSettingsLoading(
+            true
+          );
+
+
+          const {
+            data,
+            error,
+          } = await supabase.rpc(
+            "get_customer_review_wallet_reward_settings"
+          );
+
+
+          if (error) {
+
+            throw error;
+
+          }
+
+
+          if (!mounted) {
+            return;
+          }
+
+
+          const settings =
+            Array.isArray(data)
+              ? data[0]
+              : data;
+
+
+          if (!settings) {
+
+            setRewardSettings(
+              null
+            );
+
+            return;
+
+          }
+
+
+          setRewardSettings({
+            enabled:
+              Boolean(
+                settings.enabled
+              ),
+
+            text_reward_paise:
+              Number(
+                settings.text_reward_paise ??
+                0
+              ),
+
+            image_reward_paise:
+              Number(
+                settings.image_reward_paise ??
+                0
+              ),
+
+            video_reward_paise:
+              Number(
+                settings.video_reward_paise ??
+                0
+              ),
+          });
+
+        } catch (error) {
+
+          console.error(
+            "Failed to load review wallet rewards:",
+            error
+          );
+
+
+          if (mounted) {
+
+            setRewardSettings(
+              null
+            );
+
+          }
+
+        } finally {
+
+          if (mounted) {
+
+            setRewardSettingsLoading(
+              false
+            );
+
+          }
+
+        }
+
+      };
+
+
+    loadRewardSettings();
+
+
+    return () => {
+
+      mounted = false;
+
+    };
+
+  }, [open]);
+
+
+  /*
+   * =========================================================
    * RESET FORM
    * =========================================================
    */
@@ -139,11 +344,14 @@ export default function WriteReviewDialog({
 
     selectedMedia.forEach(
       (media) => {
+
         URL.revokeObjectURL(
           media.previewUrl
         );
+
       }
     );
+
 
     setRating(0);
 
@@ -160,6 +368,7 @@ export default function WriteReviewDialog({
     setSuccess(false);
 
     setShowWalletInfo(false);
+
   };
 
 
@@ -175,9 +384,11 @@ export default function WriteReviewDialog({
       return;
     }
 
+
     resetForm();
 
     onClose();
+
   };
 
 
@@ -193,15 +404,19 @@ export default function WriteReviewDialog({
 
     setError(null);
 
+
     const files =
       Array.from(
         event.target.files ?? []
       );
 
+
     if (
       files.length === 0
     ) {
+
       return;
+
     }
 
 
@@ -223,6 +438,7 @@ export default function WriteReviewDialog({
 
     let imageCount =
       currentImages;
+
 
     let videoCount =
       currentVideos;
@@ -258,6 +474,7 @@ export default function WriteReviewDialog({
           );
 
           continue;
+
         }
 
 
@@ -271,6 +488,7 @@ export default function WriteReviewDialog({
           );
 
           continue;
+
         }
 
 
@@ -278,6 +496,7 @@ export default function WriteReviewDialog({
 
 
         newMedia.push({
+
           id:
             crypto.randomUUID(),
 
@@ -290,9 +509,12 @@ export default function WriteReviewDialog({
 
           mediaType:
             "image",
+
         });
 
+
         continue;
+
       }
 
 
@@ -318,6 +540,7 @@ export default function WriteReviewDialog({
           );
 
           continue;
+
         }
 
 
@@ -331,6 +554,7 @@ export default function WriteReviewDialog({
           );
 
           continue;
+
         }
 
 
@@ -338,6 +562,7 @@ export default function WriteReviewDialog({
 
 
         newMedia.push({
+
           id:
             crypto.randomUUID(),
 
@@ -350,9 +575,12 @@ export default function WriteReviewDialog({
 
           mediaType:
             "video",
+
         });
 
+
         continue;
+
       }
 
 
@@ -365,6 +593,7 @@ export default function WriteReviewDialog({
       setError(
         `"${file.name}" is not a supported image or video.`
       );
+
     }
 
 
@@ -378,6 +607,7 @@ export default function WriteReviewDialog({
           ...newMedia,
         ]
       );
+
     }
 
 
@@ -387,6 +617,7 @@ export default function WriteReviewDialog({
      */
 
     event.target.value = "";
+
   };
 
 
@@ -415,6 +646,7 @@ export default function WriteReviewDialog({
           URL.revokeObjectURL(
             media.previewUrl
           );
+
         }
 
 
@@ -422,8 +654,93 @@ export default function WriteReviewDialog({
           (item) =>
             item.id !== mediaId
         );
+
       }
     );
+
+  };
+
+
+  /*
+   * =========================================================
+   * INSERT EMOJI
+   * =========================================================
+   */
+
+  const insertEmoji = (
+    emoji: string
+  ) => {
+
+    const textarea =
+      reviewTextareaRef.current;
+
+
+    /*
+     * Fallback if textarea isn't available.
+     */
+
+    if (!textarea) {
+
+      setReview(
+        (current) =>
+          `${current}${emoji}`
+      );
+
+      return;
+
+    }
+
+
+    const start =
+      textarea.selectionStart;
+
+
+    const end =
+      textarea.selectionEnd;
+
+
+    const currentText =
+      review;
+
+
+    const updatedText =
+      currentText.slice(
+        0,
+        start
+      ) +
+      emoji +
+      currentText.slice(
+        end
+      );
+
+
+    setReview(
+      updatedText
+    );
+
+
+    /*
+     * Restore cursor position after React
+     * updates the textarea.
+     */
+
+    requestAnimationFrame(() => {
+
+      textarea.focus();
+
+
+      const cursorPosition =
+        start +
+        emoji.length;
+
+
+      textarea.setSelectionRange(
+        cursorPosition,
+        cursorPosition
+      );
+
+    });
+
   };
 
 
@@ -440,7 +757,9 @@ export default function WriteReviewDialog({
     if (
       selectedMedia.length === 0
     ) {
+
       return;
+
     }
 
 
@@ -475,6 +794,7 @@ export default function WriteReviewDialog({
 
 
         uploadedFiles.push({
+
           path:
             uploaded.path,
 
@@ -486,7 +806,9 @@ export default function WriteReviewDialog({
 
           thumbnailUrl:
             null,
+
         });
+
       }
 
 
@@ -503,6 +825,7 @@ export default function WriteReviewDialog({
             uploaded,
             index
           ) => ({
+
             review_id:
               reviewId,
 
@@ -520,6 +843,7 @@ export default function WriteReviewDialog({
 
             sort_order:
               index,
+
           })
         );
 
@@ -559,14 +883,18 @@ export default function WriteReviewDialog({
                 "Review media cleanup failed:",
                 cleanupError
               );
+
             }
+
           }
         )
       );
 
 
       throw mediaError;
+
     }
+
   };
 
 
@@ -581,6 +909,7 @@ export default function WriteReviewDialog({
   ) => {
 
     event.preventDefault();
+
 
     setError(null);
 
@@ -600,6 +929,7 @@ export default function WriteReviewDialog({
       );
 
       return;
+
     }
 
 
@@ -616,6 +946,7 @@ export default function WriteReviewDialog({
       );
 
       return;
+
     }
 
 
@@ -623,7 +954,7 @@ export default function WriteReviewDialog({
      * =======================================================
      * RATING VALIDATION
      * =======================================================
-     */
+ */
 
     if (
       rating < 1 ||
@@ -635,6 +966,7 @@ export default function WriteReviewDialog({
       );
 
       return;
+
     }
 
 
@@ -657,6 +989,7 @@ export default function WriteReviewDialog({
       );
 
       return;
+
     }
 
 
@@ -669,6 +1002,7 @@ export default function WriteReviewDialog({
       );
 
       return;
+
     }
 
 
@@ -691,6 +1025,7 @@ export default function WriteReviewDialog({
       );
 
       return;
+
     }
 
 
@@ -729,6 +1064,7 @@ export default function WriteReviewDialog({
 
           review:
             trimmedReview,
+
         });
 
 
@@ -745,6 +1081,7 @@ export default function WriteReviewDialog({
         await uploadReviewMedia(
           createdReview.id
         );
+
       }
 
 
@@ -818,6 +1155,7 @@ export default function WriteReviewDialog({
         );
 
         return;
+
       }
 
 
@@ -838,6 +1176,7 @@ export default function WriteReviewDialog({
         );
 
         return;
+
       }
 
 
@@ -858,6 +1197,7 @@ export default function WriteReviewDialog({
         );
 
         return;
+
       }
 
 
@@ -878,6 +1218,7 @@ export default function WriteReviewDialog({
         );
 
         return;
+
       }
 
 
@@ -898,6 +1239,7 @@ export default function WriteReviewDialog({
         );
 
         return;
+
       }
 
 
@@ -912,6 +1254,7 @@ export default function WriteReviewDialog({
         );
 
         return;
+
       }
 
 
@@ -932,6 +1275,7 @@ export default function WriteReviewDialog({
         );
 
         return;
+
       }
 
 
@@ -950,6 +1294,7 @@ export default function WriteReviewDialog({
         );
 
         return;
+
       }
 
 
@@ -969,6 +1314,7 @@ export default function WriteReviewDialog({
       setIsSubmitting(false);
 
     }
+
   };
 
 
@@ -979,7 +1325,9 @@ export default function WriteReviewDialog({
    */
 
   if (!open) {
+
     return null;
+
   }
 
 
@@ -1003,6 +1351,39 @@ export default function WriteReviewDialog({
         media.mediaType ===
         "video"
     ).length;
+
+
+  /*
+   * =========================================================
+   * REWARD DISPLAY HELPERS
+   * =========================================================
+   */
+
+  const formatReward =
+    (
+      amountPaise: number
+    ) => {
+
+      const rupees =
+        amountPaise / 100;
+
+
+      return new Intl.NumberFormat(
+        "en-IN",
+        {
+          minimumFractionDigits:
+            rupees % 1 === 0
+              ? 0
+              : 2,
+
+          maximumFractionDigits:
+            2,
+        }
+      ).format(
+        rupees
+      );
+
+    };
 
 
   /*
@@ -1039,7 +1420,9 @@ export default function WriteReviewDialog({
         ) {
 
           handleClose();
+
         }
+
       }}
     >
 
@@ -1193,7 +1576,6 @@ export default function WriteReviewDialog({
 
             {/* =============================================
                 WALLET REWARDS
-                STATIC WITH HEADER
             ============================================== */}
 
             <div
@@ -1284,52 +1666,93 @@ export default function WriteReviewDialog({
                   </p>
 
 
-                  <div
-                    className="
-                      mt-1.5
-                      flex
-                      flex-wrap
-                      gap-x-4
-                      gap-y-1
-                    "
-                  >
+                  {rewardSettingsLoading ? (
 
-                    <span>
-                      Text ·{" "}
-                      <strong>
-                        ₹5
-                      </strong>
-                    </span>
+                    <p
+                      className="
+                        mt-1.5
+                        text-xs
+                        text-neutral-400
+                      "
+                    >
+                      Loading current rewards...
+                    </p>
+
+                  ) : rewardSettings?.enabled ? (
+
+                    <>
+
+                      <div
+                        className="
+                          mt-1.5
+                          flex
+                          flex-wrap
+                          gap-x-4
+                          gap-y-1
+                        "
+                      >
+
+                        <span>
+                          Text ·{" "}
+                          <strong>
+                            ₹
+                            {formatReward(
+                              rewardSettings.text_reward_paise
+                            )}
+                          </strong>
+                        </span>
 
 
-                    <span>
-                      Photo ·{" "}
-                      <strong>
-                        ₹10
-                      </strong>
-                    </span>
+                        <span>
+                          Photo ·{" "}
+                          <strong>
+                            ₹
+                            {formatReward(
+                              rewardSettings.image_reward_paise
+                            )}
+                          </strong>
+                        </span>
 
 
-                    <span>
-                      Video ·{" "}
-                      <strong>
-                        ₹20
-                      </strong>
-                    </span>
+                        <span>
+                          Video ·{" "}
+                          <strong>
+                            ₹
+                            {formatReward(
+                              rewardSettings.video_reward_paise
+                            )}
+                          </strong>
+                        </span>
 
-                  </div>
+                      </div>
 
 
-                  <p
-                    className="
-                      mt-1.5
-                      text-[11px]
-                      text-neutral-500
-                    "
-                  >
-                    Wallet rewards are credited
-                    after your review is approved.
-                  </p>
+                      <p
+                        className="
+                          mt-1.5
+                          text-[11px]
+                          text-neutral-500
+                        "
+                      >
+                        Wallet rewards are credited
+                        after your review is approved.
+                      </p>
+
+                    </>
+
+                  ) : (
+
+                    <p
+                      className="
+                        mt-1.5
+                        text-[11px]
+                        text-neutral-500
+                      "
+                    >
+                      Review rewards are currently unavailable.
+                    </p>
+
+                  )}
 
                 </div>
 
@@ -1567,6 +1990,7 @@ export default function WriteReviewDialog({
                           </button>
 
                         );
+
                       }
                     )}
 
@@ -1681,6 +2105,9 @@ export default function WriteReviewDialog({
 
 
                   <textarea
+                    ref={
+                      reviewTextareaRef
+                    }
                     id="review-text"
                     value={
                       review
@@ -1715,6 +2142,116 @@ export default function WriteReviewDialog({
                       focus:ring-[#C8A44D]/20
                     "
                   />
+
+
+                  {/* =======================================
+                      EMOJI SECTION
+                  ======================================== */}
+
+                  <div
+                    className="
+                      mt-2
+                      rounded-xl
+                      border
+                      border-neutral-200
+                      bg-neutral-50
+                      px-3
+                      py-2.5
+                    "
+                  >
+
+                    <div
+                      className="
+                        flex
+                        items-center
+                        justify-between
+                        gap-3
+                      "
+                    >
+
+                      <span
+                        className="
+                          text-[11px]
+                          font-medium
+                          text-neutral-500
+                        "
+                      >
+                        Add a little expression
+                      </span>
+
+
+                      <span
+                        className="
+                          text-[10px]
+                          text-neutral-400
+                        "
+                      >
+                        Tap an emoji
+                      </span>
+
+                    </div>
+
+
+                    <div
+                      className="
+                        mt-2
+                        flex
+                        flex-wrap
+                        gap-1.5
+                      "
+                    >
+
+                      {REVIEW_EMOJIS.map(
+                        (emoji) => (
+
+                          <button
+                            key={
+                              emoji
+                            }
+                            type="button"
+                            onClick={() =>
+                              insertEmoji(
+                                emoji
+                              )
+                            }
+                            disabled={
+                              isSubmitting
+                            }
+                            aria-label={`Add ${emoji}`}
+                            className="
+                              flex
+                              h-8
+                              w-8
+                              items-center
+                              justify-center
+                              rounded-lg
+                              border
+                              border-neutral-200
+                              bg-white
+                              text-base
+                              transition
+
+                              hover:scale-105
+                              hover:border-[#C8A44D]/50
+                              hover:bg-[#C8A44D]/5
+
+                              focus:outline-none
+                              focus-visible:ring-2
+                              focus-visible:ring-[#C8A44D]
+
+                              disabled:cursor-not-allowed
+                              disabled:opacity-50
+                            "
+                          >
+                            {emoji}
+                          </button>
+
+                        )
+                      )}
+
+                    </div>
+
+                  </div>
 
                 </div>
 
@@ -2230,6 +2767,7 @@ export default function WriteReviewDialog({
       </div>
 
     </div>
+
   );
 
 
@@ -2243,4 +2781,5 @@ export default function WriteReviewDialog({
     dialog,
     document.body
   );
+
 }

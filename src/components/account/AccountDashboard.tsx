@@ -24,6 +24,7 @@ import {
   ArrowLeft,
   Bell,
   ChevronRight,
+  Gift,
   Headphones,
   Heart,
   LogOut,
@@ -521,6 +522,169 @@ export default function AccountDashboard() {
                 "
               >
                 Track and manage orders
+              </p>
+
+            </Link>
+
+
+
+
+            {/* =================================================
+                REVIEW & EARN — HIGHLIGHTED
+            ================================================== */}
+
+            <Link
+              to="/account/review-earn"
+              className="
+                group
+                relative
+                overflow-hidden
+                rounded-2xl
+                border
+                border-[#C8A44D]/70
+                bg-gradient-to-br
+                from-[#211B0F]
+                via-[#14110C]
+                to-[#0D0D0D]
+                p-4
+                shadow-[0_0_20px_rgba(200,164,77,0.12)]
+                transition-all
+                duration-300
+                hover:border-[#C8A44D]
+                hover:shadow-[0_0_28px_rgba(200,164,77,0.22)]
+                active:scale-[0.98]
+              "
+            >
+
+              {/* Highlight glow */}
+
+              <div
+                className="
+                  pointer-events-none
+                  absolute
+                  -right-8
+                  -top-8
+                  h-24
+                  w-24
+                  rounded-full
+                  bg-[#C8A44D]/20
+                  blur-2xl
+                  transition-all
+                  duration-300
+                  group-hover:bg-[#C8A44D]/30
+                "
+              />
+
+
+              {/* Earn rewards badge */}
+
+              <div
+                className="
+                  absolute
+                  right-3
+                  top-3
+                  rounded-full
+                  border
+                  border-[#C8A44D]/40
+                  bg-[#C8A44D]/10
+                  px-2
+                  py-1
+                  text-[9px]
+                  font-semibold
+                  uppercase
+                  tracking-wider
+                  text-[#C8A44D]
+                "
+              >
+                Earn Rewards
+              </div>
+
+
+              <div
+                className="
+                  relative
+                  flex
+                  items-start
+                  justify-between
+                  gap-2
+                "
+              >
+
+                <div
+                  className="
+                    flex
+                    h-10
+                    w-10
+                    items-center
+                    justify-center
+                    rounded-xl
+                    bg-[#C8A44D]/15
+                    text-[#C8A44D]
+                    ring-1
+                    ring-[#C8A44D]/20
+                  "
+                >
+
+                  <Gift
+                    size={19}
+                  />
+
+                </div>
+
+
+                <ChevronRight
+                  size={17}
+                  className="
+                    mt-1
+                    text-[#C8A44D]/70
+                    transition-all
+                    duration-200
+                    group-hover:translate-x-0.5
+                    group-hover:text-[#C8A44D]
+                  "
+                />
+
+              </div>
+
+
+              <p
+                className="
+                  relative
+                  mt-4
+                  text-sm
+                  font-semibold
+                  text-white
+                "
+              >
+                Review & Earn
+              </p>
+
+
+              <p
+                className="
+                  relative
+                  mt-1
+                  text-[11px]
+                  leading-4
+                  text-neutral-400
+                "
+              >
+                Review your purchases & earn wallet rewards
+              </p>
+
+
+              {/* Reward hint */}
+
+              <p
+                className="
+                  relative
+                  mt-2
+                  text-[10px]
+                  font-medium
+                  text-[#C8A44D]
+                "
+              >
+                Earn up to ₹20 per review
               </p>
 
             </Link>
