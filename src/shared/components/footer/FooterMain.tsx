@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import OrderTrackingDialog from "@/features/orders/components/OrderTrackingDialog";
 import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 import {
   FaInstagram,
@@ -15,6 +16,8 @@ import logo from "@/assets/logo/mainLogo.png";
 import {
   useStoreSettings,
 } from "@/shared/hooks/useStoreSettings";
+
+import { supabase } from "@/shared/lib/supabase";
 
 
 const columns = [
@@ -165,6 +168,93 @@ export default function FooterMain() {
   );
 
   const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
+
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
+
+  const handleNewsletterSubmit = async (
+    event: FormEvent<HTMLFormElement>
+  ) => {
+    event.preventDefault();
+
+    const email = newsletterEmail.trim().toLowerCase();
+
+    if (!email) {
+      toast.error("Please enter your email address.");
+      return;
+    }
+
+    if (
+      email.length > 254 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)
+    ) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    if (newsletterSubmitting) {
+      return;
+    }
+
+    setNewsletterSubmitting(true);
+
+    try {
+      const { data, error } = await supabase.rpc(
+        "subscribe_to_newsletter",
+        {
+          p_email: email,
+        }
+      );
+
+      if (error) {
+        console.error(
+          "Newsletter subscription failed:",
+          error
+        );
+
+        throw new Error(
+          "We couldn't subscribe you right now. Please try again."
+        );
+      }
+
+      if (data?.status === "already_subscribed") {
+        toast.success("You're already on the T&M list ✨");
+        setNewsletterEmail("");
+        return;
+      }
+
+      if (data?.status === "subscribed") {
+        toast.success("You're on the list! ✨");
+        setNewsletterEmail("");
+        return;
+      }
+
+      if (data?.status === "invalid") {
+        toast.error(
+          data?.message ||
+            "Please enter a valid email address."
+        );
+        return;
+      }
+
+      throw new Error(
+        "We couldn't subscribe you right now. Please try again."
+      );
+    } catch (error) {
+      console.error(
+        "Newsletter subscription error:",
+        error
+      );
+
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "We couldn't subscribe you right now. Please try again."
+      );
+    } finally {
+      setNewsletterSubmitting(false);
+    }
+  };
 
 
   /* =====================================================
@@ -705,7 +795,8 @@ console.log("FOOTER SOCIAL SETTINGS", settings);
           </p>
 
 
-          <div
+          <form
+            onSubmit={handleNewsletterSubmit}
             className="
               mt-5
               flex
@@ -720,7 +811,14 @@ console.log("FOOTER SOCIAL SETTINGS", settings);
           >
 
             <input
+              type="email"
+              value={newsletterEmail}
+              onChange={(event) =>
+                setNewsletterEmail(event.target.value)
+              }
               placeholder="Enter your email"
+              autoComplete="email"
+              disabled={newsletterSubmitting}
 
               className="
                 min-w-0
@@ -729,12 +827,19 @@ console.log("FOOTER SOCIAL SETTINGS", settings);
                 px-5
                 text-sm
                 outline-none
+                disabled:cursor-not-allowed
+                disabled:opacity-60
               "
             />
 
 
             <button
+              type="submit"
+              disabled={newsletterSubmitting}
+
               className="
+                shrink-0
+
                 bg-gradient-to-r
                 from-[#B8862E]
                 via-[#D4AF37]
@@ -745,12 +850,17 @@ console.log("FOOTER SOCIAL SETTINGS", settings);
                 font-medium
 
                 text-black
+
+                transition-opacity
+
+                disabled:cursor-not-allowed
+                disabled:opacity-60
               "
             >
-              JOIN
+              {newsletterSubmitting ? "..." : "JOIN"}
             </button>
 
-          </div>
+          </form>
 
         </motion.div>
 
@@ -924,7 +1034,8 @@ console.log("FOOTER SOCIAL SETTINGS", settings);
         </p>
 
 
-        <div
+        <form
+          onSubmit={handleNewsletterSubmit}
           className="
             mt-5
             flex
@@ -939,7 +1050,14 @@ console.log("FOOTER SOCIAL SETTINGS", settings);
         >
 
           <input
+            type="email"
+            value={newsletterEmail}
+            onChange={(event) =>
+              setNewsletterEmail(event.target.value)
+            }
             placeholder="Enter your email"
+            autoComplete="email"
+            disabled={newsletterSubmitting}
 
             className="
               min-w-0
@@ -950,11 +1068,16 @@ console.log("FOOTER SOCIAL SETTINGS", settings);
               text-white
               placeholder:text-neutral-400
               outline-none
+              disabled:cursor-not-allowed
+              disabled:opacity-60
             "
           />
 
 
           <button
+            type="submit"
+            disabled={newsletterSubmitting}
+
             className="
               shrink-0
 
@@ -968,12 +1091,17 @@ console.log("FOOTER SOCIAL SETTINGS", settings);
               font-medium
 
               text-black
+
+              transition-opacity
+
+              disabled:cursor-not-allowed
+              disabled:opacity-60
             "
           >
-            JOIN
+            {newsletterSubmitting ? "..." : "JOIN"}
           </button>
 
-        </div>
+        </form>
 
       </div>
 
