@@ -1581,6 +1581,7 @@ export default function ProductCard({
                 }
 
                 className="
+                  shop-product-cart-button
                   flex
                   min-h-10
                   flex-1
@@ -1774,6 +1775,20 @@ export default function ProductCard({
             rgba(255, 255, 255, 0.96),
             transparent
           ) !important;
+        }
+
+        [data-shop-theme="light"] .shop-product-cart-button {
+          background: #ffffff !important;
+          border: 1px solid #d4af37 !important;
+          color: #29251c !important;
+          box-shadow: 0 4px 14px rgba(154, 122, 34, 0.08);
+        }
+
+        [data-shop-theme="light"] .shop-product-cart-button:hover {
+          background: #ffffff !important;
+          border-color: #c79f25 !important;
+          color: #9a7a22 !important;
+          box-shadow: 0 6px 18px rgba(154, 122, 34, 0.14);
         }
 
         [data-shop-theme="light"] .shop-product-wishlist {

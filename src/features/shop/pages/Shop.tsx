@@ -2934,6 +2934,51 @@ export default function Shop() {
         .shop-theme[data-shop-theme="light"] [class~="bg-white/[0.02]"] {
           background-color: #ffffff !important;
         }
+
+        /* =================================================
+           SHOP HEADER — LIGHT THEME CONTRAST
+           Keep the existing Dark theme untouched.
+        ================================================== */
+
+        .shop-theme[data-shop-theme="light"] > div > section h1 {
+          background-image: none !important;
+          background: none !important;
+          color: #9a7a22 !important;
+          -webkit-text-fill-color: #9a7a22 !important;
+          text-shadow: none !important;
+        }
+
+        .shop-theme[data-shop-theme="light"] > div > section p {
+          color: #57534a !important;
+        }
+
+        .shop-theme[data-shop-theme="light"] > div > section button[class~="text-neutral-500"] {
+          color: #57534a !important;
+        }
+
+        .shop-theme[data-shop-theme="light"] > div > section button[class~="text-neutral-500"]:hover {
+          color: #8a6d1f !important;
+        }
+
+        .shop-theme[data-shop-theme="light"] > div > section select {
+          color: #3f3b32 !important;
+          background-color: #ffffff !important;
+          border-color: #ded8ca !important;
+        }
+
+        .shop-theme[data-shop-theme="light"] > div > section input {
+          color: #29251c !important;
+        }
+
+        .shop-theme[data-shop-theme="light"] > div > section input::placeholder {
+          color: #8a8478 !important;
+          opacity: 1;
+        }
+
+        .shop-theme[data-shop-theme="light"] > div > section [class~="border-white/[0.06]"],
+        .shop-theme[data-shop-theme="light"] > div > section [class~="border-white/10"] {
+          border-color: #ded8ca !important;
+        }
       `}</style>
 
 
