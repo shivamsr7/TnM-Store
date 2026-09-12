@@ -167,6 +167,35 @@ export interface BirthdayCouponEmailPayload {
 }
 
 
+export type CustomerQueryStatus =
+  | "new"
+  | "in_progress"
+  | "resolved"
+  | "closed";
+
+export type CustomerQueryEmailEvent =
+  | "created"
+  | "status_changed"
+  | "response_added"
+  | "resolved"
+  | "closed";
+
+export interface CustomerQueryEmailPayload {
+  to: string;
+  customerName: string;
+  ticketNumber: string;
+  category: string;
+  orderNumber?: string | null;
+  message: string;
+  status: CustomerQueryStatus;
+  adminNote?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  resolvedAt?: string | null;
+  event: CustomerQueryEmailEvent;
+}
+
+
 class NotificationService {
 
 
@@ -3511,6 +3540,604 @@ class NotificationService {
         error,
       };
     }
+  }
+
+
+  async sendCustomerQueryEmail({
+    to,
+    customerName,
+    ticketNumber,
+    category,
+    orderNumber,
+    message,
+    status,
+    adminNote,
+    createdAt,
+    updatedAt,
+    resolvedAt,
+    event,
+  }: CustomerQueryEmailPayload) {
+    if (!to || !ticketNumber) {
+      return {
+        success: false,
+        skipped: true,
+      };
+    }
+
+    const escapeHtml = (value: string) =>
+      String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+    const formatDate = (value?: string | null) => {
+      if (!value) return "—";
+
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "—";
+
+      return date.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+    };
+
+    const statusMeta: Record<
+      CustomerQueryStatus,
+      {
+        label: string;
+        title: string;
+        icon: string;
+        iconBackground: string;
+        iconColor: string;
+      }
+    > = {
+      new: {
+        label: "New",
+        title: "We've Received Your Enquiry",
+        icon: "✓",
+        iconBackground: "#f3f7ef",
+        iconColor: "#4f7b45",
+      },
+      in_progress: {
+        label: "In Progress",
+        title: "We're Working on Your Enquiry",
+        icon: "◌",
+        iconBackground: "#fff7ed",
+        iconColor: "#a66a1f",
+      },
+      resolved: {
+        label: "Resolved",
+        title: "Your Enquiry Has Been Resolved",
+        icon: "✓",
+        iconBackground: "#f3f7ef",
+        iconColor: "#4f7b45",
+      },
+      closed: {
+        label: "Closed",
+        title: "Your Support Ticket Is Closed",
+        icon: "✓",
+        iconBackground: "#f3f4f6",
+        iconColor: "#5f6670",
+      },
+    };
+
+    const meta = statusMeta[status];
+
+    const eventContent: Record<
+      CustomerQueryEmailEvent,
+      {
+        subjectPrefix: string;
+        heading: string;
+        message: string;
+      }
+    > = {
+      created: {
+        subjectPrefix: "We've Received Your Enquiry",
+        heading: "Thank you for contacting us.",
+        message:
+          "Your enquiry has been successfully submitted. We've created a support ticket for you, and our team will review it shortly.",
+      },
+      status_changed: {
+        subjectPrefix: `Ticket Status Updated — ${meta.label}`,
+        heading: `Your ticket is now ${meta.label}.`,
+        message:
+          status === "in_progress"
+            ? "Our support team is currently reviewing your enquiry and working on the next steps."
+            : status === "resolved"
+              ? "We've completed the support work for your enquiry. Please review the response below."
+              : status === "closed"
+                ? "This support ticket has been closed. If you need further assistance, you can contact us again."
+                : "Your support ticket has been updated.",
+      },
+      response_added: {
+        subjectPrefix: "We've Replied to Your Enquiry",
+        heading: "There's an update from our support team.",
+        message:
+          "Our team has added a response to your support ticket. You can review it below.",
+      },
+      resolved: {
+        subjectPrefix: "Your Ticket Has Been Resolved",
+        heading: "We're happy to have this sorted for you.",
+        message:
+          "Your support enquiry has been resolved by our team. Please keep this ticket number for your records.",
+      },
+      closed: {
+        subjectPrefix: "Your Support Ticket Has Been Closed",
+        heading: "Your support ticket is now closed.",
+        message:
+          "Thank you for contacting T&M Jewels. If you need help with something else, we're always happy to assist.",
+      },
+    };
+
+    const content = eventContent[event];
+
+    const safeCustomerName = escapeHtml(customerName || "Customer");
+    const safeTicketNumber = escapeHtml(ticketNumber);
+    const safeCategory = escapeHtml(category);
+    const safeOrderNumber = orderNumber
+      ? escapeHtml(orderNumber)
+      : null;
+    const safeMessage = escapeHtml(message);
+    const safeAdminNote = adminNote
+      ? escapeHtml(adminNote)
+      : null;
+
+    const supportResponseSection = safeAdminNote
+      ? `
+        <tr>
+          <td style="padding:24px 24px 0;">
+            <div
+              style="
+                padding:20px;
+                background:#f3f7ef;
+                border:1px solid #dce9d6;
+                border-left:3px solid #4f7b45;
+              "
+            >
+              <div
+                style="
+                  font-family:Georgia,'Times New Roman',serif;
+                  font-size:20px;
+                  line-height:28px;
+                  font-weight:600;
+                  color:#49371d;
+                "
+              >
+                Support Response
+              </div>
+
+              <div
+                style="
+                  margin-top:10px;
+                  font-size:13px;
+                  line-height:22px;
+                  color:#55514b;
+                  white-space:pre-line;
+                "
+              >
+                ${safeAdminNote}
+              </div>
+            </div>
+          </td>
+        </tr>
+      `
+      : "";
+
+    const statusMessage =
+      event === "created"
+        ? "Your ticket number is your reference for all future communication."
+        : `Your ticket is currently marked as <strong>${escapeHtml(meta.label)}</strong>.`;
+
+    const resolvedDateRow =
+      status === "resolved" && resolvedAt
+        ? `
+          <tr>
+            <td style="padding:7px 0;font-size:13px;color:#77736c;">
+              Resolved On
+            </td>
+            <td align="right" style="padding:7px 0;font-size:13px;font-weight:600;color:#4f7b45;">
+              ${formatDate(resolvedAt)}
+            </td>
+          </tr>
+        `
+        : "";
+
+    const trackUrl =
+      `https://tnmonline.in/contact-us?ticket=${encodeURIComponent(ticketNumber)}`;
+
+    return this.sendEmail({
+      to,
+      subject: `T&M Jewels — ${content.subjectPrefix} | ${ticketNumber}`,
+      html: `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>T&amp;M Jewels — Support Ticket</title>
+</head>
+
+<body
+  style="
+    margin:0;
+    padding:0;
+    background:#f5f3ef;
+    color:#222222;
+    font-family:Arial,Helvetica,sans-serif;
+    -webkit-text-size-adjust:100%;
+  "
+>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f5f3ef;">
+  <tr>
+    <td align="center" style="padding:28px 12px;">
+      <table
+        role="presentation"
+        width="100%"
+        cellspacing="0"
+        cellpadding="0"
+        border="0"
+        style="
+          width:100%;
+          max-width:640px;
+          background:#ffffff;
+          border:1px solid #e9e3d8;
+        "
+      >
+
+        <tr>
+          <td
+            align="center"
+            style="
+              padding:30px 20px 24px;
+              border-bottom:1px solid #eeeae2;
+            "
+          >
+            <img
+              src="https://wzphyyoftwxvpqxtfgtb.supabase.co/storage/v1/object/public/Logo/MainLogo.png"
+              alt="T&amp;M Jewels"
+              width="190"
+              style="
+                display:block;
+                width:190px;
+                max-width:80%;
+                height:auto;
+                margin:0 auto;
+              "
+            />
+
+            <div
+              style="
+                margin-top:10px;
+                font-size:11px;
+                line-height:18px;
+                letter-spacing:1.5px;
+                color:#999287;
+                text-transform:uppercase;
+              "
+            >
+              Create your own style. Create your own trend.
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="padding:40px 24px 24px;">
+            <div
+              style="
+                width:58px;
+                height:58px;
+                line-height:58px;
+                border-radius:50%;
+                background:${meta.iconBackground};
+                color:${meta.iconColor};
+                font-size:26px;
+                font-weight:bold;
+              "
+            >
+              ${meta.icon}
+            </div>
+
+            <h1
+              style="
+                margin:18px 0 10px;
+                font-family:Georgia,'Times New Roman',serif;
+                font-size:29px;
+                line-height:38px;
+                font-weight:600;
+                color:#8b6424;
+              "
+            >
+              ${content.heading}
+            </h1>
+
+            <p
+              style="
+                margin:0;
+                max-width:500px;
+                font-size:14px;
+                line-height:24px;
+                color:#6e6a63;
+              "
+            >
+              Dear ${safeCustomerName},<br><br>
+              ${content.message}
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:4px 24px 20px;">
+            <table
+              role="presentation"
+              width="100%"
+              cellspacing="0"
+              cellpadding="0"
+              border="0"
+              style="
+                background:#faf8f3;
+                border:1px solid #e8dfd0;
+              "
+            >
+              <tr>
+                <td
+                  width="50%"
+                  style="
+                    padding:17px;
+                    border-right:1px solid #e5ddcf;
+                  "
+                >
+                  <div style="font-size:10px;line-height:16px;color:#9c968c;text-transform:uppercase;letter-spacing:1.2px;">
+                    Ticket Number
+                  </div>
+                  <div style="margin-top:5px;font-size:16px;line-height:22px;font-weight:700;color:#8b6424;">
+                    ${safeTicketNumber}
+                  </div>
+                </td>
+
+                <td width="50%" style="padding:17px;">
+                  <div style="font-size:10px;line-height:16px;color:#9c968c;text-transform:uppercase;letter-spacing:1.2px;">
+                    Current Status
+                  </div>
+                  <div style="margin-top:5px;font-size:14px;line-height:22px;font-weight:700;color:${meta.iconColor};">
+                    ${escapeHtml(meta.label)}
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:0 24px 20px;">
+            <div
+              style="
+                padding:18px;
+                background:#faf8f3;
+                border:1px solid #e8dfd0;
+              "
+            >
+              <div
+                style="
+                  font-family:Georgia,'Times New Roman',serif;
+                  font-size:20px;
+                  line-height:28px;
+                  font-weight:600;
+                  color:#49371d;
+                "
+              >
+                Ticket Details
+              </div>
+
+              <table
+                role="presentation"
+                width="100%"
+                cellspacing="0"
+                cellpadding="0"
+                border="0"
+                style="margin-top:10px;"
+              >
+                <tr>
+                  <td style="padding:7px 0;font-size:13px;color:#77736c;">
+                    Category
+                  </td>
+                  <td align="right" style="padding:7px 0;font-size:13px;font-weight:600;color:#222222;">
+                    ${safeCategory}
+                  </td>
+                </tr>
+
+                ${
+                  safeOrderNumber
+                    ? `
+                <tr>
+                  <td style="padding:7px 0;font-size:13px;color:#77736c;">
+                    Order Number
+                  </td>
+                  <td align="right" style="padding:7px 0;font-size:13px;font-weight:600;color:#222222;">
+                    #${safeOrderNumber}
+                  </td>
+                </tr>
+                `
+                    : ""
+                }
+
+                <tr>
+                  <td style="padding:7px 0;font-size:13px;color:#77736c;">
+                    Submitted On
+                  </td>
+                  <td align="right" style="padding:7px 0;font-size:13px;font-weight:600;color:#222222;">
+                    ${formatDate(createdAt)}
+                  </td>
+                </tr>
+
+                ${
+                  event !== "created" && updatedAt
+                    ? `
+                <tr>
+                  <td style="padding:7px 0;font-size:13px;color:#77736c;">
+                    Last Updated
+                  </td>
+                  <td align="right" style="padding:7px 0;font-size:13px;font-weight:600;color:#222222;">
+                    ${formatDate(updatedAt)}
+                  </td>
+                </tr>
+                `
+                    : ""
+                }
+
+                ${resolvedDateRow}
+              </table>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:0 24px 20px;">
+            <div
+              style="
+                padding:18px;
+                background:#fbfaf7;
+                border-left:3px solid #c8a44d;
+              "
+            >
+              <div
+                style="
+                  font-family:Georgia,'Times New Roman',serif;
+                  font-size:19px;
+                  line-height:27px;
+                  font-weight:600;
+                  color:#49371d;
+                "
+              >
+                Your Enquiry
+              </div>
+
+              <div
+                style="
+                  margin-top:10px;
+                  font-size:13px;
+                  line-height:22px;
+                  color:#5f5a53;
+                  white-space:pre-line;
+                "
+              >
+                ${safeMessage}
+              </div>
+            </div>
+          </td>
+        </tr>
+
+        ${supportResponseSection}
+
+        <tr>
+          <td style="padding:24px 24px 0;">
+            <div
+              style="
+                padding:18px;
+                background:#faf8f3;
+                border:1px solid #e8dfd0;
+              "
+            >
+              <div
+                style="
+                  font-family:Georgia,'Times New Roman',serif;
+                  font-size:19px;
+                  line-height:27px;
+                  font-weight:600;
+                  color:#49371d;
+                "
+              >
+                Ticket Status
+              </div>
+
+              <div
+                style="
+                  margin-top:9px;
+                  font-size:13px;
+                  line-height:21px;
+                  color:#625e57;
+                "
+              >
+                ${statusMessage}
+              </div>
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="padding:24px 24px 8px;">
+            <a
+              href="${trackUrl}"
+              target="_blank"
+              style="
+                display:inline-block;
+                padding:13px 28px;
+                background:#8b6424;
+                color:#ffffff;
+                text-decoration:none;
+                font-size:12px;
+                font-weight:700;
+                letter-spacing:.8px;
+              "
+            >
+              TRACK YOUR TICKET&nbsp; →
+            </a>
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="padding:18px 24px 34px;">
+            <div
+              style="
+                font-size:12px;
+                line-height:20px;
+                color:#999287;
+              "
+            >
+              Keep your ticket number
+              <strong style="color:#8b6424;">
+                ${safeTicketNumber}
+              </strong>
+              for future reference.
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="padding:32px 24px;border-top:1px solid #eeeae2;">
+            <img
+              src="https://wzphyyoftwxvpqxtfgtb.supabase.co/storage/v1/object/public/Logo/MainLogo.png"
+              alt="T&amp;M Jewels"
+              width="125"
+              style="display:block;width:125px;height:auto;margin:0 auto;"
+            />
+
+            <div style="margin-top:12px;font-size:12px;line-height:20px;color:#999287;">
+              Need more help?
+              <br>
+              Contact us at
+              <strong>shop.tnm.official@gmail.com</strong>
+            </div>
+
+            <div style="margin-top:14px;font-size:11px;line-height:18px;color:#aaa49a;">
+              © T&amp;M Jewels. All rights reserved.
+            </div>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>
+      `,
+    });
   }
 
 

@@ -1,5 +1,6 @@
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 
 import {
@@ -29,6 +30,10 @@ import {
 import {
   storageService,
 } from "@/shared/services/storage.service";
+
+import {
+  sendCustomerQueryCreatedEmail,
+} from "@/shared/services/customerQueryEmail.service";
 
 
 const MAX_ATTACHMENTS = 3;
@@ -70,6 +75,8 @@ export default function ContactUs() {
   const {
     customer,
   } = useAuth();
+
+  const [searchParams] = useSearchParams();
 
 
   /* =====================================================
@@ -170,6 +177,21 @@ export default function ContactUs() {
 
     setTrackEmail(customer.email);
   }, [customer?.email]);
+
+  useEffect(() => {
+    const ticketFromUrl = searchParams.get("ticket")?.trim().toUpperCase();
+
+    if (!ticketFromUrl) return;
+
+    setTrackTicketNumber(ticketFromUrl);
+    setTrackDialogOpen(true);
+    setTrackError("");
+    setTrackedTicket(null);
+
+    if (customer?.email) {
+      setTrackEmail(customer.email);
+    }
+  }, [searchParams, customer?.email]);
 
 
   /* =====================================================
@@ -630,6 +652,26 @@ export default function ContactUs() {
       setTicketNumber(
         query.ticket_number
       );
+
+      // Email delivery must never block ticket creation.
+      try {
+        const emailResult = await sendCustomerQueryCreatedEmail({
+          to: formData.email.trim(),
+          customerName: formData.name.trim(),
+          ticketNumber: query.ticket_number,
+          category: formData.category,
+          orderNumber: formData.orderNumber.trim() || null,
+          message: formData.message.trim(),
+          status: "new",
+          createdAt: new Date().toISOString(),
+        });
+
+        if (!emailResult?.success) {
+          console.warn("Ticket created, but acknowledgement email was not sent.");
+        }
+      } catch (emailError) {
+        console.error("Ticket acknowledgement email failed:", emailError);
+      }
 
 
       /* =================================================
