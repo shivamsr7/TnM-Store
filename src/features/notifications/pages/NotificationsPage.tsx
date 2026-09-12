@@ -5,14 +5,10 @@ import {
 
 
 import {
-  useNavigate,
-} from "react-router-dom";
-
-
-import {
   Bell,
   CheckCheck,
   ChevronRight,
+  ChevronDown,
   CreditCard,
   Gift,
   Package,
@@ -40,6 +36,9 @@ import {
 import {
   groupNotifications,
 } from "../utils/groupNotifications";
+
+
+import OrderDetailsDialog from "@/features/orders/components/OrderDetailsDialog";
 
 
 
@@ -115,7 +114,7 @@ function getNotificationStyle(
     default:
       return {
         icon:
-          "bg-neutral-800 text-neutral-400",
+          "bg-neutral-800 text-neutral-500",
         dot:
           "bg-neutral-400",
       };
@@ -131,16 +130,24 @@ function getNotificationStyle(
 export default function NotificationsPage() {
 
 
-  const navigate =
-    useNavigate();
-
-
   const [
     tab,
     setTab,
   ] = useState<
     "all" | "unread"
   >("all");
+
+
+  const [
+    selectedOrder,
+    setSelectedOrder,
+  ] = useState<string | null>(null);
+
+
+  const [
+    visibleCount,
+    setVisibleCount,
+  ] = useState(15);
 
 
   const {
@@ -203,10 +210,27 @@ export default function NotificationsPage() {
 
 
 
+  /*
+   * Keep the full notification history available in the query,
+   * but only render a small recent window at first. Older
+   * notifications can be revealed progressively.
+   */
+  const visibleNotifications =
+    filteredNotifications.slice(
+      0,
+      visibleCount
+    );
+
+
   const groupedNotifications =
     groupNotifications(
-      filteredNotifications
+      visibleNotifications
     );
+
+
+  const hasMoreNotifications =
+    visibleCount <
+    filteredNotifications.length;
 
 
 
@@ -231,8 +255,8 @@ export default function NotificationsPage() {
       item.reference_id
     ) {
 
-      navigate(
-        `/account/orders/${item.reference_id}`
+      setSelectedOrder(
+        item.reference_id
       );
 
     }
@@ -250,12 +274,12 @@ export default function NotificationsPage() {
       <div
         className="
           min-h-[60vh]
-          bg-black
+          bg-[#f7f5f0]
           px-4
           py-12
           text-center
           text-sm
-          text-neutral-400
+          text-neutral-600
         "
       >
 
@@ -278,12 +302,12 @@ export default function NotificationsPage() {
       <div
         className="
           min-h-[60vh]
-          bg-black
+          bg-[#f7f5f0]
           px-4
           py-12
           text-center
           text-sm
-          text-neutral-400
+          text-neutral-600
         "
       >
 
@@ -304,11 +328,11 @@ export default function NotificationsPage() {
     <div
       className="
         min-h-screen
-        bg-black
+        bg-[#f7f5f0]
         px-4
         pb-10
         pt-5
-        text-white
+        text-neutral-950
         sm:px-6
       "
     >
@@ -386,7 +410,7 @@ export default function NotificationsPage() {
                 text-3xl
                 font-semibold
                 tracking-tight
-                text-white
+                text-neutral-950
                 sm:text-4xl
               "
             >
@@ -445,7 +469,7 @@ export default function NotificationsPage() {
                   duration-200
                   hover:border-[#C8A44D]/50
                   hover:bg-[#C8A44D]/10
-                  hover:text-white
+                  hover:text-neutral-950
                   active:scale-95
                 "
               >
@@ -479,8 +503,8 @@ export default function NotificationsPage() {
             gap-3
             rounded-2xl
             border
-            border-neutral-800
-            bg-[#0D0D0D]
+            border-[#e6e1d7]
+            bg-white
             px-4
             py-3.5
           "
@@ -520,7 +544,7 @@ export default function NotificationsPage() {
                 className="
                   text-xs
                   font-medium
-                  text-white
+                  text-neutral-950
                 "
               >
 
@@ -541,11 +565,11 @@ export default function NotificationsPage() {
                 className="
                   mt-0.5
                   text-[10px]
-                  text-neutral-600
+                  text-neutral-500
                 "
               >
 
-                {notifications.length} total updates
+                {notifications.length} total updates · showing the most recent first
 
               </p>
 
@@ -585,17 +609,18 @@ export default function NotificationsPage() {
             inline-flex
             rounded-full
             border
-            border-neutral-800
-            bg-[#0D0D0D]
+            border-[#e6e1d7]
+            bg-white
             p-1
           "
         >
 
           <button
             type="button"
-            onClick={() =>
-              setTab("all")
-            }
+            onClick={() => {
+              setTab("all");
+              setVisibleCount(15);
+            }}
             className={`
               inline-flex
               items-center
@@ -611,7 +636,7 @@ export default function NotificationsPage() {
               ${
                 tab === "all"
                   ? "bg-[#C8A44D] text-black"
-                  : "text-neutral-400 hover:text-white"
+                  : "text-neutral-500 hover:text-neutral-950"
               }
             `}
           >
@@ -624,7 +649,7 @@ export default function NotificationsPage() {
                 ${
                   tab === "all"
                     ? "text-black/60"
-                    : "text-neutral-600"
+                    : "text-neutral-500"
                 }
               `}
             >
@@ -636,9 +661,10 @@ export default function NotificationsPage() {
 
           <button
             type="button"
-            onClick={() =>
-              setTab("unread")
-            }
+            onClick={() => {
+              setTab("unread");
+              setVisibleCount(15);
+            }}
             className={`
               inline-flex
               items-center
@@ -654,7 +680,7 @@ export default function NotificationsPage() {
               ${
                 tab === "unread"
                   ? "bg-[#C8A44D] text-black"
-                  : "text-neutral-400 hover:text-white"
+                  : "text-neutral-500 hover:text-neutral-950"
               }
             `}
           >
@@ -701,8 +727,8 @@ export default function NotificationsPage() {
                 mt-5
                 rounded-2xl
                 border
-                border-neutral-800
-                bg-[#0D0D0D]
+                border-[#e6e1d7]
+                bg-white
                 px-5
                 py-12
                 text-center
@@ -736,7 +762,7 @@ export default function NotificationsPage() {
                   mt-4
                   text-sm
                   font-semibold
-                  text-white
+                  text-neutral-950
                 "
               >
 
@@ -821,7 +847,7 @@ export default function NotificationsPage() {
                         <span
                           className="
                             text-[10px]
-                            text-neutral-700
+                            text-neutral-500
                           "
                         >
 
@@ -840,8 +866,8 @@ export default function NotificationsPage() {
                           overflow-hidden
                           rounded-2xl
                           border
-                          border-neutral-800
-                          bg-[#0D0D0D]
+                          border-[#e6e1d7]
+                          bg-white
                         "
                       >
 
@@ -892,13 +918,13 @@ export default function NotificationsPage() {
                                     text-left
                                     transition-colors
                                     duration-200
-                                    hover:bg-[#111111]
-                                    active:bg-[#151515]
+                                    hover:bg-[#fffdf9]
+                                    active:bg-[#fbf8f1]
                                     sm:px-5
 
                                     ${
                                       index > 0
-                                        ? "border-t border-neutral-800"
+                                        ? "border-t border-[#e6e1d7]"
                                         : ""
                                     }
 
@@ -1006,8 +1032,8 @@ export default function NotificationsPage() {
                                               font-medium
                                               ${
                                                 isUnread
-                                                  ? "text-white"
-                                                  : "text-neutral-300"
+                                                  ? "text-neutral-950"
+                                                  : "text-neutral-800"
                                               }
                                             `}
                                           >
@@ -1044,7 +1070,7 @@ export default function NotificationsPage() {
                                             leading-5
                                             ${
                                               isUnread
-                                                ? "text-neutral-400"
+                                                ? "text-neutral-500"
                                                 : "text-neutral-500"
                                             }
                                           `}
@@ -1070,7 +1096,7 @@ export default function NotificationsPage() {
                                         <span
                                           className="
                                             text-[10px]
-                                            text-neutral-600
+                                            text-neutral-500
                                           "
                                         >
 
@@ -1089,7 +1115,7 @@ export default function NotificationsPage() {
                                             <ChevronRight
                                               size={14}
                                               className="
-                                                text-neutral-700
+                                                text-neutral-500
                                                 transition-all
                                                 duration-200
                                                 group-hover:translate-x-0.5
@@ -1155,6 +1181,82 @@ export default function NotificationsPage() {
         }
 
       </div>
+
+
+      {
+        hasMoreNotifications && (
+          <div
+            className="
+              mt-6
+              flex
+              flex-col
+              items-center
+              gap-2
+            "
+          >
+
+            <p
+              className="
+                text-[10px]
+                text-neutral-500
+              "
+            >
+              Showing {visibleNotifications.length} of{" "}
+              {filteredNotifications.length} notifications
+            </p>
+
+            <button
+              type="button"
+              onClick={() =>
+                setVisibleCount(
+                  (current) =>
+                    current + 15
+                )
+              }
+              className="
+                inline-flex
+                min-h-10
+                items-center
+                gap-2
+                rounded-full
+                border
+                border-[#C8A44D]/30
+                bg-white
+                px-5
+                text-xs
+                font-semibold
+                text-[#9A7A22]
+                shadow-sm
+                transition
+
+                hover:border-[#C8A44D]/60
+                hover:bg-[#fffdf9]
+
+                active:scale-[0.98]
+              "
+            >
+              Load older notifications
+              <ChevronDown
+                size={14}
+              />
+            </button>
+
+          </div>
+        )
+      }
+
+
+      <OrderDetailsDialog
+        open={
+          Boolean(selectedOrder)
+        }
+        orderId={
+          selectedOrder
+        }
+        onClose={() =>
+          setSelectedOrder(null)
+        }
+      />
 
     </div>
 
