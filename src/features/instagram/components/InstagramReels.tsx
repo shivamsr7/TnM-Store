@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import {
   ChevronDown,
   ExternalLink,
@@ -629,19 +630,24 @@ export default function InstagramReels() {
           REEL MODAL
       ====================================================== */}
 
-      {selectedReel && (
+      {selectedReel &&
+        typeof document !== "undefined" &&
+        createPortal(
         <div
           className="
             fixed
             inset-0
-            z-[9999]
+            z-[99999]
             flex
+            h-[100dvh]
+            w-[100vw]
             items-center
             justify-center
+            overflow-hidden
             bg-black/90
-            p-4
+            p-3
             backdrop-blur-md
-            sm:p-6
+            sm:p-5
           "
           role="dialog"
           aria-modal="true"
@@ -664,7 +670,8 @@ export default function InstagramReels() {
             className="
               relative
               flex
-              max-h-[92vh]
+              h-auto
+              max-h-[calc(100dvh-24px)]
               w-full
               max-w-[430px]
               flex-col
@@ -725,15 +732,13 @@ export default function InstagramReels() {
             <div
               className="
                 relative
-                h-[56vh]
-                max-h-[560px]
-                min-h-[380px]
+                h-[min(62dvh,600px)]
+                max-h-[calc(100dvh-190px)]
+                min-h-0
                 w-full
                 shrink-0
                 overflow-hidden
                 bg-black
-                sm:h-[62vh]
-                sm:max-h-[600px]
               "
             >
 
@@ -1079,7 +1084,8 @@ export default function InstagramReels() {
 
           </div>
 
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
