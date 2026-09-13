@@ -61,32 +61,43 @@ export default function ProductDetails() {
   );
 
 
-
   /*
    * =========================================================
-   * LIVE ACTIVITY — VIEWING PRODUCT
+   * PRODUCT VIEW ANALYTICS
    * =========================================================
    *
-   * MainLayout keeps the visitor alive, while this effect
-   * records the meaningful current activity without creating
-   * another historical product-view event.
+   * Track a product view only after the product has loaded
+   * successfully.
+   *
+   * The analytics service automatically attaches:
+   *
+   * - visitor ID
+   * - session ID
+   * - product ID
+   * - current page path
+   * - device type
+   * - referrer
    */
 
   useEffect(() => {
 
-    if (!product?.id) {
+    if (
+      !product?.id
+    ) {
+
       return;
+
     }
 
-    void analyticsService.trackViewingProduct(
-      product.id,
-      product.name
+
+    void analyticsService.trackProductView(
+      product.id
     );
 
   }, [
     product?.id,
-    product?.name,
   ]);
+
 
   /*
    * =========================================================

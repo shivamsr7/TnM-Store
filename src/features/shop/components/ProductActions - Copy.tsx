@@ -17,15 +17,15 @@ import WishlistButton from "@/features/wishlist/components/WishlistButton";
 import NotifyDialog from "@/features/notify/components/NotifyDialog";
 
 import { useState } from "react";
+
+import {
+  analyticsService,
+} from "@/features/analytics/services/analytics.service";
 import { createPortal } from "react-dom";
 
 import {
   getEffectiveProductPrice,
 } from "@/features/products/utils/specialDiscount";
-
-import {
-  analyticsService,
-} from "@/features/analytics/services/analytics.service";
 
 
 interface ProductActionsProps {
@@ -124,12 +124,14 @@ export default function ProductActions({
     });
 
     /*
-     * Live activity — shopper added this product to cart.
-     * This is non-blocking and does not affect cart behaviour.
+     * Analytics:
+     * Record the product as added to cart only after the
+     * existing cart action has been triggered.
+     *
+     * This does not affect cart behaviour if analytics fails.
      */
-    void analyticsService.trackCartActivity(
+    void analyticsService.trackAddToCart(
       product.id,
-      product.name,
       1
     );
 
@@ -182,6 +184,16 @@ export default function ProductActions({
     const effectivePrice =
       getEffectiveProductPrice(product);
 
+    /*
+     * Buy Now is a checkout-intent event rather than a
+     * persistent cart action, so it is tracked separately
+     * from Add to Cart.
+     */
+    void analyticsService.trackCheckoutStarted(
+      product.id,
+      buyNowQuantity
+    );
+
     setBuyNowItem({
       id: crypto.randomUUID(),
       productId: product.id,
@@ -194,19 +206,6 @@ export default function ProductActions({
     });
 
     setBuyNowPopupOpen(false);
-
-    /*
-     * Live activity — checkout is actually being opened.
-     * This intentionally happens here rather than when the
-     * Buy Now button is first pressed, because this is the
-     * point where the temporary checkout item has been created.
-     */
-    void analyticsService.trackCheckoutActivity(
-      product.id,
-      product.name,
-      buyNowQuantity
-    );
-
     setCheckoutOpen(true);
   };
 

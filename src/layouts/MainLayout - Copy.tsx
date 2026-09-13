@@ -138,33 +138,34 @@ export default function MainLayout() {
       `${location.pathname}${location.search}`;
 
     /*
-     * Historical page-view event.
+     * Record the page view immediately when the route changes.
      */
     void analyticsService.trackPageView(
       pagePath
     );
 
     /*
-     * Mark the visitor active immediately on navigation.
-     * This also resets the live activity to normal browsing
-     * until a more meaningful activity (product/cart/checkout)
-     * is recorded.
+     * =======================================================
+     * LIVE VISITOR HEARTBEAT
+     * =======================================================
+     *
+     * The presence table is separate from historical
+     * analytics events.
+     *
+     * A visitor is considered live when the last heartbeat
+     * is within 2 minutes. We refresh it every 30 seconds.
+     *
+     * This also updates automatically whenever the visitor
+     * changes route.
      */
-    void analyticsService.trackBrowsing(
+    void analyticsService.trackPresence(
       pagePath
     );
 
-    /*
-     * Keep the visitor alive every 30 seconds.
-     *
-     * IMPORTANT:
-     * refreshPresence() only updates last_seen/current page.
-     * It does NOT overwrite the latest meaningful activity.
-     */
     const heartbeat =
       window.setInterval(() => {
 
-        void analyticsService.refreshPresence(
+        void analyticsService.trackPresence(
           pagePath
         );
 

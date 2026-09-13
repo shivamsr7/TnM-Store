@@ -11,6 +11,10 @@ import {
   notificationService
 } from "@/features/notifications/services/notification.service";
 
+import {
+  analyticsService
+} from "@/features/analytics/services/analytics.service";
+
 
 function generateOrderNumber() {
 
@@ -567,6 +571,28 @@ export async function createOrder(
   const finalOrderNumber =
     createdOrder.order_number ??
     orderNumber;
+
+
+  /*
+   * =========================================================
+   * ANALYTICS — ORDER PLACED
+   * =========================================================
+   *
+   * Track the purchase only after:
+   * 1. create_order_transaction() succeeded
+   * 2. the created order was successfully fetched
+   *
+   * This prevents failed/abandoned checkouts from being counted.
+   *
+   * We intentionally do NOT track this for already-existing
+   * payment transactions because those are retry/recovery flows
+   * and must not create duplicate purchase analytics.
+   */
+  void analyticsService.trackOrderPlaced();
+
+  void analyticsService.trackOrderActivity(
+    finalOrderNumber
+  );
 
 
   /*

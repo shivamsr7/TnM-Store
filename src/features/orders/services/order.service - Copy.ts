@@ -11,6 +11,10 @@ import {
   notificationService
 } from "@/features/notifications/services/notification.service";
 
+import {
+  analyticsService
+} from "@/features/analytics/services/analytics.service";
+
 
 function generateOrderNumber() {
 
@@ -159,23 +163,13 @@ async function getWalletPaymentAmount(
 }
 
 
-async function getWalletBalanceRemaining(
-  customerId: string | null
-): Promise<number | null> {
-  if (!customerId) {
-    return null;
-  }
-
+async function getWalletBalanceRemaining(): Promise<number | null> {
   try {
     const {
       data,
       error,
     } = await supabase.rpc(
-      "admin_get_customer_wallet",
-      {
-        p_customer_id:
-          customerId,
-      }
+      "get_my_wallet_balance"
     );
 
     if (error) {
@@ -192,7 +186,7 @@ async function getWalletBalanceRemaining(
         : data;
 
     if (!wallet) {
-      return null;
+      return 0;
     }
 
     return Math.max(
@@ -580,6 +574,24 @@ export async function createOrder(
 
 
   /*
+   * =========================================================
+   * ANALYTICS — ORDER PLACED
+   * =========================================================
+   *
+   * Track the purchase only after:
+   * 1. create_order_transaction() succeeded
+   * 2. the created order was successfully fetched
+   *
+   * This prevents failed/abandoned checkouts from being counted.
+   *
+   * We intentionally do NOT track this for already-existing
+   * payment transactions because those are retry/recovery flows
+   * and must not create duplicate purchase analytics.
+   */
+  void analyticsService.trackOrderPlaced();
+
+
+  /*
    * Gift Wrap values come from the created order so the
    * first customer email uses the server-authoritative amount.
    */
@@ -615,10 +627,7 @@ export async function createOrder(
       );
 
     const walletBalanceRemaining =
-      await getWalletBalanceRemaining(
-        payload.customerId ??
-        null
-      );
+      await getWalletBalanceRemaining();
 
     const finalSubtotal =
       Number(
@@ -674,94 +683,54 @@ export async function createOrder(
         finalAdvanceAmount
       );
 
-    const finalCustomerEmail =
-      payload.customer.email.trim();
-
-    const finalCustomerName =
-      payload.customer.name;
-
-    const finalOrderDate =
-      createdOrder.created_at ??
-      new Date().toISOString();
-
-    const finalPaymentMethod =
-      payload.paymentMethod;
-
-    const finalCouponCode =
-      payload.coupon?.code ??
-      null;
-
-    const finalShipping = {
-      fullName:
-        payload.shipping.fullName,
-
-      phone:
-        payload.shipping.phone,
-
-      address:
-        payload.shipping.address,
-
-      city:
-        payload.shipping.city,
-
-      state:
-        payload.shipping.state,
-
-      pincode:
-        payload.shipping.pincode,
-
-      landmark:
-        payload.shipping.landmark ??
-        null,
-    };
-
-    const finalItems =
-      payload.items.map(
-        item => ({
-          productName:
-            item.productName,
-
-          productImage:
-            item.productImage ??
-            null,
-
-          price:
-            Number(
-              item.price
-            ),
-
-          quantity:
-            item.quantity,
-
-          total:
-            Number(
-              item.total
-            ),
-        })
-      );
-
     try {
 
       const result =
         await notificationService.sendOrderStatusEmail({
 
           to:
-            finalCustomerEmail,
+            payload.customer.email,
 
           customerName:
-            finalCustomerName,
+            payload.customer.name,
 
           orderNumber:
             finalOrderNumber,
 
           orderDate:
-            finalOrderDate,
+            createdOrder.created_at ??
+            new Date().toISOString(),
 
           status:
             "placed",
 
           items:
-            finalItems,
+
+            payload.items.map(
+              item => ({
+
+                productName:
+                  item.productName,
+
+                productImage:
+                  item.productImage ??
+                  null,
+
+                price:
+                  Number(
+                    item.price
+                  ),
+
+                quantity:
+                  item.quantity,
+
+                total:
+                  Number(
+                    item.total
+                  ),
+
+              })
+            ),
 
           subtotal:
             finalSubtotal,
@@ -785,7 +754,7 @@ export async function createOrder(
             finalTotalAmount,
 
           paymentMethod:
-            finalPaymentMethod,
+            payload.paymentMethod,
 
           advanceAmount:
             finalAdvanceAmount,
@@ -797,7 +766,8 @@ export async function createOrder(
             paymentTransactionId,
 
           couponCode:
-            finalCouponCode,
+            payload.coupon?.code ??
+            null,
 
           walletAmount:
             walletPaymentAmount,
@@ -805,8 +775,29 @@ export async function createOrder(
           walletBalanceRemaining:
             walletBalanceRemaining,
 
-          shipping:
-            finalShipping,
+          shipping: {
+            fullName:
+              payload.shipping.fullName,
+
+            phone:
+              payload.shipping.phone,
+
+            address:
+              payload.shipping.address,
+
+            city:
+              payload.shipping.city,
+
+            state:
+              payload.shipping.state,
+
+            pincode:
+              payload.shipping.pincode,
+
+            landmark:
+              payload.shipping.landmark ??
+              null,
+          },
 
           courierName:
             null,
