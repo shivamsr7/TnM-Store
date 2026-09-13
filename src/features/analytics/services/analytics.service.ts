@@ -282,6 +282,40 @@ class AnalyticsService {
         : "Order placed"
     );
   }
+  /**
+   * Refreshes the live-presence heartbeat without changing
+   * the visitor's latest meaningful activity.
+   */
+  async refreshPresence(
+    pagePath = window.location.pathname,
+    productId: string | null = null
+  ) {
+    if (typeof window === "undefined") return;
+
+    this.init();
+
+    if (!this.visitorId || !this.sessionId) return;
+
+    try {
+      const { error } = await supabase.rpc(
+        "refresh_website_analytics_presence",
+        {
+          p_visitor_id: this.visitorId,
+          p_session_id: this.sessionId,
+          p_page_path: (pagePath || window.location.pathname).slice(0, 500),
+          p_product_id: productId,
+          p_device_type: getDeviceType(),
+        }
+      );
+
+      if (error) {
+        console.error("Live presence refresh failed:", error);
+      }
+    } catch (error) {
+      console.error("Live presence refresh failed:", error);
+    }
+  }
+
 }
 
 export const analyticsService = new AnalyticsService();
