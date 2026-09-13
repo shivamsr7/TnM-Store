@@ -65,7 +65,8 @@ import OrderDetails
 
 import NotificationsPage
   from "@/features/notifications/pages/NotificationsPage";
-
+import PlayEarnPage
+  from "@/features/playEarn/pages/PlayEarnPage";
 
 import Wishlist
   from "@/features/wishlist/pages/Wishlist";
@@ -76,6 +77,12 @@ import ReviewProductPage
 
 import ReviewEarnPage
   from "@/features/reviews/pages/ReviewEarnPage";
+
+  import ThreeNumbersGame
+  from "@/features/playEarn/components/ThreeNumbersGame";
+
+  import MemberOnlyRoute
+  from "@/features/Auth/components/MemberOnlyRoute";
 
 export default function AppRouter() {
 
@@ -238,7 +245,27 @@ export default function AppRouter() {
     <WalletPage />
   }
 />
+{/* =================================================
+    PLAY & EARN
+================================================== */}
 
+<Route
+  path="/play-and-earn"
+  element={
+    <MemberOnlyRoute>
+      <PlayEarnPage />
+    </MemberOnlyRoute>
+  }
+/>
+
+<Route
+  path="/play-and-earn/three-numbers"
+  element={
+    <MemberOnlyRoute>
+      <ThreeNumbersGame />
+    </MemberOnlyRoute>
+  }
+/>
           {/* =================================================
               ORDERS
           ================================================== */}
