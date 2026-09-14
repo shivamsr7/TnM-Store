@@ -41,20 +41,6 @@ interface GameSetting {
   reward_config: Record<string, unknown>;
 }
 
-interface GameUnlockStatus {
-  game_key: GameKey;
-  unlocked: boolean;
-  unlock_type: string;
-  required_orders: number;
-  qualifying_orders: number;
-  remaining_orders: number;
-  minimum_order_value_paise: number;
-  order_value_basis?: string;
-  qualifying_statuses?: string[];
-  permanent?: boolean;
-  keep_after_refund?: boolean;
-}
-
 interface PlayEarnCheckoutSettings {
   redemption_enabled: boolean;
   minimum_order_value_paise: number;
@@ -102,9 +88,9 @@ const GAME_META: Record<
     icon: "🎁",
     title: "Scratch & Win",
     description:
-      "Scratch your card and reveal your assured reward.",
+      "Scratch your card and reveal your surprise reward.",
     accent: "purple",
-    actionLabel: "Start Scratching",
+    actionLabel: "Play Now",
     badge: "Live Now",
   },
 
@@ -156,21 +142,6 @@ export default function PlayEarnPage() {
     checkoutSettingsLoading,
     setCheckoutSettingsLoading,
   ] = useState(true);
-
-  const [
-    unlockStatuses,
-    setUnlockStatuses,
-  ] = useState<Partial<Record<GameKey, GameUnlockStatus>>>({});
-
-  const [
-    unlockLoading,
-    setUnlockLoading,
-  ] = useState(true);
-
-  const [
-    unlockError,
-    setUnlockError,
-  ] = useState<string | null>(null);
 
 
   /* ==========================================================
@@ -346,103 +317,13 @@ export default function PlayEarnPage() {
     }, []);
 
   /* ==========================================================
-     LOAD GAME UNLOCK STATUS
-  ========================================================== */
-
-  const loadUnlockStatuses =
-    useCallback(async () => {
-      setUnlockLoading(true);
-      setUnlockError(null);
-
-      try {
-        const gameKeys: GameKey[] = [
-          "three_numbers",
-          "scratch_win",
-          "daily_poll",
-        ];
-
-        const results = await Promise.all(
-          gameKeys.map(async (gameKey) => {
-            const { data, error } = await supabase.rpc(
-              "get_my_play_earn_game_unlock",
-              { p_game_key: gameKey },
-            );
-
-            if (error) {
-              throw new Error(error.message);
-            }
-
-            const row = Array.isArray(data) ? data[0] : data;
-
-            if (!row) {
-              throw new Error(
-                `Unlock status unavailable for ${gameKey}.`,
-              );
-            }
-
-            return {
-              game_key: gameKey,
-              unlocked: Boolean(row.unlocked),
-              unlock_type: String(row.unlock_type ?? "immediate"),
-              required_orders: Number(row.required_orders ?? 0),
-              qualifying_orders: Number(row.qualifying_orders ?? 0),
-              remaining_orders: Number(row.remaining_orders ?? 0),
-              minimum_order_value_paise: Number(
-                row.minimum_order_value_paise ?? 0,
-              ),
-              order_value_basis:
-                row.order_value_basis
-                  ? String(row.order_value_basis)
-                  : undefined,
-              qualifying_statuses: Array.isArray(
-                row.qualifying_statuses,
-              )
-                ? row.qualifying_statuses.map(String)
-                : undefined,
-              permanent:
-                row.permanent === undefined
-                  ? true
-                  : Boolean(row.permanent),
-              keep_after_refund:
-                row.keep_after_refund === undefined
-                  ? true
-                  : Boolean(row.keep_after_refund),
-            } satisfies GameUnlockStatus;
-          }),
-        );
-
-        setUnlockStatuses(
-          Object.fromEntries(
-            results.map((result) => [
-              result.game_key,
-              result,
-            ]),
-          ),
-        );
-      } catch (err) {
-        setUnlockError(
-          err instanceof Error
-            ? err.message
-            : "Unable to load game unlock status.",
-        );
-      } finally {
-        setUnlockLoading(false);
-      }
-    }, []);
-
-  /* ==========================================================
      INITIAL LOAD
   ========================================================== */
 
   useEffect(() => {
     void loadGameSettings();
     void loadCheckoutSettings();
-    void loadUnlockStatuses();
-  }, [
-    loadGameSettings,
-    loadCheckoutSettings,
-    loadUnlockStatuses,
-  ]);
+  }, [loadGameSettings, loadCheckoutSettings]);
 
 
   /* ==========================================================
@@ -469,61 +350,7 @@ export default function PlayEarnPage() {
   };
 
 
-  const openScratchWin = async () => {
-    setUnlockError(null);
-
-    const { data, error } = await supabase.rpc(
-      "get_my_play_earn_game_unlock",
-      { p_game_key: "scratch_win" },
-    );
-
-    if (error) {
-      setUnlockError(
-        error.message ||
-          "Unable to verify Scratch & Win eligibility.",
-      );
-      return;
-    }
-
-    const row = Array.isArray(data) ? data[0] : data;
-
-    if (!row || !Boolean(row.unlocked)) {
-      await loadUnlockStatuses();
-      return;
-    }
-
-    setUnlockStatuses((current) => ({
-      ...current,
-      scratch_win: {
-        game_key: "scratch_win",
-        unlocked: true,
-        unlock_type: String(row.unlock_type ?? "completed_orders"),
-        required_orders: Number(row.required_orders ?? 0),
-        qualifying_orders: Number(row.qualifying_orders ?? 0),
-        remaining_orders: Number(row.remaining_orders ?? 0),
-        minimum_order_value_paise: Number(
-          row.minimum_order_value_paise ?? 0,
-        ),
-        order_value_basis:
-          row.order_value_basis
-            ? String(row.order_value_basis)
-            : undefined,
-        qualifying_statuses: Array.isArray(
-          row.qualifying_statuses,
-        )
-          ? row.qualifying_statuses.map(String)
-          : undefined,
-        permanent:
-          row.permanent === undefined
-            ? true
-            : Boolean(row.permanent),
-        keep_after_refund:
-          row.keep_after_refund === undefined
-            ? true
-            : Boolean(row.keep_after_refund),
-      },
-    }));
-
+  const openScratchWin = () => {
     setScratchWinOpen(true);
   };
 
@@ -532,56 +359,6 @@ export default function PlayEarnPage() {
     setScratchWinOpen(false);
   };
 
-
-  const getUnlockStatus = (gameKey: GameKey) =>
-    unlockStatuses[gameKey];
-
-  const formatUnlockProgress = (gameKey: GameKey) => {
-    const unlock = getUnlockStatus(gameKey);
-
-    if (!unlock || unlock.unlock_type === "immediate") {
-      return null;
-    }
-
-    if (unlock.unlocked) {
-      return {
-        locked: false,
-        title: "Assured Reward Unlocked",
-        description:
-          "You've unlocked Scratch & Win. Every scratch reveals a reward.",
-        progress: 100,
-        progressLabel: "Unlocked",
-      };
-    }
-
-    const required = Math.max(unlock.required_orders, 1);
-    const qualifying = Math.min(
-      Math.max(unlock.qualifying_orders, 0),
-      required,
-    );
-    const remaining = Math.max(
-      unlock.remaining_orders,
-      required - qualifying,
-    );
-
-    const minOrder = formatRupees(
-      unlock.minimum_order_value_paise,
-    );
-
-    return {
-      locked: true,
-      title: "Assured Reward",
-      description:
-        remaining === 1
-          ? `Complete 1 more qualifying order of ${minOrder}+ to unlock Scratch & Win.`
-          : `Complete ${remaining} qualifying orders of ${minOrder}+ to unlock Scratch & Win.`,
-      progress: Math.min(
-        100,
-        (qualifying / required) * 100,
-      ),
-      progressLabel: `${qualifying} / ${required} qualifying orders`,
-    };
-  };
 
   /* ==========================================================
      VISIBLE GAMES
@@ -1073,42 +850,6 @@ export default function PlayEarnPage() {
           )}
 
 
-        {!settingsLoading &&
-          unlockError && (
-            <div
-              className="
-                mb-5
-                rounded-2xl
-                border
-                border-amber-200
-                bg-amber-50
-                px-4
-                py-3
-                text-center
-              "
-            >
-              <p className="text-xs font-semibold text-amber-800">
-                {unlockError}
-              </p>
-              <button
-                type="button"
-                onClick={() => void loadUnlockStatuses()}
-                className="
-                  mt-2
-                  rounded-lg
-                  bg-amber-700
-                  px-3
-                  py-1.5
-                  text-[11px]
-                  font-bold
-                  text-white
-                "
-              >
-                Refresh Unlock Status
-              </button>
-            </div>
-          )}
-
         {/* ===================================================
             VISIBLE GAMES
         ==================================================== */}
@@ -1178,13 +919,6 @@ export default function PlayEarnPage() {
                     gameKey ===
                     "scratch_win"
                   ) {
-                    const progress =
-                      formatUnlockProgress("scratch_win");
-
-                    const isLocked =
-                      !unlockLoading &&
-                      Boolean(progress?.locked);
-
                     return (
                       <GameCard
                         key={gameKey}
@@ -1194,41 +928,16 @@ export default function PlayEarnPage() {
                           meta.description
                         }
                         badge={
-                          isLocked
-                            ? "Locked"
-                            : unlockLoading
-                              ? "Checking..."
-                              : meta.badge
+                          meta.badge
                         }
                         accent={
                           meta.accent
                         }
                         actionLabel={
-                          isLocked
-                            ? "🔒 Unlock Scratch & Win"
-                            : meta.actionLabel
+                          meta.actionLabel
                         }
                         onClick={
-                          isLocked
-                            ? undefined
-                            : openScratchWin
-                        }
-                        disabled={
-                          isLocked ||
-                          unlockLoading
-                        }
-                        locked={isLocked}
-                        unlockTitle={
-                          progress?.title
-                        }
-                        unlockDescription={
-                          progress?.description
-                        }
-                        unlockProgress={
-                          progress?.progress
-                        }
-                        unlockProgressLabel={
-                          progress?.progressLabel
+                          openScratchWin
                         }
                       />
                     );
@@ -2271,16 +1980,6 @@ interface GameCardProps {
   onClick?: () => void;
 
   disabled?: boolean;
-
-  locked?: boolean;
-
-  unlockTitle?: string;
-
-  unlockDescription?: string;
-
-  unlockProgress?: number;
-
-  unlockProgressLabel?: string;
 }
 
 
@@ -2293,11 +1992,6 @@ function GameCard({
   actionLabel,
   onClick,
   disabled = false,
-  locked = false,
-  unlockTitle,
-  unlockDescription,
-  unlockProgress,
-  unlockProgressLabel,
 }: GameCardProps) {
 
   const accentClasses = {
@@ -2438,126 +2132,6 @@ function GameCard({
         {description}
       </p>
 
-
-      {/* =================================================
-          UNLOCK PROGRESS
-      ================================================== */}
-
-      {locked && (
-        <div
-          className="
-            mt-5
-            rounded-2xl
-            border
-            border-purple-200
-            bg-white/90
-            p-4
-            shadow-sm
-          "
-        >
-          <div className="flex items-start gap-3">
-            <div
-              className="
-                flex
-                h-9
-                w-9
-                shrink-0
-                items-center
-                justify-center
-                rounded-xl
-                bg-purple-100
-                text-base
-              "
-            >
-              🎁
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-black uppercase tracking-[0.16em] text-purple-700">
-                {unlockTitle ?? "Assured Reward"}
-              </p>
-
-              {unlockDescription && (
-                <p className="mt-1 text-xs leading-5 text-gray-600">
-                  {unlockDescription}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-3.5">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-[11px] font-bold text-gray-800">
-                {unlockProgressLabel ?? "Unlock progress"}
-              </span>
-
-              <span className="text-[11px] font-bold text-purple-700">
-                {unlockProgress !== undefined
-                  ? `${Math.round(
-                      Math.max(
-                        0,
-                        Math.min(100, unlockProgress),
-                      ),
-                    )}%`
-                  : ""}
-              </span>
-            </div>
-
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-purple-100">
-              <div
-                className="h-full rounded-full bg-purple-600 transition-all duration-500"
-                style={{
-                  width: `${Math.max(
-                    0,
-                    Math.min(100, unlockProgress ?? 0),
-                  )}%`,
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {!locked && unlockTitle && unlockTitle === "Assured Reward Unlocked" && (
-        <div
-          className="
-            mt-5
-            rounded-2xl
-            border
-            border-purple-200
-            bg-white/90
-            p-4
-            shadow-sm
-          "
-        >
-          <div className="flex items-start gap-3">
-            <div
-              className="
-                flex
-                h-9
-                w-9
-                shrink-0
-                items-center
-                justify-center
-                rounded-xl
-                bg-purple-100
-                text-base
-              "
-            >
-              ✨
-            </div>
-
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.16em] text-purple-700">
-                Assured Reward Unlocked
-              </p>
-              <p className="mt-1 text-xs leading-5 text-gray-600">
-                Every scratch reveals a reward. Your chance is ready.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* =================================================
           BUTTON
