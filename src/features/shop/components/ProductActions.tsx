@@ -72,6 +72,11 @@ export default function ProductActions({
   ] = useState(false);
 
   const [
+    maxQuantityNotice,
+    setMaxQuantityNotice,
+  ] = useState(false);
+
+  const [
     notifyDialogOpen,
     setNotifyDialogOpen,
   ] = useState(false);
@@ -775,101 +780,149 @@ export default function ProductActions({
               </div>
 
 
-              <div className="mt-5 flex items-center justify-between">
+              <div className="mt-5">
 
-                <span className="text-sm font-medium text-white">
-                  Quantity
-                </span>
+                <div className="flex items-center justify-between gap-4">
 
-                <div
-                  className="
-                    flex
-                    items-center
-                    overflow-hidden
-                    rounded-xl
-                    border
-                    border-neutral-700
-                    bg-black
-                  "
-                >
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setBuyNowQuantity((current) =>
-                        Math.max(1, current - 1)
-                      )
-                    }
-                    disabled={buyNowQuantity <= 1}
-                    aria-label="Decrease quantity"
-                    className="
-                      flex
-                      h-11
-                      w-11
-                      items-center
-                      justify-center
-                      text-white
-                      transition
-                      hover:bg-neutral-800
-                      hover:text-[#D4AF37]
-                      disabled:cursor-not-allowed
-                      disabled:opacity-35
-                    "
-                  >
-                    <Minus size={16} />
-                  </button>
-
-                  <span
-                    className="
-                      flex
-                      h-11
-                      min-w-12
-                      items-center
-                      justify-center
-                      border-x
-                      border-neutral-700
-                      px-3
-                      text-sm
-                      font-semibold
-                      text-white
-                    "
-                  >
-                    {buyNowQuantity}
+                  <span className="text-sm font-medium text-white">
+                    Quantity
                   </span>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setBuyNowQuantity((current) =>
-                        Math.min(
-                          Number(product.stock ?? 0),
-                          current + 1
-                        )
-                      )
-                    }
-                    disabled={
-                      buyNowQuantity >=
-                      Number(product.stock ?? 0)
-                    }
-                    aria-label="Increase quantity"
+                  <div
                     className="
                       flex
-                      h-11
-                      w-11
                       items-center
-                      justify-center
-                      text-white
-                      transition
-                      hover:bg-neutral-800
-                      hover:text-[#D4AF37]
-                      disabled:cursor-not-allowed
-                      disabled:opacity-35
+                      overflow-hidden
+                      rounded-xl
+                      border
+                      border-neutral-700
+                      bg-black
                     "
                   >
-                    <Plus size={16} />
-                  </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBuyNowQuantity((current) =>
+                          Math.max(1, current - 1)
+                        );
+                        setMaxQuantityNotice(false);
+                      }}
+                      disabled={buyNowQuantity <= 1}
+                      aria-label="Decrease quantity"
+                      className="
+                        flex
+                        h-11
+                        w-11
+                        items-center
+                        justify-center
+                        text-white
+                        transition
+                        hover:bg-neutral-800
+                        hover:text-[#D4AF37]
+                        disabled:cursor-not-allowed
+                        disabled:opacity-35
+                      "
+                    >
+                      <Minus size={16} />
+                    </button>
+
+                    <span
+                      className="
+                        flex
+                        h-11
+                        min-w-12
+                        items-center
+                        justify-center
+                        border-x
+                        border-neutral-700
+                        px-3
+                        text-sm
+                        font-semibold
+                        text-white
+                      "
+                    >
+                      {buyNowQuantity}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const maxQuantity =
+                          Number(product.stock ?? 0);
+
+                        if (buyNowQuantity >= maxQuantity) {
+                          setMaxQuantityNotice(true);
+                          return;
+                        }
+
+                        setBuyNowQuantity((current) =>
+                          Math.min(maxQuantity, current + 1)
+                        );
+                        setMaxQuantityNotice(false);
+                      }}
+                      aria-disabled={
+                        buyNowQuantity >= Number(product.stock ?? 0)
+                      }
+                      aria-label="Increase quantity"
+                      className={`
+                        flex
+                        h-11
+                        w-11
+                        items-center
+                        justify-center
+                        transition-all
+                        duration-200
+                        ${
+                          buyNowQuantity >=
+                          Number(product.stock ?? 0)
+                            ? "cursor-not-allowed text-neutral-600"
+                            : "text-white hover:bg-neutral-800 hover:text-[#D4AF37]"
+                        }
+                      `}
+                    >
+                      <Plus size={16} />
+                    </button>
+
+                  </div>
 
                 </div>
+
+                {/* =================================================
+                    MAX QUANTITY FEEDBACK
+                ================================================== */}
+
+                {buyNowQuantity >= Number(product.stock ?? 0) && (
+                  <div
+                    className="
+                      mt-2.5
+                      flex
+                      items-center
+                      justify-end
+                      gap-1.5
+                      text-xs
+                      text-[#D4AF37]
+                    "
+                  >
+                    <span>
+                      Maximum quantity reached · Only{" "}
+                      {Number(product.stock ?? 0)} available
+                    </span>
+                  </div>
+                )}
+
+                {maxQuantityNotice && (
+                  <div
+                    className="
+                      mt-1.5
+                      text-right
+                      text-[11px]
+                      text-neutral-500
+                    "
+                  >
+                    That's the maximum available for this product.
+                  </div>
+                )}
 
               </div>
 
