@@ -12,6 +12,8 @@ import InstagramReels from "@/features/instagram/components/InstagramReels";
 
 import CustomerLove from "@/features/reviews/components/CustomerLove";
 
+import PlayEarnHomeSection from "@/features/playEarn/components/PlayEarnHomeSection";
+
 export default function App() {
   return (
     <main className="bg-black">
@@ -57,6 +59,11 @@ export default function App() {
         title="Luxe Picks Under ₹499"
         subtitle="A little extra luxe, still at an easy price."
       />
+
+      <TMJewelsDivider />
+
+      {/* PLAY & EARN */}
+      <PlayEarnHomeSection />
 
       <TMJewelsDivider />
 
