@@ -324,9 +324,9 @@ export default function Shop() {
         return false;
       }
 
-      return false;
+      return true;
     } catch {
-      return false;
+      return true;
     }
   });
 
