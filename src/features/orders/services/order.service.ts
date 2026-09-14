@@ -207,7 +207,16 @@ async function getWalletBalanceRemaining(): Promise<number | null> {
 
 
 export async function createOrder(
-  payload: CreateOrderPayload
+  payload: CreateOrderPayload & {
+    /**
+     * Optional Play & Earn Wallet split.
+     *
+     * This is intentionally kept separate from the regular T&M Wallet
+     * fields so the two wallet systems never get mixed.
+     */
+    playEarnWalletHoldId?: string | null;
+    playEarnWalletAmountPaise?: number;
+  }
 ) {
 
   /*
@@ -379,6 +388,28 @@ export async function createOrder(
     wallet_amount_paise:
       payload.wallet_amount_paise ??
       0,
+
+    /*
+     * Play & Earn Wallet payment split.
+     *
+     * The create_order_transaction() wrapper validates and consumes
+     * this hold atomically with the order transaction.
+     *
+     * Keep this completely separate from the regular T&M Wallet
+     * fields above.
+     */
+    play_earn_wallet_hold_id:
+      payload.playEarnWalletHoldId ??
+      null,
+
+    play_earn_wallet_amount_paise:
+      Math.max(
+        0,
+        Number(
+          payload.playEarnWalletAmountPaise ??
+          0
+        )
+      ),
 
 
     // Coupon

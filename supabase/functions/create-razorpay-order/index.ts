@@ -311,7 +311,6 @@ serve(async (req) => {
       checkout_quote_id: string;
       amount_paise: number;
       status: string;
-      expires_at: string;
     } | null = null;
 
 
@@ -325,7 +324,7 @@ serve(async (req) => {
       )
 
       .select(
-        "id, customer_id, checkout_quote_id, amount_paise, status, expires_at"
+        "id, customer_id, checkout_quote_id, amount_paise, status"
       )
 
       .eq(
@@ -341,11 +340,6 @@ serve(async (req) => {
       .eq(
         "status",
         "active"
-      )
-
-      .gt(
-        "expires_at",
-        new Date().toISOString()
       )
 
       .maybeSingle();
@@ -417,9 +411,175 @@ serve(async (req) => {
       );
 
 
+    /*
+     * =========================================================
+     * 1C. RESOLVE ACTIVE PLAY & EARN WALLET HOLD
+     * =========================================================
+     *
+     * Play & Earn Wallet is completely separate from the
+     * regular T&M Wallet. The browser may send the hold/amount,
+     * but the hold itself is the server-side authority.
+     */
+
+    let playEarnWalletHold: {
+      id: string;
+      customer_id: string;
+      checkout_quote_id: string;
+      amount_paise: number;
+      status: string;
+    } | null = null;
+
+
+    const requestedPlayEarnWalletHoldId =
+      String(
+        body?.playEarnWalletHoldId ??
+        ""
+      ).trim();
+
+
+    const {
+      data: playEarnWalletHoldData,
+      error: playEarnWalletHoldError,
+    } = await supabaseAdmin
+
+      .from(
+        "play_earn_wallet_checkout_holds"
+      )
+
+      .select(
+        "id, customer_id, checkout_quote_id, amount_paise, status"
+      )
+
+      .eq(
+        "checkout_quote_id",
+        checkoutQuoteId
+      )
+
+      .eq(
+        "customer_id",
+        quote.customer_id
+      )
+
+      .eq(
+        "status",
+        "active"
+      )
+
+      .maybeSingle();
+
+
+    if (playEarnWalletHoldError) {
+
+      throw playEarnWalletHoldError;
+
+    }
+
+
+    if (requestedPlayEarnWalletHoldId) {
+
+      if (
+        !playEarnWalletHoldData ||
+        playEarnWalletHoldData.id !==
+          requestedPlayEarnWalletHoldId
+      ) {
+
+        return jsonResponse(
+
+          {
+            error:
+              "Play & Earn Wallet hold is missing or has expired. Please refresh checkout.",
+          },
+
+          409
+
+        );
+
+      }
+
+    }
+
+
+    if (playEarnWalletHoldData) {
+
+      playEarnWalletHold =
+        playEarnWalletHoldData as typeof playEarnWalletHold;
+
+      const playEarnAmountPaise =
+        Number(
+          playEarnWalletHold.amount_paise
+        );
+
+
+      if (
+        !Number.isSafeInteger(
+          playEarnAmountPaise
+        ) ||
+        playEarnAmountPaise <= 0
+      ) {
+
+        return jsonResponse(
+
+          {
+            error:
+              "Invalid Play & Earn Wallet payment amount.",
+          },
+
+          409
+
+        );
+
+      }
+
+
+      if (
+        playEarnAmountPaise >
+        quoteAmountPaise
+      ) {
+
+        return jsonResponse(
+
+          {
+            error:
+              "Play & Earn Wallet payment exceeds the secure checkout total.",
+          },
+
+          409
+
+        );
+
+      }
+
+    }
+
+
+    const playEarnWalletAmountPaise =
+      Number(
+        playEarnWalletHold?.amount_paise || 0
+      );
+
+
     const payableAmountPaise =
       quoteAmountPaise -
-      walletAmountPaise;
+      walletAmountPaise -
+      playEarnWalletAmountPaise;
+
+
+    if (
+      payableAmountPaise < 0
+    ) {
+
+      return jsonResponse(
+
+        {
+          error:
+            "Wallet payment exceeds the secure checkout total.",
+        },
+
+        409
+
+      );
+
+    }
 
 
     /*
@@ -459,6 +619,12 @@ serve(async (req) => {
 
           wallet_amount_paise:
             walletAmountPaise,
+
+          play_earn_wallet_hold_id:
+            playEarnWalletHold?.id || null,
+
+          play_earn_wallet_amount_paise:
+            playEarnWalletAmountPaise,
 
           payable_amount_paise:
             0,
@@ -631,6 +797,12 @@ serve(async (req) => {
 
         wallet_amount_paise:
           walletAmountPaise,
+
+        play_earn_wallet_hold_id:
+          playEarnWalletHold?.id || null,
+
+        play_earn_wallet_amount_paise:
+          playEarnWalletAmountPaise,
 
         payable_amount_paise:
           payableAmountPaise,

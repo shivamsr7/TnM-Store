@@ -401,6 +401,10 @@ serve(async (req) => {
 
     let walletHoldId: string | null = null;
     let walletAmountPaise = 0;
+
+    let playEarnWalletHoldId: string | null = null;
+    let playEarnWalletAmountPaise = 0;
+
     let payableAmountPaise = expectedAmountPaise;
 
 
@@ -668,9 +672,148 @@ serve(async (req) => {
       walletAmountPaise =
         holdAmount;
 
-      payableAmountPaise =
-        expectedAmountPaise -
-        walletAmountPaise;
+    }
+
+
+    /*
+     * =========================================================
+     * 1B. RESOLVE PLAY & EARN WALLET PAYMENT SPLIT
+     * =========================================================
+     *
+     * Play & Earn Wallet is a separate wallet and therefore has
+     * its own checkout hold. The hold is the server-side source
+     * of truth for the amount being redeemed.
+     */
+
+    const {
+      data: playEarnWalletHold,
+      error: playEarnWalletHoldError,
+    } = await supabaseAdmin
+
+      .from("play_earn_wallet_checkout_holds")
+
+      .select(
+        "id, customer_id, checkout_quote_id, amount_paise, status"
+      )
+
+      .eq(
+        "checkout_quote_id",
+        checkoutQuoteId
+      )
+
+      .eq(
+        "customer_id",
+        quote.customer_id
+      )
+
+      .eq(
+        "status",
+        "active"
+      )
+
+      .maybeSingle();
+
+
+    if (playEarnWalletHoldError) {
+
+      console.error(
+        "Play & Earn wallet checkout hold lookup failed:",
+        playEarnWalletHoldError
+      );
+
+      throw new Error(
+        "Unable to verify the Play & Earn Wallet payment hold."
+      );
+
+    }
+
+
+    if (playEarnWalletHold) {
+
+      const holdAmount =
+        Number(
+          playEarnWalletHold.amount_paise
+        );
+
+
+      if (
+        !Number.isSafeInteger(
+          holdAmount
+        ) ||
+        holdAmount <= 0
+      ) {
+
+        return jsonResponse(
+
+          {
+            success: false,
+
+            error:
+              "Invalid Play & Earn Wallet payment amount.",
+
+          },
+
+          400
+
+        );
+
+      }
+
+
+      if (
+        holdAmount >
+        expectedAmountPaise
+      ) {
+
+        return jsonResponse(
+
+          {
+            success: false,
+
+            error:
+              "Play & Earn Wallet payment exceeds the secure checkout total.",
+
+          },
+
+          400
+
+        );
+
+      }
+
+
+      playEarnWalletHoldId =
+        playEarnWalletHold.id;
+
+      playEarnWalletAmountPaise =
+        holdAmount;
+
+    }
+
+
+    payableAmountPaise =
+      expectedAmountPaise -
+      walletAmountPaise -
+      playEarnWalletAmountPaise;
+
+
+    if (
+      payableAmountPaise < 0
+    ) {
+
+      return jsonResponse(
+
+        {
+          success: false,
+
+          error:
+            "Combined wallet payment exceeds the secure checkout total.",
+
+        },
+
+        400
+
+      );
 
     }
 
@@ -1190,6 +1333,10 @@ serve(async (req) => {
 
         walletAmountPaise,
 
+        playEarnWalletHoldId,
+
+        playEarnWalletAmountPaise,
+
         razorpayPayableAmount:
           payableAmountPaise,
 
@@ -1242,6 +1389,10 @@ serve(async (req) => {
         walletHoldId,
 
         walletAmountPaise,
+
+        playEarnWalletHoldId,
+
+        playEarnWalletAmountPaise,
 
         payableAmountPaise,
 

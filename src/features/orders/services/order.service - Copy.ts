@@ -590,6 +590,10 @@ export async function createOrder(
    */
   void analyticsService.trackOrderPlaced();
 
+  void analyticsService.trackOrderActivity(
+    finalOrderNumber
+  );
+
 
   /*
    * Gift Wrap values come from the created order so the

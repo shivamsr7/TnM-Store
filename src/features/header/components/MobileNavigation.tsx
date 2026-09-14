@@ -20,6 +20,7 @@ import {
   ChevronDown,
   ChevronUp,
   AlertTriangle,
+  Gamepad2,
 } from "lucide-react";
 
 
@@ -463,6 +464,180 @@ export default function MobileNavigation({
         )}
 
       </div>
+
+
+      {/* =====================================================
+          PLAY & EARN — MEMBER HIGHLIGHT
+      ====================================================== */}
+
+      <Link
+        to="/play-and-earn"
+        onClick={onClose}
+        className="
+          group
+          relative
+          block
+          overflow-hidden
+          rounded-[22px]
+          border
+          border-[#C8A44D]/45
+          bg-gradient-to-br
+          from-[#15110A]
+          via-[#0A0A0A]
+          to-[#211A0D]
+          p-4
+          shadow-[0_12px_35px_rgba(0,0,0,0.12)]
+          transition-all
+          duration-300
+          hover:border-[#C8A44D]/80
+          hover:shadow-[0_16px_42px_rgba(200,164,77,0.18)]
+          active:scale-[0.985]
+        "
+      >
+
+        <div
+          className="
+            pointer-events-none
+            absolute
+            -right-8
+            -top-10
+            h-28
+            w-28
+            rounded-full
+            bg-[#C8A44D]/20
+            blur-3xl
+            transition-all
+            duration-300
+            group-hover:bg-[#C8A44D]/30
+          "
+        />
+
+        <div
+          className="
+            pointer-events-none
+            absolute
+            -bottom-10
+            -left-8
+            h-24
+            w-24
+            rounded-full
+            bg-purple-500/10
+            blur-3xl
+          "
+        />
+
+        <div className="relative flex items-start gap-3">
+
+          <div
+            className="
+              flex
+              h-11
+              w-11
+              shrink-0
+              items-center
+              justify-center
+              rounded-2xl
+              border
+              border-[#C8A44D]/30
+              bg-[#C8A44D]/10
+              text-[#E8C96A]
+              shadow-inner
+            "
+          >
+            <Gamepad2 size={21} strokeWidth={1.8} />
+          </div>
+
+          <div className="min-w-0 flex-1">
+
+            <div className="flex items-center justify-between gap-2">
+
+              <div>
+                <p
+                  className="
+                    text-[10px]
+                    font-semibold
+                    uppercase
+                    tracking-[0.22em]
+                    text-[#C8A44D]
+                  "
+                >
+                  Member Exclusive
+                </p>
+
+                <h3
+                  className="
+                    mt-1
+                    text-base
+                    font-semibold
+                    tracking-tight
+                    text-white
+                  "
+                >
+                  Play & Earn
+                </h3>
+              </div>
+
+              <span
+                className="
+                  shrink-0
+                  rounded-full
+                  border
+                  border-[#C8A44D]/30
+                  bg-[#C8A44D]/10
+                  px-2
+                  py-1
+                  text-[9px]
+                  font-semibold
+                  uppercase
+                  tracking-wider
+                  text-[#E8C96A]
+                "
+              >
+                ✨ Live
+              </span>
+
+            </div>
+
+            <p
+              className="
+                mt-1
+                text-[11px]
+                leading-4
+                text-neutral-400
+              "
+            >
+              Play games, win rewards & grow your wallet.
+            </p>
+
+            <div
+              className="
+                mt-3
+                flex
+                items-center
+                justify-between
+                text-[11px]
+                font-semibold
+                text-[#E8C96A]
+              "
+            >
+              <span>Play now</span>
+
+              <span
+                className="
+                  transition-transform
+                  duration-200
+                  group-hover:translate-x-1
+                "
+              >
+                →
+              </span>
+            </div>
+
+          </div>
+
+        </div>
+
+      </Link>
 
 
       {/* =====================================================

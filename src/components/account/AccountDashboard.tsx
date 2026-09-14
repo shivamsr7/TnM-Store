@@ -32,6 +32,7 @@ import {
   Package,
   UserRound,
   Wallet,
+  Gamepad2,
   Sun,
   Moon,
 } from "lucide-react";
@@ -1029,6 +1030,143 @@ export default function AccountDashboard() {
             </button>
 
 
+
+
+            {/* =================================================
+                PLAY & EARN
+            ================================================== */}
+
+            <Link
+              to="/play-and-earn"
+              className="
+                group
+                relative
+                overflow-hidden
+                rounded-2xl
+                border
+                border-purple-300/40
+                bg-gradient-to-br
+                from-purple-50
+                to-pink-50
+                p-4
+                transition-all
+                duration-300
+                hover:border-purple-400/70
+                hover:shadow-[0_0_24px_rgba(139,92,246,0.14)]
+                active:scale-[0.98]
+                dark:from-purple-950/20
+                dark:to-pink-950/10
+              "
+            >
+
+              <div
+                className="
+                  pointer-events-none
+                  absolute
+                  -right-8
+                  -top-8
+                  h-20
+                  w-20
+                  rounded-full
+                  bg-purple-400/10
+                  blur-2xl
+                  transition-opacity
+                  duration-300
+                  group-hover:bg-purple-400/20
+                "
+              />
+
+              <div
+                className="
+                  relative
+                  flex
+                  items-start
+                  justify-between
+                  gap-2
+                "
+              >
+
+                <div
+                  className="
+                    flex
+                    h-10
+                    w-10
+                    items-center
+                    justify-center
+                    rounded-xl
+                    bg-purple-100
+                    text-purple-700
+                    ring-1
+                    ring-purple-200
+                    dark:bg-purple-500/10
+                    dark:text-purple-300
+                    dark:ring-purple-400/20
+                  "
+                >
+                  <Gamepad2 size={19} />
+                </div>
+
+                <span
+                  className="
+                    rounded-full
+                    border
+                    border-purple-200
+                    bg-white/70
+                    px-2
+                    py-1
+                    text-[9px]
+                    font-semibold
+                    uppercase
+                    tracking-wider
+                    text-purple-700
+                    dark:border-purple-400/20
+                    dark:bg-purple-500/10
+                    dark:text-purple-300
+                  "
+                >
+                  Member
+                </span>
+
+              </div>
+
+              <p
+                className="
+                  relative
+                  mt-4
+                  text-sm
+                  font-semibold
+                  text-[var(--account-text)]
+                "
+              >
+                Play & Earn
+              </p>
+
+              <p
+                className="
+                  relative
+                  mt-1
+                  text-[11px]
+                  leading-4
+                  text-[var(--account-secondary)]
+                "
+              >
+                Play games & earn wallet rewards
+              </p>
+
+              <p
+                className="
+                  relative
+                  mt-2
+                  text-[10px]
+                  font-medium
+                  text-purple-600
+                  dark:text-purple-300
+                "
+              >
+                Play now →
+              </p>
+
+            </Link>
 
 
             {/* =================================================

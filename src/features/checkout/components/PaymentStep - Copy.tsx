@@ -30,14 +30,6 @@ interface Props {
   walletAmountPaise?: number;
 
   /*
-   * Optional Play & Earn Wallet amount already selected/held for
-   * this checkout. The server remains the source of truth.
-   */
-  playEarnWalletAmountPaise?: number;
-
-  playEarnWalletHoldId?: string | null;
-
-  /*
    * Called immediately when payment succeeds, before server-side
    * verification/order completion finishes.
    */
@@ -55,10 +47,6 @@ export default function PaymentStep({
   checkoutQuoteId,
 
   walletAmountPaise = 0,
-
-  playEarnWalletAmountPaise = 0,
-
-  playEarnWalletHoldId = null,
 
   onPaymentSuccessStart,
 
@@ -86,27 +74,14 @@ export default function PaymentStep({
     ) / 100;
 
 
-  const localPlayEarnWalletAmount =
-    Math.max(
-      0,
-      Number(playEarnWalletAmountPaise || 0)
-    ) / 100;
-
-
   const hasWallet =
     localWalletAmount > 0;
-
-
-  const hasPlayEarnWallet =
-    localPlayEarnWalletAmount > 0;
 
 
   const estimatedPayableAmount =
     Math.max(
       0,
-      totalAmount -
-      localWalletAmount -
-      localPlayEarnWalletAmount
+      totalAmount - localWalletAmount
     );
 
 
@@ -147,18 +122,7 @@ export default function PaymentStep({
 
       const razorpayOrder =
         await createRazorpayOrder(
-          checkoutQuoteId,
-          {
-            playEarnWalletHoldId:
-              playEarnWalletHoldId,
-            playEarnWalletAmountPaise:
-              Math.max(
-                0,
-                Number(
-                  playEarnWalletAmountPaise || 0
-                )
-              ),
-          }
+          checkoutQuoteId
         );
 
 
@@ -168,18 +132,8 @@ export default function PaymentStep({
         );
 
 
-      const serverPlayEarnWalletAmountPaise =
-        Number(
-          razorpayOrder.play_earn_wallet_amount_paise || 0
-        );
-
-
       const serverWalletAmount =
         serverWalletAmountPaise / 100;
-
-
-      const serverPlayEarnWalletAmount =
-        serverPlayEarnWalletAmountPaise / 100;
 
 
       const payableAmountPaise =
@@ -209,21 +163,9 @@ export default function PaymentStep({
         payableAmountPaise <= 0
       ) {
 
-        const hasServerRegularWallet =
-          Boolean(razorpayOrder.wallet_hold_id) &&
-          serverWalletAmountPaise > 0;
-
-
-        const hasServerPlayEarnWallet =
-          Boolean(
-            razorpayOrder.play_earn_wallet_hold_id
-          ) &&
-          serverPlayEarnWalletAmountPaise > 0;
-
-
         if (
-          !hasServerRegularWallet &&
-          !hasServerPlayEarnWallet
+          !razorpayOrder.wallet_hold_id ||
+          serverWalletAmountPaise <= 0
         ) {
 
           throw new Error(
@@ -244,9 +186,7 @@ export default function PaymentStep({
          */
 
         const walletTransactionId =
-          razorpayOrder.wallet_hold_id
-            ? `wallet_${razorpayOrder.wallet_hold_id}`
-            : `play_earn_wallet_${razorpayOrder.play_earn_wallet_hold_id}`;
+          `wallet_${razorpayOrder.wallet_hold_id}`;
 
 
         onSuccess({
@@ -256,24 +196,13 @@ export default function PaymentStep({
           walletOnly: true,
 
           walletHoldId:
-            razorpayOrder.wallet_hold_id ?? null,
+            razorpayOrder.wallet_hold_id,
 
           walletAmountPaise:
             serverWalletAmountPaise,
 
           walletAmount:
             serverWalletAmount,
-
-          playEarnWalletHoldId:
-            razorpayOrder.play_earn_wallet_hold_id ??
-            playEarnWalletHoldId ??
-            null,
-
-          playEarnWalletAmountPaise:
-            serverPlayEarnWalletAmountPaise,
-
-          playEarnWalletAmount:
-            serverPlayEarnWalletAmount,
 
           payableAmountPaise:
             0,
@@ -308,14 +237,6 @@ export default function PaymentStep({
 
             walletAmountPaise:
               serverWalletAmountPaise,
-
-            playEarnWalletHoldId:
-              razorpayOrder.play_earn_wallet_hold_id ??
-              playEarnWalletHoldId ??
-              null,
-
-            playEarnWalletAmountPaise:
-              serverPlayEarnWalletAmountPaise,
 
             payableAmountPaise:
               0,
@@ -372,10 +293,7 @@ export default function PaymentStep({
           "T&M Jewels",
 
         description:
-          hasWallet ||
-          hasPlayEarnWallet ||
-          serverWalletAmountPaise > 0 ||
-          serverPlayEarnWalletAmountPaise > 0
+          hasWallet || serverWalletAmountPaise > 0
             ? "Jewellery Purchase • Wallet + Online Payment"
             : "Jewellery Purchase",
 
@@ -449,20 +367,6 @@ export default function PaymentStep({
                     Number(
                       verification.walletAmountPaise ??
                       razorpayOrder.wallet_amount_paise ??
-                      0
-                    ),
-
-                  playEarnWalletHoldId:
-                    verification.playEarnWalletHoldId ??
-                    razorpayOrder.play_earn_wallet_hold_id ??
-                    playEarnWalletHoldId ??
-                    null,
-
-                  playEarnWalletAmountPaise:
-                    Number(
-                      verification.playEarnWalletAmountPaise ??
-                      razorpayOrder.play_earn_wallet_amount_paise ??
-                      playEarnWalletAmountPaise ??
                       0
                     ),
 
@@ -622,7 +526,7 @@ export default function PaymentStep({
    */
 
   const displayedPayableAmount =
-    hasWallet || hasPlayEarnWallet
+    hasWallet
       ? estimatedPayableAmount
       : totalAmount;
 
@@ -638,7 +542,7 @@ export default function PaymentStep({
 
 
       {
-        (hasWallet || hasPlayEarnWallet) && (
+        hasWallet && (
 
           <div
             className="
@@ -650,80 +554,38 @@ export default function PaymentStep({
             "
           >
 
-            <div className="space-y-3">
+            <div className="flex items-center gap-3">
 
-              {
-                hasWallet && (
-                  <div className="flex items-center gap-3">
+              <div
+                className="
+                  flex
+                  h-10
+                  w-10
+                  shrink-0
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-white
+                  shadow-sm
+                "
+              >
 
-                    <div
-                      className="
-                        flex
-                        h-10
-                        w-10
-                        shrink-0
-                        items-center
-                        justify-center
-                        rounded-full
-                        bg-white
-                        shadow-sm
-                      "
-                    >
-                      <Wallet size={18} />
-                    </div>
+                <Wallet size={18} />
 
-                    <div className="min-w-0">
-
-                      <p className="font-medium">
-                        T&M Wallet applied
-                      </p>
-
-                      <p className="text-sm text-neutral-500">
-                        ₹{localWalletAmount.toFixed(2)} will be used from your wallet.
-                      </p>
-
-                    </div>
-
-                  </div>
-                )
-              }
+              </div>
 
 
-              {
-                hasPlayEarnWallet && (
-                  <div className="flex items-center gap-3">
+              <div className="min-w-0">
 
-                    <div
-                      className="
-                        flex
-                        h-10
-                        w-10
-                        shrink-0
-                        items-center
-                        justify-center
-                        rounded-full
-                        bg-white
-                        shadow-sm
-                      "
-                    >
-                      <Wallet size={18} />
-                    </div>
+                <p className="font-medium">
+                  T&M Wallet applied
+                </p>
 
-                    <div className="min-w-0">
+                <p className="text-sm text-neutral-500">
+                  ₹{localWalletAmount.toFixed(2)} will be used from your wallet.
+                </p>
 
-                      <p className="font-medium">
-                        Play & Earn Wallet applied
-                      </p>
-
-                      <p className="text-sm text-neutral-500">
-                        ₹{localPlayEarnWalletAmount.toFixed(2)} will be used from your Play & Earn Wallet.
-                      </p>
-
-                    </div>
-
-                  </div>
-                )
-              }
+              </div>
 
             </div>
 
@@ -766,7 +628,7 @@ export default function PaymentStep({
 
             <p className="font-medium">
               {
-                (hasWallet || hasPlayEarnWallet) &&
+                hasWallet &&
                 estimatedPayableAmount <= 0
                   ? "Wallet Payment"
                   : "Secure Online Payment"
@@ -776,7 +638,7 @@ export default function PaymentStep({
             <p className="text-sm text-neutral-500">
 
               {
-                (hasWallet || hasPlayEarnWallet) &&
+                hasWallet &&
                 estimatedPayableAmount <= 0
                   ? "Your wallet covers this order"
                   : "UPI • Cards • Net Banking"
@@ -820,48 +682,11 @@ export default function PaymentStep({
               <div className="flex justify-between">
 
                 <span className="text-neutral-600">
-                  T&M Wallet
+                  Wallet
                 </span>
 
                 <span className="font-medium">
                   −₹{localWalletAmount.toFixed(2)}
-                </span>
-
-              </div>
-
-            )
-          }
-
-
-          {
-            hasPlayEarnWallet && (
-
-              <div className="flex justify-between">
-
-                <span className="text-neutral-600">
-                  Play & Earn Wallet
-                </span>
-
-                <span className="font-medium">
-                  −₹{localPlayEarnWalletAmount.toFixed(2)}
-                </span>
-
-              </div>
-
-            )
-          }
-
-          {
-            hasPlayEarnWallet && (
-
-              <div className="flex justify-between">
-
-                <span className="text-neutral-600">
-                  Play &amp; Earn Wallet
-                </span>
-
-                <span className="font-medium">
-                  −₹{localPlayEarnWalletAmount.toFixed(2)}
                 </span>
 
               </div>
@@ -991,7 +816,7 @@ export default function PaymentStep({
         <ShieldCheck size={16} />
 
         {
-          (hasWallet || hasPlayEarnWallet) &&
+          hasWallet &&
           estimatedPayableAmount <= 0
             ? "Your wallet payment is securely processed"
             : "Secure payment powered by Razorpay"

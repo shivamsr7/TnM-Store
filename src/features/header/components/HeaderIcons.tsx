@@ -7,6 +7,7 @@ import {
   CreditCard,
   Gift,
   Truck,
+  Gamepad2,
   LogOut,
   ChevronRight,
 } from "lucide-react";
@@ -1109,6 +1110,19 @@ export default function HeaderIcons({
                 }
                 icon={
                   <Package size={16} />
+                }
+              />
+
+              {/* Play & Earn */}
+
+              <AccountMenuItem
+                to="/play-and-earn"
+                label="Play & Earn"
+                onClick={() =>
+                  setAccountOpen(false)
+                }
+                icon={
+                  <Gamepad2 size={16} />
                 }
               />
 
