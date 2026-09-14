@@ -1,10 +1,8 @@
 import {
-  useEffect,
   useState,
 } from "react";
 
 import {
-  useLocation,
   useNavigate,
 } from "react-router-dom";
 
@@ -68,33 +66,6 @@ export default function Header() {
 
   const navigate =
     useNavigate();
-
-  const location =
-    useLocation();
-
-
-  /*
-   * =========================================================
-   * CLOSE MOBILE DRAWER ON ROUTE CHANGE
-   * =========================================================
-   *
-   * MobileNavigation already calls onClose() on its links.
-   * This is an additional safety net at the Header level:
-   * whenever React Router changes the pathname or query string,
-   * the drawer is closed automatically.
-   *
-   * This also covers future links that may not explicitly call
-   * onClose().
-   */
-
-  useEffect(() => {
-
-    setMobileOpen(false);
-
-  }, [
-    location.pathname,
-    location.search,
-  ]);
 
 
   /*
