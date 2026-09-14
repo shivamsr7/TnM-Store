@@ -41,23 +41,6 @@ interface GameSetting {
   reward_config: Record<string, unknown>;
 }
 
-interface PlayEarnCheckoutSettings {
-  redemption_enabled: boolean;
-  minimum_order_value_paise: number;
-  maximum_redemption_paise: number | null;
-  maximum_redemption_percent: number;
-  minimum_wallet_balance_paise: number;
-  allow_on_sale_products: boolean;
-  allow_on_discounted_products: boolean;
-  allow_with_coupon: boolean;
-  allow_with_regular_wallet: boolean;
-  allow_shipping_charges: boolean;
-  allow_cod: boolean;
-  allow_online_payment: boolean;
-  daily_redemption_limit_paise: number | null;
-  monthly_redemption_limit_paise: number | null;
-}
-
 
 /* ============================================================
    GAME METADATA
@@ -132,16 +115,6 @@ export default function PlayEarnPage() {
     settingsError,
     setSettingsError,
   ] = useState<string | null>(null);
-
-  const [
-    checkoutSettings,
-    setCheckoutSettings,
-  ] = useState<PlayEarnCheckoutSettings | null>(null);
-
-  const [
-    checkoutSettingsLoading,
-    setCheckoutSettingsLoading,
-  ] = useState(true);
 
 
   /* ==========================================================
@@ -225,105 +198,12 @@ export default function PlayEarnPage() {
 
 
   /* ==========================================================
-     LOAD CHECKOUT / WALLET RULES
-  ========================================================== */
-
-  const loadCheckoutSettings =
-    useCallback(async () => {
-      setCheckoutSettingsLoading(true);
-
-      try {
-        const {
-          data,
-          error,
-        } = await supabase.rpc(
-          "get_play_earn_checkout_settings",
-        );
-
-        if (error) {
-          throw new Error(
-            error.message ||
-              "Unable to load Play & Earn wallet rules.",
-          );
-        }
-
-        if (!data) {
-          throw new Error(
-            "Play & Earn wallet rules are unavailable.",
-          );
-        }
-
-        const row =
-          Array.isArray(data)
-            ? data[0]
-            : data;
-
-        if (!row) {
-          throw new Error(
-            "Play & Earn wallet rules are unavailable.",
-          );
-        }
-
-        setCheckoutSettings({
-          redemption_enabled:
-            Boolean(row.redemption_enabled),
-          minimum_order_value_paise:
-            Number(
-              row.minimum_order_value_paise ?? 0,
-            ),
-          maximum_redemption_paise:
-            row.maximum_redemption_paise === null ||
-            row.maximum_redemption_paise === undefined
-              ? null
-              : Number(row.maximum_redemption_paise),
-          maximum_redemption_percent:
-            Number(
-              row.maximum_redemption_percent ?? 0,
-            ),
-          minimum_wallet_balance_paise:
-            Number(
-              row.minimum_wallet_balance_paise ?? 0,
-            ),
-          allow_on_sale_products:
-            Boolean(row.allow_on_sale_products),
-          allow_on_discounted_products:
-            Boolean(row.allow_on_discounted_products),
-          allow_with_coupon:
-            Boolean(row.allow_with_coupon),
-          allow_with_regular_wallet:
-            Boolean(row.allow_with_regular_wallet),
-          allow_shipping_charges:
-            Boolean(row.allow_shipping_charges),
-          allow_cod:
-            Boolean(row.allow_cod),
-          allow_online_payment:
-            Boolean(row.allow_online_payment),
-          daily_redemption_limit_paise:
-            row.daily_redemption_limit_paise === null ||
-            row.daily_redemption_limit_paise === undefined
-              ? null
-              : Number(row.daily_redemption_limit_paise),
-          monthly_redemption_limit_paise:
-            row.monthly_redemption_limit_paise === null ||
-            row.monthly_redemption_limit_paise === undefined
-              ? null
-              : Number(row.monthly_redemption_limit_paise),
-        });
-      } catch {
-        setCheckoutSettings(null);
-      } finally {
-        setCheckoutSettingsLoading(false);
-      }
-    }, []);
-
-  /* ==========================================================
      INITIAL LOAD
   ========================================================== */
 
   useEffect(() => {
     void loadGameSettings();
-    void loadCheckoutSettings();
-  }, [loadGameSettings, loadCheckoutSettings]);
+  }, [loadGameSettings]);
 
 
   /* ==========================================================
@@ -382,174 +262,6 @@ export default function PlayEarnPage() {
         : isGameEnabled(gameKey)
     );
 
-
-  /* ==========================================================
-     RULE HELPERS
-  ========================================================== */
-
-  const formatRupees = (paise: number | null | undefined) => {
-    if (paise === null || paise === undefined) return "No limit";
-    return `₹${Math.round(paise / 100).toLocaleString("en-IN")}`;
-  };
-
-  const formatExpiry = (days: number) => {
-    if (days <= 0) return "No expiry";
-    return `${days} ${days === 1 ? "day" : "days"}`;
-  };
-
-  const gameRuleItems = (
-    Object.keys(GAME_META) as GameKey[]
-  )
-    .map((gameKey) => {
-      const setting = gameSettings.find(
-        (game) => game.game_key === gameKey,
-      );
-
-      if (!setting && gameKey !== "daily_poll") return null;
-
-      const meta = GAME_META[gameKey];
-
-      if (gameKey === "daily_poll") {
-        return {
-          title: meta.title,
-          description:
-            "Coming soon. Daily participation and 7-day streak rules will appear here when the game launches.",
-        };
-      }
-
-      const daily =
-        setting?.daily_limit === null ||
-        setting?.daily_limit === undefined
-          ? "No daily limit"
-          : `${setting.daily_limit} ${setting.daily_limit === 1 ? "play" : "plays"} per day`;
-
-      const expiry = formatExpiry(
-        Number(setting?.reward_expiry_days ?? 0),
-      );
-
-      const rewardText =
-        gameKey === "scratch_win"
-          ? "Scratch your card to reveal a reward from the current prize pool."
-          : gameKey === "three_numbers"
-            ? (() => {
-                const config = setting?.reward_config;
-                const rewards =
-                  config &&
-                  typeof config === "object" &&
-                  "rewards" in config &&
-                  config.rewards &&
-                  typeof config.rewards === "object"
-                    ? config.rewards as Record<string, unknown>
-                    : {};
-
-                const values = Object.values(rewards)
-                  .map((value) => Number(value))
-                  .filter((value) => Number.isFinite(value) && value > 0);
-
-                if (values.length === 0) {
-                  return "Winning reward is ₹50.";
-                }
-
-                const unique = [...new Set(values)];
-                return `Winning reward: ${unique
-                  .map((value) => `₹${(value / 100).toFixed(0)}`)
-                  .join(" / ")}.`;
-              })()
-            : "Rewards are based on the current game configuration.";
-
-      return {
-        title: meta.title,
-        description: `${daily}. ${rewardText} Credits expire after ${expiry}.`,
-      };
-    })
-    .filter(Boolean) as Array<{
-      title: string;
-      description: string;
-    }>;
-
-  const walletRuleItems = checkoutSettings
-    ? [
-        {
-          title: "Minimum order",
-          description: `${formatRupees(
-            checkoutSettings.minimum_order_value_paise,
-          )} minimum eligible order value.`,
-        },
-        {
-          title: "Maximum redemption",
-          description:
-            checkoutSettings.maximum_redemption_paise !== null
-              ? `Up to ${checkoutSettings.maximum_redemption_percent}% of eligible order value, capped at ${formatRupees(
-                  checkoutSettings.maximum_redemption_paise,
-                )}.`
-              : `Up to ${checkoutSettings.maximum_redemption_percent}% of eligible order value.`,
-        },
-        {
-          title: "Minimum wallet balance",
-          description: `${formatRupees(
-            checkoutSettings.minimum_wallet_balance_paise,
-          )} must remain available to use the wallet.`,
-        },
-        {
-          title: "Sale products",
-          description: checkoutSettings.allow_on_sale_products
-            ? "Play & Earn Wallet can be used on sale products."
-            : "Play & Earn Wallet cannot be used on sale products.",
-        },
-        {
-          title: "Discounted products",
-          description: checkoutSettings.allow_on_discounted_products
-            ? "Play & Earn Wallet can be used on discounted products."
-            : "Play & Earn Wallet cannot be used on discounted products.",
-        },
-        {
-          title: "Coupon codes",
-          description: checkoutSettings.allow_with_coupon
-            ? "Play & Earn Wallet can be used together with a coupon."
-            : "Play & Earn Wallet cannot be combined with a coupon.",
-        },
-        {
-          title: "Regular T&M Wallet",
-          description: checkoutSettings.allow_with_regular_wallet
-            ? "Both wallets can be used together."
-            : "Play & Earn Wallet cannot be combined with your regular T&M Wallet.",
-        },
-        {
-          title: "Shipping charges",
-          description: checkoutSettings.allow_shipping_charges
-            ? "Play & Earn Wallet can cover shipping charges."
-            : "Play & Earn Wallet cannot be used for shipping charges.",
-        },
-        {
-          title: "Payment methods",
-          description: `COD: ${
-            checkoutSettings.allow_cod ? "Allowed" : "Not allowed"
-          }. Online payment: ${
-            checkoutSettings.allow_online_payment
-              ? "Allowed"
-              : "Not allowed"
-          }.`,
-        },
-        {
-          title: "Daily redemption limit",
-          description:
-            checkoutSettings.daily_redemption_limit_paise === null
-              ? "No daily redemption limit."
-              : `Up to ${formatRupees(
-                  checkoutSettings.daily_redemption_limit_paise,
-                )} can be redeemed per day.`,
-        },
-        {
-          title: "Monthly redemption limit",
-          description:
-            checkoutSettings.monthly_redemption_limit_paise === null
-              ? "No monthly redemption limit."
-              : `Up to ${formatRupees(
-                  checkoutSettings.monthly_redemption_limit_paise,
-                )} can be redeemed per month.`,
-        },
-      ]
-    : [];
 
   /* ==========================================================
      RENDER
@@ -1055,7 +767,7 @@ export default function PlayEarnPage() {
 
 
       {/* =====================================================
-          RULES
+          HOW IT WORKS
       ====================================================== */}
 
       <section
@@ -1065,16 +777,19 @@ export default function PlayEarnPage() {
           bg-white
         "
       >
+
         <div
           className="
             mx-auto
-            max-w-6xl
+            max-w-5xl
             px-4
             py-12
             sm:py-14
           "
         >
+
           <div className="text-center">
+
             <p
               className="
                 text-xs
@@ -1084,8 +799,9 @@ export default function PlayEarnPage() {
                 text-purple-600
               "
             >
-              Rules & guidelines
+              How it works
             </p>
+
 
             <h2
               className="
@@ -1093,220 +809,52 @@ export default function PlayEarnPage() {
                 text-2xl
                 font-black
                 text-gray-950
-                sm:text-3xl
               "
             >
-              Know the rules before you play
+              Simple. Fun. Rewarding.
             </h2>
 
-            <p
-              className="
-                mx-auto
-                mt-3
-                max-w-2xl
-                text-sm
-                leading-6
-                text-gray-500
-              "
-            >
-              These rules are updated automatically from the current T&M
-              Play & Earn settings.
-            </p>
           </div>
 
-          <div className="mt-9 grid gap-6 lg:grid-cols-2">
-            {/* Game Rules */}
-            <div
-              className="
-                rounded-3xl
-                border
-                border-gray-200
-                bg-gray-50
-                p-5
-                sm:p-6
-              "
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="
-                    flex
-                    h-11
-                    w-11
-                    items-center
-                    justify-center
-                    rounded-2xl
-                    bg-purple-100
-                    text-xl
-                  "
-                >
-                  🎮
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-black text-gray-950">
-                    Game Rules
-                  </h3>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    Current limits, rewards and expiry.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-5 space-y-3">
-                {gameRuleItems.map((rule) => (
-                  <div
-                    key={rule.title}
-                    className="
-                      rounded-2xl
-                      border
-                      border-gray-200
-                      bg-white
-                      px-4
-                      py-3.5
-                    "
-                  >
-                    <p className="text-sm font-bold text-gray-950">
-                      {rule.title}
-                    </p>
-                    <p className="mt-1 text-xs leading-5 text-gray-500">
-                      {rule.description}
-                    </p>
-                  </div>
-                ))}
-
-                {gameRuleItems.length === 0 && (
-                  <div className="rounded-2xl border border-gray-200 bg-white px-4 py-5 text-center text-sm text-gray-500">
-                    Game rules are currently unavailable.
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Wallet Rules */}
-            <div
-              className="
-                rounded-3xl
-                border
-                border-[#E5D5A7]
-                bg-gradient-to-br
-                from-[#fffaf0]
-                to-white
-                p-5
-                sm:p-6
-              "
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="
-                    flex
-                    h-11
-                    w-11
-                    items-center
-                    justify-center
-                    rounded-2xl
-                    bg-[#FFF0C7]
-                    text-xl
-                  "
-                >
-                  💰
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-black text-gray-950">
-                    Play & Earn Wallet Rules
-                  </h3>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    Current checkout redemption rules.
-                  </p>
-                </div>
-              </div>
-
-              {checkoutSettingsLoading ? (
-                <div className="mt-5 rounded-2xl border border-[#E5D5A7] bg-white px-4 py-8 text-center">
-                  <Loader2 className="mx-auto h-5 w-5 animate-spin text-[#A06A16]" />
-                  <p className="mt-2 text-xs text-gray-500">
-                    Loading wallet rules…
-                  </p>
-                </div>
-              ) : checkoutSettings ? (
-                <div className="mt-5 space-y-3">
-                  {!checkoutSettings.redemption_enabled && (
-                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5">
-                      <p className="text-sm font-bold text-red-700">
-                        Wallet redemption is currently unavailable.
-                      </p>
-                    </div>
-                  )}
-
-                  {walletRuleItems.map((rule) => (
-                    <div
-                      key={rule.title}
-                      className="
-                        rounded-2xl
-                        border
-                        border-[#EEE6D2]
-                        bg-white
-                        px-4
-                        py-3.5
-                      "
-                    >
-                      <p className="text-sm font-bold text-gray-950">
-                        {rule.title}
-                      </p>
-                      <p className="mt-1 text-xs leading-5 text-gray-500">
-                        {rule.description}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="mt-5 rounded-2xl border border-gray-200 bg-white px-4 py-6 text-center">
-                  <p className="text-sm font-semibold text-gray-700">
-                    Wallet rules are temporarily unavailable.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => void loadCheckoutSettings()}
-                    className="
-                      mt-3
-                      rounded-xl
-                      bg-[#A06A16]
-                      px-4
-                      py-2
-                      text-xs
-                      font-bold
-                      text-white
-                    "
-                  >
-                    Try Again
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
 
           <div
             className="
-              mx-auto
-              mt-7
-              max-w-3xl
-              rounded-2xl
-              border
-              border-gray-200
-              bg-gray-50
-              px-5
-              py-4
-              text-center
+              mt-8
+              grid
+              gap-4
+              sm:grid-cols-3
             "
           >
-            <p className="text-xs leading-5 text-gray-500">
-              Play & Earn Wallet is separate from your regular T&M Wallet.
-              Only eligible rewards and eligible checkout amounts can be
-              redeemed according to the current rules.
-            </p>
+
+            <HowItWorksStep
+              number="01"
+              icon="🎮"
+              title="Choose a game"
+              description="Pick any available Play & Earn game."
+            />
+
+
+            <HowItWorksStep
+              number="02"
+              icon="✨"
+              title="Play"
+              description="Play according to the game's rules."
+            />
+
+
+            <HowItWorksStep
+              number="03"
+              icon="💰"
+              title="Earn rewards"
+              description="Eligible rewards are added to your Play & Earn Wallet."
+            />
+
           </div>
+
         </div>
+
       </section>
+
 
       {/* =====================================================
           FOOTER NOTE
