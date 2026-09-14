@@ -1309,6 +1309,163 @@ export default function PlayEarnPage() {
       </section>
 
       {/* =====================================================
+          TERMS & CONDITIONS
+      ====================================================== */}
+
+      <section
+        className="
+          border-t
+          border-gray-200
+          bg-gray-50
+        "
+      >
+        <div className="mx-auto max-w-5xl px-4 py-12 sm:py-14">
+          <div className="text-center">
+            <p
+              className="
+                text-xs
+                font-bold
+                uppercase
+                tracking-[0.25em]
+                text-purple-600
+              "
+            >
+              Please read before playing
+            </p>
+
+            <h2
+              className="
+                mt-2
+                text-2xl
+                font-black
+                text-gray-950
+                sm:text-3xl
+              "
+            >
+              Terms &amp; Conditions
+            </h2>
+
+            <p
+              className="
+                mx-auto
+                mt-3
+                max-w-2xl
+                text-sm
+                leading-6
+                text-gray-500
+              "
+            >
+              These terms are generated from the current Play &amp; Earn
+              settings and update automatically when the rules change.
+            </p>
+          </div>
+
+          <div className="mt-7 rounded-3xl border border-gray-200 bg-white p-5 sm:p-7">
+            <div className="space-y-6">
+              {/* Dynamic game terms */}
+              {gameRuleItems.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-black text-gray-950">
+                    Game participation
+                  </h3>
+
+                  <ul className="mt-3 space-y-3">
+                    {gameRuleItems.map((rule) => (
+                      <li
+                        key={`terms-game-${rule.title}`}
+                        className="flex gap-3 text-sm leading-6 text-gray-600"
+                      >
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-purple-500" />
+                        <span>
+                          <strong className="font-semibold text-gray-800">
+                            {rule.title}:
+                          </strong>{" "}
+                          {rule.description}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Dynamic wallet terms */}
+              {checkoutSettingsLoading ? (
+                <div className="border-t border-gray-100 pt-5 text-sm text-gray-500">
+                  Loading wallet terms…
+                </div>
+              ) : checkoutSettings ? (
+                <div className="border-t border-gray-100 pt-5">
+                  <h3 className="text-sm font-black text-gray-950">
+                    Play &amp; Earn Wallet
+                  </h3>
+
+                  <ul className="mt-3 space-y-3">
+                    {!checkoutSettings.redemption_enabled && (
+                      <li className="flex gap-3 text-sm leading-6 text-gray-600">
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
+                        <span>
+                          Wallet redemption is currently unavailable.
+                        </span>
+                      </li>
+                    )}
+
+                    {walletRuleItems.map((rule) => (
+                      <li
+                        key={`terms-wallet-${rule.title}`}
+                        className="flex gap-3 text-sm leading-6 text-gray-600"
+                      >
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#A06A16]" />
+                        <span>
+                          <strong className="font-semibold text-gray-800">
+                            {rule.title}:
+                          </strong>{" "}
+                          {rule.description}
+                        </span>
+                      </li>
+                    ))}
+
+                    <li className="flex gap-3 text-sm leading-6 text-gray-600">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#A06A16]" />
+                      <span>
+                        Play &amp; Earn Wallet rewards are separate from your
+                        regular T&amp;M Wallet and can only be redeemed when
+                        the current checkout eligibility rules are satisfied.
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              ) : (
+                <div className="border-t border-gray-100 pt-5 text-sm text-gray-500">
+                  Wallet terms are temporarily unavailable.
+                </div>
+              )}
+
+              {/* Dynamic status / policy */}
+              <div className="border-t border-gray-100 pt-5">
+                <h3 className="text-sm font-black text-gray-950">
+                  Current rules apply
+                </h3>
+
+                <p className="mt-2 text-sm leading-6 text-gray-600">
+                  Play &amp; Earn game availability, participation limits,
+                  reward expiry and wallet redemption rules are controlled by
+                  the current T&amp;M Play &amp; Earn settings. If a setting
+                  changes, the updated rule shown on this page applies.
+                </p>
+
+                <p className="mt-3 text-sm leading-6 text-gray-600">
+                  Rewards are subject to the applicable game rules and wallet
+                  eligibility requirements. A reward does not guarantee that
+                  the same amount, game or redemption option will remain
+                  available in the future.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* =====================================================
           FOOTER NOTE
       ====================================================== */}
 
@@ -2008,81 +2165,5 @@ function GameCard({
    HOW IT WORKS
 ============================================================ */
 
-interface HowItWorksStepProps {
-  number: string;
-  icon: string;
-  title: string;
-  description: string;
-}
 
 
-function HowItWorksStep({
-  number,
-  icon,
-  title,
-  description,
-}: HowItWorksStepProps) {
-
-  return (
-    <div
-      className="
-        rounded-2xl
-        border
-        border-gray-200
-        bg-gray-50
-        p-5
-      "
-    >
-
-      <div
-        className="
-          flex
-          items-center
-          justify-between
-        "
-      >
-
-        <span
-          className="
-            text-xs
-            font-black
-            tracking-[0.2em]
-            text-gray-300
-          "
-        >
-          {number}
-        </span>
-
-
-        <span className="text-xl">
-          {icon}
-        </span>
-
-      </div>
-
-
-      <h3
-        className="
-          mt-5
-          font-bold
-          text-gray-950
-        "
-      >
-        {title}
-      </h3>
-
-
-      <p
-        className="
-          mt-1
-          text-sm
-          leading-5
-          text-gray-500
-        "
-      >
-        {description}
-      </p>
-
-    </div>
-  );
-}
