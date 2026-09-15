@@ -289,3 +289,40 @@ export async function releaseCheckoutInventoryReservation(
   return data;
 
 }
+
+export async function checkCheckoutInventoryAvailability(
+  checkoutQuoteId: string,
+  customerId: string,
+  customerPhone?: string | null
+) {
+
+  if (!checkoutQuoteId || !customerId) {
+    return false;
+  }
+
+  const {
+    data,
+    error,
+  } = await supabase.rpc(
+    "check_checkout_inventory_availability_for_customer",
+    {
+      p_quote_id: checkoutQuoteId,
+      p_customer_id: customerId,
+      p_customer_phone: customerPhone ?? null,
+    }
+  );
+
+  if (error) {
+
+    console.error(
+      "Checkout inventory availability check failed:",
+      error
+    );
+
+    throw error;
+
+  }
+
+  return data === true;
+
+}

@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 
 import {
-  useEffect,
   useRef,
   useState,
 } from "react";
@@ -16,7 +15,6 @@ import {
   createRazorpayOrder,
   verifyRazorpayPayment,
   releaseCheckoutInventoryReservation,
-  checkCheckoutInventoryAvailability,
 } from "@/features/payment/services/razorpay.service";
 
 
@@ -90,16 +88,6 @@ export default function PaymentStep({
     setError,
   ] = useState("");
 
-  const [
-    inventoryError,
-    setInventoryError,
-  ] = useState("");
-
-  const [
-    inventoryAvailableAgain,
-    setInventoryAvailableAgain,
-  ] = useState(false);
-
 
   /*
    * Once Razorpay invokes the success handler, keep the inventory
@@ -143,92 +131,6 @@ export default function PaymentStep({
     );
 
 
-  /*
-   * If this customer was blocked because another customer temporarily
-   * reserved the last piece, keep checking the server-side availability
-   * while the popup is open. When the other reservation is released or
-   * expires, the popup updates automatically without a page refresh.
-   */
-  useEffect(() => {
-
-    if (
-      !inventoryError ||
-      inventoryAvailableAgain ||
-      !checkoutQuoteId ||
-      !customerId
-    ) {
-      return;
-    }
-
-    let mounted = true;
-    let checking = false;
-
-    const checkAvailability = async () => {
-
-      if (checking) {
-        return;
-      }
-
-      checking = true;
-
-      try {
-
-        const available =
-          await checkCheckoutInventoryAvailability(
-            checkoutQuoteId,
-            customerId,
-            customerPhone
-          );
-
-        if (
-          mounted &&
-          available
-        ) {
-          setInventoryAvailableAgain(true);
-        }
-
-      } catch (availabilityError) {
-
-        console.error(
-          "Could not refresh checkout inventory availability:",
-          availabilityError
-        );
-
-      } finally {
-
-        checking = false;
-
-      }
-
-    };
-
-    checkAvailability();
-
-    const intervalId =
-      window.setInterval(
-        checkAvailability,
-        2500
-      );
-
-    return () => {
-
-      mounted = false;
-
-      window.clearInterval(
-        intervalId
-      );
-
-    };
-
-  }, [
-    inventoryError,
-    inventoryAvailableAgain,
-    checkoutQuoteId,
-    customerId,
-    customerPhone,
-  ]);
-
-
   async function handlePayment() {
 
     if (loading) {
@@ -253,7 +155,6 @@ export default function PaymentStep({
         false;
 
       setError("");
-      setInventoryError("");
 
       setLoading(true);
 
@@ -768,19 +669,13 @@ export default function PaymentStep({
       );
 
 
-      const errorMessage =
-        err?.message ||
-        "Payment failed. Please try again.";
+      setError(
 
-      if (
-        errorMessage.includes("This item just went out of stock") ||
-        errorMessage.toLowerCase().includes("out of stock")
-      ) {
-        setInventoryError(errorMessage);
-        setError("");
-      } else {
-        setError(errorMessage);
-      }
+        err?.message ||
+        "Payment failed. Please try again."
+
+      );
+
 
       setLoading(false);
 
@@ -801,132 +696,8 @@ export default function PaymentStep({
 
 
   return (
-    <>
-      {inventoryError && (
-        <div
-          className="
-            fixed
-            inset-0
-            z-[100]
-            flex
-            items-center
-            justify-center
-            bg-black/60
-            px-4
-            backdrop-blur-sm
-          "
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="inventory-error-title"
-        >
-          <div
-            className="
-              relative
-              w-full
-              max-w-md
-              overflow-hidden
-              rounded-3xl
-              border
-              border-neutral-200/80
-              bg-white
-              p-6
-              text-center
-              shadow-2xl
-              sm:p-8
-            "
-          >
-            <div
-              className="
-                mx-auto
-                flex
-                h-16
-                w-16
-                items-center
-                justify-center
-                rounded-full
-                border
-                border-amber-200
-                bg-amber-50
-                text-2xl
-                shadow-sm
-              "
-            >
-              ✨
-            </div>
 
-            <div className="mt-5">
-              <p
-                className="
-                  text-xs
-                  font-semibold
-                  uppercase
-                  tracking-[0.22em]
-                  text-amber-700
-                "
-              >
-                Almost yours
-              </p>
-
-              <h2
-                id="inventory-error-title"
-                className="
-                  mt-2
-                  text-xl
-                  font-semibold
-                  tracking-tight
-                  text-neutral-900
-                "
-              >
-                This piece was just reserved
-              </h2>
-
-              <p className="mt-3 text-sm leading-6 text-neutral-600">
-                {inventoryError
-                  .replace(
-                    'This item just went out of stock. Please review your cart before paying: ',
-                    ''
-                  )
-                  .replace(/^"|"$/g, '')}
-                {" "}was just reserved by another customer and is no longer
-                available right now.
-              </p>
-
-              <p className="mt-2 text-xs leading-5 text-neutral-500">
-                We’ve stopped the payment so you won’t be charged for an
-                unavailable item.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setInventoryError("");
-              }}
-              className="
-                mt-6
-                w-full
-                rounded-xl
-                bg-black
-                px-5
-                py-3.5
-                text-sm
-                font-medium
-                text-white
-                transition
-                hover:bg-neutral-800
-                focus:outline-none
-                focus:ring-2
-                focus:ring-black
-                focus:ring-offset-2
-              "
-            >
-              Review My Cart
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-5">
+    <div className="space-y-5">
 
 
       <h3 className="text-lg font-semibold">
@@ -1316,7 +1087,7 @@ export default function PaymentStep({
 
 
     </div>
-    </>
+
   );
 
 }
