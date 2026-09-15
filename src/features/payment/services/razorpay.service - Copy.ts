@@ -89,7 +89,11 @@ async function getFunctionErrorMessage(
 
 
 export async function createRazorpayOrder(
-  checkoutQuoteId: string
+  checkoutQuoteId: string,
+  walletData?: {
+    playEarnWalletHoldId?: string | null;
+    playEarnWalletAmountPaise?: number;
+  }
 ) {
 
   if (!checkoutQuoteId) {
@@ -111,6 +115,26 @@ export async function createRazorpayOrder(
     {
       body: {
         checkoutQuoteId,
+
+        /*
+         * Play & Earn Wallet checkout data.
+         *
+         * The Edge Function must validate the hold and amount
+         * server-side before using them to calculate the exact
+         * Razorpay payable amount.
+         */
+        playEarnWalletHoldId:
+          walletData?.playEarnWalletHoldId ??
+          null,
+
+        playEarnWalletAmountPaise:
+          Math.max(
+            0,
+            Number(
+              walletData?.playEarnWalletAmountPaise ??
+              0
+            )
+          ),
       },
     }
 

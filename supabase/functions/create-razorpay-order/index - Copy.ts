@@ -584,86 +584,6 @@ serve(async (req) => {
 
     /*
      * =========================================================
-     * 1D. ATOMIC INVENTORY RESERVATION
-     * =========================================================
-     *
-     * This is the concurrency gate for checkout.
-     *
-     * The RPC locks the checkout quote and the relevant product
-     * rows, counts active reservations from other checkouts, and
-     * creates this quote's temporary reservation atomically.
-     *
-     * IMPORTANT:
-     * products.stock is NOT decremented here. Actual stock is
-     * deducted only when the trusted order transaction commits.
-     */
-
-    const {
-      data: inventoryReservation,
-      error: inventoryReservationError,
-    } = await supabaseAdmin.rpc(
-      "reserve_checkout_inventory",
-      {
-        p_quote_id:
-          checkoutQuoteId,
-      }
-    );
-
-
-    if (inventoryReservationError) {
-
-      console.error(
-        "Checkout inventory reservation failed:",
-        inventoryReservationError
-      );
-
-      return jsonResponse(
-
-        {
-          error:
-            inventoryReservationError.message ||
-            "This item is no longer available. Please review your cart.",
-          code:
-            "INVENTORY_RESERVATION_FAILED",
-        },
-
-        409
-
-      );
-
-    }
-
-
-    if (!inventoryReservation?.success) {
-
-      return jsonResponse(
-
-        {
-          error:
-            "Unable to reserve checkout inventory. Please review your cart.",
-          code:
-            "INVENTORY_RESERVATION_FAILED",
-        },
-
-        409
-
-      );
-
-    }
-
-
-    const reservationId =
-      inventoryReservation?.reservation_id ||
-      null;
-
-
-    const reservationExpiresAt =
-      inventoryReservation?.expires_at ||
-      null;
-
-
-    /*
-     * =========================================================
      * FULL WALLET PAYMENT
      * =========================================================
      *
@@ -705,12 +625,6 @@ serve(async (req) => {
 
           play_earn_wallet_amount_paise:
             playEarnWalletAmountPaise,
-
-          inventory_reservation_id:
-            reservationId,
-
-          inventory_reservation_expires_at:
-            reservationExpiresAt,
 
           payable_amount_paise:
             0,
@@ -802,31 +716,6 @@ serve(async (req) => {
       );
 
 
-      if (reservationId) {
-
-        const {
-          error: releaseError,
-        } = await supabaseAdmin.rpc(
-          "release_checkout_inventory_reservation",
-          {
-            p_quote_id:
-              checkoutQuoteId,
-          }
-        );
-
-
-        if (releaseError) {
-
-          console.error(
-            "Failed to release inventory reservation after Razorpay order failure:",
-            releaseError
-          );
-
-        }
-
-      }
-
-
       return jsonResponse(
 
         {
@@ -877,31 +766,6 @@ serve(async (req) => {
       );
 
 
-      if (reservationId) {
-
-        const {
-          error: releaseError,
-        } = await supabaseAdmin.rpc(
-          "release_checkout_inventory_reservation",
-          {
-            p_quote_id:
-              checkoutQuoteId,
-          }
-        );
-
-
-        if (releaseError) {
-
-          console.error(
-            "Failed to release inventory reservation after Razorpay amount mismatch:",
-            releaseError
-          );
-
-        }
-
-      }
-
-
       return jsonResponse(
 
         {
@@ -912,77 +776,6 @@ serve(async (req) => {
         502
 
       );
-
-    }
-
-
-    /*
-     * =========================================================
-     * 2B. ATTACH RAZORPAY ORDER TO RESERVATION
-     * =========================================================
-     *
-     * This lets the verification layer confirm that the payment
-     * belongs to the currently reserved checkout inventory.
-     */
-
-    if (reservationId) {
-
-      const {
-        error: attachReservationError,
-      } = await supabaseAdmin.rpc(
-        "attach_checkout_inventory_reservation_payment",
-        {
-          p_quote_id:
-            checkoutQuoteId,
-          p_razorpay_order_id:
-            String(razorpayData.id),
-        }
-      );
-
-
-      if (attachReservationError) {
-
-        console.error(
-          "Failed to attach Razorpay order to inventory reservation:",
-          attachReservationError
-        );
-
-
-        const {
-          error: releaseError,
-        } = await supabaseAdmin.rpc(
-          "release_checkout_inventory_reservation",
-          {
-            p_quote_id:
-              checkoutQuoteId,
-          }
-        );
-
-
-        if (releaseError) {
-
-          console.error(
-            "Failed to release inventory reservation after attachment failure:",
-            releaseError
-          );
-
-        }
-
-
-        return jsonResponse(
-
-          {
-            error:
-              "Unable to secure checkout inventory. Please try again.",
-            code:
-              "INVENTORY_RESERVATION_FAILED",
-          },
-
-          503
-
-        );
-
-      }
 
     }
 
@@ -1010,12 +803,6 @@ serve(async (req) => {
 
         play_earn_wallet_amount_paise:
           playEarnWalletAmountPaise,
-
-        inventory_reservation_id:
-          reservationId,
-
-        inventory_reservation_expires_at:
-          reservationExpiresAt,
 
         payable_amount_paise:
           payableAmountPaise,

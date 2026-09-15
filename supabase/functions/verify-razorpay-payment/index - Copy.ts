@@ -1121,49 +1121,6 @@ serve(async (req) => {
 
     /*
      * =========================================================
-     * 5. VERIFY INVENTORY RESERVATION
-     * =========================================================
-     *
-     * Do this immediately before accepting/capturing the payment.
-     * The reservation is the customer's temporary claim to the
-     * inventory represented by this checkout quote.
-     *
-     * If the reservation is gone, do not capture an authorized
-     * payment. This is the final payment-side guard before the
-     * trusted order transaction runs.
-     */
-
-    const {
-      error: inventoryReservationError,
-    } = await supabaseAdmin.rpc(
-      "validate_checkout_inventory_reservation",
-      {
-        p_quote_id: checkoutQuoteId,
-      }
-    );
-
-    if (inventoryReservationError) {
-
-      console.error(
-        "Checkout inventory reservation validation failed:",
-        inventoryReservationError
-      );
-
-      return jsonResponse(
-        {
-          success: false,
-          error:
-            inventoryReservationError.message ||
-            "Your inventory reservation has expired. Please return to checkout and try again.",
-        },
-        409
-      );
-
-    }
-
-
-    /*
-     * =========================================================
      * 5. CAPTURE IF STILL AUTHORIZED
      * =========================================================
      *

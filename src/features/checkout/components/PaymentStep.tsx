@@ -7,12 +7,14 @@ import {
 } from "lucide-react";
 
 import {
+  useRef,
   useState,
 } from "react";
 
 import {
   createRazorpayOrder,
   verifyRazorpayPayment,
+  releaseCheckoutInventoryReservation,
 } from "@/features/payment/services/razorpay.service";
 
 
@@ -79,6 +81,17 @@ export default function PaymentStep({
   ] = useState("");
 
 
+  /*
+   * Once Razorpay invokes the success handler, keep the inventory
+   * reservation intact while payment verification/order recovery
+   * is running. Razorpay may close the modal immediately after the
+   * success handler, so ondismiss must not release the reservation
+   * in that case.
+   */
+  const paymentSuccessHandlerStartedRef =
+    useRef(false);
+
+
   const localWalletAmount =
     Math.max(
       0,
@@ -129,6 +142,9 @@ export default function PaymentStep({
 
 
     try {
+
+      paymentSuccessHandlerStartedRef.current =
+        false;
 
       setError("");
 
@@ -390,6 +406,9 @@ export default function PaymentStep({
 
             try {
 
+              paymentSuccessHandlerStartedRef.current =
+                true;
+
               /*
                * Razorpay has already reported payment success.
                * Tell CheckoutDialog immediately so it can switch
@@ -540,12 +559,31 @@ export default function PaymentStep({
 
         modal: {
 
-          ondismiss: () => {
+          ondismiss: async () => {
+
+            if (paymentSuccessHandlerStartedRef.current) {
+              return;
+            }
 
             setLoading(false);
 
+            try {
+
+              await releaseCheckoutInventoryReservation(
+                checkoutQuoteId
+              );
+
+            } catch (releaseError) {
+
+              console.error(
+                "Failed to release inventory reservation after payment dismissal:",
+                releaseError
+              );
+
+            }
+
             setError(
-              "Payment was cancelled. You can try again whenever you're ready."
+              "Payment was cancelled. Your item has been released, and you can try again whenever you're ready."
             );
 
           },
@@ -560,7 +598,7 @@ export default function PaymentStep({
 
         callback: {
 
-          failure: (
+          failure: async (
             response: any
           ) => {
 
@@ -569,11 +607,29 @@ export default function PaymentStep({
               response
             );
 
+            paymentSuccessHandlerStartedRef.current =
+              false;
+
             setLoading(false);
+
+            try {
+
+              await releaseCheckoutInventoryReservation(
+                checkoutQuoteId
+              );
+
+            } catch (releaseError) {
+
+              console.error(
+                "Failed to release inventory reservation after payment failure:",
+                releaseError
+              );
+
+            }
 
             setError(
               response?.error?.description ||
-              "Payment failed. Please try again."
+              "Payment failed. Your item has been released, so you can try again."
             );
 
           },
