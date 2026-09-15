@@ -24,10 +24,6 @@ interface Props {
 
   checkoutQuoteId: string;
 
-  customerId: string;
-
-  customerPhone?: string | null;
-
   /*
    * Optional wallet amount already selected/held for this checkout.
    * The server remains the source of truth; this is only used for
@@ -59,10 +55,6 @@ export default function PaymentStep({
   totalAmount,
 
   checkoutQuoteId,
-
-  customerId,
-
-  customerPhone = null,
 
   walletAmountPaise = 0,
 
@@ -578,9 +570,7 @@ export default function PaymentStep({
             try {
 
               await releaseCheckoutInventoryReservation(
-                checkoutQuoteId,
-                customerId,
-                customerPhone
+                checkoutQuoteId
               );
 
             } catch (releaseError) {
@@ -625,9 +615,7 @@ export default function PaymentStep({
             try {
 
               await releaseCheckoutInventoryReservation(
-                checkoutQuoteId,
-                customerId,
-                customerPhone
+                checkoutQuoteId
               );
 
             } catch (releaseError) {

@@ -250,3 +250,38 @@ export async function verifyRazorpayPayment(
   return data;
 
 }
+
+export async function releaseCheckoutInventoryReservation(
+  checkoutQuoteId: string
+) {
+
+  if (!checkoutQuoteId) {
+
+    return;
+
+  }
+
+  const {
+    data,
+    error,
+  } = await supabase.rpc(
+    "release_checkout_inventory_reservation",
+    {
+      p_quote_id: checkoutQuoteId,
+    }
+  );
+
+  if (error) {
+
+    console.error(
+      "Checkout inventory reservation release failed:",
+      error
+    );
+
+    throw error;
+
+  }
+
+  return data;
+
+}

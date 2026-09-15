@@ -9608,6 +9608,10 @@ playEarnWalletAmountPaise:
 
                   checkoutQuoteId={checkoutQuoteId ?? ""}
 
+                  customerId={customer?.id ?? ""}
+
+                  customerPhone={customer?.phone ?? null}
+
                   walletAmountPaise={
                     walletSelected
                       ? walletAmountPaise

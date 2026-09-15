@@ -252,10 +252,12 @@ export async function verifyRazorpayPayment(
 }
 
 export async function releaseCheckoutInventoryReservation(
-  checkoutQuoteId: string
+  checkoutQuoteId: string,
+  customerId: string,
+  customerPhone?: string | null
 ) {
 
-  if (!checkoutQuoteId) {
+  if (!checkoutQuoteId || !customerId) {
 
     return;
 
@@ -265,9 +267,11 @@ export async function releaseCheckoutInventoryReservation(
     data,
     error,
   } = await supabase.rpc(
-    "release_checkout_inventory_reservation",
+    "release_checkout_inventory_reservation_for_customer",
     {
       p_quote_id: checkoutQuoteId,
+      p_customer_id: customerId,
+      p_customer_phone: customerPhone ?? null,
     }
   );
 
