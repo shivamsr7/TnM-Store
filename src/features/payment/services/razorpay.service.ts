@@ -323,6 +323,6 @@ export async function checkCheckoutInventoryAvailability(
 
   }
 
-  return data === true;
+  return data as "available" | "reserved" | "unavailable";
 
 }

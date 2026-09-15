@@ -96,9 +96,9 @@ export default function PaymentStep({
   ] = useState("");
 
   const [
-    inventoryAvailableAgain,
-    setInventoryAvailableAgain,
-  ] = useState(false);
+    inventoryAvailabilityStatus,
+    setInventoryAvailabilityStatus,
+  ] = useState<"checking" | "available" | "unavailable">("checking");
 
 
   /*
@@ -153,7 +153,7 @@ export default function PaymentStep({
 
     if (
       !inventoryError ||
-      inventoryAvailableAgain ||
+      inventoryAvailabilityStatus !== "checking" ||
       !checkoutQuoteId ||
       !customerId
     ) {
@@ -180,11 +180,14 @@ export default function PaymentStep({
             customerPhone
           );
 
-        if (
-          mounted &&
-          available
-        ) {
-          setInventoryAvailableAgain(true);
+        if (!mounted) {
+          return;
+        }
+
+        if (available === "available") {
+          setInventoryAvailabilityStatus("available");
+        } else if (available === "unavailable") {
+          setInventoryAvailabilityStatus("unavailable");
         }
 
       } catch (availabilityError) {
@@ -222,7 +225,7 @@ export default function PaymentStep({
 
   }, [
     inventoryError,
-    inventoryAvailableAgain,
+    inventoryAvailabilityStatus,
     checkoutQuoteId,
     customerId,
     customerPhone,
@@ -891,9 +894,48 @@ export default function PaymentStep({
                 available right now.
               </p>
 
+              <div className="mt-5 flex items-center justify-center gap-2 text-sm">
+                {inventoryAvailabilityStatus === "available" ? (
+                  <>
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                      ✓
+                    </span>
+                    <span className="font-medium text-emerald-700">
+                      Available again
+                    </span>
+                  </>
+                ) : inventoryAvailabilityStatus === "unavailable" ? (
+                  <>
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-neutral-100 text-neutral-500">
+                      ×
+                    </span>
+                    <span className="font-medium text-neutral-700">
+                      No longer available
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="relative flex h-5 w-5 items-center justify-center">
+                      <span className="absolute h-5 w-5 animate-ping rounded-full bg-amber-200 opacity-60" />
+                      <span className="relative h-2 w-2 rounded-full bg-amber-500" />
+                    </span>
+                    <span className="font-medium text-neutral-700">
+                      Checking availability…
+                    </span>
+                  </>
+                )}
+              </div>
+
               <p className="mt-2 text-xs leading-5 text-neutral-500">
-                We’ve stopped the payment so you won’t be charged for an
-                unavailable item.
+                {inventoryAvailabilityStatus === "available"
+                  ? "The reservation has been released. You can safely try again."
+                  : inventoryAvailabilityStatus === "unavailable"
+                    ? "Another customer completed the purchase, so this piece is no longer available."
+                    : "We’ll let you know as soon as this piece becomes available again."}
+              </p>
+
+              <p className="mt-2 text-[11px] leading-5 text-neutral-400">
+                We’ve stopped the payment so you won’t be charged for an unavailable item.
               </p>
             </div>
 
@@ -901,6 +943,7 @@ export default function PaymentStep({
               type="button"
               onClick={() => {
                 setInventoryError("");
+                setInventoryAvailabilityStatus("checking");
               }}
               className="
                 mt-6
