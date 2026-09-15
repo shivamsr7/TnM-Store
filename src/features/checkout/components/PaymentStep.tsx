@@ -1191,25 +1191,6 @@ export default function PaymentStep({
             )
           }
 
-          {
-            hasPlayEarnWallet && (
-
-              <div className="flex justify-between">
-
-                <span className="text-neutral-600">
-                  Play &amp; Earn Wallet
-                </span>
-
-                <span className="font-medium">
-                  −₹{localPlayEarnWalletAmount.toFixed(2)}
-                </span>
-
-              </div>
-
-            )
-          }
-
-
           <div
             className="
               flex
