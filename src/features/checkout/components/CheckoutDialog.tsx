@@ -7101,7 +7101,7 @@ playEarnWalletAmountPaise:
                                 text-neutral-950
                               "
                             >
-                              I'm a Member
+                              Login/Register as a Member
 
                               <span
                                 className="
