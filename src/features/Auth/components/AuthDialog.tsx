@@ -1076,6 +1076,24 @@ export default function AuthDialog({
           p-0
           text-white
           shadow-2xl
+          [&>button]:right-4
+          [&>button]:top-4
+          [&>button]:h-10
+          [&>button]:w-10
+          [&>button]:rounded-full
+          [&>button]:border
+          [&>button]:border-white/10
+          [&>button]:bg-white/[0.03]
+          [&>button]:p-2
+          [&>button]:opacity-80
+          [&>button]:transition
+          md:[&>button]:right-5
+          md:[&>button]:top-5
+          md:[&>button]:h-9
+          md:[&>button]:w-9
+          md:[&>button]:rounded-full
+          md:[&>button]:border-0
+          md:[&>button]:bg-transparent
           md:h-auto
           md:w-full
           md:max-w-md
@@ -1095,9 +1113,12 @@ export default function AuthDialog({
             from-black
             via-[#111111]
             to-black
-            px-4
-            pb-3
-            pt-4
+            border-b
+            border-white/10
+            px-5
+            pb-5
+            pt-5
+            md:border-b-0
             md:px-6
             md:pb-5
             md:pt-8
@@ -1121,7 +1142,7 @@ export default function AuthDialog({
               alt="T&M Jewels"
 
               className="
-                h-12
+                h-10
                 w-auto
                 object-contain
                 md:h-20
@@ -1148,9 +1169,10 @@ export default function AuthDialog({
 
             <p
               className="
-                mt-1
+                mt-1.5
                 text-xs
                 text-neutral-300
+                md:mt-1
                 md:text-sm
               "
             >
@@ -1164,23 +1186,32 @@ export default function AuthDialog({
 
           <div
             className="
-              mt-3
+              mt-5
               grid
               grid-cols-3
-              gap-2
+              gap-2.5
               md:mt-4
             "
           >
 
             <div
               className="
-                rounded-xl
+                flex
+                h-20
+                flex-col
+                items-center
+                justify-center
+                rounded-2xl
                 border
-                border-[#C8A44D]/30
-                bg-white/10
+                border-white/10
+                bg-white/[0.06]
                 px-2
-                py-1.5
                 text-center
+                shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]
+                md:h-auto
+                md:rounded-xl
+                md:border-[#C8A44D]/30
+                md:bg-white/10
                 md:py-2
               "
             >
@@ -1203,13 +1234,22 @@ export default function AuthDialog({
 
             <div
               className="
-                rounded-xl
+                flex
+                h-20
+                flex-col
+                items-center
+                justify-center
+                rounded-2xl
                 border
-                border-[#C8A44D]/30
-                bg-white/10
+                border-white/10
+                bg-white/[0.06]
                 px-2
-                py-1.5
                 text-center
+                shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]
+                md:h-auto
+                md:rounded-xl
+                md:border-[#C8A44D]/30
+                md:bg-white/10
                 md:py-2
               "
             >
@@ -1232,13 +1272,22 @@ export default function AuthDialog({
 
             <div
               className="
-                rounded-xl
+                flex
+                h-20
+                flex-col
+                items-center
+                justify-center
+                rounded-2xl
                 border
-                border-[#C8A44D]/30
-                bg-white/10
+                border-white/10
+                bg-white/[0.06]
                 px-2
-                py-1.5
                 text-center
+                shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]
+                md:h-auto
+                md:rounded-xl
+                md:border-[#C8A44D]/30
+                md:bg-white/10
                 md:py-2
               "
             >
@@ -1272,7 +1321,7 @@ export default function AuthDialog({
             min-h-0
             flex-1
             overflow-y-auto
-            px-4
+            px-5
             pb-[calc(1.25rem+env(safe-area-inset-bottom))]
             pt-6
             md:flex-none
@@ -1296,6 +1345,12 @@ export default function AuthDialog({
 
                 <motion.div
                   key="phone"
+
+                  className="
+                    mx-auto
+                    w-full
+                    max-w-2xl
+                  "
 
                   initial={{
                     opacity: 0,
@@ -1336,12 +1391,12 @@ export default function AuthDialog({
 
                   <div
                     className="
-                      mt-4
+                      mt-5
                       flex
                       items-center
-                      rounded-xl
+                      rounded-2xl
                       border
-                      border-white/20
+                      border-white/10
                       bg-white
                       px-4
                       md:mt-5
@@ -1399,7 +1454,7 @@ export default function AuthDialog({
                         ml-3
                         w-full
                         bg-transparent
-                        py-3.5
+                        py-4
                         text-sm
                         text-black
                         outline-none
