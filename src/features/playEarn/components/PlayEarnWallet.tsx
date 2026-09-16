@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import {
   playEarnWalletService,
   type PlayEarnWallet,
@@ -69,66 +70,126 @@ export default function PlayEarnWallet() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const loadWallet = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError("");
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshMessage, setRefreshMessage] = useState("");
 
-      /*
-       * IMPORTANT:
-       * Only getWallet() is called here.
-       *
-       * getWallet() creates the Play & Earn wallet if
-       * it doesn't exist yet and also returns balance_paise.
-       *
-       * We intentionally DO NOT call getBalance() separately,
-       * otherwise two simultaneous wallet-creation requests can
-       * cause the unique customer constraint error.
-       */
-      const walletData =
-        await playEarnWalletService.getWallet();
+  const loadWallet = useCallback(
+    async (options?: { silent?: boolean }) => {
+      const silent = options?.silent ?? false;
 
-      setWallet(walletData);
-
-      /*
-       * Transaction history is independent of wallet creation.
-       */
       try {
-        const transactionData =
-          await playEarnWalletService.getTransactions();
+        if (silent) {
+          setRefreshing(true);
+        } else {
+          setLoading(true);
+        }
 
-        setTransactions(transactionData);
-      } catch (transactionError) {
-        console.error(
-          "Failed to load Play & Earn transactions:",
-          transactionError
-        );
+        setError("");
 
         /*
-         * Wallet itself should still remain usable even if
-         * transaction history temporarily fails.
+         * IMPORTANT:
+         * Only getWallet() is called here.
+         *
+         * getWallet() creates the Play & Earn wallet if
+         * it doesn't exist yet and also returns balance_paise.
+         *
+         * We intentionally DO NOT call getBalance() separately,
+         * otherwise two simultaneous wallet-creation requests can
+         * cause the unique customer constraint error.
          */
-        setTransactions([]);
-      }
-    } catch (walletError) {
-      console.error(
-        "Failed to load Play & Earn wallet:",
-        walletError
-      );
+        const walletData =
+          await playEarnWalletService.getWallet();
 
-      setError(
-        walletError instanceof Error
-          ? walletError.message
-          : "Unable to load Play & Earn Wallet"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+        setWallet(walletData);
+
+        /*
+         * Transaction history is independent of wallet creation.
+         */
+        try {
+          const transactionData =
+            await playEarnWalletService.getTransactions();
+
+          setTransactions(transactionData);
+        } catch (transactionError) {
+          console.error(
+            "Failed to load Play & Earn transactions:",
+            transactionError
+          );
+
+          /*
+           * Wallet itself should still remain usable even if
+           * transaction history temporarily fails.
+           */
+          if (!silent) {
+            setTransactions([]);
+          }
+        }
+
+        if (silent) {
+          setRefreshMessage("Wallet updated");
+          window.setTimeout(() => {
+            setRefreshMessage("");
+          }, 1800);
+        }
+      } catch (walletError) {
+        console.error(
+          "Failed to load Play & Earn wallet:",
+          walletError
+        );
+
+        if (silent) {
+          setRefreshMessage("Unable to update wallet");
+          window.setTimeout(() => {
+            setRefreshMessage("");
+          }, 2200);
+        } else {
+          setError(
+            walletError instanceof Error
+              ? walletError.message
+              : "Unable to load Play & Earn Wallet"
+          );
+        }
+      } finally {
+        if (silent) {
+          setRefreshing(false);
+        } else {
+          setLoading(false);
+        }
+      }
+    },
+    []
+  );
+
+  const refreshWallet = useCallback(() => {
+    if (refreshing) return;
+    void loadWallet({ silent: true });
+  }, [loadWallet, refreshing]);
 
   useEffect(() => {
     void loadWallet();
   }, [loadWallet]);
+
+  /*
+   * Refresh automatically after a game reward is successfully
+   * credited. This keeps the wallet UI in sync without a page reload.
+   */
+  useEffect(() => {
+    const handleWalletUpdated = () => {
+      refreshWallet();
+    };
+
+    window.addEventListener(
+      "play-earn-wallet-updated",
+      handleWalletUpdated
+    );
+
+    return () => {
+      window.removeEventListener(
+        "play-earn-wallet-updated",
+        handleWalletUpdated
+      );
+    };
+  }, [refreshWallet]);
 
   /* ============================================================
      LOADING
@@ -248,12 +309,52 @@ export default function PlayEarnWallet() {
 
           {/* Balance */}
           <div className="mt-7">
-            <p className="text-xs font-medium text-white/55">
-              Available Rewards
-            </p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-medium text-white/55">
+                Available Rewards
+              </p>
+
+              <div className="flex items-center gap-2">
+                {refreshMessage && (
+                  <span
+                    className="text-[10px] font-semibold text-[#f7d98a] transition-opacity"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {refreshMessage}
+                  </span>
+                )}
+
+                <button
+                  type="button"
+                  onClick={refreshWallet}
+                  disabled={refreshing}
+                  aria-label="Refresh Play & Earn Wallet"
+                  title="Refresh wallet"
+                  className="
+                    flex h-8 w-8 items-center justify-center
+                    rounded-full border border-white/15
+                    bg-white/5 text-white/75
+                    transition-all duration-200
+                    hover:border-[#f1cd70]/50 hover:bg-white/10 hover:text-white
+                    active:scale-95
+                    disabled:cursor-not-allowed disabled:opacity-60
+                  "
+                >
+                  <RefreshCw
+                    className={refreshing ? "h-4 w-4 animate-spin" : "h-4 w-4"}
+                    strokeWidth={2}
+                  />
+                </button>
+              </div>
+            </div>
 
             <p className="mt-1 text-4xl font-black tracking-tight">
               {formatRupees(balancePaise)}
+            </p>
+
+            <p className="mt-1 text-[10px] text-white/35">
+              {refreshing ? "Updating wallet…" : "Tap ↻ to update"}
             </p>
           </div>
 

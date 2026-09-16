@@ -84,6 +84,11 @@ import ReviewEarnPage
   import MemberOnlyRoute
   from "@/features/Auth/components/MemberOnlyRoute";
 
+import MomentPage
+  from "@/features/moments/pages/MomentPage";
+
+  import MomentTestCreator from "@/features/moments/pages/MomentTestCreator";
+
 export default function AppRouter() {
 
   return (
@@ -310,6 +315,21 @@ export default function AppRouter() {
           />
 
         </Route>
+
+        {/* =================================================
+            PRIVATE T&M MOMENT
+        ================================================== */}
+
+        <Route
+          path="/moments/:token"
+          element={
+            <MomentPage />
+          }
+        />
+        <Route
+  path="/moment-test"
+  element={<MomentTestCreator />}
+/>
 <Route
   path="/track-order"
   element={<OrderTrackingPage />}
