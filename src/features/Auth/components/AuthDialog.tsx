@@ -1063,9 +1063,11 @@ export default function AuthDialog({
 
       <DialogContent
         className="
+          flex
           h-[100dvh]
           w-screen
           max-w-none
+          flex-col
           overflow-hidden
           rounded-none
           border-0
@@ -1088,13 +1090,14 @@ export default function AuthDialog({
 
         <div
           className="
+            shrink-0
             bg-gradient-to-b
             from-black
             via-[#111111]
             to-black
             px-4
             pb-3
-            pt-5
+            pt-4
             md:px-6
             md:pb-5
             md:pt-8
@@ -1118,7 +1121,7 @@ export default function AuthDialog({
               alt="T&M Jewels"
 
               className="
-                h-16
+                h-12
                 w-auto
                 object-contain
                 md:h-20
@@ -1128,11 +1131,12 @@ export default function AuthDialog({
 
             <h2
               className="
-                mt-3
+                mt-2
                 text-xl
                 font-semibold
                 tracking-wide
                 text-[#C8A44D]
+                md:mt-3
                 md:text-2xl
               "
             >
@@ -1160,10 +1164,11 @@ export default function AuthDialog({
 
           <div
             className="
-              mt-4
+              mt-3
               grid
               grid-cols-3
               gap-2
+              md:mt-4
             "
           >
 
@@ -1174,8 +1179,9 @@ export default function AuthDialog({
                 border-[#C8A44D]/30
                 bg-white/10
                 px-2
-                py-2
+                py-1.5
                 text-center
+                md:py-2
               "
             >
 
@@ -1202,8 +1208,9 @@ export default function AuthDialog({
                 border-[#C8A44D]/30
                 bg-white/10
                 px-2
-                py-2
+                py-1.5
                 text-center
+                md:py-2
               "
             >
 
@@ -1230,8 +1237,9 @@ export default function AuthDialog({
                 border-[#C8A44D]/30
                 bg-white/10
                 px-2
-                py-2
+                py-1.5
                 text-center
+                md:py-2
               "
             >
 
@@ -1265,12 +1273,13 @@ export default function AuthDialog({
             flex-1
             overflow-y-auto
             px-4
-            pb-5
-            pt-3
+            pb-[calc(1.25rem+env(safe-area-inset-bottom))]
+            pt-6
             md:flex-none
             md:max-h-[75vh]
             md:px-6
             md:pb-6
+            md:pt-3
           "
         >
 
@@ -1327,7 +1336,7 @@ export default function AuthDialog({
 
                   <div
                     className="
-                      mt-5
+                      mt-4
                       flex
                       items-center
                       rounded-xl
@@ -1335,6 +1344,7 @@ export default function AuthDialog({
                       border-white/20
                       bg-white
                       px-4
+                      md:mt-5
                     "
                   >
 
