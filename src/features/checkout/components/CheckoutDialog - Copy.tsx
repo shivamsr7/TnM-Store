@@ -34,7 +34,7 @@ import {
 
 import OrderSuccess from "./OrderSuccess";
 import PaymentStep from "./PaymentStep";
-import AuthDialog from "@/features/Auth/components/AuthDialog";
+import LoginStep from "./LoginStep";
 import AddressStep from "./AddressStep";
 import CouponModal from "@/features/coupons/components/CouponModal";
 
@@ -46,6 +46,7 @@ import {
 
 import {
   getCustomerByPhone,
+  createCustomer,
   createGuestCustomer,
   sendGuestOtp,
   verifyGuestOtp,
@@ -183,11 +184,6 @@ export default function CheckoutDialog({
     loginChoice,
     setLoginChoice,
   ] = useState<"member" | "guest" | null>(null);
-
-  const [
-    authDialogOpen,
-    setAuthDialogOpen,
-  ] = useState(false);
 
   const [
     guestName,
@@ -3418,6 +3414,91 @@ export default function CheckoutDialog({
   ]);
 
 
+  /*
+   * =========================================================
+   * LOGIN SUCCESS
+   * =========================================================
+   */
+
+  async function handleLoginSuccess(
+    data: {
+      phone: string;
+    }
+  ) {
+
+    try {
+
+      const existingCustomer =
+        await getCustomerByPhone(
+          data.phone
+        );
+
+
+      if (existingCustomer) {
+
+        setCustomer(
+          existingCustomer
+        );
+
+
+        useCustomerStore
+          .getState()
+          .setCustomer(
+            existingCustomer
+          );
+
+
+        setStep(
+          "address"
+        );
+
+
+        return;
+
+      }
+
+
+      const newCustomer =
+        await createCustomer({
+
+          first_name:
+            "Customer",
+
+          phone:
+            data.phone,
+
+        });
+
+
+      setCustomer(
+        newCustomer
+      );
+
+
+      useCustomerStore
+        .getState()
+        .setCustomer(
+          newCustomer
+        );
+
+
+      setStep(
+        "address"
+      );
+
+    }
+
+    catch (error) {
+
+      console.error(
+        "Customer login failed",
+        error
+      );
+
+    }
+
+  }
+
 
   /*
    * =========================================================
@@ -5155,10 +5236,6 @@ playEarnWalletAmountPaise:
           backdrop-blur-md
         "
 
-        style={{
-          zIndex: authDialogOpen ? 40 : 1000,
-        }}
-
         onClick={
           handleCheckoutClose
         }
@@ -5204,10 +5281,6 @@ playEarnWalletAmountPaise:
           md:-translate-x-1/2
           md:rounded-3xl
         "
-
-        style={{
-          zIndex: authDialogOpen ? 40 : 1100,
-        }}
 
       >
 
@@ -7018,7 +7091,7 @@ playEarnWalletAmountPaise:
                         type="button"
                         onClick={() => {
                           setGuestError("");
-                          setAuthDialogOpen(true);
+                          setLoginChoice("member");
                         }}
                         className="
                           group
@@ -7151,7 +7224,7 @@ playEarnWalletAmountPaise:
                             group-hover:gap-2.5
                           "
                         >
-                          I'm a Member
+                          Continue as Member
                           <span
                             aria-hidden="true"
                             className="transition-transform duration-300 group-hover:translate-x-0.5"
@@ -7328,6 +7401,127 @@ playEarnWalletAmountPaise:
                         />
                       </span>
                       Your details are kept secure
+                    </div>
+
+                  </div>
+                )}
+
+
+                {loginChoice === "member" && (
+                  <div
+                    className="
+                      motion-safe:animate-[loginPanelIn_420ms_cubic-bezier(.22,1,.36,1)]
+                    "
+                  >
+
+                    <button
+                      type="button"
+                      onClick={() => setLoginChoice(null)}
+                      className="
+                        group
+                        mb-5
+                        inline-flex
+                        items-center
+                        gap-1.5
+                        rounded-full
+                        border
+                        border-neutral-200
+                        bg-white
+                        px-3
+                        py-2
+                        text-xs
+                        font-semibold
+                        text-neutral-600
+                        shadow-sm
+                        transition-all
+                        duration-200
+                        hover:-translate-x-0.5
+                        hover:border-[#C8A44D]/35
+                        hover:text-[#9A7A22]
+                        active:scale-95
+                      "
+                    >
+                      <span
+                        className="transition-transform duration-200 group-hover:-translate-x-0.5"
+                      >
+                        ←
+                      </span>
+                      Choose another option
+                    </button>
+
+                    <div
+                      className="
+                        rounded-[28px]
+                        border
+                        border-[#C8A44D]/15
+                        bg-gradient-to-b
+                        from-[#fffdf8]
+                        via-white
+                        to-neutral-50
+                        px-4
+                        pb-5
+                        pt-6
+                        shadow-[0_16px_48px_rgba(0,0,0,0.055)]
+                        sm:px-6
+                      "
+                    >
+
+                      <div
+                        className="
+                          mx-auto
+                          flex
+                          h-[68px]
+                          w-[68px]
+                          items-center
+                          justify-center
+                          rounded-full
+                          bg-gradient-to-br
+                          from-[#fff9e9]
+                          to-[#f5ead0]
+                          text-[#9A7A22]
+                          shadow-[0_10px_30px_rgba(200,164,77,0.15)]
+                          ring-8
+                          ring-[#C8A44D]/[0.035]
+                          motion-safe:animate-[loginIconFloat_3.8s_ease-in-out_infinite]
+                        "
+                      >
+                        <UserRound
+                          size={31}
+                          strokeWidth={1.9}
+                        />
+                      </div>
+
+                      <h3
+                        className="
+                          mt-5
+                          text-center
+                          text-[24px]
+                          font-semibold
+                          tracking-[-0.035em]
+                          text-neutral-950
+                        "
+                      >
+                        Welcome back
+                      </h3>
+
+                      <p
+                        className="
+                          mt-1.5
+                          text-center
+                          text-sm
+                          leading-5
+                          text-neutral-500
+                        "
+                      >
+                        Sign in securely with your mobile number.
+                      </p>
+
+                      <LoginStep
+                        onSuccess={
+                          handleLoginSuccess
+                        }
+                      />
+
                     </div>
 
                   </div>
@@ -9828,29 +10022,6 @@ playEarnWalletAmountPaise:
           }
         />
       )}
-
-
-      <AuthDialog
-        open={authDialogOpen}
-        onOpenChange={setAuthDialogOpen}
-        onAuthSuccess={(authenticatedCustomer) => {
-
-          setCustomer(
-            authenticatedCustomer
-          );
-
-          useCustomerStore
-            .getState()
-            .setCustomer(
-              authenticatedCustomer
-            );
-
-          setAuthDialogOpen(false);
-          setLoginChoice(null);
-          setStep("address");
-
-        }}
-      />
 
 
       {/* ===================================================

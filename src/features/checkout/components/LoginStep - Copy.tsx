@@ -15,27 +15,12 @@ import {
   supabase
 } from "@/shared/lib/supabase";
 
-import {
-  getCustomerByPhone,
-} from "@/features/customers/services/customer.service";
-
 
 
 interface Props {
 
   onSuccess:(data:{
     phone:string;
-    customer:any | null;
-  })=>void;
-
-  onCreateMemberAccount?: (data:{
-    phone:string;
-    customer:any | null;
-  })=>void;
-
-  onContinueAsGuest?: (data:{
-    phone:string;
-    customer:any | null;
   })=>void;
 
 }
@@ -46,9 +31,7 @@ interface Props {
 
 export default function LoginStep({
 
-  onSuccess,
-  onCreateMemberAccount,
-  onContinueAsGuest,
+  onSuccess
 
 }:Props){
 
@@ -63,9 +46,6 @@ const [loading,setLoading]=useState(false);
 
 const [error,setError]=useState("");
 const [resendCooldown,setResendCooldown]=useState(0);
-const [customerStatus,setCustomerStatus]=useState<"member"|"guest"|"new"|null>(null);
-const [verifiedCustomer,setVerifiedCustomer]=useState<any>(null);
-const [choiceLoading,setChoiceLoading]=useState<"member"|"guest"|null>(null);
 
 
 
@@ -254,51 +234,13 @@ throw error;
 
 
 
-// OTP verification succeeded. Classify the verified phone
-// before deciding whether to continue to Address or show
-// the Member / Guest / New customer choice UI.
-const existingCustomer =
-  await getCustomerByPhone(
-    phone
-  );
+// Login successful
 
-setVerifiedCustomer(
-  existingCustomer
-);
+onSuccess({
 
-if (
-  existingCustomer?.customer_type === "member"
-) {
+phone
 
-  // Registered Member → continue directly to Address.
-  onSuccess({
-
-    phone,
-    customer: existingCustomer,
-
-  });
-
-  return;
-
-}
-
-if (
-  existingCustomer?.customer_type === "guest"
-) {
-
-  // Existing Guest → show Guest → Member / Guest choice.
-  setCustomerStatus(
-    "guest"
-  );
-
-  return;
-
-}
-
-// No active customer → brand-new number.
-setCustomerStatus(
-  "new"
-);
+});
 
 
 
@@ -335,58 +277,6 @@ setLoading(false);
 
 
 
-
-if (customerStatus === "guest" || customerStatus === "new") {
-  const isGuest = customerStatus === "guest";
-
-  return (
-    <div className="space-y-5 motion-safe:animate-[loginPanelIn_380ms_cubic-bezier(.22,1,.36,1)]">
-      <div className="rounded-[22px] border border-[#C8A44D]/20 bg-gradient-to-br from-[#fffdf8] via-white to-[#faf8f2] p-5 text-center shadow-[0_12px_35px_rgba(200,164,77,0.10)]">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600 text-xl font-bold">✓</div>
-
-        <h3 className="mt-4 text-xl font-semibold tracking-[-0.025em] text-neutral-950">
-          {isGuest ? "You're currently a Guest ✨" : "Welcome to T&M Jewels ✨"}
-        </h3>
-
-        <p className="mx-auto mt-2 max-w-[430px] text-sm leading-6 text-neutral-500">
-          {isGuest
-            ? "This number isn't registered as a T&M Member yet. Create your Member account to unlock exclusive member benefits."
-            : "You don't have a Member account yet. Create one to unlock exclusive member benefits."}
-        </p>
-
-        <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => {
-              if (choiceLoading) return;
-              setChoiceLoading("member");
-              onCreateMemberAccount?.({ phone, customer: verifiedCustomer });
-            }}
-            disabled={choiceLoading !== null}
-            className="rounded-[14px] bg-black px-4 py-3.5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(0,0,0,0.13)] transition hover:-translate-y-0.5 hover:bg-neutral-800 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {choiceLoading === "member" ? (
-              <span className="inline-flex items-center justify-center gap-2"><Loader2 size={16} className="animate-spin" /> Creating...</span>
-            ) : "Create Member Account"}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              if (choiceLoading) return;
-              setChoiceLoading("guest");
-              onContinueAsGuest?.({ phone, customer: verifiedCustomer });
-            }}
-            disabled={choiceLoading !== null}
-            className="rounded-[14px] border border-neutral-200 bg-white px-4 py-3.5 text-sm font-semibold text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50 active:scale-[0.985] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Continue as Guest
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 return (
 
@@ -666,9 +556,6 @@ return (
                   setOtp("");
                   setError("");
                   setResendCooldown(0);
-                  setCustomerStatus(null);
-                  setVerifiedCustomer(null);
-                  setChoiceLoading(null);
                 }}
                 className="
                   text-xs

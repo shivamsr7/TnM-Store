@@ -37,7 +37,6 @@ import {
 
 import {
   createCustomer,
-  upgradeGuestToMember,
 } from "@/features/customers/services/customer.service";
 
 import {
@@ -51,10 +50,6 @@ interface Props {
 
   onOpenChange: (
     open: boolean
-  ) => void;
-
-  onAuthSuccess?: (
-    customer: any
   ) => void;
 
 }
@@ -78,8 +73,6 @@ export default function AuthDialog({
 
   onOpenChange,
 
-  onAuthSuccess,
-
 }: Props) {
 
 
@@ -91,7 +84,6 @@ export default function AuthDialog({
 
   const {
     loginWithPhone,
-    refreshCustomer,
   } = useAuth();
 
 
@@ -637,7 +629,7 @@ export default function AuthDialog({
 
       /*
        * =====================================================
-       * EXISTING MEMBER
+       * EXISTING CUSTOMER
        * =====================================================
        */
 
@@ -655,158 +647,7 @@ export default function AuthDialog({
         );
 
 
-        onAuthSuccess?.(
-          customer
-        );
-
-
         return;
-
-      }
-
-
-      /*
-       * =====================================================
-       * EXISTING GUEST → MEMBER
-       * =====================================================
-       *
-       * IMPORTANT:
-       * loginWithPhone() cannot see a Guest because the Guest
-       * row has no auth_user_id.
-       *
-       * Therefore the Guest → Member RPC is the authoritative
-       * lookup after OTP verification.
-       *
-       * We ONLY continue to the new-member profile when the RPC
-       * explicitly says that no Guest customer exists.
-       *
-       * Any other RPC/database error MUST stop the flow.
-       * It must never fall through to createCustomer(), because
-       * that can produce a duplicate auth_user_id.
-       * =====================================================
-       */
-
-      try {
-
-        const memberCustomer =
-          await upgradeGuestToMember(
-            normalizedPhone
-          );
-
-
-        let upgradedCustomer =
-          await refreshCustomer(
-            normalizedPhone
-          );
-
-
-        if (
-          !upgradedCustomer
-        ) {
-
-          upgradedCustomer =
-            memberCustomer;
-
-        }
-
-
-        if (
-          upgradedCustomer
-        ) {
-
-          setSuccessMessage(
-            "Welcome to T&M Family ✨"
-          );
-
-
-          setAuthSuccess(
-            true
-          );
-
-
-          onAuthSuccess?.(
-            upgradedCustomer
-          );
-
-
-          return;
-
-        }
-
-
-        /*
-         * The RPC succeeded but AuthContext could not immediately
-         * resolve the customer. Use the RPC response rather than
-         * creating another customer.
-         */
-
-        setSuccessMessage(
-          "Welcome to T&M Family ✨"
-        );
-
-
-        setAuthSuccess(
-          true
-        );
-
-
-        onAuthSuccess?.(
-          memberCustomer
-        );
-
-
-        return;
-
-      } catch (
-        guestUpgradeError: any
-      ) {
-
-        const guestUpgradeMessage =
-          guestUpgradeError instanceof Error
-            ? guestUpgradeError.message
-            : String(
-                guestUpgradeError?.message ??
-                guestUpgradeError ??
-                ""
-              );
-
-
-        /*
-         * ONLY this specific condition means there is no existing
-         * customer and a new Member profile is required.
-         */
-        const noGuestCustomer =
-          guestUpgradeMessage
-            .toLowerCase()
-            .includes(
-              "no active customer record was found"
-            );
-
-
-        if (
-          !noGuestCustomer
-        ) {
-
-          console.error(
-            "[T&M AUTH] Guest → Member upgrade failed. Stopping before createCustomer():",
-            guestUpgradeError
-          );
-
-
-          toast.error(
-            guestUpgradeMessage ||
-            "Unable to activate your T&M Member account. Please try again."
-          );
-
-
-          return;
-
-        }
-
-
-        console.log(
-          "[T&M AUTH] No existing Guest customer. Continuing with new member registration."
-        );
 
       }
 
@@ -880,26 +721,6 @@ export default function AuthDialog({
 
     try {
 
-      const normalizedPhone =
-        phone
-          .replace(/\D/g, "")
-          .slice(-10);
-
-
-      /*
-       * =====================================================
-       * NEW MEMBER ONLY
-       * =====================================================
-       *
-       * Guest customers are upgraded immediately after OTP
-       * verification in handleVerifyOtp().
-       *
-       * Therefore reaching this function means the Guest upgrade
-       * explicitly reported that no Guest customer exists.
-       *
-       * Do not call upgradeGuestToMember() here again.
-       */
-
       const nameParts =
         fullName
           .trim()
@@ -916,6 +737,12 @@ export default function AuthDialog({
           .join(" ");
 
 
+      /*
+       * -----------------------------------------------------
+       * CREATE CUSTOMER
+       * -----------------------------------------------------
+       */
+
       const createdCustomer =
         await createCustomer({
 
@@ -930,7 +757,9 @@ export default function AuthDialog({
             undefined,
 
           phone:
-            normalizedPhone,
+            phone
+              .replace(/\D/g, "")
+              .slice(-10),
 
         });
 
@@ -975,11 +804,17 @@ export default function AuthDialog({
        * -----------------------------------------------------
        * LOGIN IMMEDIATELY
        * -----------------------------------------------------
+       *
+       * The Supabase Auth session was created when the OTP
+       * was verified. AuthContext now resolves that session
+       * to the newly created T&M customer.
        */
 
       const loggedInCustomer =
         await loginWithPhone(
-          normalizedPhone
+          phone
+            .replace(/\D/g, "")
+            .slice(-10)
         );
 
 
@@ -994,11 +829,6 @@ export default function AuthDialog({
 
         setAuthSuccess(
           true
-        );
-
-
-        onAuthSuccess?.(
-          loggedInCustomer
         );
 
 
@@ -1020,11 +850,6 @@ export default function AuthDialog({
         true
       );
 
-
-      onAuthSuccess?.(
-        createdCustomer
-      );
-
     } catch (
       error
     ) {
@@ -1042,6 +867,7 @@ export default function AuthDialog({
     }
 
   }
+
 
   /*
    * =========================================================

@@ -1789,25 +1789,6 @@ export default function CartDrawer() {
 
   /*
    * =========================================================
-   * OPEN CHECKOUT
-   * =========================================================
-   *
-   * Close the cart drawer before opening CheckoutDialog so
-   * the drawer does not remain visible behind the checkout
-   * or member authentication dialog.
-   * =========================================================
-   */
-
-  const openCheckout = () => {
-
-    closeCart();
-    setCheckoutOpen(true);
-
-  };
-
-
-  /*
-   * =========================================================
    * LOGIN OFFER GUIDANCE
    * =========================================================
    *
@@ -2099,7 +2080,7 @@ export default function CartDrawer() {
       dismissedCouponReminderKey ===
         checkoutCouponReminderKey
     ) {
-      openCheckout();
+      setCheckoutOpen(true);
       return;
     }
 
@@ -2225,7 +2206,7 @@ export default function CartDrawer() {
   const handleContinueToCheckoutOfferChoice = () => {
 
     setShowCheckoutOfferChoice(false);
-    openCheckout();
+    setCheckoutOpen(true);
 
   };
 
@@ -2255,7 +2236,7 @@ export default function CartDrawer() {
 
       if (!bestCoupon) {
         setShowCheckoutCouponReminder(false);
-        openCheckout();
+        setCheckoutOpen(true);
         return;
       }
 
@@ -2339,7 +2320,7 @@ export default function CartDrawer() {
         }
 
         window.setTimeout(() => {
-          openCheckout();
+          setCheckoutOpen(true);
         }, 350);
 
       } catch (error: any) {
@@ -2361,7 +2342,7 @@ export default function CartDrawer() {
   const handleContinueWithoutCoupon = () => {
 
     setShowCheckoutCouponReminder(false);
-    openCheckout();
+    setCheckoutOpen(true);
 
   };
 
