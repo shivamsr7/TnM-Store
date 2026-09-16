@@ -142,7 +142,7 @@ export default function MomentPage() {
   const [kissed, setKissed] = useState(false);
   const [photoFlash, setPhotoFlash] = useState(false);
 
-  const [notePulled, setNotePulled] = useState(false);
+
   const [constellationFound, setConstellationFound] = useState<number[]>(
     []
   );
@@ -360,7 +360,6 @@ export default function MomentPage() {
     if (memoryIndex >= memoryCount - 1) return;
 
     setKissed(false);
-    setNotePulled(false);
     setPhotoFlash(false);
     resetPhoto();
 
@@ -373,7 +372,6 @@ export default function MomentPage() {
     if (memoryIndex <= 0) return;
 
     setKissed(false);
-    setNotePulled(false);
     setPhotoFlash(false);
     resetPhoto();
 
@@ -424,7 +422,6 @@ export default function MomentPage() {
   };
 
   const revealPhotoNote = () => {
-    setNotePulled(true);
     track("message_revealed");
   };
 
