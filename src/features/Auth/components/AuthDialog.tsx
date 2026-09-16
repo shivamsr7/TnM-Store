@@ -1063,17 +1063,22 @@ export default function AuthDialog({
 
       <DialogContent
         className="
-          w-[92vw]
-          max-w-md
+          h-[100dvh]
+          w-screen
+          max-w-none
           overflow-hidden
-          rounded-3xl
-          border
+          rounded-none
+          border-0
           border-[#C8A44D]/30
           bg-black
           p-0
           text-white
           shadow-2xl
+          md:h-auto
           md:w-full
+          md:max-w-md
+          md:rounded-3xl
+          md:border
         "
       >
 
@@ -1256,11 +1261,14 @@ export default function AuthDialog({
 
         <div
           className="
-            max-h-[75vh]
+            min-h-0
+            flex-1
             overflow-y-auto
             px-4
             pb-5
             pt-3
+            md:flex-none
+            md:max-h-[75vh]
             md:px-6
             md:pb-6
           "
