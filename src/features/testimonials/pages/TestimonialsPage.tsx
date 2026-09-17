@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, X, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -206,48 +207,120 @@ export default function TestimonialsPage() {
       </section>
 
       {/* ───────────────── INTRO / NUMBERS ───────────────── */}
-      <section className="bg-[#f5f1e9] px-5 py-14 sm:px-8 sm:py-20 lg:px-12">
-        <div className="mx-auto max-w-[1300px]">
-          <div className="grid gap-10 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
-            <div>
-              <p className="text-[9px] uppercase tracking-[0.32em] text-[#987b4b]">
-                Not just testimonials
-              </p>
-              <h2 className="mt-4 max-w-3xl font-serif text-4xl leading-[1.02] tracking-[-0.04em] sm:text-5xl lg:text-6xl">
-                These are little pieces of the{" "}
-                <span className="italic text-[#9b7b47]">T&M story.</span>
-              </h2>
-            </div>
+      <section className="relative overflow-hidden bg-[#f5f1e9] px-5 py-14 sm:px-8 sm:py-20 lg:px-12 lg:py-28">
+        {/* subtle editorial ornament */}
+        <div className="pointer-events-none absolute -right-28 -top-24 h-64 w-64 rounded-full border border-[#b99a64]/15 sm:-right-24 sm:-top-28 sm:h-80 sm:w-80" />
+        <div className="pointer-events-none absolute -right-20 -top-16 h-52 w-52 rounded-full border border-[#b99a64]/10 sm:-right-16 sm:-top-20 sm:h-64 sm:w-64" />
 
-            <p className="text-sm leading-7 text-[#716b62]">
-              From an excited “just received it” message to a customer already
-              planning their next order — every interaction means something to
-              us.
-            </p>
-          </div>
-
-          <div className="mt-12 grid border-y border-[#d8cfc1] sm:grid-cols-3">
-            {[
-              ["100+", "orders delivered"],
-              ["Real", "customer messages"],
-              ["∞", "moments to remember"],
-            ].map(([value, label], index) => (
-              <div
-                key={label}
-                className={`relative py-7 ${
-                  index > 0
-                    ? "border-t border-[#d8cfc1] sm:border-l sm:border-t-0 sm:pl-8"
-                    : ""
-                }`}
-              >
-                <span className="block font-serif text-3xl text-[#9a7947]">
-                  {value}
-                </span>
-                <span className="mt-1 block text-[8px] uppercase tracking-[0.22em] text-[#777066]">
-                  {label}
+        <div className="relative mx-auto max-w-[1300px]">
+          {/* Intro */}
+          <div className="grid items-start gap-9 lg:grid-cols-[1.15fr_0.85fr] lg:items-end lg:gap-20">
+            <div className="min-w-0">
+              <div className="mb-5 flex items-center gap-3 sm:mb-6">
+                <span className="h-px w-8 bg-[#ad8a52] sm:w-10" />
+                <span className="text-[7px] font-medium uppercase tracking-[0.3em] text-[#94764a] sm:text-[8px] sm:tracking-[0.34em]">
+                  More than a review
                 </span>
               </div>
-            ))}
+
+              <h2 className="max-w-[850px] font-serif text-[2.65rem] font-normal leading-[0.94] tracking-[-0.05em] text-[#1b1916] sm:text-[4.3rem] lg:text-[5.4rem]">
+                Every order leaves
+                <span className="block pl-5 italic text-[#a0814e] sm:pl-16">
+                  a little story.
+                </span>
+              </h2>
+
+              <div className="mt-7 flex max-w-2xl items-start gap-3 sm:mt-8 sm:gap-5">
+                <span className="mt-0.5 shrink-0 font-serif text-2xl leading-none text-[#b18d55] sm:text-3xl">
+                  “
+                </span>
+                <p className="text-[13px] leading-6 text-[#686259] sm:text-sm sm:leading-7 lg:text-[15px]">
+                  From an excited “just received it” message to a customer
+                  planning their next order, these little moments are what
+                  make T&M feel like more than a jewellery brand.
+                </p>
+              </div>
+            </div>
+
+            {/* Note */}
+            <div className="relative border-l border-[#c8b38c] pl-5 sm:pl-7 lg:border-l lg:pl-7">
+              <p className="text-[7px] uppercase tracking-[0.3em] text-[#94764a] sm:text-[8px] sm:tracking-[0.32em]">
+                A little note from us
+              </p>
+
+              <p className="mt-3 max-w-md font-serif text-[1.45rem] leading-[1.18] tracking-[-0.025em] text-[#302c27] sm:mt-4 sm:text-2xl lg:text-3xl">
+                Thank you for trusting T&M with your everyday sparkle and
+                special moments.
+              </p>
+
+              <div className="mt-5 flex items-center gap-3 sm:mt-7">
+                <span className="h-px w-6 bg-[#b18d55] sm:w-7" />
+                <span className="font-serif text-xs italic text-[#94764a] sm:text-sm">
+                  With love, T&M
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Premium metrics */}
+          <div className="relative mt-12 overflow-hidden border-y border-[#d4c9b8] sm:mt-16">
+            <div className="grid sm:grid-cols-3">
+              {[
+                {
+                  value: "100+",
+                  label: "Orders delivered",
+                  detail: "and still growing",
+                },
+                {
+                  value: "Real",
+                  label: "Customer messages",
+                  detail: "shared with us",
+                },
+                {
+                  value: "∞",
+                  label: "Moments to remember",
+                  detail: "one piece at a time",
+                },
+              ].map((item, index) => (
+                <div
+                  key={item.label}
+                  className={`group relative min-h-0 px-0 py-6 sm:min-h-[150px] sm:px-8 sm:py-9 ${
+                    index > 0
+                      ? "border-t border-[#d4c9b8] sm:border-l sm:border-t-0"
+                      : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-4 sm:h-full sm:items-start">
+                    <div>
+                      <span className="block font-serif text-[2.45rem] leading-none tracking-[-0.04em] text-[#a17e49] transition-transform duration-500 group-hover:-translate-y-1 sm:text-[3.15rem]">
+                        {item.value}
+                      </span>
+
+                      <span className="mt-3 block text-[7px] font-medium uppercase tracking-[0.22em] text-[#514c45] sm:mt-4 sm:text-[8px] sm:tracking-[0.25em]">
+                        {item.label}
+                      </span>
+
+                      <span className="mt-1.5 block text-[8px] text-[#948c81] sm:mt-2 sm:text-[9px]">
+                        {item.detail}
+                      </span>
+                    </div>
+
+                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#c8b28a] text-[9px] text-[#9d7d4c] transition duration-500 group-hover:rotate-45 sm:mt-1 sm:h-7 sm:w-7">
+                      ✦
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Editorial footer */}
+          <div className="mt-6 flex items-center justify-center gap-3 sm:mt-8 sm:gap-4">
+            <span className="h-px w-8 bg-gradient-to-r from-transparent to-[#c5a56f] sm:w-16" />
+            <span className="whitespace-nowrap text-[7px] uppercase tracking-[0.25em] text-[#9a7d50] sm:text-[9px] sm:tracking-[0.3em]">
+              Real customers · Real love
+            </span>
+            <span className="h-px w-8 bg-gradient-to-l from-transparent to-[#c5a56f] sm:w-16" />
           </div>
         </div>
       </section>
@@ -292,10 +365,10 @@ export default function TestimonialsPage() {
                     key={review.id}
                     type="button"
                     onClick={() => setSelectedIndex(index)}
-                    className={`group relative overflow-hidden bg-[#d8d0c2] text-left ${layouts[index % layouts.length]}`}
+                    className={`group relative z-10 block cursor-pointer overflow-hidden bg-[#d8d0c2] text-left ${layouts[index % layouts.length]}`}
                   >
                     <div
-                      className={`relative overflow-hidden ${
+                      className={`pointer-events-none relative overflow-hidden ${
                         index % 3 === 0
                           ? "aspect-[1.45/1]"
                           : "aspect-[0.88/1]"
@@ -308,9 +381,9 @@ export default function TestimonialsPage() {
                         className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.035]"
                       />
 
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
 
-                      <div className="absolute inset-x-0 bottom-0 flex translate-y-2 items-end justify-between p-4 opacity-0 transition duration-500 group-hover:translate-y-0 group-hover:opacity-100 sm:p-5">
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex translate-y-2 items-end justify-between p-4 opacity-0 transition duration-500 group-hover:translate-y-0 group-hover:opacity-100 sm:p-5">
                         <span className="flex items-center gap-2 text-[8px] uppercase tracking-[0.2em] text-white">
                           <InstagramIcon className="h-3.5 w-3.5" />
                           Customer story
@@ -393,63 +466,70 @@ export default function TestimonialsPage() {
       </section>
 
       {/* ───────────────── VIEWER ───────────────── */}
-      {selected && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#080706]/95 p-3 backdrop-blur-md sm:p-6"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Customer review viewer"
-          onClick={() => setSelectedIndex(null)}
-        >
-          <button
-            type="button"
-            aria-label="Close review"
-            onClick={() => setSelectedIndex(null)}
-            className="absolute right-4 top-4 z-30 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-md transition hover:bg-white hover:text-black sm:right-7 sm:top-7"
-          >
-            <X className="h-5 w-5" />
-          </button>
-
-          <button
-            type="button"
-            aria-label="Previous review"
-            onClick={(event) => {
-              event.stopPropagation();
-              previous();
-            }}
-            className="absolute left-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-md transition hover:bg-white hover:text-black sm:left-7"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-
-          <button
-            type="button"
-            aria-label="Next review"
-            onClick={(event) => {
-              event.stopPropagation();
-              next();
-            }}
-            className="absolute right-3 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-md transition hover:bg-white hover:text-black sm:right-7"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
-
+      {selected &&
+        typeof document !== "undefined" &&
+        createPortal(
           <div
-            className="relative max-h-[94vh] max-w-[88vw]"
-            onClick={(event) => event.stopPropagation()}
+            className="fixed inset-0 z-[99999] flex h-[100svh] w-screen items-center justify-center overflow-hidden bg-[#080706]/95 p-0 backdrop-blur-md"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Customer review viewer"
+            onClick={() => setSelectedIndex(null)}
           >
-            <img
-              src={selected.image || selected.image_url}
-              alt="T&M customer review"
-              className="max-h-[94vh] max-w-[88vw] object-contain shadow-2xl sm:max-w-[72vw]"
-            />
+            <button
+              type="button"
+              aria-label="Close review"
+              onClick={(event) => {
+                event.stopPropagation();
+                setSelectedIndex(null);
+              }}
+              className="absolute right-4 top-4 z-[100001] flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/40 text-white backdrop-blur-md transition hover:bg-white hover:text-black sm:right-7 sm:top-7"
+            >
+              <X className="h-5 w-5" />
+            </button>
 
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-white/15 bg-black/60 px-4 py-2 text-[8px] uppercase tracking-[0.22em] text-white/75 backdrop-blur-md">
-              {(selectedIndex ?? 0) + 1} / {reviews.length}
+            <button
+              type="button"
+              aria-label="Previous review"
+              onClick={(event) => {
+                event.stopPropagation();
+                previous();
+              }}
+              className="absolute left-3 top-1/2 z-[100001] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/40 text-white backdrop-blur-md transition hover:bg-white hover:text-black sm:left-7"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+
+            <button
+              type="button"
+              aria-label="Next review"
+              onClick={(event) => {
+                event.stopPropagation();
+                next();
+              }}
+              className="absolute right-3 top-1/2 z-[100001] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/40 text-white backdrop-blur-md transition hover:bg-white hover:text-black sm:right-7"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+
+            <div
+              className="relative z-[100000] flex max-h-full max-w-full items-center justify-center px-14 py-5 sm:px-24 sm:py-8"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <img
+                src={selected.image || selected.image_url}
+                alt="T&M customer review"
+                className="block max-h-[calc(100svh-40px)] max-w-[calc(100vw-112px)] object-contain shadow-2xl sm:max-h-[calc(100svh-64px)] sm:max-w-[calc(100vw-176px)]"
+                draggable={false}
+              />
+
+              <div className="pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full border border-white/15 bg-black/65 px-4 py-2 text-[8px] uppercase tracking-[0.22em] text-white/80 backdrop-blur-md sm:bottom-8">
+                {(selectedIndex ?? 0) + 1} / {reviews.length}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </main>
   );
 }

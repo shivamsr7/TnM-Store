@@ -1,10 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  X,
-  ChevronLeft,
-  ChevronRight,
-  ArrowRight,
-} from "lucide-react";
+import { createPortal } from "react-dom";
+import { ChevronLeft, ChevronRight, X, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { usePublishedInstagramCustomerReviews } from "@/features/reviews/hooks/usePublishedInstagramCustomerReviews";
 
@@ -14,500 +11,453 @@ import review3 from "@/features/reviews/assets/IMG_0341.jpeg";
 import review4 from "@/features/reviews/assets/IMG_0342.jpeg";
 
 const InstagramIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden="true"
+  >
     <rect x="3" y="3" width="18" height="18" rx="5" />
     <circle cx="12" cy="12" r="4.2" />
     <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
   </svg>
 );
 
-type Testimonial = {
+type ReviewItem = {
   id: string;
-  image: string;
-  customerName: string;
-  reviewText?: string;
-  source: "instagram";
+  image?: string;
+  image_url?: string;
+  customer_name?: string;
+  username?: string;
+  caption?: string;
+  created_at?: string;
 };
 
-const existingInstagramTestimonials: Testimonial[] = [
-  {
-    id: "instagram-1",
-    image: review1,
-    customerName: "T&M Customer",
-    source: "instagram",
-  },
-  {
-    id: "instagram-2",
-    image: review2,
-    customerName: "T&M Customer",
-    source: "instagram",
-  },
-  {
-    id: "instagram-3",
-    image: review3,
-    customerName: "T&M Customer",
-    source: "instagram",
-  },
-  {
-    id: "instagram-4",
-    image: review4,
-    customerName: "T&M Customer",
-    source: "instagram",
-  },
+const localReviews: ReviewItem[] = [
+  { id: "local-1", image: review1 },
+  { id: "local-2", image: review2 },
+  { id: "local-3", image: review3 },
+  { id: "local-4", image: review4 },
 ];
 
 export default function TestimonialsPage() {
-  const { data: adminReviews = [], isLoading } =
+  const { data: publishedReviews = [] } =
     usePublishedInstagramCustomerReviews();
 
-  const testimonials = useMemo<Testimonial[]>(() => {
-    const publishedReviews: Testimonial[] = [...adminReviews]
-      .sort(
-        (a, b) =>
-          a.display_order - b.display_order ||
-          new Date(b.created_at).getTime() -
-            new Date(a.created_at).getTime()
-      )
-      .map((review) => ({
-        id: review.id,
-        image: review.screenshot_url,
-        customerName: review.customer_name,
-        reviewText: review.review_text ?? "",
-        source: "instagram",
-      }));
+  const reviews = useMemo<ReviewItem[]>(() => {
+    const remote = (publishedReviews as ReviewItem[]).map((item, index) => ({
+      ...item,
+      id: item.id || `published-${index}`,
+      image: item.image || item.image_url,
+    }));
 
-    return [
-      ...existingInstagramTestimonials,
-      ...publishedReviews,
-    ];
-  }, [adminReviews]);
+    return [...localReviews, ...remote].filter(
+      (item) => item.image || item.image_url
+    );
+  }, [publishedReviews]);
 
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-
-  const activeTestimonial =
-    activeIndex !== null
-      ? testimonials[activeIndex]
-      : null;
-
-  const closeViewer = () => {
-    setActiveIndex(null);
-  };
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   const next = () => {
-    if (activeIndex === null || testimonials.length === 0) {
-      return;
-    }
-
-    setActiveIndex(
-      (activeIndex + 1) % testimonials.length
+    if (!reviews.length) return;
+    setSelectedIndex((current) =>
+      current === null ? 0 : (current + 1) % reviews.length
     );
   };
 
   const previous = () => {
-    if (activeIndex === null || testimonials.length === 0) {
-      return;
-    }
-
-    setActiveIndex(
-      (activeIndex - 1 + testimonials.length) %
-        testimonials.length
+    if (!reviews.length) return;
+    setSelectedIndex((current) =>
+      current === null
+        ? reviews.length - 1
+        : (current - 1 + reviews.length) % reviews.length
     );
   };
 
   useEffect(() => {
-    if (activeIndex === null) {
-      return;
-    }
+    if (selectedIndex === null) return;
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        closeViewer();
-      }
-
-      if (event.key === "ArrowRight") {
-        next();
-      }
-
-      if (event.key === "ArrowLeft") {
-        previous();
-      }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedIndex(null);
+      if (event.key === "ArrowRight") next();
+      if (event.key === "ArrowLeft") previous();
     };
 
-    const previousOverflow =
-      document.body.style.overflow;
-
+    window.addEventListener("keydown", onKeyDown);
     document.body.style.overflow = "hidden";
 
-    window.addEventListener(
-      "keydown",
-      handleKeyDown
-    );
-
     return () => {
-      document.body.style.overflow =
-        previousOverflow;
-
-      window.removeEventListener(
-        "keydown",
-        handleKeyDown
-      );
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = "";
     };
-  }, [activeIndex, testimonials.length]);
+  }, [selectedIndex, reviews.length]);
+
+  const selected = selectedIndex !== null ? reviews[selectedIndex] : null;
 
   return (
-    <main className="min-h-screen bg-[#f7f3eb] text-[#151515]">
-
-      {/* =====================================================
-          HERO
-      ====================================================== */}
-
-      <section className="relative overflow-hidden bg-black px-5 pb-20 pt-28 text-white sm:px-8 sm:pb-24 sm:pt-32 lg:px-12">
-
-        {/* Ambient gold glow */}
-        <div
-          className="pointer-events-none absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(214,173,77,.11) 0%, rgba(214,173,77,.035) 42%, transparent 72%)",
-          }}
-        />
-
-        <div className="relative mx-auto max-w-5xl text-center">
-
-          <p className="mb-5 text-[10px] font-semibold uppercase tracking-[0.38em] text-[#d6ad4d] sm:text-xs">
-            Customer Love
-          </p>
-
-          <h1 className="font-serif text-4xl leading-[1.08] tracking-tight sm:text-5xl lg:text-7xl">
-            100+ Orders.
-            <br />
-            <span className="text-[#e2c46e]">
-              Countless Compliments.
-            </span>{" "}
-            ✨
-          </h1>
-
-          <p className="mx-auto mt-6 max-w-2xl text-sm leading-7 text-white/55 sm:text-base">
-            Real words, real moments, real love from
-            the T&M family.
-          </p>
-
-          <div className="mx-auto mt-9 flex items-center justify-center gap-3 text-[10px] uppercase tracking-[0.25em] text-white/35">
-            <span className="h-px w-8 bg-[#d6ad4d]/35" />
-            <span>Shared on Instagram</span>
-            <span className="h-px w-8 bg-[#d6ad4d]/35" />
-          </div>
-
+    <main className="min-h-screen overflow-hidden bg-[#f5f1e9] text-[#171512]">
+      {/* ───────────────── HERO ───────────────── */}
+      <section className="relative overflow-hidden bg-[#151310] text-[#f5f0e7]">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -left-40 top-[-220px] h-[520px] w-[520px] rounded-full bg-[#9e7b3f]/10 blur-3xl" />
+          <div className="absolute right-[-180px] bottom-[-260px] h-[600px] w-[600px] rounded-full bg-[#b99554]/10 blur-3xl" />
+          <div className="absolute inset-y-0 right-[31%] hidden w-px bg-white/[0.06] lg:block" />
         </div>
-      </section>
 
+        <div className="relative mx-auto max-w-[1500px] px-5 pb-16 pt-12 sm:px-8 sm:pb-24 sm:pt-16 lg:px-12 lg:pt-20">
+          <div className="grid items-center gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:gap-16">
+            {/* Editorial copy */}
+            <div className="relative z-10 max-w-2xl">
+              <div className="mb-8 flex items-center gap-3">
+                <span className="h-px w-10 bg-[#c7a25d]" />
+                <span className="text-[9px] font-medium uppercase tracking-[0.34em] text-[#c7a25d]">
+                  The T&M Journal
+                </span>
+              </div>
 
-      {/* =====================================================
-          TRUST STRIP
-      ====================================================== */}
+              <h1 className="font-serif text-[3.65rem] font-normal leading-[0.88] tracking-[-0.055em] sm:text-[5.2rem] lg:text-[6.4rem]">
+                Loved.
+                <span className="block pl-8 italic text-[#c9a461] sm:pl-14">
+                  Worn.
+                </span>
+                <span className="block">Shared.</span>
+              </h1>
 
-      <section className="border-b border-black/[0.07] bg-[#fbf8f1]">
-        <div className="mx-auto grid max-w-5xl grid-cols-3 divide-x divide-black/[0.08]">
-
-          <div className="px-3 py-7 text-center sm:py-9">
-            <p className="font-serif text-2xl sm:text-3xl">
-              100+
-            </p>
-
-            <p className="mt-1 text-[8px] font-semibold uppercase tracking-[0.2em] text-black/40 sm:text-[9px]">
-              Orders Delivered
-            </p>
-          </div>
-
-          <div className="px-3 py-7 text-center sm:py-9">
-
-
-            <p className="mt-2 text-[8px] font-semibold uppercase tracking-[0.2em] text-black/40 sm:text-[9px]">
-              Instagram Love
-            </p>
-          </div>
-
-          <div className="px-3 py-7 text-center sm:py-9">
-            <p className="font-serif text-2xl sm:text-3xl">
-              ∞
-            </p>
-
-            <p className="mt-1 text-[8px] font-semibold uppercase tracking-[0.2em] text-black/40 sm:text-[9px]">
-              Beautiful Moments
-            </p>
-          </div>
-
-        </div>
-      </section>
-
-
-      {/* =====================================================
-          TESTIMONIAL GALLERY
-      ====================================================== */}
-
-      <section className="px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
-
-        <div className="mx-auto max-w-7xl">
-
-          <div className="mb-10 flex flex-col justify-between gap-4 sm:mb-14 sm:flex-row sm:items-end">
-
-            <div>
-              <p className="mb-2 text-[9px] font-semibold uppercase tracking-[0.3em] text-[#a17a28]">
-                From Instagram
+              <p className="mt-8 max-w-lg text-sm leading-7 text-[#aaa49a] sm:text-[15px]">
+                The best part of creating jewellery is seeing where it ends
+                up. Here are real moments, messages and reactions shared by
+                the T&M family.
               </p>
 
-              <h2 className="font-serif text-3xl sm:text-4xl">
-                Words That Made Us Smile
+              <div className="mt-10 flex flex-wrap items-center gap-6">
+                <div className="flex items-center gap-3">
+                  <span className="font-serif text-3xl text-[#d0ad69]">100+</span>
+                  <span className="max-w-[80px] text-[8px] uppercase leading-4 tracking-[0.18em] text-[#8e897f]">
+                    orders delivered
+                  </span>
+                </div>
+
+                <span className="h-8 w-px bg-white/10" />
+
+                <div className="flex items-center gap-3">
+                  <InstagramIcon className="h-5 w-5 text-[#c9a461]" />
+                  <span className="text-[8px] uppercase tracking-[0.2em] text-[#8e897f]">
+                    Real Instagram love
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Visual review composition */}
+            <div className="relative mx-auto h-[480px] w-full max-w-[650px] sm:h-[560px]">
+              <div className="absolute left-[2%] top-[9%] w-[43%] rotate-[-6deg] shadow-[0_35px_70px_rgba(0,0,0,0.55)] transition-transform duration-700 hover:rotate-[-3deg]">
+                <div className="border-[7px] border-[#f0ebe1] bg-[#f0ebe1]">
+                  <img
+                    src={review1}
+                    alt="T&M customer review"
+                    className="aspect-[0.82/1] w-full object-cover"
+                  />
+                </div>
+              </div>
+
+              <div className="absolute right-[4%] top-[1%] w-[40%] rotate-[5deg] shadow-[0_35px_70px_rgba(0,0,0,0.55)] transition-transform duration-700 hover:rotate-[2deg]">
+                <div className="border-[7px] border-[#f0ebe1] bg-[#f0ebe1]">
+                  <img
+                    src={review2}
+                    alt="T&M customer review"
+                    className="aspect-[0.82/1] w-full object-cover"
+                  />
+                </div>
+              </div>
+
+              <div className="absolute bottom-[4%] left-[27%] z-10 w-[46%] rotate-[2deg] shadow-[0_35px_80px_rgba(0,0,0,0.6)] transition-transform duration-700 hover:rotate-0">
+                <div className="border-[8px] border-[#f0ebe1] bg-[#f0ebe1]">
+                  <img
+                    src={review3}
+                    alt="T&M customer review"
+                    className="aspect-[0.82/1] w-full object-cover"
+                  />
+                </div>
+              </div>
+
+              <div className="absolute bottom-[10%] left-[4%] z-20 flex h-20 w-20 items-center justify-center rounded-full border border-[#c9a461]/60 bg-[#1b1814] shadow-xl sm:h-24 sm:w-24">
+                <div className="text-center">
+                  <span className="block font-serif text-xl text-[#d1ad67]">
+                    T&M
+                  </span>
+                  <span className="text-[6px] uppercase tracking-[0.24em] text-[#8d877e]">
+                    customer love
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Gold rule */}
+          <div className="mt-10 flex items-center gap-5">
+            <span className="h-px flex-1 bg-gradient-to-r from-[#c6a15d]/60 to-transparent" />
+            <span className="text-[#c6a15d]">✦</span>
+            <span className="h-px flex-1 bg-gradient-to-l from-[#c6a15d]/60 to-transparent" />
+          </div>
+        </div>
+      </section>
+
+      {/* ───────────────── INTRO / NUMBERS ───────────────── */}
+      <section className="bg-[#f5f1e9] px-5 py-14 sm:px-8 sm:py-20 lg:px-12">
+        <div className="mx-auto max-w-[1300px]">
+          <div className="grid gap-10 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
+            <div>
+              <p className="text-[9px] uppercase tracking-[0.32em] text-[#987b4b]">
+                Not just testimonials
+              </p>
+              <h2 className="mt-4 max-w-3xl font-serif text-4xl leading-[1.02] tracking-[-0.04em] sm:text-5xl lg:text-6xl">
+                These are little pieces of the{" "}
+                <span className="italic text-[#9b7b47]">T&M story.</span>
               </h2>
             </div>
 
-            <p className="max-w-sm text-xs leading-6 text-black/45 sm:text-right">
-              Every message here comes from our real
-              Instagram customer conversations.
+            <p className="text-sm leading-7 text-[#716b62]">
+              From an excited “just received it” message to a customer already
+              planning their next order — every interaction means something to
+              us.
             </p>
-
           </div>
 
-
-          {/* =================================================
-              MASONRY GRID
-          ================================================= */}
-
-          {isLoading && testimonials.length === 0 ? (
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              {Array.from({ length: 8 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="aspect-[4/5] animate-pulse rounded-2xl bg-black/[0.05]"
-                />
-              ))}
-            </div>
-          ) : testimonials.length > 0 ? (
-            <div className="columns-1 gap-5 sm:columns-2 lg:columns-3 xl:columns-4">
-
-              {testimonials.map((testimonial, index) => (
-                <button
-                  key={testimonial.id}
-                  type="button"
-                  onClick={() => setActiveIndex(index)}
-                  className="group mb-5 block w-full break-inside-avoid text-left outline-none"
-                >
-
-                  <div className="relative overflow-hidden rounded-2xl bg-white shadow-[0_10px_35px_rgba(0,0,0,.07)] transition duration-500 group-hover:-translate-y-1 group-hover:shadow-[0_18px_45px_rgba(0,0,0,.12)]">
-
-                    <img
-                      src={testimonial.image}
-                      alt={
-                        testimonial.reviewText ||
-                        `Instagram testimonial from ${testimonial.customerName}`
-                      }
-                      loading={
-                        index < 4
-                          ? "eager"
-                          : "lazy"
-                      }
-                      className="block h-auto w-full transition duration-700 group-hover:scale-[1.015]"
-                    />
-
-                    {/* Hover overlay */}
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-black/80 via-black/45 to-transparent px-5 pb-5 pt-16 transition duration-500 group-hover:translate-y-0">
-
-                      <div className="flex items-center gap-2 text-white">
-
-                        <InstagramIcon className="h-4 w-4" />
-
-                        <span className="text-[10px] font-semibold uppercase tracking-[0.16em]">
-                          Instagram
-                        </span>
-
-                      </div>
-
-                      <p className="mt-2 truncate text-xs text-white/70">
-                        {testimonial.customerName}
-                      </p>
-
-                    </div>
-
-                  </div>
-
-                </button>
-              ))}
-
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-black/[0.08] bg-white px-6 py-16 text-center">
-              <p className="font-serif text-2xl">
-                Customer love is coming soon. ✨
-              </p>
-            </div>
-          )}
-
+          <div className="mt-12 grid border-y border-[#d8cfc1] sm:grid-cols-3">
+            {[
+              ["100+", "orders delivered"],
+              ["Real", "customer messages"],
+              ["∞", "moments to remember"],
+            ].map(([value, label], index) => (
+              <div
+                key={label}
+                className={`relative py-7 ${
+                  index > 0
+                    ? "border-t border-[#d8cfc1] sm:border-l sm:border-t-0 sm:pl-8"
+                    : ""
+                }`}
+              >
+                <span className="block font-serif text-3xl text-[#9a7947]">
+                  {value}
+                </span>
+                <span className="mt-1 block text-[8px] uppercase tracking-[0.22em] text-[#777066]">
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
+      {/* ───────────────── GALLERY ───────────────── */}
+      <section className="bg-[#e9e2d6] px-5 pb-20 pt-8 sm:px-8 sm:pb-28 lg:px-12">
+        <div className="mx-auto max-w-[1300px]">
+          <div className="mb-10 flex items-end justify-between gap-6">
+            <div>
+              <div className="mb-4 flex items-center gap-3">
+                <span className="h-px w-7 bg-[#a38450]" />
+                <span className="text-[9px] uppercase tracking-[0.3em] text-[#8e7449]">
+                  From Instagram
+                </span>
+              </div>
+              <h2 className="font-serif text-4xl tracking-[-0.035em] sm:text-5xl">
+                You said it best.
+              </h2>
+            </div>
 
-      {/* =====================================================
-          SPOTTED ON YOU
-      ====================================================== */}
+            <span className="hidden text-[9px] uppercase tracking-[0.22em] text-[#8a8175] sm:block">
+              Tap a story to open
+            </span>
+          </div>
 
-      <section className="bg-black px-5 py-20 text-white sm:px-8 lg:px-12 lg:py-24">
+          {reviews.length > 0 ? (
+            <div className="grid grid-cols-12 gap-3 sm:gap-5">
+              {reviews.map((review, index) => {
+                const image = review.image || review.image_url;
+                if (!image) return null;
 
-        <div className="mx-auto max-w-5xl text-center">
+                const layouts = [
+                  "col-span-12 sm:col-span-7",
+                  "col-span-6 sm:col-span-5",
+                  "col-span-6 sm:col-span-4",
+                  "col-span-12 sm:col-span-8",
+                  "col-span-6 sm:col-span-4",
+                ];
 
-          <p className="mb-3 text-[9px] font-semibold uppercase tracking-[0.34em] text-[#d6ad4d]">
-            Spotted on You
+                return (
+                  <button
+                    key={review.id}
+                    type="button"
+                    onClick={() => setSelectedIndex(index)}
+                    className={`group relative z-10 block cursor-pointer overflow-hidden bg-[#d8d0c2] text-left ${layouts[index % layouts.length]}`}
+                  >
+                    <div
+                      className={`pointer-events-none relative overflow-hidden ${
+                        index % 3 === 0
+                          ? "aspect-[1.45/1]"
+                          : "aspect-[0.88/1]"
+                      }`}
+                    >
+                      <img
+                        src={image}
+                        alt="T&M customer review"
+                        loading={index < 4 ? "eager" : "lazy"}
+                        className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.035]"
+                      />
+
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
+
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex translate-y-2 items-end justify-between p-4 opacity-0 transition duration-500 group-hover:translate-y-0 group-hover:opacity-100 sm:p-5">
+                        <span className="flex items-center gap-2 text-[8px] uppercase tracking-[0.2em] text-white">
+                          <InstagramIcon className="h-3.5 w-3.5" />
+                          Customer story
+                        </span>
+
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black">
+                          <ArrowRight className="h-4 w-4 -rotate-45" />
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="border border-[#cfc5b6] px-6 py-20 text-center">
+              <p className="font-serif text-2xl text-[#4c463e]">
+                More customer moments are coming soon.
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ───────────────── INSTAGRAM CTA ───────────────── */}
+      <section className="relative overflow-hidden bg-[#171512] px-5 py-20 text-[#f4efe7] sm:px-8 sm:py-28 lg:px-12">
+        <div className="absolute left-1/2 top-0 h-px w-32 -translate-x-1/2 bg-gradient-to-r from-transparent via-[#c7a25d] to-transparent" />
+
+        <div className="relative mx-auto max-w-4xl text-center">
+          <InstagramIcon className="mx-auto h-7 w-7 text-[#c8a35e]" />
+
+          <p className="mt-6 text-[9px] uppercase tracking-[0.35em] text-[#a99d8a]">
+            Spotted on you
           </p>
 
-          <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl">
-            Your T&M Moments 🤍
+          <h2 className="mt-5 font-serif text-4xl leading-tight tracking-[-0.04em] sm:text-6xl">
+            Your T&M moment
+            <span className="block italic text-[#c8a35e]">could be next.</span>
           </h2>
 
-          <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-white/50">
-            We love seeing how you style your T&M
-            pieces. Tag us and your moment could be
-            featured here next.
+          <p className="mx-auto mt-6 max-w-lg text-sm leading-7 text-[#a49d93]">
+            Tag T&M in your jewellery moments. We genuinely love seeing how
+            you style your pieces.
           </p>
 
           <a
             href="https://www.instagram.com/"
             target="_blank"
             rel="noreferrer"
-            className="mt-8 inline-flex items-center gap-3 rounded-full border border-[#d6ad4d]/40 px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#e2c46e] transition hover:border-[#d6ad4d] hover:bg-[#d6ad4d]/10"
+            className="mt-9 inline-flex items-center gap-4 border border-[#c8a35e]/70 px-7 py-4 text-[9px] uppercase tracking-[0.25em] text-[#e8d5ad] transition hover:bg-[#c8a35e] hover:text-[#171512]"
           >
-            <InstagramIcon className="h-4 w-4" />
             Follow T&M on Instagram
-          </a>
-
-        </div>
-
-      </section>
-
-
-      {/* =====================================================
-          SHOP CTA
-      ====================================================== */}
-
-      <section className="bg-[#f7f3eb] px-5 py-20 sm:px-8 lg:px-12">
-
-        <div className="mx-auto max-w-4xl text-center">
-
-          <p className="text-[9px] font-semibold uppercase tracking-[0.34em] text-[#a17a28]">
-            Your Turn
-          </p>
-
-          <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl">
-            Ready to find your next favourite?
-          </h2>
-
-          <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-black/45">
-            Discover pieces made to be worn,
-            loved and remembered.
-          </p>
-
-          <a
-            href="/shop"
-            className="mt-8 inline-flex items-center gap-3 rounded-full bg-black px-7 py-3.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-[#191919]"
-          >
-            Shop Jewellery
             <ArrowRight className="h-4 w-4" />
           </a>
-
         </div>
-
       </section>
 
+      {/* ───────────────── SHOP CTA ───────────────── */}
+      <section className="bg-[#f5f1e9] px-5 py-20 text-center sm:px-8 sm:py-28">
+        <p className="text-[9px] uppercase tracking-[0.32em] text-[#987b4b]">
+          Make your own story
+        </p>
 
-      {/* =====================================================
-          FULL SCREEN VIEWER
-      ====================================================== */}
+        <h2 className="mx-auto mt-5 max-w-3xl font-serif text-5xl leading-[0.96] tracking-[-0.045em] sm:text-7xl">
+          Find the piece
+          <span className="block italic text-[#98784a]">you’ll love.</span>
+        </h2>
 
-      {activeTestimonial && (
-        <div
-          className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/90 p-3 backdrop-blur-md sm:p-6"
-          onMouseDown={(event) => {
-            if (
-              event.target === event.currentTarget
-            ) {
-              closeViewer();
-            }
-          }}
+        <p className="mx-auto mt-6 max-w-lg text-sm leading-7 text-[#716b62]">
+          Explore the collection and discover your next everyday favourite.
+        </p>
+
+        <Link
+          to="/shop"
+          className="mt-9 inline-flex items-center gap-5 bg-[#171512] px-8 py-4 text-[9px] uppercase tracking-[0.25em] text-white transition hover:bg-[#302c27]"
         >
+          Explore Collection
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </section>
 
-          {/* Close */}
-          <button
-            type="button"
-            onClick={closeViewer}
-            aria-label="Close testimonial"
-            className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white transition hover:border-[#d6ad4d]/60 hover:text-[#e2c46e]"
+      {/* ───────────────── VIEWER ───────────────── */}
+      {selected &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[99999] flex h-[100svh] w-screen items-center justify-center overflow-hidden bg-[#080706]/95 p-0 backdrop-blur-md"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Customer review viewer"
+            onClick={() => setSelectedIndex(null)}
           >
-            <X className="h-5 w-5" />
-          </button>
+            <button
+              type="button"
+              aria-label="Close review"
+              onClick={(event) => {
+                event.stopPropagation();
+                setSelectedIndex(null);
+              }}
+              className="absolute right-4 top-4 z-[100001] flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/40 text-white backdrop-blur-md transition hover:bg-white hover:text-black sm:right-7 sm:top-7"
+            >
+              <X className="h-5 w-5" />
+            </button>
 
+            <button
+              type="button"
+              aria-label="Previous review"
+              onClick={(event) => {
+                event.stopPropagation();
+                previous();
+              }}
+              className="absolute left-3 top-1/2 z-[100001] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/40 text-white backdrop-blur-md transition hover:bg-white hover:text-black sm:left-7"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
 
-          {/* Previous */}
-          <button
-            type="button"
-            onClick={previous}
-            aria-label="Previous testimonial"
-            className="absolute left-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white transition hover:border-[#d6ad4d]/60 hover:text-[#e2c46e] sm:left-6"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
+            <button
+              type="button"
+              aria-label="Next review"
+              onClick={(event) => {
+                event.stopPropagation();
+                next();
+              }}
+              className="absolute right-3 top-1/2 z-[100001] flex h-11 w-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-black/40 text-white backdrop-blur-md transition hover:bg-white hover:text-black sm:right-7"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
 
+            <div
+              className="relative z-[100000] flex max-h-full max-w-full items-center justify-center px-14 py-5 sm:px-24 sm:py-8"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <img
+                src={selected.image || selected.image_url}
+                alt="T&M customer review"
+                className="block max-h-[calc(100svh-40px)] max-w-[calc(100vw-112px)] object-contain shadow-2xl sm:max-h-[calc(100svh-64px)] sm:max-w-[calc(100vw-176px)]"
+                draggable={false}
+              />
 
-          {/* Image */}
-          <div className="relative flex max-h-[92vh] max-w-[92vw] items-center justify-center">
-
-            <img
-              key={activeTestimonial.id}
-              src={activeTestimonial.image}
-              alt={
-                activeTestimonial.reviewText ||
-                `Instagram testimonial from ${activeTestimonial.customerName}`
-              }
-              className="max-h-[88vh] max-w-[88vw] rounded-xl object-contain shadow-2xl"
-            />
-
-          </div>
-
-
-          {/* Next */}
-          <button
-            type="button"
-            onClick={next}
-            aria-label="Next testimonial"
-            className="absolute right-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white transition hover:border-[#d6ad4d]/60 hover:text-[#e2c46e] sm:right-6"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
-
-
-          {/* Bottom information */}
-          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 text-center">
-
-            <div className="flex items-center justify-center gap-2 text-[#e2c46e]">
-              <InstagramIcon className="h-4 w-4" />
-
-              <span className="text-[9px] font-semibold uppercase tracking-[0.22em]">
-                Instagram Customer
-              </span>
+              <div className="pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full border border-white/15 bg-black/65 px-4 py-2 text-[8px] uppercase tracking-[0.22em] text-white/80 backdrop-blur-md sm:bottom-8">
+                {(selectedIndex ?? 0) + 1} / {reviews.length}
+              </div>
             </div>
-
-            <p className="mt-2 text-xs text-white/55">
-              {activeTestimonial.customerName}
-            </p>
-
-            <p className="mt-1 text-[9px] text-white/25">
-              {activeIndex !== null
-                ? `${activeIndex + 1} / ${testimonials.length}`
-                : ""}
-            </p>
-
-          </div>
-
-        </div>
-      )}
-
+          </div>,
+          document.body
+        )}
     </main>
   );
 }
