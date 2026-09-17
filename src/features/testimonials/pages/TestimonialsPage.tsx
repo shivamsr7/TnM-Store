@@ -29,8 +29,7 @@ const InstagramIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
 
 type ReviewItem = {
   id: string;
-  image?: string;
-  image_url?: string;
+  image: string;
   customer_name?: string;
   username?: string;
   caption?: string;
@@ -49,15 +48,26 @@ export default function TestimonialsPage() {
     usePublishedInstagramCustomerReviews();
 
   const reviews = useMemo<ReviewItem[]>(() => {
-    const remote = (publishedReviews as ReviewItem[]).map((item, index) => ({
-      ...item,
-      id: item.id || `published-${index}`,
-      image: item.image || item.image_url,
-    }));
+    // Supabase uses the real field names from InstagramCustomerReview:
+    // screenshot_url, customer_name and instagram_username.
+    const remote = publishedReviews
+      .filter((item) => Boolean(item.screenshot_url))
+      .sort(
+        (a, b) =>
+          a.display_order - b.display_order ||
+          new Date(b.created_at).getTime() -
+            new Date(a.created_at).getTime()
+      )
+      .map((item) => ({
+        id: item.id,
+        image: item.screenshot_url,
+        customer_name: item.customer_name,
+        username: item.instagram_username ?? undefined,
+        caption: item.review_text ?? undefined,
+        created_at: item.created_at,
+      }));
 
-    return [...localReviews, ...remote].filter(
-      (item) => item.image || item.image_url
-    );
+    return [...localReviews, ...remote];
   }, [publishedReviews]);
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -389,86 +399,225 @@ export default function TestimonialsPage() {
         </div>
       </section>
 
-      {/* ───────────────── GALLERY ───────────────── */}
-      <section className="bg-[#e9e2d6] px-5 pb-20 pt-8 sm:px-8 sm:pb-28 lg:px-12">
-        <div className="mx-auto max-w-[1300px]">
-          <div className="mb-10 flex items-end justify-between gap-6">
-            <div>
-              <div className="mb-4 flex items-center gap-3">
-                <span className="h-px w-7 bg-[#a38450]" />
-                <span className="text-[9px] uppercase tracking-[0.3em] text-[#8e7449]">
-                  From Instagram
-                </span>
+      {/* ───────────────── EDITORIAL GALLERY ───────────────── */}
+      <section className="bg-[#e9e2d6] px-0 pb-20 pt-0 sm:pb-28">
+        <div className="mx-auto max-w-[1380px]">
+          {/* Small editorial masthead */}
+          <div className="px-5 pb-8 pt-9 sm:px-8 sm:pb-10 sm:pt-12 lg:px-12">
+            <div className="flex items-end justify-between gap-6">
+              <div>
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="h-px w-8 bg-[#a38450]" />
+                  <span className="text-[8px] font-medium uppercase tracking-[0.34em] text-[#8e7449] sm:text-[9px]">
+                    Customer diary
+                  </span>
+                </div>
+                <h2 className="font-serif text-[2.7rem] leading-[0.92] tracking-[-0.05em] sm:text-5xl lg:text-6xl">
+                  Stories worth
+                  <span className="ml-2 italic text-[#a0814e]">sharing.</span>
+                </h2>
               </div>
-              <h2 className="font-serif text-4xl tracking-[-0.035em] sm:text-5xl">
-                You said it best.
-              </h2>
-            </div>
 
-            <span className="hidden text-[9px] uppercase tracking-[0.22em] text-[#8a8175] sm:block">
-              Tap a story to open
-            </span>
+              <span className="hidden pb-1 text-[8px] uppercase tracking-[0.25em] text-[#8a8175] sm:block">
+                Real messages · Real moments
+              </span>
+            </div>
           </div>
 
-          {reviews.length > 0 ? (
-            <div className="grid grid-cols-12 gap-3 sm:gap-5">
-              {reviews.map((review, index) => {
-                const image = review.image || review.image_url;
-                if (!image) return null;
+          {/* FOUR PRIMARY STORIES
+              Editorial rhythm intentionally follows:
+              01 — large
+              02 + 03 — paired small
+              04 — large
+          */}
+          <div className="mx-auto grid max-w-[1120px] grid-cols-2 gap-3 px-4 sm:gap-4 sm:px-8 lg:px-0">
+            {/* PRIMARY 01 — LARGE */}
+            <button
+              type="button"
+              onClick={() => setSelectedIndex(0)}
+              className="group col-span-2 block cursor-pointer overflow-hidden bg-[#d7d0c3] text-left"
+            >
+              <div className="relative aspect-[1.55/1] max-h-[520px] overflow-hidden sm:aspect-[2.35/1] sm:max-h-[460px]">
+                <img
+                  src={review1}
+                  alt="T&M customer review"
+                  className="h-full w-full object-cover transition duration-1000 ease-out group-hover:scale-[1.018]"
+                  loading="eager"
+                />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
+                <div className="pointer-events-none absolute bottom-4 left-4 flex items-center gap-2 opacity-0 transition duration-500 group-hover:opacity-100 sm:bottom-6 sm:left-7">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/40 bg-black/20 text-white backdrop-blur-sm">
+                    <InstagramIcon className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="text-[8px] uppercase tracking-[0.22em] text-white">
+                    Open story
+                  </span>
+                </div>
+              </div>
+            </button>
 
-                const layouts = [
-                  "col-span-12 sm:col-span-7",
-                  "col-span-6 sm:col-span-5",
-                  "col-span-6 sm:col-span-4",
-                  "col-span-12 sm:col-span-8",
-                  "col-span-6 sm:col-span-4",
-                ];
+            {/* PRIMARY 02 — SMALL */}
+            <button
+              type="button"
+              onClick={() => setSelectedIndex(1)}
+              className="group col-span-1 block cursor-pointer overflow-hidden bg-[#d7d0c3] text-left"
+            >
+              <div className="relative aspect-[0.96/1] max-h-[390px] overflow-hidden sm:aspect-[1.12/1] sm:max-h-[390px]">
+                <img
+                  src={review2}
+                  alt="T&M customer review"
+                  className="h-full w-full object-cover transition duration-1000 ease-out group-hover:scale-[1.025]"
+                  loading="eager"
+                />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
+                <span className="pointer-events-none absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full border border-white/35 bg-black/20 text-white opacity-0 backdrop-blur-sm transition duration-500 group-hover:opacity-100 sm:bottom-5 sm:right-5">
+                  <InstagramIcon className="h-3.5 w-3.5" />
+                </span>
+              </div>
+            </button>
 
-                return (
-                  <button
-                    key={review.id}
-                    type="button"
-                    onClick={() => setSelectedIndex(index)}
-                    className={`group relative z-10 block cursor-pointer overflow-hidden bg-[#d8d0c2] text-left ${layouts[index % layouts.length]}`}
-                  >
-                    <div
-                      className={`pointer-events-none relative overflow-hidden ${
-                        index % 3 === 0
-                          ? "aspect-[1.45/1]"
-                          : "aspect-[0.88/1]"
-                      }`}
-                    >
-                      <img
-                        src={image}
-                        alt="T&M customer review"
-                        loading={index < 4 ? "eager" : "lazy"}
-                        className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.035]"
-                      />
+            {/* PRIMARY 03 — SMALL */}
+            <button
+              type="button"
+              onClick={() => setSelectedIndex(2)}
+              className="group col-span-1 block cursor-pointer overflow-hidden bg-[#d7d0c3] text-left"
+            >
+              <div className="relative aspect-[0.96/1] max-h-[390px] overflow-hidden sm:aspect-[1.12/1] sm:max-h-[390px]">
+                <img
+                  src={review3}
+                  alt="T&M customer review"
+                  className="h-full w-full object-cover transition duration-1000 ease-out group-hover:scale-[1.025]"
+                  loading="eager"
+                />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
+                <span className="pointer-events-none absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full border border-white/35 bg-black/20 text-white opacity-0 backdrop-blur-sm transition duration-500 group-hover:opacity-100 sm:bottom-5 sm:right-5">
+                  <InstagramIcon className="h-3.5 w-3.5" />
+                </span>
+              </div>
+            </button>
 
-                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
+            {/* PRIMARY 04 — LARGE */}
+            <button
+              type="button"
+              onClick={() => setSelectedIndex(3)}
+              className="group col-span-2 block cursor-pointer overflow-hidden bg-[#d7d0c3] text-left"
+            >
+              <div className="relative aspect-[1.55/1] max-h-[520px] overflow-hidden sm:aspect-[2.35/1] sm:max-h-[460px]">
+                <img
+                  src={review4}
+                  alt="T&M customer review"
+                  className="h-full w-full object-cover transition duration-1000 ease-out group-hover:scale-[1.018]"
+                  loading="eager"
+                />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
+                <div className="pointer-events-none absolute bottom-4 left-4 flex items-center gap-2 opacity-0 transition duration-500 group-hover:opacity-100 sm:bottom-6 sm:left-7">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/40 bg-black/20 text-white backdrop-blur-sm">
+                    <InstagramIcon className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="text-[8px] uppercase tracking-[0.22em] text-white">
+                    Open story
+                  </span>
+                </div>
+              </div>
+            </button>
+          </div>
 
-                      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex translate-y-2 items-end justify-between p-4 opacity-0 transition duration-500 group-hover:translate-y-0 group-hover:opacity-100 sm:p-5">
-                        <span className="flex items-center gap-2 text-[8px] uppercase tracking-[0.2em] text-white">
-                          <InstagramIcon className="h-3.5 w-3.5" />
-                          Customer story
-                        </span>
-
-                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-black">
-                          <ArrowRight className="h-4 w-4 -rotate-45" />
-                        </span>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
+          {/* Quiet editorial caption beneath the primary spread */}
+          <div className="flex items-center justify-between px-5 py-7 sm:px-8 sm:py-9 lg:px-12">
+            <div className="flex items-center gap-3">
+              <span className="font-serif text-xl italic text-[#a0814e]">01—04</span>
+              <span className="h-px w-8 bg-[#c0ae91]" />
+              <span className="text-[7px] uppercase tracking-[0.25em] text-[#857b6d] sm:text-[8px]">
+                Featured customer moments
+              </span>
             </div>
-          ) : (
-            <div className="border border-[#cfc5b6] px-6 py-20 text-center">
-              <p className="font-serif text-2xl text-[#4c463e]">
-                More customer moments are coming soon.
-              </p>
+            <InstagramIcon className="h-4 w-4 text-[#9e8355]" />
+          </div>
+
+          {/* LIVE SUPABASE STORIES — SMALLER EDITORIAL CARDS */}
+          {publishedReviews.length > 0 && (
+            <div className="border-t border-[#c9bca9] px-5 pt-10 sm:px-8 sm:pt-12 lg:px-12">
+              <div className="mb-7 flex items-end justify-between gap-5 sm:mb-9">
+                <div>
+                  <p className="text-[8px] font-medium uppercase tracking-[0.32em] text-[#94764a]">
+                    More from the T&M family
+                  </p>
+                  <h3 className="mt-2 max-w-xl font-serif text-2xl leading-tight tracking-[-0.03em] sm:text-3xl lg:text-4xl">
+                    More love, straight from Instagram.
+                  </h3>
+                </div>
+
+                <span className="hidden text-[8px] uppercase tracking-[0.2em] text-[#8a8175] sm:block">
+                  {publishedReviews.length} published
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-6 lg:gap-4">
+                {publishedReviews
+                  .filter((review) => Boolean(review.screenshot_url))
+                  .sort(
+                    (a, b) =>
+                      a.display_order - b.display_order ||
+                      new Date(b.created_at).getTime() -
+                        new Date(a.created_at).getTime()
+                  )
+                  .map((review) => {
+                    const cardImage = review.screenshot_url;
+                    const viewerIndex = reviews.findIndex(
+                      (item) => item.id === review.id
+                    );
+                    return (
+                      <button
+                        key={review.id}
+                        type="button"
+                        onClick={() => {
+                          if (viewerIndex >= 0) setSelectedIndex(viewerIndex);
+                        }}
+                        className="group overflow-hidden bg-[#ddd5c7] text-left"
+                      >
+                        <div className="relative aspect-[0.82/1] overflow-hidden">
+                          <img
+                            src={cardImage}
+                            alt={
+                              review.customer_name
+                                ? `Customer review from ${review.customer_name}`
+                                : "T&M customer review"
+                            }
+                            className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-[1.025]"
+                            loading="lazy"
+                          />
+
+                          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
+
+                          <span className="pointer-events-none absolute bottom-2.5 right-2.5 flex h-7 w-7 items-center justify-center rounded-full border border-white/30 bg-black/25 text-white opacity-0 backdrop-blur-sm transition duration-500 group-hover:opacity-100">
+                            <InstagramIcon className="h-3 w-3" />
+                          </span>
+                        </div>
+
+                        <div className="flex min-w-0 items-center justify-between gap-2 px-2 py-2.5">
+                          <span className="truncate text-[6.5px] uppercase tracking-[0.13em] text-[#7f7669] sm:text-[7px]">
+                            {review.instagram_username
+                              ? `@${review.instagram_username.replace(/^@/, "")}`
+                              : review.customer_name || "Customer love"}
+                          </span>
+                          <span className="font-serif text-[10px] italic text-[#a0814e]">
+                            ✦
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+              </div>
             </div>
           )}
+
+          <div className="mt-10 flex items-center justify-center gap-3 px-5 sm:mt-12 sm:gap-4">
+            <span className="h-px w-8 bg-gradient-to-r from-transparent to-[#c5a56f] sm:w-16" />
+            <span className="whitespace-nowrap text-[7px] uppercase tracking-[0.25em] text-[#9a7d50] sm:text-[9px] sm:tracking-[0.3em]">
+              Real customers · Real love
+            </span>
+            <span className="h-px w-8 bg-gradient-to-l from-transparent to-[#c5a56f] sm:w-16" />
+          </div>
         </div>
       </section>
 
@@ -581,7 +730,7 @@ export default function TestimonialsPage() {
               onClick={(event) => event.stopPropagation()}
             >
               <img
-                src={selected.image || selected.image_url}
+                src={selected.image}
                 alt="T&M customer review"
                 className="block max-h-[calc(100svh-40px)] max-w-[calc(100vw-112px)] object-contain shadow-2xl sm:max-h-[calc(100svh-64px)] sm:max-w-[calc(100vw-176px)]"
                 draggable={false}

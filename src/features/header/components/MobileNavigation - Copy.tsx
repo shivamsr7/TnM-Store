@@ -695,53 +695,6 @@ export default function MobileNavigation({
 
 
       {/* =====================================================
-          TESTIMONIALS
-      ====================================================== */}
-
-      <Link
-        to="/testimonials"
-        onClick={onClose}
-        className="
-          group
-          flex
-          items-center
-          justify-between
-          rounded-xl
-          border
-          border-[#C8A44D]/35
-          bg-[#F8F6F1]
-          px-4
-          py-4
-          text-sm
-          font-medium
-          text-neutral-900
-          transition
-          hover:border-[#C8A44D]
-          hover:bg-[#EFE9DC]
-          hover:text-[#A17D3F]
-          active:scale-[0.99]
-        "
-      >
-        <span className="flex items-center gap-2">
-          <span className="text-[#C8A44D]">✦</span>
-          Testimonials
-        </span>
-
-        <span
-          className="
-            text-xs
-            text-[#C8A44D]
-            transition-transform
-            duration-200
-            group-hover:translate-x-1
-          "
-        >
-          →
-        </span>
-      </Link>
-
-
-      {/* =====================================================
           FEATURED
       ====================================================== */}
 
