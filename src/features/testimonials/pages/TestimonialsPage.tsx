@@ -108,8 +108,8 @@ export default function TestimonialsPage() {
           <div className="absolute inset-y-0 right-[31%] hidden w-px bg-white/[0.06] lg:block" />
         </div>
 
-        <div className="relative mx-auto max-w-[1500px] px-5 pb-16 pt-12 sm:px-8 sm:pb-24 sm:pt-16 lg:px-12 lg:pt-20">
-          <div className="grid items-center gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:gap-16">
+        <div className="relative mx-auto max-w-[1500px] px-5 pb-10 pt-10 sm:px-8 sm:pb-24 sm:pt-16 lg:px-12 lg:pt-20">
+          <div className="grid items-center gap-7 sm:gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:gap-16">
             {/* Editorial copy */}
             <div className="relative z-10 max-w-2xl">
               <div className="mb-8 flex items-center gap-3">
@@ -153,9 +153,10 @@ export default function TestimonialsPage() {
             </div>
 
             {/* Visual review composition */}
-            <div className="relative mx-auto h-[480px] w-full max-w-[650px] sm:h-[560px]">
-              <div className="absolute left-[2%] top-[9%] w-[43%] rotate-[-6deg] shadow-[0_35px_70px_rgba(0,0,0,0.55)] transition-transform duration-700 hover:rotate-[-3deg]">
-                <div className="border-[7px] border-[#f0ebe1] bg-[#f0ebe1]">
+            <div className="relative mx-auto h-[430px] w-full max-w-[650px] sm:h-[560px]">
+              {/* left story */}
+              <div className="absolute left-[3%] top-[7%] z-[1] w-[40%] rotate-[-5deg] shadow-[0_28px_60px_rgba(0,0,0,0.5)] transition-transform duration-700 hover:rotate-[-2deg] sm:left-[2%] sm:top-[9%] sm:w-[43%]">
+                <div className="border-[5px] border-[#f0ebe1] bg-[#f0ebe1] sm:border-[7px]">
                   <img
                     src={review1}
                     alt="T&M customer review"
@@ -164,8 +165,9 @@ export default function TestimonialsPage() {
                 </div>
               </div>
 
-              <div className="absolute right-[4%] top-[1%] w-[40%] rotate-[5deg] shadow-[0_35px_70px_rgba(0,0,0,0.55)] transition-transform duration-700 hover:rotate-[2deg]">
-                <div className="border-[7px] border-[#f0ebe1] bg-[#f0ebe1]">
+              {/* right story */}
+              <div className="absolute right-[3%] top-[5%] z-[2] w-[40%] rotate-[5deg] shadow-[0_28px_60px_rgba(0,0,0,0.5)] transition-transform duration-700 hover:rotate-[2deg] sm:right-[4%] sm:top-[1%] sm:w-[40%]">
+                <div className="border-[5px] border-[#f0ebe1] bg-[#f0ebe1] sm:border-[7px]">
                   <img
                     src={review2}
                     alt="T&M customer review"
@@ -174,8 +176,9 @@ export default function TestimonialsPage() {
                 </div>
               </div>
 
-              <div className="absolute bottom-[4%] left-[27%] z-10 w-[46%] rotate-[2deg] shadow-[0_35px_80px_rgba(0,0,0,0.6)] transition-transform duration-700 hover:rotate-0">
-                <div className="border-[8px] border-[#f0ebe1] bg-[#f0ebe1]">
+              {/* hero story */}
+              <div className="absolute bottom-[6%] left-1/2 z-10 w-[42%] -translate-x-1/2 rotate-[2deg] shadow-[0_30px_65px_rgba(0,0,0,0.58)] transition-transform duration-700 hover:rotate-0 sm:bottom-[4%] sm:left-[27%] sm:w-[46%] sm:translate-x-0">
+                <div className="border-[6px] border-[#f0ebe1] bg-[#f0ebe1] sm:border-[8px]">
                   <img
                     src={review3}
                     alt="T&M customer review"
@@ -184,12 +187,13 @@ export default function TestimonialsPage() {
                 </div>
               </div>
 
-              <div className="absolute bottom-[10%] left-[4%] z-20 flex h-20 w-20 items-center justify-center rounded-full border border-[#c9a461]/60 bg-[#1b1814] shadow-xl sm:h-24 sm:w-24">
+              {/* brand seal */}
+              <div className="absolute bottom-[8%] left-[3%] z-20 flex h-[68px] w-[68px] items-center justify-center rounded-full border border-[#c9a461]/65 bg-[#1b1814] shadow-xl sm:bottom-[10%] sm:left-[4%] sm:h-24 sm:w-24">
                 <div className="text-center">
-                  <span className="block font-serif text-xl text-[#d1ad67]">
+                  <span className="block font-serif text-lg text-[#d1ad67] sm:text-xl">
                     T&M
                   </span>
-                  <span className="text-[6px] uppercase tracking-[0.24em] text-[#8d877e]">
+                  <span className="text-[5px] uppercase tracking-[0.2em] text-[#8d877e] sm:text-[6px] sm:tracking-[0.24em]">
                     customer love
                   </span>
                 </div>
