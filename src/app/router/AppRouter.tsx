@@ -89,6 +89,9 @@ import MomentPage
 
   import MomentTestCreator from "@/features/moments/pages/MomentTestCreator";
 
+  import TestimonialsPage
+  from "@/features/testimonials/pages/TestimonialsPage";
+
 export default function AppRouter() {
 
   return (
@@ -143,7 +146,12 @@ export default function AppRouter() {
               <ContactUs />
             }
           />
-
+<Route
+  path="/testimonials"
+  element={
+    <TestimonialsPage />
+  }
+/>
 
           <Route
             path="/faq"
