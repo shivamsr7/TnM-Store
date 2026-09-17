@@ -152,54 +152,114 @@ export default function TestimonialsPage() {
               </div>
             </div>
 
-            {/* Visual review composition */}
-            <div className="relative mx-auto h-[430px] w-full max-w-[650px] sm:h-[560px]">
-              {/* left story */}
-              <div className="absolute left-[3%] top-[7%] z-[1] w-[40%] rotate-[-5deg] shadow-[0_28px_60px_rgba(0,0,0,0.5)] transition-transform duration-700 hover:rotate-[-2deg] sm:left-[2%] sm:top-[9%] sm:w-[43%]">
-                <div className="border-[5px] border-[#f0ebe1] bg-[#f0ebe1] sm:border-[7px]">
-                  <img
-                    src={review1}
-                    alt="T&M customer review"
-                    className="aspect-[0.82/1] w-full object-cover"
-                  />
-                </div>
-              </div>
-
-              {/* right story */}
-              <div className="absolute right-[3%] top-[5%] z-[2] w-[40%] rotate-[5deg] shadow-[0_28px_60px_rgba(0,0,0,0.5)] transition-transform duration-700 hover:rotate-[2deg] sm:right-[4%] sm:top-[1%] sm:w-[40%]">
-                <div className="border-[5px] border-[#f0ebe1] bg-[#f0ebe1] sm:border-[7px]">
-                  <img
-                    src={review2}
-                    alt="T&M customer review"
-                    className="aspect-[0.82/1] w-full object-cover"
-                  />
-                </div>
-              </div>
-
-              {/* hero story */}
-              <div className="absolute bottom-[6%] left-1/2 z-10 w-[42%] -translate-x-1/2 rotate-[2deg] shadow-[0_30px_65px_rgba(0,0,0,0.58)] transition-transform duration-700 hover:rotate-0 sm:bottom-[4%] sm:left-[27%] sm:w-[46%] sm:translate-x-0">
-                <div className="border-[6px] border-[#f0ebe1] bg-[#f0ebe1] sm:border-[8px]">
-                  <img
-                    src={review3}
-                    alt="T&M customer review"
-                    className="aspect-[0.82/1] w-full object-cover"
-                  />
-                </div>
-              </div>
-
-              {/* brand seal */}
-              <div className="absolute bottom-[8%] left-[3%] z-20 flex h-[68px] w-[68px] items-center justify-center rounded-full border border-[#c9a461]/65 bg-[#1b1814] shadow-xl sm:bottom-[10%] sm:left-[4%] sm:h-24 sm:w-24">
-                <div className="text-center">
-                  <span className="block font-serif text-lg text-[#d1ad67] sm:text-xl">
-                    T&M
+            {/* Visual review composition
+                Desktop keeps the editorial collage.
+                Mobile switches to a completely different, premium magazine-style composition. */}
+            <div className="relative mx-auto w-full max-w-[650px]">
+              {/* MOBILE — premium editorial stack */}
+              <div className="relative block sm:hidden">
+                <div className="mb-4 flex items-center justify-between px-1">
+                  <span className="text-[8px] uppercase tracking-[0.28em] text-[#9d8d75]">
+                    Customer diary
                   </span>
-                  <span className="text-[5px] uppercase tracking-[0.2em] text-[#8d877e] sm:text-[6px] sm:tracking-[0.24em]">
-                    customer love
+                  <span className="flex items-center gap-2 text-[8px] uppercase tracking-[0.2em] text-[#9d8d75]">
+                    <span className="h-px w-5 bg-[#c7a25d]/60" />
+                    01 — 03
                   </span>
                 </div>
+
+                <div className="relative mx-auto w-[76%]">
+                  <div className="absolute -inset-2 rounded-[2px] border border-[#c7a25d]/20" />
+                  <div className="relative bg-[#f1ece3] p-2 shadow-[0_30px_70px_rgba(0,0,0,0.55)]">
+                    <div className="relative overflow-hidden bg-[#111]">
+                      <img
+                        src={review3}
+                        alt="T&M customer review"
+                        className="aspect-[0.82/1] w-full object-cover"
+                      />
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-4 pb-4 pt-12">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[7px] uppercase tracking-[0.22em] text-white/80">
+                            A real T&M moment
+                          </span>
+                          <InstagramIcon className="h-3.5 w-3.5 text-[#d1ad67]" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="relative -mt-8 flex items-end justify-between px-2">
+                  <div className="relative z-10 w-[31%] -rotate-6 bg-[#f1ece3] p-1.5 shadow-[0_18px_35px_rgba(0,0,0,0.45)]">
+                    <img
+                      src={review1}
+                      alt="T&M customer review"
+                      className="aspect-[0.82/1] w-full object-cover"
+                    />
+                  </div>
+
+                  <div className="relative z-10 w-[29%] rotate-6 bg-[#f1ece3] p-1.5 shadow-[0_18px_35px_rgba(0,0,0,0.45)]">
+                    <img
+                      src={review2}
+                      alt="T&M customer review"
+                      className="aspect-[0.82/1] w-full object-cover"
+                    />
+                  </div>
+                </div>
+
+                <div className="mx-auto mt-5 flex w-[88%] items-center gap-3 border-y border-white/10 py-3">
+                  <span className="font-serif text-lg text-[#d1ad67]">T&M</span>
+                  <span className="h-px flex-1 bg-gradient-to-r from-[#c7a25d]/50 to-transparent" />
+                  <span className="text-[7px] uppercase tracking-[0.2em] text-[#8d877e]">
+                    Loved · Worn · Shared
+                  </span>
+                </div>
               </div>
-            </div>
-          </div>
+
+              {/* DESKTOP — existing editorial collage */}
+              <div className="relative hidden h-[560px] sm:block">
+                <div className="absolute left-[2%] top-[9%] z-[1] w-[43%] rotate-[-5deg] shadow-[0_35px_70px_rgba(0,0,0,0.55)] transition-transform duration-700 hover:rotate-[-2deg]">
+                  <div className="border-[7px] border-[#f0ebe1] bg-[#f0ebe1]">
+                    <img
+                      src={review1}
+                      alt="T&M customer review"
+                      className="aspect-[0.82/1] w-full object-cover"
+                    />
+                  </div>
+                </div>
+
+                <div className="absolute right-[4%] top-[1%] z-[2] w-[40%] rotate-[5deg] shadow-[0_35px_70px_rgba(0,0,0,0.55)] transition-transform duration-700 hover:rotate-[2deg]">
+                  <div className="border-[7px] border-[#f0ebe1] bg-[#f0ebe1]">
+                    <img
+                      src={review2}
+                      alt="T&M customer review"
+                      className="aspect-[0.82/1] w-full object-cover"
+                    />
+                  </div>
+                </div>
+
+                <div className="absolute bottom-[4%] left-[27%] z-10 w-[46%] rotate-[2deg] shadow-[0_35px_80px_rgba(0,0,0,0.6)] transition-transform duration-700 hover:rotate-0">
+                  <div className="border-[8px] border-[#f0ebe1] bg-[#f0ebe1]">
+                    <img
+                      src={review3}
+                      alt="T&M customer review"
+                      className="aspect-[0.82/1] w-full object-cover"
+                    />
+                  </div>
+                </div>
+
+                <div className="absolute bottom-[10%] left-[4%] z-20 flex h-24 w-24 items-center justify-center rounded-full border border-[#c9a461]/60 bg-[#1b1814] shadow-xl">
+                  <div className="text-center">
+                    <span className="block font-serif text-xl text-[#d1ad67]">
+                      T&M
+                    </span>
+                    <span className="text-[6px] uppercase tracking-[0.24em] text-[#8d877e]">
+                      customer love
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>          </div>
 
           {/* Gold rule */}
           <div className="mt-10 flex items-center gap-5">
