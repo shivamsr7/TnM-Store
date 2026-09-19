@@ -1731,235 +1731,411 @@
 /* MOBILE — phone-first composition */
 
 @media (max-width: 700px) {
+  /* =========================================================
+     MOBILE — dedicated phone composition
+     ========================================================= */
+
   .tnm-click-story {
+    width: 100%;
     height: 100dvh;
     min-height: 100dvh;
+    overflow: hidden;
   }
 
+  /* ---------- TOP CHROME ---------- */
+
   .click-story-header {
-    width: calc(100% - 24px);
-    padding-top: max(10px, env(safe-area-inset-top));
+    position: absolute;
+    z-index: 50;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding:
+      max(14px, env(safe-area-inset-top))
+      18px
+      0;
+    box-sizing: border-box;
   }
 
   .click-brand {
-    padding: 7px 9px;
+    padding: 7px 12px;
+    min-width: 112px;
+    min-height: 42px;
   }
 
   .click-brand img {
-    width: 122px;
-    max-height: 34px;
+    width: 76px;
+    max-height: 28px;
   }
 
   .scene-counter {
-    padding: 7px 9px;
+    min-width: 82px;
+    min-height: 38px;
+    padding: 6px 10px;
+    font-size: 7px;
   }
 
-  /*
-   * Keep every scene inside the actual phone viewport.
-   * The bottom padding reserves space for the fixed CTA/navigation.
-   */
+  /* Every page gets a clean content zone between header and footer. */
   .click-scene {
+    position: absolute;
+    inset: 0;
+    width: 100%;
     height: 100dvh;
     min-height: 100dvh;
-    padding: 76px 18px calc(92px + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+    padding:
+      calc(78px + env(safe-area-inset-top))
+      16px
+      calc(92px + env(safe-area-inset-bottom))
+      16px;
     overflow: hidden;
+    display: flex;
     align-items: center;
+    justify-content: center;
   }
 
-  /* ---------- INTRO ---------- */
+  .scene-content {
+    width: 100%;
+    max-width: 430px;
+    min-width: 0;
+    max-height: 100%;
+    box-sizing: border-box;
+  }
+
+  /* ---------- SHARED CTA — intentionally compact ---------- */
+
+  .primary-next {
+    position: absolute;
+    z-index: 40;
+    left: 50%;
+    bottom: calc(27px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    width: min(222px, 64vw);
+    min-height: 50px;
+    max-height: 58px;
+    box-sizing: border-box;
+    padding: 8px 11px 8px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid rgba(155,113,51,.34);
+    border-radius: 999px;
+    color: var(--brown);
+    background: rgba(255,255,255,.72);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow:
+      0 9px 25px rgba(93,62,42,.08),
+      0 0 0 4px rgba(255,255,255,.22);
+    font-size: 8px;
+    line-height: 1.2;
+    letter-spacing: .075em;
+  }
+
+  .primary-next::after {
+    inset: -3px;
+    border-color: rgba(201,158,76,.08);
+  }
+
+  .primary-next span {
+    display: block;
+    max-width: 158px;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .primary-next b {
+    flex: 0 0 23px;
+    width: 23px;
+    height: 23px;
+    font-size: 12px;
+  }
+
+  .primary-next:hover {
+    transform: translateX(-50%);
+  }
+
+  .bottom-next {
+    left: 50%;
+    bottom: calc(27px + env(safe-area-inset-bottom));
+  }
+
+  .back-button {
+    left: 17px;
+    bottom: calc(31px + env(safe-area-inset-bottom));
+    width: 38px;
+    height: 38px;
+    z-index: 45;
+  }
+
+  .edge-next {
+    right: 4px;
+    top: 50%;
+    width: 32px;
+    height: 58px;
+  }
+
+  .story-footer {
+    left: 50%;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    width: calc(100% - 108px);
+    font-size: 5.5px;
+    letter-spacing: .17em;
+  }
+
+  /* ---------- PAGE 01 — INTRO ---------- */
+
+  .intro-content {
+    width: 100%;
+    text-align: center;
+  }
 
   .intro-content h1 {
+    margin-top: 10px;
+    margin-bottom: 8px;
     font-size: clamp(42px, 11.5vw, 54px);
+    line-height: .92;
+    letter-spacing: -1px;
   }
 
-  .floating-heart.heart-1 { margin-left: -112px; }
-  .floating-heart.heart-2 { margin-left: -70px; }
-  .floating-heart.heart-3 { margin-left: 88px; }
-  .floating-heart.heart-4 { margin-left: 116px; }
-  .floating-heart.heart-6 { margin-left: -132px; }
-  .floating-heart.heart-7 { margin-left: 136px; }
+  .intro-content > p {
+    max-width: 300px;
+    margin-inline: auto;
+    font-size: 10px;
+  }
+
+  .floating-heart.heart-1 { margin-left: -108px; }
+  .floating-heart.heart-2 { margin-left: -66px; }
+  .floating-heart.heart-3 { margin-left: 82px; }
+  .floating-heart.heart-4 { margin-left: 110px; }
+  .floating-heart.heart-6 { margin-left: -128px; }
+  .floating-heart.heart-7 { margin-left: 130px; }
 
   .envelope-stage {
-    height: 204px;
+    height: 190px;
+    margin-top: 1px;
   }
 
   .envelope {
-    width: min(292px, 80vw);
-    height: 180px;
+    width: min(285px, 78vw);
+    height: 175px;
   }
 
   .envelope-seal {
-    width: 58px;
-    height: 58px;
-    top: 66px;
+    width: 57px;
+    height: 57px;
+    top: 64px;
   }
 
   .envelope-seal img {
-    width: 36px;
-    max-height: 36px;
+    width: 35px;
+    max-height: 35px;
   }
 
-  /* ---------- LETTER / PAGE 02 ---------- */
+  /* ---------- PAGE 02 — LETTER ---------- */
 
   .letter-layout {
     width: 100%;
-    max-height: calc(100dvh - 156px);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .letter-card {
     width: min(100%, 390px);
-    max-height: calc(100dvh - 156px);
-    padding: 24px 21px 27px;
+    max-height: calc(100dvh - 198px);
+    box-sizing: border-box;
     overflow: hidden;
+    padding: 22px 21px 24px;
+    box-shadow: 0 18px 45px rgba(93,62,42,.09);
+  }
+
+  .letter-card::before {
+    inset: 8px;
   }
 
   .letter-card h2 {
-    margin-bottom: 8px;
-    font-size: clamp(42px, 12vw, 49px);
-    line-height: .88;
+    margin: 12px 0 14px;
+    font-size: clamp(42px, 11vw, 50px);
+    line-height: .82;
+    letter-spacing: -1.3px;
+  }
+
+  .letter-card h2 i {
+    font-size: 17px;
   }
 
   .letter-divider {
-    margin: 15px 0;
+    margin: 13px 0 15px;
+    gap: 7px;
+  }
+
+  .letter-divider i {
+    width: 43px;
   }
 
   .recipient {
-    margin-bottom: 11px;
-    font-size: 20px;
+    margin-bottom: 9px;
+    font-size: 19px;
   }
 
   .letter-lead {
     margin-bottom: 9px;
-    font-size: 18px;
-    line-height: 1.25;
+    font-size: 16px;
+    line-height: 1.22;
   }
 
-  .letter-card .letter-copy {
-    font-size: 10.5px;
-    line-height: 1.5;
+  .letter-copy {
     margin-bottom: 7px;
+    font-size: 9.5px;
+    line-height: 1.48;
   }
 
   .letter-highlight {
-    font-size: 13px !important;
-    line-height: 1.35 !important;
+    font-size: 12px !important;
+    line-height: 1.32 !important;
   }
 
   .signature {
-    margin-top: 13px;
-    font-size: 18px;
+    margin-top: 10px;
+    font-size: 16px;
+    line-height: .9;
   }
 
   .signature strong {
-    font-size: 24px;
+    font-size: 22px;
   }
 
-  /* ---------- PRODUCT / PAGE 03 ---------- */
+  /* ---------- PAGE 03 — PRODUCTS ---------- */
 
+  /*
+   * MOBILE PRODUCT SCENE
+   * Do not use the desktop grid here. The copy and collage get their
+   * own fixed zones so the product cards can never drift off-screen.
+   */
   .product-memory-layout {
+    position: relative;
     width: 100%;
-    height: calc(100dvh - 154px);
+    height: calc(100dvh - 182px);
     min-height: 0;
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
-    gap: 4px;
-    justify-items: center;
-    align-content: center;
+    display: block;
+    overflow: visible;
   }
 
   .product-memory-copy {
-    width: 100%;
-    max-width: 330px;
+    position: absolute;
+    z-index: 12;
+    top: 0;
+    left: 50%;
+    width: min(330px, 92vw);
+    transform: translateX(-50%);
     text-align: center;
   }
 
   .product-memory-copy h2 {
-    margin: 7px 0 7px;
-    font-size: clamp(42px, 11vw, 50px);
-    line-height: .86;
+    margin: 6px 0 7px;
+    font-size: clamp(39px, 10.2vw, 47px);
+    line-height: .84;
     letter-spacing: -1.2px;
   }
 
   .product-memory-copy p {
-    max-width: 300px;
+    max-width: 285px;
     margin: 0 auto;
-    font-size: 10px;
+    font-size: 9px;
     line-height: 1.45;
   }
 
   .product-memory-count {
     margin-top: 8px;
-    padding: 6px 10px 6px 6px;
+    padding: 5px 9px 5px 5px;
   }
 
   .product-memory-count span {
     width: 25px;
     height: 25px;
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .product-memory-count small {
-    font-size: 6.5px;
+    font-size: 6px;
+    letter-spacing: .17em;
   }
 
+  /*
+   * The collage is now explicitly centered in the lower-middle zone.
+   * This is the important fix for the card appearing at the right edge.
+   */
   .product-collage {
-    width: min(350px, 91vw);
-    height: min(385px, 38dvh);
-    min-height: 300px;
-    margin: 0 auto;
-    align-self: center;
+    position: absolute;
+    z-index: 6;
+    left: 50%;
+    top: 51%;
+    width: min(322px, 88vw);
+    height: 292px;
+    min-height: 0;
+    margin: 0;
+    transform: translate(-50%, -50%);
+    transform-origin: center center;
+    justify-self: auto;
+    align-self: auto;
   }
 
   .product-memory-card {
-    width: 116px;
+    width: 101px;
     padding: 5px 5px 7px;
   }
 
   .product-memory-card-1 {
-    left: 2%;
-    top: 8%;
+    left: 0;
+    top: 10%;
   }
 
   .product-memory-card-2 {
-    right: 2%;
-    top: 5%;
+    right: 0;
+    left: auto;
+    top: 7%;
   }
 
   .product-memory-card-3 {
-    left: 29%;
-    top: 20%;
-    width: 145px;
+    left: 50%;
+    top: 19%;
+    width: 132px;
+    transform: translateX(-50%) rotate(-1.5deg);
   }
 
   .product-memory-card-4 {
-    left: 5%;
-    bottom: 2%;
+    left: 4%;
+    bottom: 1%;
   }
 
   .product-memory-card-5 {
-    right: 4%;
-    bottom: 3%;
+    right: 3%;
+    left: auto;
+    bottom: 2%;
   }
 
   .product-memory-image {
-    padding: 10%;
+    padding: 9%;
   }
 
   .product-memory-card-label {
-    min-height: 26px;
-    padding-top: 5px;
+    min-height: 24px;
+    padding-top: 4px;
   }
 
   .product-memory-card-label small {
-    font-size: 4px;
-    letter-spacing: .22em;
+    font-size: 3.7px;
+    letter-spacing: .19em;
   }
 
   .product-memory-card-label strong {
-    max-width: 100px;
-    margin-top: 3px;
-    font-size: 9px;
-    line-height: 1.05;
+    max-width: 91px;
+    margin-top: 2px;
+    font-size: 8px;
+    line-height: 1.04;
   }
 
   .product-collage.product-collage-count-1 .product-memory-card-1 {
@@ -1971,19 +2147,19 @@
   }
 
   .product-collage-stamp {
-    transform: scale(.7);
+    transform: scale(.62);
     transform-origin: center;
   }
 
   .product-collage-more {
-    transform: scale(.8);
+    transform: scale(.72);
   }
 
-  /* ---------- LOVE / PAGE 04 ---------- */
+  /* ---------- PAGE 04 — LOVE ---------- */
 
   .love-content {
     width: 100%;
-    height: calc(100dvh - 154px);
+    height: calc(100dvh - 182px);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -1991,114 +2167,150 @@
   }
 
   .love-content h2 {
-    margin-bottom: 18px;
-    font-size: clamp(39px, 10.5vw, 48px);
+    margin: 0 0 28px;
+    font-size: clamp(37px, 10vw, 46px);
+    line-height: .9;
   }
 
   .love-grid {
     width: 100%;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 5px;
+    max-width: 390px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
   }
 
   .love-grid article {
-    padding: 8px 3px;
+    padding: 5px 2px;
   }
 
   .love-grid article > div {
-    width: 48px;
-    height: 48px;
-    margin-bottom: 11px;
-    font-size: 17px;
+    width: 45px;
+    height: 45px;
+    margin-bottom: 10px;
+    font-size: 16px;
   }
 
   .love-grid strong {
-    font-size: 10px;
-    line-height: 1.25;
+    font-size: 9.5px;
+    line-height: 1.22;
   }
 
   .love-grid p {
     margin-top: 5px;
-    font-size: 8.5px;
-    line-height: 1.45;
+    font-size: 8px;
+    line-height: 1.4;
   }
 
-  /* ---------- HAPPINESS / PAGE 05 ---------- */
+  /* ---------- PAGE 05 — HAPPINESS ---------- */
 
   .happiness-content {
     width: 100%;
-    height: calc(100dvh - 154px);
+    height: calc(100dvh - 182px);
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
   .happiness-card {
-    width: min(100%, 390px);
-    max-height: calc(100dvh - 190px);
-    overflow: hidden;
+    width: min(100%, 370px);
+    max-height: min(600px, calc(100dvh - 250px));
+    box-sizing: border-box;
     padding: 28px 20px 30px;
-    border-radius: 24px;
+    border-radius: 25px;
+    box-shadow: 0 20px 48px rgba(99,66,44,.09);
   }
 
   .big-star {
     font-size: 20px;
-    margin-bottom: 9px;
+    margin-bottom: 10px;
   }
 
   .happiness-card h2 {
     margin-bottom: 11px;
-    font-size: clamp(35px, 9.5vw, 44px);
+    font-size: clamp(34px, 9vw, 43px);
+    line-height: .95;
   }
 
   .happiness-card > p {
     max-width: 290px;
-    font-size: 10px;
-    line-height: 1.55;
+    font-size: 9.5px;
+    line-height: 1.5;
   }
 
   .happiness-button {
-    margin-top: 18px;
-    padding: 11px 18px;
-    font-size: 9px;
+    margin-top: 16px;
+    padding: 10px 16px;
+    font-size: 8px;
   }
 
   .happiness-message {
-    margin-top: 15px;
-    font-size: 17px;
+    margin-top: 14px;
+    font-size: 15px;
     line-height: 1.3;
   }
 
-  /* ---------- FINAL / PAGE 06 ---------- */
+  /* ---------- PAGE 06 — FINAL ---------- */
 
   .final-content {
     width: 100%;
     max-width: 390px;
-  }
-
-  /* ---------- SHARED NAV ---------- */
-
-  .bottom-next {
-    bottom: calc(17px + env(safe-area-inset-bottom));
-    max-width: calc(100% - 90px);
-  }
-
-  .bottom-next span {
-    white-space: normal;
     text-align: center;
   }
 
-  .back-button {
-    left: 18px;
-    bottom: calc(17px + env(safe-area-inset-bottom));
-    width: 37px;
-    height: 37px;
+  .final-content h2 {
+    font-size: clamp(40px, 10.5vw, 52px);
   }
 
-  .edge-next {
-    right: 8px;
-    width: 34px;
-    height: 70px;
+  /* ---------- TALL / SMALL PHONE SAFETY ---------- */
+
+  @media (max-height: 760px) {
+    .click-scene {
+      padding-top: 72px;
+      padding-bottom: calc(84px + env(safe-area-inset-bottom));
+    }
+
+    .letter-card {
+      max-height: calc(100dvh - 180px);
+      padding-top: 18px;
+      padding-bottom: 18px;
+    }
+
+    .letter-card h2 {
+      margin: 8px 0 10px;
+      font-size: 42px;
+    }
+
+    .letter-divider {
+      margin: 9px 0 11px;
+    }
+
+    .product-memory-layout {
+      height: calc(100dvh - 160px);
+    }
+
+    .product-collage {
+      top: 50%;
+      width: min(306px, 86vw);
+      height: 260px;
+    }
+
+    .product-memory-card-3 {
+      width: 124px;
+    }
+
+    .love-content {
+      height: calc(100dvh - 160px);
+    }
+
+    .happiness-content {
+      height: calc(100dvh - 160px);
+    }
+
+    .happiness-card {
+      max-height: calc(100dvh - 210px);
+      padding-top: 22px;
+      padding-bottom: 24px;
+    }
   }
 }
 
