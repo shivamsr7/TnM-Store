@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { momentsService } from "@/features/moments/services/moments.service";
-import MainLogo from "@/assets/logo/MainLogo.png";
+import MainLogo from "@/assets/logo/mainLogo.png";
 import "./thankYouMoment.clickStory.css";
 
 type Scene = "intro" | "letter" | "product" | "love" | "happiness" | "final";
