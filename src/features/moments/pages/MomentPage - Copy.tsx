@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { momentsService } from "@/features/moments/services/moments.service";
 import MainLogo from "@/assets/logo/mainLogo.png";
@@ -138,8 +138,6 @@ const scenes: Scene[] = [
   "final",
 ];
 
-const MUSIC_URL = "/audio/tm-moments-romantic.mp3";
-
 export default function MomentPage() {
   const { token = "" } = useParams<{ token: string }>();
 
@@ -152,8 +150,6 @@ export default function MomentPage() {
   const [showHappiness, setShowHappiness] = useState(false);
   const [burstKey, setBurstKey] = useState(0);
   const [envelopeOpening, setEnvelopeOpening] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [musicPlaying, setMusicPlaying] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -189,16 +185,6 @@ export default function MomentPage() {
       alive = false;
     };
   }, [token]);
-
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-        audioRef.current = null;
-      }
-    };
-  }, []);
 
   const recipientName = moment?.recipient_name?.trim() || "";
 
@@ -348,42 +334,8 @@ export default function MomentPage() {
     }, 280);
   };
 
-  const startMusic = () => {
-    if (musicPlaying) return;
-
-    try {
-      if (!audioRef.current) {
-        const audio = new Audio(MUSIC_URL);
-
-        audio.loop = true;
-        audio.volume = 0.16;
-        audio.preload = "auto";
-
-        audio.addEventListener("error", () => {
-          setMusicPlaying(false);
-        });
-
-        audioRef.current = audio;
-      }
-
-      void audioRef.current
-        .play()
-        .then(() => {
-          setMusicPlaying(true);
-        })
-        .catch(() => {
-          setMusicPlaying(false);
-        });
-    } catch {
-      setMusicPlaying(false);
-    }
-  };
-
   const openEnvelope = () => {
     if (envelopeOpening || transitioning) return;
-
-    // Start music from the customer's tap so mobile browsers allow playback.
-    startMusic();
 
     setEnvelopeOpening(true);
 
