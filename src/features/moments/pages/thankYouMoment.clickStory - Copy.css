@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,600;6..96,700&family=DM+Sans:wght@300;400;500;600&family=Great+Vibes&family=Manrope:wght@300;400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,600;6..96,700&family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@300;400;500;600&family=Great+Vibes&family=Manrope:wght@300;400;500;600&display=swap");
 
 :root {
   --cream: #fffaf3;
@@ -1733,6 +1733,9 @@
 @media (max-width: 700px) {
   /* =========================================================
      MOBILE — dedicated phone composition
+     The phone layout uses explicit vertical zones:
+     header → content → CTA → footer.
+     This prevents cards/buttons from competing for the same space.
      ========================================================= */
 
   .tnm-click-story {
@@ -1749,6 +1752,7 @@
     z-index: 50;
     top: 0;
     left: 0;
+    right: 0;
     width: 100%;
     padding:
       max(14px, env(safe-area-inset-top))
@@ -1758,9 +1762,9 @@
   }
 
   .click-brand {
-    padding: 7px 12px;
     min-width: 112px;
     min-height: 42px;
+    padding: 7px 12px;
   }
 
   .click-brand img {
@@ -1775,19 +1779,20 @@
     font-size: 7px;
   }
 
-  /* Every page gets a clean content zone between header and footer. */
+  /* ---------- SCENE FRAME ---------- */
+
   .click-scene {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100dvh;
     min-height: 100dvh;
-    box-sizing: border-box;
     padding:
-      calc(78px + env(safe-area-inset-top))
+      calc(76px + env(safe-area-inset-top))
       16px
-      calc(92px + env(safe-area-inset-bottom))
+      calc(94px + env(safe-area-inset-bottom))
       16px;
+    box-sizing: border-box;
     overflow: hidden;
     display: flex;
     align-items: center;
@@ -1802,19 +1807,19 @@
     box-sizing: border-box;
   }
 
-  /* ---------- SHARED CTA — intentionally compact ---------- */
+  /* ---------- SHARED CTA ---------- */
 
   .primary-next {
     position: absolute;
     z-index: 40;
     left: 50%;
-    bottom: calc(27px + env(safe-area-inset-bottom));
+    bottom: calc(24px + env(safe-area-inset-bottom));
     transform: translateX(-50%);
     width: min(222px, 64vw);
-    min-height: 50px;
-    max-height: 58px;
+    min-height: 48px;
+    max-height: 56px;
+    padding: 7px 10px 7px 15px;
     box-sizing: border-box;
-    padding: 8px 11px 8px 16px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1822,14 +1827,14 @@
     border: 1px solid rgba(155,113,51,.34);
     border-radius: 999px;
     color: var(--brown);
-    background: rgba(255,255,255,.72);
+    background: rgba(255,255,255,.76);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     box-shadow:
       0 9px 25px rgba(93,62,42,.08),
       0 0 0 4px rgba(255,255,255,.22);
     font-size: 8px;
-    line-height: 1.2;
+    line-height: 1.18;
     letter-spacing: .075em;
   }
 
@@ -1858,27 +1863,27 @@
 
   .bottom-next {
     left: 50%;
-    bottom: calc(27px + env(safe-area-inset-bottom));
+    bottom: calc(24px + env(safe-area-inset-bottom));
   }
 
   .back-button {
     left: 17px;
-    bottom: calc(31px + env(safe-area-inset-bottom));
+    bottom: calc(28px + env(safe-area-inset-bottom));
     width: 38px;
     height: 38px;
     z-index: 45;
   }
 
   .edge-next {
-    right: 4px;
+    right: 5px;
     top: 50%;
-    width: 32px;
+    width: 30px;
     height: 58px;
   }
 
   .story-footer {
     left: 50%;
-    bottom: calc(10px + env(safe-area-inset-bottom));
+    bottom: calc(9px + env(safe-area-inset-bottom));
     width: calc(100% - 108px);
     font-size: 5.5px;
     letter-spacing: .17em;
@@ -1887,22 +1892,31 @@
   /* ---------- PAGE 01 — INTRO ---------- */
 
   .intro-content {
+    position: relative;
     width: 100%;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     text-align: center;
+    padding: 12px 0 68px;
   }
 
   .intro-content h1 {
-    margin-top: 10px;
-    margin-bottom: 8px;
-    font-size: clamp(42px, 11.5vw, 54px);
+    margin: 0 0 8px;
+    max-width: 100%;
+    font-size: clamp(41px, 11.2vw, 54px);
     line-height: .92;
     letter-spacing: -1px;
   }
 
   .intro-content > p {
     max-width: 300px;
-    margin-inline: auto;
+    margin: 0 auto;
     font-size: 10px;
+    line-height: 1.6;
   }
 
   .floating-heart.heart-1 { margin-left: -108px; }
@@ -1913,8 +1927,10 @@
   .floating-heart.heart-7 { margin-left: 130px; }
 
   .envelope-stage {
-    height: 190px;
-    margin-top: 1px;
+    width: 100%;
+    height: 178px;
+    flex: 0 0 178px;
+    margin-top: 5px;
   }
 
   .envelope {
@@ -1933,6 +1949,26 @@
     max-height: 35px;
   }
 
+  /*
+   * IMPORTANT:
+   * On mobile the intro CTA participates in normal layout instead of
+   * being absolutely positioned over the envelope.
+   */
+  .intro-content > .primary-next,
+  .intro-content .primary-next {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    width: min(222px, 70vw);
+    flex: 0 0 auto;
+    margin: 15px auto 0;
+    transform: none;
+  }
+
+  .intro-content .primary-next:hover {
+    transform: translateY(-2px);
+  }
+
   /* ---------- PAGE 02 — LETTER ---------- */
 
   .letter-layout {
@@ -1945,7 +1981,7 @@
 
   .letter-card {
     width: min(100%, 390px);
-    max-height: calc(100dvh - 198px);
+    max-height: calc(100dvh - 214px);
     box-sizing: border-box;
     overflow: hidden;
     padding: 22px 21px 24px;
@@ -2010,35 +2046,47 @@
 
   /* ---------- PAGE 03 — PRODUCTS ---------- */
 
-  /*
-   * MOBILE PRODUCT SCENE
-   * Do not use the desktop grid here. The copy and collage get their
-   * own fixed zones so the product cards can never drift off-screen.
-   */
   .product-memory-layout {
     position: relative;
     width: 100%;
-    height: calc(100dvh - 182px);
+    height: calc(100dvh - 180px);
     min-height: 0;
     display: block;
     overflow: visible;
   }
 
+  /*
+   * The heading gets its own upper zone. Cards are deliberately kept
+   * below this zone so they can never cover the copy on narrow phones.
+   */
   .product-memory-copy {
     position: absolute;
     z-index: 12;
-    top: 0;
+    top: 4%;
     left: 50%;
     width: min(330px, 92vw);
     transform: translateX(-50%);
     text-align: center;
   }
 
+  .product-memory-copy .scene-kicker {
+    margin-bottom: 7px;
+  }
+
   .product-memory-copy h2 {
-    margin: 6px 0 7px;
+    margin: 0 0 8px;
+    font-family: "Bodoni Moda", serif;
     font-size: clamp(39px, 10.2vw, 47px);
-    line-height: .84;
-    letter-spacing: -1.2px;
+    line-height: .9;
+    font-weight: 600;
+    letter-spacing: -1.1px;
+  }
+
+  .product-memory-copy h2 span {
+    display: inline-block;
+    font-family: "Great Vibes", cursive;
+    font-weight: 400;
+    letter-spacing: 0;
   }
 
   .product-memory-copy p {
@@ -2049,7 +2097,7 @@
   }
 
   .product-memory-count {
-    margin-top: 8px;
+    margin-top: 9px;
     padding: 5px 9px 5px 5px;
   }
 
@@ -2065,16 +2113,16 @@
   }
 
   /*
-   * The collage is now explicitly centered in the lower-middle zone.
-   * This is the important fix for the card appearing at the right edge.
+   * Product collage occupies its own lower zone.
+   * left:50% + translate(-50%) guarantees mathematical centering.
    */
   .product-collage {
     position: absolute;
     z-index: 6;
     left: 50%;
-    top: 51%;
+    top: 62%;
     width: min(322px, 88vw);
-    height: 292px;
+    height: 278px;
     min-height: 0;
     margin: 0;
     transform: translate(-50%, -50%);
@@ -2090,31 +2138,31 @@
 
   .product-memory-card-1 {
     left: 0;
-    top: 10%;
+    top: 9%;
   }
 
   .product-memory-card-2 {
     right: 0;
     left: auto;
-    top: 7%;
+    top: 6%;
   }
 
   .product-memory-card-3 {
     left: 50%;
-    top: 19%;
+    top: 17%;
     width: 132px;
     transform: translateX(-50%) rotate(-1.5deg);
   }
 
   .product-memory-card-4 {
     left: 4%;
-    bottom: 1%;
+    bottom: 0;
   }
 
   .product-memory-card-5 {
     right: 3%;
     left: auto;
-    bottom: 2%;
+    bottom: 1%;
   }
 
   .product-memory-image {
@@ -2152,24 +2200,39 @@
   }
 
   .product-collage-more {
-    transform: scale(.72);
+    right: 50%;
+    top: 3%;
+    transform: translateX(50%) scale(.72);
+    transform-origin: center;
   }
 
   /* ---------- PAGE 04 — LOVE ---------- */
 
   .love-content {
     width: 100%;
-    height: calc(100dvh - 182px);
+    height: calc(100dvh - 180px);
+    min-height: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    align-items: center;
     text-align: center;
+    padding-bottom: 28px;
   }
 
+  /*
+   * Premium centered title. Bodoni gives this page a stronger editorial
+   * identity than the generic sans-serif treatment.
+   */
   .love-content h2 {
-    margin: 0 0 28px;
-    font-size: clamp(37px, 10vw, 46px);
-    line-height: .9;
+    width: 100%;
+    margin: 0 0 42px;
+    font-family: "Bodoni Moda", serif;
+    font-size: clamp(40px, 10.5vw, 49px);
+    line-height: .94;
+    font-weight: 600;
+    letter-spacing: -1.3px;
+    text-align: center;
   }
 
   .love-grid {
@@ -2205,17 +2268,23 @@
 
   .happiness-content {
     width: 100%;
-    height: calc(100dvh - 182px);
+    height: calc(100dvh - 180px);
+    min-height: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    padding-bottom: 30px;
   }
 
+  /*
+   * Reserve a real bottom safety zone for the CTA. The card can never
+   * grow into the button area now.
+   */
   .happiness-card {
     width: min(100%, 370px);
-    max-height: min(600px, calc(100dvh - 250px));
+    max-height: calc(100dvh - 350px);
     box-sizing: border-box;
-    padding: 28px 20px 30px;
+    padding: 28px 20px 26px;
     border-radius: 25px;
     box-shadow: 0 20px 48px rgba(99,66,44,.09);
   }
@@ -2227,8 +2296,10 @@
 
   .happiness-card h2 {
     margin-bottom: 11px;
+    font-family: "Bodoni Moda", serif;
     font-size: clamp(34px, 9vw, 43px);
     line-height: .95;
+    font-weight: 600;
   }
 
   .happiness-card > p {
@@ -2258,59 +2329,94 @@
   }
 
   .final-content h2 {
+    font-family: "Bodoni Moda", serif;
     font-size: clamp(40px, 10.5vw, 52px);
+    font-weight: 600;
+  }
+}
+
+/* ---------- SMALL PHONE SAFETY ---------- */
+
+@media (max-width: 700px) and (max-height: 760px) {
+  .click-scene {
+    padding-top: 70px;
+    padding-bottom: calc(88px + env(safe-area-inset-bottom));
   }
 
-  /* ---------- TALL / SMALL PHONE SAFETY ---------- */
+  .intro-content {
+    padding-bottom: 58px;
+  }
 
-  @media (max-height: 760px) {
-    .click-scene {
-      padding-top: 72px;
-      padding-bottom: calc(84px + env(safe-area-inset-bottom));
-    }
+  .intro-content h1 {
+    font-size: 40px;
+  }
 
-    .letter-card {
-      max-height: calc(100dvh - 180px);
-      padding-top: 18px;
-      padding-bottom: 18px;
-    }
+  .envelope-stage {
+    height: 158px;
+    flex-basis: 158px;
+  }
 
-    .letter-card h2 {
-      margin: 8px 0 10px;
-      font-size: 42px;
-    }
+  .envelope {
+    width: min(270px, 76vw);
+    height: 162px;
+  }
 
-    .letter-divider {
-      margin: 9px 0 11px;
-    }
+  .intro-content .primary-next {
+    margin-top: 10px;
+  }
 
-    .product-memory-layout {
-      height: calc(100dvh - 160px);
-    }
+  .letter-card {
+    max-height: calc(100dvh - 190px);
+    padding-top: 18px;
+    padding-bottom: 18px;
+  }
 
-    .product-collage {
-      top: 50%;
-      width: min(306px, 86vw);
-      height: 260px;
-    }
+  .letter-card h2 {
+    margin: 8px 0 10px;
+    font-size: 42px;
+  }
 
-    .product-memory-card-3 {
-      width: 124px;
-    }
+  .letter-divider {
+    margin: 9px 0 11px;
+  }
 
-    .love-content {
-      height: calc(100dvh - 160px);
-    }
+  .product-memory-layout {
+    height: calc(100dvh - 165px);
+  }
 
-    .happiness-content {
-      height: calc(100dvh - 160px);
-    }
+  .product-memory-copy {
+    top: 2%;
+  }
 
-    .happiness-card {
-      max-height: calc(100dvh - 210px);
-      padding-top: 22px;
-      padding-bottom: 24px;
-    }
+  .product-collage {
+    top: 63%;
+    width: min(306px, 86vw);
+    height: 250px;
+  }
+
+  .product-memory-card-3 {
+    width: 124px;
+  }
+
+  .love-content {
+    height: calc(100dvh - 165px);
+    padding-bottom: 22px;
+  }
+
+  .love-content h2 {
+    margin-bottom: 32px;
+    font-size: 39px;
+  }
+
+  .happiness-content {
+    height: calc(100dvh - 165px);
+    padding-bottom: 22px;
+  }
+
+  .happiness-card {
+    max-height: calc(100dvh - 285px);
+    padding-top: 22px;
+    padding-bottom: 24px;
   }
 }
 

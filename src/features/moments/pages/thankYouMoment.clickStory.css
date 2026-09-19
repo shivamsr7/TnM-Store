@@ -2524,3 +2524,417 @@
   max-height: 42px;
   object-fit: contain;
 }
+
+
+/* =========================================================
+   T&M JEWELS — MOBILE PREMIUM REFINEMENT v2
+   Only overrides the mobile presentation.
+   Desktop layout remains unchanged.
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+  /* -------------------------------------------------------
+     SHARED MOBILE TYPE
+     Softer editorial serif: elegant + cute + readable.
+     ------------------------------------------------------- */
+
+  .scene-kicker {
+    font-family: "DM Sans", sans-serif;
+    font-size: 7px;
+    font-weight: 600;
+    letter-spacing: .27em;
+    line-height: 1.2;
+  }
+
+  /* -------------------------------------------------------
+     SHARED CTA — premium soft "tap" control
+     Position intentionally unchanged.
+     ------------------------------------------------------- */
+
+  .primary-next {
+    width: min(210px, 62vw);
+    min-height: 52px;
+    max-height: 58px;
+    padding: 6px 8px 6px 16px;
+    gap: 9px;
+    border: 1px solid rgba(173, 128, 65, .28);
+    border-radius: 18px;
+    color: #4b352c;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.91), rgba(255,249,241,.78));
+    box-shadow:
+      0 14px 30px rgba(87, 58, 43, .09),
+      0 3px 8px rgba(87, 58, 43, .045),
+      inset 0 1px 0 rgba(255,255,255,.95);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    font-family: "DM Sans", sans-serif;
+    font-size: 8px;
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: .10em;
+    overflow: visible;
+    isolation: isolate;
+    transition:
+      transform .28s cubic-bezier(.2,.8,.2,1),
+      box-shadow .28s ease,
+      border-color .28s ease;
+  }
+
+  .primary-next::after {
+    inset: -4px;
+    border: 1px solid rgba(201,158,76,.10);
+    border-radius: 22px;
+    opacity: .8;
+  }
+
+  .primary-next::before {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    border-radius: 16px;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        110deg,
+        transparent 0%,
+        transparent 42%,
+        rgba(255,255,255,.58) 50%,
+        transparent 58%,
+        transparent 100%
+      );
+    background-size: 220% 100%;
+    background-position: 120% 0;
+    opacity: 0;
+    z-index: -1;
+    transition: opacity .25s ease, background-position .8s ease;
+  }
+
+  .primary-next span {
+    max-width: 142px;
+    padding-top: 1px;
+    font-family: "DM Sans", sans-serif;
+    font-size: 8px;
+    font-weight: 500;
+    letter-spacing: .09em;
+  }
+
+  .primary-next b {
+    flex: 0 0 29px;
+    width: 29px;
+    height: 29px;
+    border: 1px solid rgba(255,255,255,.58);
+    border-radius: 50%;
+    color: #fffdf8;
+    background:
+      linear-gradient(145deg, #d8ad62, #b9853e);
+    box-shadow:
+      0 5px 12px rgba(155,108,45,.20),
+      inset 0 1px 0 rgba(255,255,255,.35);
+    font-family: "DM Sans", sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    transition:
+      transform .28s cubic-bezier(.2,.8,.2,1),
+      box-shadow .28s ease;
+  }
+
+  .primary-next:hover {
+    transform: translateX(-50%) translateY(-2px);
+    border-color: rgba(173,128,65,.40);
+    box-shadow:
+      0 17px 34px rgba(87,58,43,.12),
+      0 4px 9px rgba(87,58,43,.05),
+      inset 0 1px 0 rgba(255,255,255,.98);
+  }
+
+  .primary-next:hover::before,
+  .primary-next:focus-visible::before {
+    opacity: 1;
+    background-position: -20% 0;
+  }
+
+  .primary-next:hover b {
+    transform: translateX(2px) scale(1.04);
+    box-shadow:
+      0 7px 15px rgba(155,108,45,.24),
+      inset 0 1px 0 rgba(255,255,255,.4);
+  }
+
+  .primary-next:active {
+    transform: translateX(-50%) translateY(1px) scale(.985);
+  }
+
+  .primary-next:active b {
+    transform: scale(.94);
+  }
+
+  .primary-next:focus-visible {
+    outline: 2px solid rgba(201,158,76,.55);
+    outline-offset: 5px;
+  }
+
+  .bottom-next {
+    bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+
+  /* Intro CTA is in normal flow, so its transform must not use
+     the absolute-position translation. */
+  .intro-content .primary-next {
+    width: min(210px, 68vw);
+    margin-top: 15px;
+  }
+
+  .intro-content .primary-next:hover {
+    transform: translateY(-2px);
+  }
+
+  .intro-content .primary-next:active {
+    transform: translateY(1px) scale(.985);
+  }
+
+  /* -------------------------------------------------------
+     PAGE 03 — PRODUCT MEMORY
+     Separate title zone from the product collage.
+     Nothing is allowed to climb into the text zone.
+     ------------------------------------------------------- */
+
+  .product-memory-layout {
+    height: calc(100dvh - 180px);
+    min-height: 0;
+  }
+
+  .product-memory-copy {
+    top: 3%;
+    width: min(330px, 88vw);
+    z-index: 20;
+  }
+
+  .product-memory-copy .scene-kicker {
+    margin-bottom: 9px;
+  }
+
+  .product-memory-copy h2 {
+    margin: 0 0 10px;
+    font-family: "Cormorant Garamond", serif;
+    font-size: clamp(43px, 11vw, 51px);
+    line-height: .86;
+    font-weight: 600;
+    letter-spacing: -.9px;
+    color: #4b3028;
+  }
+
+  .product-memory-copy h2 span {
+    font-family: "Great Vibes", cursive;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+
+  .product-memory-copy p {
+    max-width: 278px;
+    font-size: 8.8px;
+    line-height: 1.48;
+  }
+
+  .product-memory-count {
+    margin-top: 10px;
+    padding: 5px 9px 5px 5px;
+    box-shadow: 0 7px 18px rgba(93,62,42,.045);
+  }
+
+  /* Push the collage lower and make it a compact visual block. */
+  .product-collage {
+    top: 68%;
+    width: min(306px, 84vw);
+    height: 244px;
+    min-height: 0;
+  }
+
+  .product-memory-card {
+    width: 91px;
+    padding: 5px 5px 6px;
+    box-shadow:
+      0 18px 32px rgba(61,43,31,.15),
+      0 3px 8px rgba(61,43,31,.06);
+  }
+
+  .product-memory-card-1 {
+    left: 1%;
+    top: 11%;
+  }
+
+  .product-memory-card-2 {
+    right: 1%;
+    top: 8%;
+  }
+
+  .product-memory-card-3 {
+    left: 50%;
+    top: 18%;
+    width: 116px;
+  }
+
+  .product-memory-card-4,
+  .product-memory-card-5 {
+    display: none;
+  }
+
+  .product-memory-image {
+    padding: 8%;
+  }
+
+  .product-memory-card-label {
+    min-height: 22px;
+    padding: 4px 2px 0;
+  }
+
+  .product-memory-card-label small {
+    font-size: 3.4px;
+    letter-spacing: .16em;
+  }
+
+  .product-memory-card-label strong {
+    max-width: 80px;
+    margin-top: 2px;
+    font-size: 7.2px;
+    line-height: 1.05;
+  }
+
+  .product-collage.product-collage-count-1 .product-memory-card-1 {
+    top: 50%;
+  }
+
+  .product-collage-more {
+    top: 1%;
+    right: 50%;
+    transform: translateX(50%) scale(.68);
+  }
+
+  /* -------------------------------------------------------
+     PAGE 04 — PACKED WITH LOVE
+     Center the complete composition, not just the heading.
+     ------------------------------------------------------- */
+
+  .love-content {
+    width: 100%;
+    height: calc(100dvh - 180px);
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0 4px 28px;
+    text-align: center;
+  }
+
+  .love-content h2 {
+    width: min(330px, 88vw);
+    margin: 0 0 27px;
+    font-family: "Cormorant Garamond", serif;
+    font-size: clamp(45px, 11.5vw, 54px);
+    line-height: .86;
+    font-weight: 600;
+    letter-spacing: -.9px;
+    color: #4b3028;
+    text-align: center;
+    text-wrap: balance;
+  }
+
+  .love-grid {
+    width: min(100%, 374px);
+    max-width: 374px;
+    margin: 0 auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .love-grid article {
+    padding: 4px 1px;
+  }
+
+  .love-grid article > div {
+    width: 44px;
+    height: 44px;
+    margin: 0 auto 10px;
+    background: rgba(253,240,237,.72);
+    box-shadow: 0 8px 18px rgba(93,62,42,.035);
+    font-size: 15px;
+  }
+
+  .love-grid strong {
+    font-family: "DM Sans", sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .love-grid p {
+    max-width: 110px;
+    margin: 5px auto 0;
+    font-size: 7.7px;
+    line-height: 1.38;
+  }
+
+  /* -------------------------------------------------------
+     PAGE 06 — FINAL
+     Same soft editorial heading treatment as page 04.
+     ------------------------------------------------------- */
+
+  .final-content h2 {
+    margin: 0 auto 18px;
+    width: min(350px, 90vw);
+    font-family: "Cormorant Garamond", serif;
+    font-size: clamp(45px, 11.5vw, 55px);
+    line-height: .88;
+    font-weight: 600;
+    letter-spacing: -.8px;
+    color: #4b3028;
+    text-wrap: balance;
+  }
+
+  /* -------------------------------------------------------
+     SMALL PHONES
+     Keep the new composition intact on shorter displays.
+     ------------------------------------------------------- */
+
+  @media (max-height: 760px) {
+    .love-content {
+      padding-bottom: 18px;
+    }
+
+    .love-content h2 {
+      margin-bottom: 23px;
+      font-size: 43px;
+    }
+
+    .love-grid article > div {
+      width: 40px;
+      height: 40px;
+      margin-bottom: 8px;
+    }
+
+    .love-grid strong {
+      font-size: 8.5px;
+    }
+
+    .love-grid p {
+      font-size: 7.2px;
+    }
+
+    .product-memory-copy {
+      top: 1%;
+    }
+
+    .product-collage {
+      top: 70%;
+      height: 228px;
+      width: min(292px, 82vw);
+    }
+
+    .primary-next {
+      min-height: 50px;
+      width: min(204px, 61vw);
+    }
+  }
+}
