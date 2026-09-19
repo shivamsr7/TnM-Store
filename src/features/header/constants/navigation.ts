@@ -23,5 +23,9 @@ export const navigationItems: NavigationItem[] = [
   {
     label: "Collaborate",
     href: "/collaborate",
+  },
+    {
+    label: "Testimonials",
+    href: "/testimonials",
   }
 ];
