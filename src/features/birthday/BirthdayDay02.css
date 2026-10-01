@@ -1,0 +1,348 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@400;500&display=swap");
+
+:root {
+  --b02-bg:#f3e7df;
+  --b02-paper:#fbf5ef;
+  --b02-burgundy:#632d3a;
+  --b02-rose:#a75f6d;
+  --b02-gold:#b88a54;
+  --b02-ink:#3b2b2b;
+  --b02-muted:#806d68;
+}
+
+*{box-sizing:border-box}
+
+.birthday02{
+  min-height:100svh;
+  width:100%;
+  position:relative;
+  overflow:hidden;
+  color:var(--b02-ink);
+  background:
+    radial-gradient(circle at 50% 35%,rgba(255,255,255,.82),transparent 31%),
+    linear-gradient(145deg,#eadbd2,var(--b02-bg) 52%,#dfc9c0);
+  font-family:"DM Sans",system-ui,sans-serif;
+  isolation:isolate;
+}
+
+.birthday02::before{
+  content:"";
+  position:absolute;
+  inset:11px;
+  border:1px solid rgba(99,45,58,.15);
+  pointer-events:none;
+  z-index:30;
+}
+
+.birthday02-grain{
+  position:absolute;
+  inset:0;
+  opacity:.14;
+  pointer-events:none;
+  background-image:
+    radial-gradient(rgba(80,40,35,.55) .45px,transparent .55px),
+    radial-gradient(rgba(255,255,255,.8) .45px,transparent .55px);
+  background-size:17px 17px,29px 29px;
+  mix-blend-mode:multiply;
+}
+
+.birthday02-glow{
+  position:absolute;
+  width:360px;height:360px;border-radius:50%;
+  filter:blur(85px);pointer-events:none;opacity:.16;
+}
+.glow-top{top:-150px;right:-90px;background:var(--b02-rose)}
+.glow-bottom{bottom:-160px;left:-90px;background:var(--b02-gold);opacity:.1}
+
+.birthday02-header{
+  position:absolute;z-index:35;top:27px;left:34px;right:34px;
+  display:flex;justify-content:space-between;
+  font-size:7px;letter-spacing:.28em;color:rgba(59,43,43,.48);
+}
+
+.birthday02-footer{
+  position:absolute;z-index:35;left:34px;right:34px;bottom:25px;
+  display:flex;justify-content:space-between;
+  font-size:7px;letter-spacing:.26em;color:rgba(59,43,43,.43);
+}
+
+.birthday02-landing{
+  position:relative;z-index:5;min-height:100svh;
+  max-width:1120px;margin:auto;
+}
+
+.birthday02-calendar{
+  position:absolute;left:11%;top:23%;
+  width:290px;height:355px;padding:23px;
+  border:1px solid rgba(99,45,58,.23);
+  background:rgba(251,245,239,.48);
+  box-shadow:18px 25px 55px rgba(79,44,43,.1);
+  transform:rotate(-4deg);
+}
+
+.calendar-top,.calendar-bottom{
+  display:flex;justify-content:space-between;
+  font-size:7px;letter-spacing:.25em;color:rgba(99,45,58,.56);
+}
+
+.calendar-day{
+  height:calc(100% - 35px);
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+}
+
+.calendar-day small{
+  font-size:8px;letter-spacing:.5em;margin-left:.5em;color:var(--b02-gold);
+}
+
+.calendar-day strong{
+  margin-top:8px;
+  font:500 170px/.72 "Cormorant Garamond",serif;
+  letter-spacing:-.09em;color:var(--b02-burgundy);
+}
+
+.landing-copy{
+  position:absolute;z-index:5;right:11%;top:27%;width:390px;
+}
+
+.tiny-kicker{font-size:7px;letter-spacing:.34em;color:var(--b02-gold)}
+
+.landing-copy h1{
+  margin:17px 0 16px;
+  font:500 clamp(65px,7vw,105px)/.73 "Cormorant Garamond",serif;
+  letter-spacing:-.06em;
+}
+.landing-copy h1 em{font-style:normal;color:var(--b02-burgundy)}
+.landing-copy h1 i{font-weight:400;color:var(--b02-rose)}
+
+.landing-copy p{
+  width:280px;margin:0;
+  font:17px/1.4 "Cormorant Garamond",serif;color:var(--b02-muted);
+}
+
+.birthday02-open,.birthday02-watch,.birthday02-next{
+  border:0;background:transparent;cursor:pointer;
+}
+
+.birthday02-open{
+  margin-top:28px;display:flex;align-items:center;gap:15px;
+  color:var(--b02-burgundy);font-size:8px;letter-spacing:.22em;
+}
+.birthday02-open b{
+  width:38px;height:38px;display:grid;place-items:center;
+  border:1px solid rgba(99,45,58,.45);border-radius:50%;
+  font-size:13px;font-weight:400;transition:.35s;
+}
+.birthday02-open:hover b{transform:translateX(5px);background:rgba(255,255,255,.45)}
+
+.birthday02-message-screen,.birthday02-video-intro,.birthday02-ending{
+  position:relative;z-index:5;min-height:100svh;
+  display:grid;place-items:center;align-content:center;
+  text-align:center;padding:90px 24px 80px;
+}
+
+.floating-date{
+  position:absolute;top:16%;right:11%;
+  font:italic 17px "Cormorant Garamond",serif;color:rgba(99,45,58,.38);
+}
+
+.message-heart{
+  position:relative;width:70px;height:70px;display:grid;place-items:center;
+  margin-bottom:24px;color:var(--b02-rose);
+}
+.message-heart span{
+  position:relative;z-index:2;font:52px/1 "Cormorant Garamond",serif;
+  animation:heartPulse 2.2s ease-in-out infinite;
+}
+.message-heart i{
+  position:absolute;inset:8px;border:1px solid rgba(167,95,109,.25);border-radius:50%;
+}
+@keyframes heartPulse{0%,100%{transform:scale(.96)}50%{transform:scale(1.08)}}
+
+.birthday02-message-screen h1,
+.birthday02-video-intro h1,
+.birthday02-ending h1{
+  margin:17px 0;
+  font:500 clamp(48px,6vw,82px)/.84 "Cormorant Garamond",serif;
+  letter-spacing:-.045em;
+}
+.birthday02-message-screen h1 em,
+.birthday02-video-intro h1 em,
+.birthday02-ending h1 em{color:var(--b02-burgundy);font-style:italic}
+
+.message-rule{
+  width:min(340px,75vw);display:flex;align-items:center;gap:10px;margin:6px auto 20px;
+}
+.message-rule span{flex:1;height:1px;background:rgba(184,138,84,.34)}
+.message-rule b{color:var(--b02-gold);font-size:11px}
+
+.birthday02-personal{
+  max-width:470px;margin:0 auto;
+  font:20px/1.42 "Cormorant Garamond",serif;color:var(--b02-muted);
+}
+
+.message-signature{
+  display:flex;justify-content:center;align-items:baseline;gap:9px;margin-top:20px;
+}
+.message-signature span{font:italic 14px "Cormorant Garamond",serif;color:rgba(59,43,43,.48)}
+.message-signature strong{font:500 17px "Cormorant Garamond",serif;color:var(--b02-burgundy)}
+
+.birthday02-next{
+  margin-top:40px;display:flex;flex-direction:column;gap:9px;
+  color:var(--b02-burgundy);font-size:8px;letter-spacing:.23em;
+}
+.birthday02-next b{font-size:17px;font-weight:400;animation:downFloat 1.6s ease-in-out infinite}
+@keyframes downFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+
+.video-intro-number{
+  position:absolute;top:15%;left:50%;transform:translateX(-50%);
+  font:170px/.8 "Cormorant Garamond",serif;color:rgba(99,45,58,.055);
+  pointer-events:none;
+}
+
+.birthday02-video-intro p{
+  margin:0;font:18px/1.5 "Cormorant Garamond",serif;color:var(--b02-muted);
+}
+
+.birthday02-watch{
+  margin-top:28px;display:flex;align-items:center;gap:12px;
+  color:var(--b02-burgundy);font-size:8px;letter-spacing:.25em;
+}
+.play-icon{
+  width:48px;height:48px;display:grid;place-items:center;
+  border:1px solid rgba(99,45,58,.45);border-radius:50%;
+  font-size:10px;padding-left:2px;transition:.3s;
+}
+.birthday02-watch:hover .play-icon{transform:scale(1.08);background:rgba(255,255,255,.5)}
+
+.birthday02-video-screen{
+  position:relative;z-index:10;min-height:100svh;
+  display:grid;place-items:center;align-content:center;
+  padding:75px 20px;
+  background:rgba(53,29,36,.08);
+}
+
+.video-frame{
+  width:min(920px,88vw);
+  aspect-ratio:910/512;
+  padding:8px;
+  background:rgba(251,245,239,.72);
+  border:1px solid rgba(99,45,58,.22);
+  box-shadow:0 30px 80px rgba(66,35,42,.22);
+}
+
+.video-frame video{
+  display:block;width:100%;height:100%;object-fit:contain;
+  background:#171217;
+}
+
+.video-close{
+  margin-top:16px;border:0;background:transparent;
+  color:var(--b02-burgundy);font:8px "DM Sans",sans-serif;
+  letter-spacing:.2em;text-transform:uppercase;cursor:pointer;
+}
+
+.birthday02-ending{overflow:hidden}
+
+.ending-heart{
+  margin:22px 0 10px;
+  font:75px/1 "Cormorant Garamond",serif;color:var(--b02-rose);
+  animation:endingHeart 2.5s ease-in-out infinite;
+}
+@keyframes endingHeart{0%,100%{transform:scale(.95)}50%{transform:scale(1.07)}}
+
+.birthday02-ending p{
+  margin:0;font:20px/1.4 "Cormorant Garamond",serif;color:var(--b02-muted);
+}
+
+.ending-sign{
+  margin-top:25px;display:flex;flex-direction:column;gap:4px;
+}
+.ending-sign span{font:italic 14px "Cormorant Garamond",serif;color:rgba(59,43,43,.48)}
+.ending-sign strong{font:500 18px "Cormorant Garamond",serif;color:var(--b02-burgundy)}
+
+.ending-stars{position:absolute;inset:0;pointer-events:none}
+.ending-stars i{
+  position:absolute;width:4px;height:4px;border-radius:50%;
+  background:var(--b02-gold);opacity:0;
+  animation:starRise 2s ease-out forwards;
+}
+.ending-stars i:nth-child(1){left:17%;top:58%;animation-delay:.1s}
+.ending-stars i:nth-child(2){left:27%;top:42%;animation-delay:.25s}
+.ending-stars i:nth-child(3){left:37%;top:64%;animation-delay:.4s}
+.ending-stars i:nth-child(4){left:48%;top:37%;animation-delay:.55s}
+.ending-stars i:nth-child(5){left:59%;top:61%;animation-delay:.7s}
+.ending-stars i:nth-child(6){left:69%;top:45%;animation-delay:.85s}
+.ending-stars i:nth-child(7){left:80%;top:57%;animation-delay:1s}
+.ending-stars i:nth-child(8){left:22%;top:70%;animation-delay:1.15s}
+.ending-stars i:nth-child(9){left:75%;top:71%;animation-delay:1.3s}
+.ending-stars i:nth-child(10){left:43%;top:75%;animation-delay:1.45s}
+.ending-stars i:nth-child(11){left:56%;top:27%;animation-delay:1.6s}
+.ending-stars i:nth-child(12){left:33%;top:29%;animation-delay:1.75s}
+@keyframes starRise{
+  0%{opacity:0;transform:translateY(22px) scale(.2)}
+  30%{opacity:.9}
+  100%{opacity:0;transform:translateY(-38px) scale(1)}
+}
+
+.birthday02-loading,.birthday02-invalid{
+  display:grid;place-items:center;text-align:center;padding:25px;
+}
+.birthday02-loading-heart{font:55px "Cormorant Garamond",serif;color:var(--b02-rose);animation:heartPulse 1.8s infinite}
+.birthday02-loading p{font-size:11px;color:var(--b02-muted)}
+.birthday02-invalid>span{font-size:8px;letter-spacing:.35em;color:var(--b02-gold)}
+.birthday02-invalid h1{margin:15px 0 10px;font:500 43px/.92 "Cormorant Garamond",serif}
+.birthday02-invalid p{margin:0;color:var(--b02-muted);font-size:12px}
+
+@media(max-width:800px){
+  .birthday02::before{inset:8px}
+  .birthday02-header{top:19px;left:23px;right:23px;font-size:6px;letter-spacing:.23em}
+  .birthday02-footer{left:23px;right:23px;bottom:17px}
+  .birthday02-calendar{
+    left:50%;top:13%;transform:translateX(-50%) rotate(-3deg);
+    width:190px;height:220px;padding:14px;
+  }
+  .calendar-top,.calendar-bottom{font-size:5px}
+  .calendar-day{height:calc(100% - 25px)}
+  .calendar-day small{font-size:6px}
+  .calendar-day strong{font-size:105px}
+  .landing-copy{
+    left:20px;right:20px;top:54%;width:auto;text-align:center;
+  }
+  .landing-copy h1{font-size:65px;line-height:.72;margin:12px 0}
+  .landing-copy p{width:250px;margin:auto;font-size:16px}
+  .birthday02-open{margin:20px auto 0}
+  .floating-date{top:13%;right:10%;font-size:14px}
+  .birthday02-message-screen h1,
+  .birthday02-video-intro h1,
+  .birthday02-ending h1{font-size:48px}
+  .birthday02-personal{max-width:330px;font-size:18px}
+  .message-heart{margin-bottom:17px}
+  .video-intro-number{top:16%;font-size:120px}
+  .birthday02-video-intro p{font-size:17px}
+  .video-frame{
+    width:calc(100vw - 32px);
+    padding:5px;
+  }
+  .birthday02-ending p{font-size:18px}
+}
+
+@media(max-width:430px){
+  .birthday02-calendar{top:12%;width:174px;height:202px}
+  .calendar-day strong{font-size:96px}
+  .landing-copy{top:52%}
+  .landing-copy h1{font-size:61px}
+  .birthday02-message-screen,
+  .birthday02-video-intro,
+  .birthday02-ending{padding-left:18px;padding-right:18px}
+  .birthday02-message-screen h1,
+  .birthday02-video-intro h1,
+  .birthday02-ending h1{font-size:43px}
+  .birthday02-personal{font-size:17px}
+  .birthday02-footer{display:none}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .message-heart span,.birthday02-next b,.ending-heart,.ending-stars i,.birthday02-loading-heart{
+    animation:none!important;
+  }
+}

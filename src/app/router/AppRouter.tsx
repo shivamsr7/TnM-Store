@@ -92,6 +92,8 @@ import MomentPage
   import TestimonialsPage
   from "@/features/testimonials/pages/TestimonialsPage";
 
+  import BirthdayDay02 from "@/features/birthday/BirthdayDay02";
+
 export default function AppRouter() {
 
   return (
@@ -323,7 +325,7 @@ export default function AppRouter() {
           />
 
         </Route>
-
+<Route path="/birthday-day-02" element={<BirthdayDay02 />} />
         {/* =================================================
             PRIVATE T&M MOMENT
         ================================================== */}
