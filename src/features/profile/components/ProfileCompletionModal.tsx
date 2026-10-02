@@ -463,7 +463,9 @@ export default function ProfileCompletionModal({
               "
             >
               on orders above ₹
-              {birthdayReward.minimum_order_amount.toLocaleString(
+              {Number(
+                birthdayReward.minimum_order_amount ?? 0
+              ).toLocaleString(
                 "en-IN"
               )}
             </p>
